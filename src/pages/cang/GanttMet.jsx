@@ -1,9 +1,9 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useApp } from "@/store";
 import { trangThai, chiSo, TRANG_THAI } from "@/lib/linetime";
 import { cacTuyen, viTriTrenLich, benTheoViTri, kiemTraXepBen, nhanCho, tenTuyen } from "@/lib/capBen";
 import { kiemTraBen } from "@/lib/checks";
-import { DAY, ngayGio, so, pad, iso, ms } from "@/lib/format";
+import { DAY, ngayGio, so, pad, iso, ms, thoiLuong } from "@/lib/format";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { MucIcon } from "@/components/common";
@@ -11,17 +11,20 @@ import { cn } from "@/lib/utils";
 import { tenBen, noiHaiBen } from "./BangTauBen";
 import { viTriChu } from "@/lib/tenBen";
 import { TheTau, SNAP, THU, KEO_DUOC } from "./Gantt";
+import { choBatDau, kieuCho, PhanChoHang, ChuThichCho } from "./doanCho";
+import { MAU_CHO } from "@/lib/linetime";
 
 // Lịch cầu bến theo mét (bảng phân bổ cầu bến): ngang là thời gian, dọc là mét dọc từng tuyến bến (3-5-10, 4-6-11, 7-8-9, HH2-HH3…).
 // Mỗi tàu là một khối: dài theo thời gian ở bến, cao theo LOA, nằm đúng vị trí mét (chưa ghi vị trí: chỗ web tự xếp lúc tàu vào bến, viền đứt).
 // Kéo ngang đổi giờ dự kiến (tàu chưa cập, bước 30 phút), kéo dọc đổi vị trí mét; kéo qua ranh giới / sang tuyến khác thì bến chính, bến phụ
 // tự theo phần tàu chiếm. Khi kéo hiện mét đầu – cuối tàu, bến và giờ cập – rời để căn chỉnh.
+// che = "toan": thêm đoạn chờ bến (đỏ) trước thanh tàu và vạch NOR / làm hàng, giống lịch theo bến. Khoảng chờ hàng / bãi (xanh lá) luôn hiện trên thanh tàu.
 const CO = {
   thuong: { mPx: 0.3, label: 96, head: 38, pad: 6, chu: "text-[11px]" },
   gon: { mPx: 0.18, label: 80, head: 30, pad: 4, chu: "text-[10px]" },
 };
 
-export default function GanttMet({ voyages, tu, soNgay, pxNgay, gon = false, maxH = "70vh" }) {
+export default function GanttMet({ voyages, tu, soNgay, pxNgay, che = "ben", gon = false, maxH = "70vh" }) {
   const K = gon ? CO.gon : CO.thuong, LABEL = K.label;
   const { D, quyen, run, api, setVoyageMo, toast } = useApp();
   const [keo, setKeo] = useState(null); // { it, x0, y0, dx, dy, moved }
@@ -136,8 +139,21 @@ export default function GanttMet({ voyages, tu, soNgay, pxNgay, gon = false, max
               const cs = it.st === "lam_hang" ? chiSo(it.v, D.stopsOf(it.v.id), D.now) : null;
               const muc = canhBaoCua.get(it.v.id), mau = TRANG_THAI[it.st].mau;
               const keoDuoc = doiMetDuoc(it) || doiGioDuoc(it);
+              const dsStops = D.stopsOf(it.v.id);
+              // Toàn thời gian: đoạn chờ bến đỏ ngay trước thanh tàu (chỉ đoạn bến đầu của chuyến) và các vạch mốc
+              const choTu = it.seg.dau ? choBatDau(it.v, che) : null, a0 = choTu != null && choTu < it.seg.a ? choTu : null;
+              const choL = a0 != null ? Math.max(0, xOf(a0)) : null, choR = a0 != null ? Math.min(W, xOf(it.seg.a)) : null, coCho = choL != null && choR > choL;
+              const vach = che === "toan" ? [it.v.nor, it.v.bd_lam_hang, it.v.kt_lam_hang].filter((t) => t && ms(t) >= tu && ms(t) <= den) : [];
               return (
-                <div key={`${it.v.id}:${it.seg.a}`} onPointerDown={(e) => onDown(e, it)}
+                <Fragment key={`${it.v.id}:${it.seg.a}`}>
+                {coCho && (
+                  <div onClick={() => setVoyageMo(it.v.id)} className={cn("absolute z-10 flex cursor-pointer items-center overflow-hidden rounded-l border border-r-0 px-1 font-medium", K.chu, dangKeo && "opacity-40")}
+                    style={{ left: LABEL + choL, width: choR - choL, top, height: h, ...kieuCho(MAU_CHO.ben, false) }}>
+                    <PhanChoHang stops={dsStops} t0={a0} t1={it.seg.a} xOf={xOf} left0={choL} now={D.now} gon={gon} />
+                    {choR - choL > 70 && !gon && <span className="relative truncate">Chờ bến {thoiLuong((it.seg.a - a0) / 36e5, { ngan: true })}</span>}
+                  </div>)}
+                {vach.map((t) => <div key={t} className="pointer-events-none absolute z-20 w-0.5 rounded bg-white/90 shadow" style={{ left: LABEL + xOf(ms(t)) - 1, top: top - 2, height: h + 4 }} />)}
+                <div onPointerDown={(e) => onDown(e, it)}
                   onPointerMove={(e) => !keo && e.pointerType === "mouse" && setTro({ x: it, cx: e.clientX, cy: e.clientY })} onPointerLeave={() => setTro(null)}
                   className={cn("absolute z-10 flex touch-none flex-col justify-center overflow-hidden rounded px-1.5 font-medium leading-tight text-white shadow-sm", K.chu,
                     keoDuoc ? "cursor-grab" : "cursor-pointer", !it.coDinh && "border-2 border-dashed border-white/70",
@@ -145,10 +161,12 @@ export default function GanttMet({ voyages, tu, soNgay, pxNgay, gon = false, max
                     dangKeo && "z-30 cursor-grabbing opacity-90 ring-2 ring-white")}
                   style={{ left: LABEL + left, width: w, top, height: h, background: mau, transform: dangKeo ? `translate(${doiGioDuoc(it) ? keo.dx : 0}px, ${doiMetDuoc(it) ? keo.dy : 0}px)` : undefined }}
                   aria-label={`${it.v.ten_tau}: ${TRANG_THAI[it.st].ten}`}>
+                  <PhanChoHang stops={dsStops} t0={it.seg.a} t1={it.seg.b} xOf={xOf} left0={left} now={D.now} gon={gon} />
                   {cs && <div className="absolute inset-y-0 left-0 bg-black/25" style={{ width: `${Math.min(100, (cs.hoanTat || 0) * 100)}%` }} />}
                   <span className="relative truncate">{it.v.uu_tien ? "★ " : ""}{it.v.ten_tau}</span>
                   {h >= 26 && <span className="relative truncate opacity-85">{so(it.L)} m · {noiHaiBen(it.seg.ben, it.seg.phu)} {viTriChu(it.x, it.L)}</span>}
-                </div>);
+                </div>
+                </Fragment>);
             })}
           </div>
         </div>
@@ -163,7 +181,9 @@ export default function GanttMet({ voyages, tu, soNgay, pxNgay, gon = false, max
           {!doiMetDuoc(keo.it) && <div className="text-muted-foreground">{D.coSql28 ? "Chỉ đổi giờ" : "Chạy SQL 28 để đổi vị trí mét"}</div>}
         </div>)}
       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
-        {Object.entries(TRANG_THAI).map(([k, t]) => <span key={k} className="flex items-center gap-1"><i className="inline-block h-2.5 w-4 rounded-sm" style={{ background: t.mau }} />{t.ten}</span>)}
+        {Object.entries(TRANG_THAI).filter(([k]) => k !== "huy").map(([k, t]) => <span key={k} className="flex items-center gap-1"><i className="inline-block h-2.5 w-4 rounded-sm" style={{ background: t.mau }} />{t.ten}</span>)}
+        <ChuThichCho toan={che === "toan"} />
+        {che === "toan" && <span className="flex items-center gap-1"><i className="inline-block h-3 w-0.5 bg-white" />Vạch NOR, bắt đầu / kết thúc làm hàng</span>}
         <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-4 rounded-sm border-2 border-dashed border-slate-400" />Chưa ghi vị trí (web tự xếp)</span>
         <span className="flex items-center gap-1"><i className="inline-block h-3 w-4 border-t-2 border-warn" />Đầu góc vuông</span>
         {chuaXep > 0 && <span>{chuaXep} chuyến chưa xếp bến không hiện ở lịch theo mét</span>}

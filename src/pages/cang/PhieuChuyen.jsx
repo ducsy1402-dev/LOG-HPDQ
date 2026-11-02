@@ -101,7 +101,7 @@ export function NoiDungPhieu({ v, onDaXoa }) {
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               <Chi l="Hoàn tất" v={`${so(cs.daLam)} t`} sub={<TienDo v={cs.hoanTat} />} />
               <Chi l="Còn lại" v={`${so(cs.conLai)} t`} />
-              <Chi l="Năng suất thực" v={cs.nangSuat != null ? `${so(cs.nangSuat)} t/ngày` : "—"} sub={cs.soCamKet != null ? `${pct(cs.soCamKet)} cam kết` : null} tone={cs.soCamKet != null && cs.soCamKet < 0.9 ? "text-warn" : undefined} />
+              <Chi l="Năng suất thực" v={cs.nangSuat != null ? `${so(cs.nangSuat)} t/ngày` : "—"} sub={cs.soCamKet != null ? `${pct(cs.soCamKet)} cam kết` : null} />
               <Chi l="Chờ bến (từ NOR)" v={thoiLuong(cs.choNeo) || "—"} />
               <Chi l="Ở bến" v={thoiLuong(cs.oBen) || "—"} />
               <Chi l="Làm hàng (gộp / thực)" v={cs.lamHang != null ? `${thoiLuong(cs.lamHang, { ngan: true })} / ${thoiLuong(cs.lamHangThuc, { ngan: true })}` : "—"} />

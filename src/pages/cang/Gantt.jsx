@@ -1,6 +1,7 @@
 import { Fragment, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "@/store";
-import { khoangBen, doanBen, trangThai, chiSo, TRANG_THAI, MAU_CHO, laChoHang } from "@/lib/linetime";
+import { khoangBen, doanBen, trangThai, chiSo, TRANG_THAI, MAU_CHO } from "@/lib/linetime";
+import { choBatDau, kieuCho, PhanChoHang, ChuThichCho } from "./doanCho";
 import { kiemTraXepBen, nhanCho, laBenLienKe } from "@/lib/capBen";
 import { kiemTraBen } from "@/lib/checks";
 import { DAY, ngayGio, so, pad, iso, ms } from "@/lib/format";
@@ -58,7 +59,7 @@ export default function Gantt({ voyages, tu, soNgay, pxNgay, che = "ben", gon = 
       const k = khoangBen(v, D.now);
       if (!k) continue;
       // Toàn thời gian: đoạn chờ bến bắt đầu từ lúc đến neo (NOR); tàu chưa đến neo thì từ ETA dự kiến. Tàu đã cập mà không có NOR thì không có đoạn chờ
-      const choTu = che === "toan" ? (v.atb ? ms(v.nor) : ms(v.nor) ?? ms(v.eta)) : null;
+      const choTu = choBatDau(v, che);
       const a0 = choTu != null && choTu < k.a ? choTu : null, la = a0 ?? k.a;
       if (k.b < tu || la > den) continue;
       // Chuyển bến / ra neo: mỗi đoạn tàu chiếm một bến là một thanh riêng. Tàu cập hai bến (bến phụ): thanh ở cả hai dòng bến
@@ -159,12 +160,7 @@ export default function Gantt({ voyages, tu, soNgay, pxNgay, che = "ben", gon = 
                   const cs = x.st === "lam_hang" ? chiSo(x.v, D.stopsOf(x.v.id), D.now) : null;
                   const muc = canhBaoCua.get(x.v.id), mau = TRANG_THAI[x.st].mau;
                   const top = K.top + x.lan * K.lan, troVao = (e) => !keo && e.pointerType === "mouse" && setTro({ x, cx: e.clientX, cy: e.clientY });
-                  // Khoảng chờ đủ hàng / chờ bãi (xanh lá) cắt vào thanh tàu và đoạn chờ bến
-                  const dsChoHang = D.stopsOf(x.v.id).filter(laChoHang);
-                  const phanXanh = (t0, t1, left0) => dsChoHang.map((s) => {
-                    const a = Math.max(ms(s.tu), t0), b = Math.min(ms(s.den) ?? D.now, t1);
-                    return b > a ? <i key={s.id} className="pointer-events-none absolute inset-y-0" style={{ left: xOf(a) - left0, width: Math.max(2, xOf(b) - xOf(a)), background: MAU_CHO.hang }} title={`${s.ly_do}: ${thoiLuong((b - a) / 36e5, { ngan: true })}`} /> : null;
-                  });
+                  const dsStops = D.stopsOf(x.v.id);
                   // Toàn thời gian: đoạn chờ bến (đến neo / NOR -> cập bến) và các vạch mốc
                   const choL = x.a0 != null ? Math.max(0, xOf(x.a0)) : null, choR = x.a0 != null ? Math.min(W, xOf(x.a)) : null;
                   const coCho = choL != null && choR > choL;
@@ -174,8 +170,8 @@ export default function Gantt({ voyages, tu, soNgay, pxNgay, che = "ben", gon = 
                     {coCho && (
                       <div onPointerDown={(e) => { setTro(null); onDown(e, x); }} onPointerMove={troVao} onPointerLeave={() => setTro(null)}
                         className={cn("absolute z-10 flex cursor-pointer items-center overflow-hidden rounded-l-md border border-r-0 px-1 font-medium", K.chu, dangKeo && "opacity-40")}
-                        style={{ left: LABEL + choL, width: choR - choL, top, height: K.bar, color: MAU_CHO.ben, borderColor: MAU_CHO.ben + "b3", background: `repeating-linear-gradient(135deg, ${MAU_CHO.ben}38, ${MAU_CHO.ben}38 5px, transparent 5px, transparent 10px)` }}>
-                        {phanXanh(x.a0, x.a, choL)}
+                        style={{ left: LABEL + choL, width: choR - choL, top, height: K.bar, ...kieuCho(MAU_CHO.ben, false) }}>
+                        <PhanChoHang stops={dsStops} t0={x.a0} t1={x.a} xOf={xOf} left0={choL} now={D.now} gon={gon} />
                         {choR - choL > 70 && !gon && <span className="relative truncate">Chờ bến {thoiLuong((x.a - x.a0) / 36e5, { ngan: true })}</span>}
                       </div>
                     )}
@@ -188,7 +184,7 @@ export default function Gantt({ voyages, tu, soNgay, pxNgay, che = "ben", gon = 
                       style={{ left: LABEL + left, width: w, top, height: K.bar, background: x.uoc ? `repeating-linear-gradient(135deg, ${mau}, ${mau} 8px, ${mau}cc 8px, ${mau}cc 12px)` : mau,
                         transform: dangKeo ? `translate(${keo.dx}px, ${keo.dy}px)` : undefined }}
                       aria-label={`${x.v.ten_tau}: ${TRANG_THAI[x.st].ten}`}>
-                      {phanXanh(x.a, x.b, left)}
+                      <PhanChoHang stops={dsStops} t0={x.a} t1={x.b} xOf={xOf} left0={left} now={D.now} gon={gon} />
                       {cs && <div className="absolute inset-y-0 left-0 bg-black/25" style={{ width: `${Math.min(100, (cs.hoanTat || 0) * 100)}%` }} />}
                       <span className="relative truncate">{x.v.uu_tien ? "★ " : ""}{x.haiBen ? "⇕ " : ""}{x.v.ten_tau}{x.haiBen && !gon && w > 110 ? ` (${x.haiBen})` : ""}{!gon && w > 140 && x.v.khoi_luong ? ` · ${so(x.v.khoi_luong)}t` : ""}</span>
                     </div>
@@ -201,15 +197,12 @@ export default function Gantt({ voyages, tu, soNgay, pxNgay, che = "ben", gon = 
         </div>
       </div>
       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
-        {Object.entries(TRANG_THAI).map(([k, t]) => <span key={k} className="flex items-center gap-1"><i className="inline-block h-2.5 w-4 rounded-sm" style={{ background: t.mau }} />{t.ten}</span>)}
+        {Object.entries(TRANG_THAI).filter(([k]) => k !== "huy").map(([k, t]) => <span key={k} className="flex items-center gap-1"><i className="inline-block h-2.5 w-4 rounded-sm" style={{ background: t.mau }} />{t.ten}</span>)}
         <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-4 rounded-sm" style={{ background: "repeating-linear-gradient(135deg,#94a3b8,#94a3b8 4px,#94a3b8aa 4px,#94a3b8aa 6px)" }} />Giờ rời ước tính</span>
         <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-4 rounded-sm outline outline-2 outline-bad" />Có cảnh báo khẩn</span>
         <span className="flex items-center gap-1"><i className="inline-block h-3 w-0.5 bg-bad" />Hiện tại</span>
-        <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-4 rounded-sm" style={{ background: MAU_CHO.hang }} />Chờ đủ hàng / chờ có bãi nhập</span>
-        {che === "toan" && <>
-          <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-4 rounded-sm border" style={{ borderColor: MAU_CHO.ben, background: `repeating-linear-gradient(135deg, ${MAU_CHO.ben}66, ${MAU_CHO.ben}66 3px, transparent 3px, transparent 6px)` }} />Chờ có bến cập (từ NOR / ETA tới cập bến)</span>
-          <span className="flex items-center gap-1"><i className="inline-block h-3 w-0.5 bg-white" />Vạch NOR, bắt đầu / kết thúc làm hàng</span>
-        </>}
+        <ChuThichCho toan={che === "toan"} />
+        {che === "toan" && <span className="flex items-center gap-1"><i className="inline-block h-3 w-0.5 bg-white" />Vạch NOR, bắt đầu / kết thúc làm hàng</span>}
       </div>
       {keo?.moved && keo.coKeo && (() => { const k = tinhKeo(keo); return (
         <div className="pointer-events-none fixed z-50 rounded-md border bg-popover px-2.5 py-1.5 text-xs shadow-lg" style={{ left: (keo.cx ?? 0) + 16, top: (keo.cy ?? 0) + 16 }}>

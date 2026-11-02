@@ -230,7 +230,7 @@ export function nhanCho(t, v) {
   return `Bến ${t.ben} cùng lúc ${t.ds.map(ten).join(" + ")} (${khung}): ${noiViPham(t)}${t.thieuM ? `, thiếu ${so(t.thieuM)} m` : ""}`;
 }
 
-const segsCuaChuyen = (v, stopsOf, now) => doanBen(v, stopsOf(v.id), now).filter((d) => d.ben).map((d) => ({ v, a: d.a, b: d.b, ben: d.ben, phu: d.phu, viTri: d.viTri, nguon: d.nguon, cuoi: d.cuoi }));
+const segsCuaChuyen = (v, stopsOf, now) => doanBen(v, stopsOf(v.id), now).filter((d) => d.ben).map((d) => ({ v, a: d.a, b: d.b, ben: d.ben, phu: d.phu, viTri: d.viTri, nguon: d.nguon, cuoi: d.cuoi, dau: d.dau }));
 
 // Mọi chuyến không đủ chỗ ở bến: Map id chuyến -> [{ ...khoảng không đủ chỗ, cung: [tên tàu khác], ten_tau }]
 export function choBenTheoChuyen(voyages, berths = [], stopsOf = () => [], now = Date.now()) {

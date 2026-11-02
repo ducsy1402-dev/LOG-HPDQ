@@ -97,18 +97,18 @@ export default function Linetime() {
                 <Button key={k} size="xs" variant={truc === k ? "secondary" : "ghost"} className={cn(truc === k && "text-primary")} title={mo} aria-pressed={truc === k}
                   onClick={() => { setTruc(k); ghi("lg-gantt-truc", k); }}>{k === "met" ? <Ruler /> : <Rows4 />}{t}</Button>))}
             </div>
-            {truc === "ben" && <div className="inline-flex rounded-md border p-0.5" role="group" aria-label="Chế độ xem">
+            <div className="inline-flex rounded-md border p-0.5" role="group" aria-label="Chế độ xem">
               {[["ben", "Chiếm bến", "Thanh tàu = thời gian ở bến (ATB / ETB → ATD / ETD)"], ["toan", "Toàn thời gian", "Thêm đoạn chờ bến (đỏ) từ NOR hoặc ETA tới lúc cập bến, vạch NOR và làm hàng"]].map(([k, t, mo]) => (
                 <Button key={k} size="xs" variant={che === k ? "secondary" : "ghost"} className={cn(che === k && "text-primary")} title={mo} aria-pressed={che === k}
                   onClick={() => { setChe(k); ghi("lg-gantt-che", k); }}>{k === "toan" ? <Clock3 /> : <Anchor />}{t}</Button>))}
-            </div>}
+            </div>
             <Button size="xs" variant={gon ? "secondary" : "outline"} className={cn(gon && "text-primary")} aria-pressed={gon} title="Dòng thấp, chữ nhỏ: xem được nhiều bến hơn"
               onClick={() => { setGon(!gon); ghi("lg-gantt-gon", gon ? "0" : "1"); }}><Rows4 />Gọn</Button>
             {quyen.nhap && <span className="text-xs text-muted-foreground">{truc === "met" ? "Kéo ngang đổi giờ (tàu chưa cập, bước 30 phút), kéo dọc đặt vị trí mét / đổi bến." : "Kéo thanh tàu chưa cập bến để đổi bến / giờ dự kiến (bước 30 phút)."}</span>}
             <NutToanManHinh on={toanMH} onClick={doiToanMH} className="ml-auto" />
           </div>
           {truc === "met"
-            ? <GanttMet voyages={loc} tu={tu} soNgay={soNgay} pxNgay={ZOOM[zoom]} gon={gon} maxH={toanMH ? "calc(100dvh - 130px)" : undefined} />
+            ? <GanttMet voyages={loc} tu={tu} soNgay={soNgay} pxNgay={ZOOM[zoom]} che={che} gon={gon} maxH={toanMH ? "calc(100dvh - 130px)" : undefined} />
             : <Gantt voyages={loc} tu={tu} soNgay={soNgay} pxNgay={ZOOM[zoom]} che={che} gon={gon} maxH={toanMH ? "calc(100dvh - 130px)" : undefined} />}
           </div>
         </TabsContent>

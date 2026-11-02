@@ -1,4 +1,4 @@
-// Cảnh báo của phân hệ Cảng: tàu - bến, trùng bến, năng suất, mốc giờ.
+// Cảnh báo của phân hệ Cảng: tàu - bến, trùng bến, mốc giờ (không có cảnh báo năng suất).
 // Mức: "bad" (đỏ), "warn" (vàng), "info" (xanh, lưu ý).
 import { plain, so, thoiLuong, ms } from "./format";
 import { chiSo, mocSaiThuTu, trangThai } from "./linetime";
@@ -54,8 +54,6 @@ export function canhBaoChuyen(v, ctx) {
   for (const t of trung?.get(v.id) || []) out.push({ muc: "warn", ma: "trung", nd: nhanCho(t, v) });
   if (st === "da_roi") return out; // tàu đã rời: chỉ còn lưu ý tàu - bến, trùng bến
   const cs = chiSo(v, stops, now);
-  if (st === "lam_hang" && cs.nangSuat != null && +v.cam_ket > 0 && cs.lamHangThuc >= 6 && cs.nangSuat < +v.cam_ket * nguong.nangSuatTyLe)
-    out.push({ muc: "warn", ma: "nang_suat", nd: `Năng suất thực ${so(cs.nangSuat)} t/ngày thấp hơn cam kết ${so(v.cam_ket)}` });
   if (st === "lam_hang" && +v.khoi_luong > 0 && cs.conLai <= 0) out.push({ muc: "warn", ma: "chua_kt", nd: "Đã làm đủ khối lượng nhưng chưa ghi giờ kết thúc làm hàng (laytime đang tính đến hiện tại)" });
   if (cs.hoanTat != null && cs.hoanTat > 1.0001) out.push({ muc: "info", ma: "vuot", nd: `Khối lượng đã làm vượt kế hoạch (${so(cs.hoanTat * 100, 2)}%)` });
   for (const s of mocSaiThuTu(v)) out.push({ muc: "warn", ma: "thu_tu", nd: `Mốc giờ sai thứ tự: ${s}` });
