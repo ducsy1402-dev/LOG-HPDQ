@@ -65,3 +65,7 @@ Thay đổi CSDL về sau: viết file SQL mới đánh số tiếp (07, 08…),
 ## Kho › Sơ đồ bãi (02/11/2026)
 - Tab Sơ đồ bãi là **sơ đồ tư duy khổ ngang** (`src/pages/kho/SoDoTuDuy.jsx`): kho ở góc trên trái, một đường ngang chung nối xuống một hàng các bãi lớn, mỗi bãi lớn nối xuống các bãi nhỏ xếp dọc; màu nút / đường nối theo mức lấp đầy; bấm bãi lớn mở chi tiết, mũi tên thu gọn / mở bãi nhỏ; có nút thu phóng (35–130%) và "Vừa khung". Phần hiển thị dùng chung của trang Kho ở `khoUi.jsx`.
 - "Ngày cấp" (kho nguyên liệu) = tồn của hàng đó ở mọi bãi ÷ tiêu thụ bình quân mỗi ngày (ô "Tiêu thụ / ngày" ở Danh mục › Kho bãi; trống thì lấy tổng xuất 30 ngày ÷ 30). Dưới 7 ngày vàng, dưới 3 ngày đỏ.
+
+## Tổng quan dạng bảng điều khiển (02/11/2026)
+- `src/pages/tongquan/BangDieuKhien.jsx` thay lưới thẻ cũ: dải chỉ số trên cùng; hàng trên 3 khung biểu đồ đường (Sản lượng cảng lũy kế so kế hoạch tháng, Sản lượng theo ngày 30 ngày nhập / xuất / vận tải, Thiết bị cơ giới tỉ lệ sẵn sàng 30 ngày); giữa là Linetime tàu cập bến theo mét (`GanttMet`, chế độ toàn thời gian, hôm kia → 8 ngày tới) kẹp hai cột chỉ số tàu; hàng dưới Kho bãi (% lấp đầy 30 ngày thành phẩm / nguyên liệu) và Sản lượng vận tải lũy kế.
+- Sản lượng lấy từ bảng nhập thực tế theo ca / ngày (SQL 06); mục tiêu tháng chia đều theo ngày làm đường kế hoạch. "Chi tiết" ở mỗi khung mở hộp chi tiết cũ (`HopKhoiLuong`, `HopThietBi`, `HopKho`, `HopTau`) hoặc trang tương ứng. Các hàm thẻ cũ (`TheKho`, `TheTau`…) không còn dùng ở Tổng quan.

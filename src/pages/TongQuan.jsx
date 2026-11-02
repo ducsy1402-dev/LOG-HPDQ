@@ -9,13 +9,14 @@ import { tenBen, tenBenChuyen } from "./cang/BangTauBen";
 import { useThietBi } from "@/thietbi/Host";
 import { useKho } from "./kho/useKho";
 import { HopTQ } from "./tongquan/khung";
-import { TheThietBi, HopThietBi } from "./tongquan/ThietBiTQ";
-import { TheTau, HopTau } from "./tongquan/TauTQ";
-import { TheKho, HopKho } from "./tongquan/KhoTQ";
-import { TheKhoiLuong, HopKhoiLuong } from "./tongquan/KhoiLuongTQ";
+import { HopThietBi } from "./tongquan/ThietBiTQ";
+import { HopTau } from "./tongquan/TauTQ";
+import { HopKho } from "./tongquan/KhoTQ";
+import { HopKhoiLuong } from "./tongquan/KhoiLuongTQ";
+import BangDieuKhien from "./tongquan/BangDieuKhien";
 
-// Tổng quan điều hành: một màn hình gồm các thẻ tóm tắt (thiết bị, tàu, kho, thưởng phạt, khối lượng, tiến độ).
-// Bấm vào thẻ mở hộp biểu đồ / bảng chi tiết; trong hộp có nút mở trang đầy đủ.
+// Tổng quan điều hành dạng bảng điều khiển (BangDieuKhien): biểu đồ đường sản lượng, thiết bị, kho bãi quanh lịch cầu bến theo mét.
+// "Chi tiết" ở mỗi khung mở hộp biểu đồ / bảng chi tiết; trong hộp có nút mở trang đầy đủ.
 export default function TongQuan({ go }) {
   const { D, quyen, reload, busy } = useApp();
   const tb = useThietBi();
@@ -23,13 +24,13 @@ export default function TongQuan({ go }) {
   const lamMoi = () => { reload(); tb?.reload?.(false); };
   const dong = () => setMo(null);
   const coKho = quyen.kho?.co || quyen.coCang;
-  const THE = [
-    quyen.coThietBi && ["thiet-bi", TheThietBi, HopThietBi],
-    quyen.coCang && ["tau", TheTau, HopTau],
-    coKho && ["kho", TheKho, HopKho],
-    quyen.coCang && ["khoi-luong", TheKhoiLuong, HopKhoiLuong],
+  const HOP = [
+    quyen.coThietBi && ["thiet-bi", HopThietBi],
+    quyen.coCang && ["tau", HopTau],
+    coKho && ["kho", HopKho],
+    quyen.coCang && ["khoi-luong", HopKhoiLuong],
   ].filter(Boolean);
-  const Hop = THE.find((t) => t[0] === mo)?.[2];
+  const Hop = HOP.find((t) => t[0] === mo)?.[1];
 
   return (
     <>
@@ -37,10 +38,7 @@ export default function TongQuan({ go }) {
         <Button size="sm" variant="outline" onClick={lamMoi} disabled={busy} title="Tải lại dữ liệu ngay"><RefreshCw className={busy ? "animate-spin" : ""} />Tải lại</Button>
       </PageHead>
       <DaiCanhBao onMo={() => setMo("canh-bao")} />
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {THE.map(([k, The]) => <The key={k} onMo={() => setMo(k)} sqlChua={!D.coSql15} />)}
-      </div>
-      {!THE.length && <Empty>Tài khoản chưa được cấp quyền xem phần nào.</Empty>}
+      {HOP.length ? <BangDieuKhien onMo={setMo} go={go} /> : <Empty>Tài khoản chưa được cấp quyền xem phần nào.</Empty>}
       {Hop && <Hop onClose={dong} go={go} />}
       {mo === "canh-bao" && <HopCanhBao onClose={dong} />}
     </>
@@ -57,7 +55,7 @@ function NhanCapNhat() {
   const luc = Math.min(capNhatRef.current, tb?.capNhatRef?.current ?? Infinity);
   const d = new Date(luc), p2 = (n) => String(n).padStart(2, "0");
   const nhanh = cheDoRef.current === "dau-van-tay" && (tb?.cheDoRef?.current ?? "dau-van-tay") === "dau-van-tay";
-  return `Cập nhật đến ${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())} · ${nhanh ? "tự kiểm tra thay đổi mỗi 10 giây" : "tự tải lại mỗi 1 phút"} · bấm vào thẻ để xem biểu đồ và chi tiết`;
+  return `Cập nhật đến ${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())} · ${nhanh ? "tự kiểm tra thay đổi mỗi 10 giây" : "tự tải lại mỗi 1 phút"} · bấm Chi tiết ở mỗi khung để xem biểu đồ và chi tiết`;
 }
 
 // Gom cảnh báo các phần: Cảng (chuông), Kho, Thiết bị (sự kiện quá hạn / hỏng lâu)

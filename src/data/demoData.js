@@ -156,11 +156,13 @@ export function demoData() {
   // Mục tiêu vận tải và sản lượng thực tế theo ca / ngày mẫu (SQL 06): tháng này, từ đầu tháng đến hôm qua
   const MT_VT = [["phuc_vu_cang", "Xe ben", "hoa_phat", "Quặng", 90000], ["phuc_vu_cang", "Xe ben", "hoa_phat", "Than", 40000], ["phuc_vu_cang", "Xe đầu kéo", "nha_thau", "HRC", 60000], ["phuc_vu_san_xuat", "Xe ben", "hoa_phat", "Phế", 50000], ["phuc_vu_san_xuat", "Xe ben", "nha_thau", "Đá", 30000], ["phuc_vu_san_xuat", "Xe đầu kéo", "hoa_phat", "Thép thành phẩm", 50000], ["phuc_vu_san_xuat", "Xe bồn", "hoa_phat", "Xỉ", 20000]];
   const mucTieuVanTai = [-1, 0].flatMap((lech) => MT_VT.map(([huong, loai_xe, don_vi, loai_hang, tan]) => ({ thang: thang(lech), huong, loai_xe, don_vi, loai_hang, tan: lech ? Math.round(tan * 0.9) : tan, ghi_chu: null })));
-  const hom = new Date(), thangNay = thang(0), pad2 = (n) => String(n).padStart(2, "0");
-  const taoTT = (dongs, cap) => { const out = []; for (let d = 1; d < hom.getDate(); d++) dongs.forEach((x, i) => ["CA 1", "CA 2"].forEach((ca, c) => {
-    const he = 0.7 + (((d * 7 + c * 3 + i * 5) % 9) / 9) * 0.6; // 0,7 – 1,3 lần mức bình quân
-    out.push({ ngay: `${thangNay}-${pad2(d)}`, ca, ...cap(x), tan: Math.round((x.tan / 30) * he * (c ? 0.45 : 0.55)), updated_at: null });
-  })); return out; };
+  // Từ ngày 1 tháng trước đến hôm qua
+  const hom = new Date(), pad2 = (n) => String(n).padStart(2, "0");
+  const ngayTT = []; for (const d = new Date(hom.getFullYear(), hom.getMonth() - 1, 1); d < new Date(hom.getFullYear(), hom.getMonth(), hom.getDate()); d.setDate(d.getDate() + 1)) ngayTT.push(`${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`);
+  const taoTT = (dongs, cap) => { const out = []; ngayTT.forEach((ngay, k) => dongs.forEach((x, i) => ["CA 1", "CA 2"].forEach((ca, c) => {
+    const he = 0.7 + (((k * 7 + c * 3 + i * 5) % 9) / 9) * 0.6; // 0,7 – 1,3 lần mức bình quân
+    out.push({ ngay, ca, ...cap(x), tan: Math.round((x.tan / 30) * he * (c ? 0.45 : 0.55)), updated_at: null });
+  }))); return out; };
   const sanLuongCang = taoTT(MT_MAU.map(([huong, loai_hang, tan]) => ({ huong, loai_hang, tan })), (x) => ({ huong: x.huong, loai_hang: x.loai_hang }));
   const sanLuongVanTai = taoTT(MT_VT.map(([huong, loai_xe, don_vi, loai_hang, tan]) => ({ huong, loai_xe, don_vi, loai_hang, tan })), (x) => ({ huong: x.huong, loai_xe: x.loai_xe, don_vi: x.don_vi, loai_hang: x.loai_hang }));
   // Cột tự thêm "Khu vực" của danh mục kho bãi (mẫu): chia bãi lớn vào 4 khu theo thứ tự trong danh mục
