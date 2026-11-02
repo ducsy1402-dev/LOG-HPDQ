@@ -57,3 +57,14 @@ describe("Cảnh báo đã bỏ", () => {
     for (const x of ["cho_neo", "kb_cau_ben", "kb_pa", "etd", "phat"]) expect(ma).not.toContain(x);
   });
 });
+
+import { laChoHang } from "./linetime";
+describe("Chờ cập bến do chưa đủ hàng / chưa có bãi", () => {
+  it("nhận diện lý do và không tính vào giờ dừng làm hàng", () => {
+    expect(laChoHang({ ly_do: "Chờ cập bến: chưa có bãi nhập" })).toBe(true);
+    expect(laChoHang({ ly_do: "Chờ hàng" })).toBe(false); // chờ hàng khi đang làm hàng vẫn là khoảng dừng thường
+    const v = { atb: T("02T00:00"), bd_lam_hang: T("02T02:00"), kt_lam_hang: T("03T02:00"), khoi_luong: 1000 };
+    const cho = { tu: T("01T00:00"), den: T("02T00:00"), ly_do: "Chờ cập bến: chưa đủ hàng" };
+    expect(chiSo(v, [cho], 0).dung).toBe(chiSo(v, [], 0).dung);
+  });
+});

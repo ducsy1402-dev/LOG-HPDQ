@@ -99,7 +99,7 @@ export function demoData() {
   let sid = 0;
   const S = (m, tu, den, ly_do, tru_tp = true, ghi_chu = null, trong_mang = false) => ({ id: ++sid, voyage_id: vid(m), tu: T(tu), den: T(den), ly_do, tru_tp, ghi_chu, trong_mang });
   const stops = [
-    S(ma("PACIFIC GLORY", 1), "22/10 14:00", "22/10 20:00", "Chờ bãi", false, "Bãi nhập đầy, chờ giải phóng bãi", true),
+    S(ma("CAPE AURORA", 1), "20/10 08:00", "23/10 20:00", "Chờ cập bến: chưa có bãi nhập", false, "Bãi nhập đầy, chờ giải phóng bãi"),
     S(ma("PACIFIC GLORY", 1), "21/10 02:00", "21/10 05:00", "Thời tiết xấu", true, "Mưa to, dừng làm hàng"),
     S(ma("PACIFIC GLORY", 1), "21/10 19:00", "21/10 20:00", "Nghỉ ca", false),
     S(ma("ORIENT STAR", 2), "19/10 10:00", "19/10 22:00", "Hỏng thiết bị", false, "SC06 hỏng tời"),

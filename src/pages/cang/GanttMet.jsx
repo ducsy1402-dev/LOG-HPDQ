@@ -147,7 +147,7 @@ export default function GanttMet({ voyages, tu, soNgay, pxNgay, che = "ben", gon
               return (
                 <Fragment key={`${it.v.id}:${it.seg.a}`}>
                 {coCho && (
-                  <div onClick={() => setVoyageMo(it.v.id)} className={cn("absolute z-10 flex cursor-pointer items-center overflow-hidden rounded-l border border-r-0 px-1 font-medium", K.chu, dangKeo && "opacity-40")}
+                  <div onClick={() => setVoyageMo(it.v.id)} className={cn("absolute z-10 flex cursor-pointer items-center justify-end overflow-hidden rounded-l border border-r-0 px-1 font-medium", K.chu, dangKeo && "opacity-40")}
                     style={{ left: LABEL + choL, width: choR - choL, top, height: h, ...kieuCho(MAU_CHO.ben, false) }}>
                     <PhanChoHang stops={dsStops} t0={a0} t1={it.seg.a} xOf={xOf} left0={choL} now={D.now} gon={gon} />
                     {choR - choL > 70 && !gon && <span className="relative truncate">Chờ bến {thoiLuong((it.seg.a - a0) / 36e5, { ngan: true })}</span>}
@@ -161,7 +161,6 @@ export default function GanttMet({ voyages, tu, soNgay, pxNgay, che = "ben", gon
                     dangKeo && "z-30 cursor-grabbing opacity-90 ring-2 ring-white")}
                   style={{ left: LABEL + left, width: w, top, height: h, background: mau, transform: dangKeo ? `translate(${doiGioDuoc(it) ? keo.dx : 0}px, ${doiMetDuoc(it) ? keo.dy : 0}px)` : undefined }}
                   aria-label={`${it.v.ten_tau}: ${TRANG_THAI[it.st].ten}`}>
-                  <PhanChoHang stops={dsStops} t0={it.seg.a} t1={it.seg.b} xOf={xOf} left0={left} now={D.now} gon={gon} />
                   {cs && <div className="absolute inset-y-0 left-0 bg-black/25" style={{ width: `${Math.min(100, (cs.hoanTat || 0) * 100)}%` }} />}
                   <span className="relative truncate">{it.v.uu_tien ? "★ " : ""}{it.v.ten_tau}</span>
                   {h >= 26 && <span className="relative truncate opacity-85">{so(it.L)} m · {noiHaiBen(it.seg.ben, it.seg.phu)} {viTriChu(it.x, it.L)}</span>}

@@ -169,7 +169,7 @@ export default function Gantt({ voyages, tu, soNgay, pxNgay, che = "ben", gon = 
                     <Fragment key={x.v.id}>
                     {coCho && (
                       <div onPointerDown={(e) => { setTro(null); onDown(e, x); }} onPointerMove={troVao} onPointerLeave={() => setTro(null)}
-                        className={cn("absolute z-10 flex cursor-pointer items-center overflow-hidden rounded-l-md border border-r-0 px-1 font-medium", K.chu, dangKeo && "opacity-40")}
+                        className={cn("absolute z-10 flex cursor-pointer items-center justify-end overflow-hidden rounded-l-md border border-r-0 px-1 font-medium", K.chu, dangKeo && "opacity-40")}
                         style={{ left: LABEL + choL, width: choR - choL, top, height: K.bar, ...kieuCho(MAU_CHO.ben, false) }}>
                         <PhanChoHang stops={dsStops} t0={x.a0} t1={x.a} xOf={xOf} left0={choL} now={D.now} gon={gon} />
                         {choR - choL > 70 && !gon && <span className="relative truncate">Chờ bến {thoiLuong((x.a - x.a0) / 36e5, { ngan: true })}</span>}
@@ -184,7 +184,6 @@ export default function Gantt({ voyages, tu, soNgay, pxNgay, che = "ben", gon = 
                       style={{ left: LABEL + left, width: w, top, height: K.bar, background: x.uoc ? `repeating-linear-gradient(135deg, ${mau}, ${mau} 8px, ${mau}cc 8px, ${mau}cc 12px)` : mau,
                         transform: dangKeo ? `translate(${keo.dx}px, ${keo.dy}px)` : undefined }}
                       aria-label={`${x.v.ten_tau}: ${TRANG_THAI[x.st].ten}`}>
-                      <PhanChoHang stops={dsStops} t0={x.a} t1={x.b} xOf={xOf} left0={left} now={D.now} gon={gon} />
                       {cs && <div className="absolute inset-y-0 left-0 bg-black/25" style={{ width: `${Math.min(100, (cs.hoanTat || 0) * 100)}%` }} />}
                       <span className="relative truncate">{x.v.uu_tien ? "★ " : ""}{x.haiBen ? "⇕ " : ""}{x.v.ten_tau}{x.haiBen && !gon && w > 110 ? ` (${x.haiBen})` : ""}{!gon && w > 140 && x.v.khoi_luong ? ` · ${so(x.v.khoi_luong)}t` : ""}</span>
                     </div>

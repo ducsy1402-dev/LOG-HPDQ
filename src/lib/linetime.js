@@ -31,8 +31,9 @@ export const TRANG_THAI = {
   huy: { ten: "Hủy", tone: "default", mau: "#94a3b8" },
 };
 export const MAU_CHO = { ben: "#ef4444", hang: "#22c55e" };
-// Khoảng dừng có lý do này là thời gian chờ đủ hàng / chờ có bãi (vẽ màu xanh lá)
-export const LY_DO_CHO_HANG = new Set(["Chờ hàng", "Chờ bãi"]);
+// Khoảng dừng có lý do này là thời gian tàu chờ CẬP BẾN do chưa đủ hàng / chưa có bãi nhập (vẽ màu xanh lá trong đoạn chờ bến).
+// Không phải thời gian dừng làm hàng: không tính vào giờ dừng, laytime, trống máng.
+export const LY_DO_CHO_HANG = new Set(["Chờ cập bến: chưa đủ hàng", "Chờ cập bến: chưa có bãi nhập"]);
 export const laChoHang = (s) => LY_DO_CHO_HANG.has(s?.ly_do);
 
 export function trangThai(v) {
@@ -75,7 +76,8 @@ export const klCanLam = (v) => Math.max(0, (+v.khoi_luong || 0) - (+v.kl_tra || 
 export const daLam = (v) => (v.da_lam != null && v.da_lam !== "" ? +v.da_lam : v.kt_lam_hang ? klCanLam(v) : 0);
 
 // Các chỉ số của chuyến (giờ / tấn / tấn mỗi ngày). now: thời điểm tính (ms)
-export function chiSo(v, stops = [], now = Date.now()) {
+export function chiSo(v, stopsTat = [], now = Date.now()) {
+  const stops = (stopsTat || []).filter((s) => !laChoHang(s)); // chờ cập bến không phải khoảng dừng làm hàng
   const st = trangThai(v);
   const bd = ms(v.bd_lam_hang), kt = ms(v.kt_lam_hang);
   const denLam = kt ?? (bd != null && st === "lam_hang" ? now : null);

@@ -42,6 +42,8 @@ export const CRANES = [
 
 // Lý do dừng / đình trệ. Mặc định: thời tiết, hoa tiêu, lai dắt là thời gian đình trệ cho phép (trừ khỏi laytime);
 // trống máng, chờ hàng, chờ xe tính là trống máng (tàu CQD). Người nhập vẫn sửa được từng khoảng.
-export const LY_DO_DUNG = ["Thời tiết xấu", "Mưa", "Hoa tiêu lên tàu", "Lai dắt / di chuyển cầu", "Trống máng", "Chờ hàng", "Chờ bãi", "Chờ xe", "Hỏng thiết bị", "Nghỉ ca", "Thủ tục / giám định", "Khác"];
+// Tàu CHƯA cập bến vì chưa đủ hàng (tàu xuất) hoặc chưa có bãi nhập (tàu nhập): ghi ở tab Khoảng dừng, lịch cầu bến vẽ màu xanh lá trong đoạn chờ bến
+export const LY_DO_CHO_CAP = ["Chờ cập bến: chưa đủ hàng", "Chờ cập bến: chưa có bãi nhập"];
+export const LY_DO_DUNG = ["Thời tiết xấu", "Mưa", "Hoa tiêu lên tàu", "Lai dắt / di chuyển cầu", "Trống máng", "Chờ hàng", "Chờ xe", "Hỏng thiết bị", "Nghỉ ca", "Thủ tục / giám định", "Khác", ...LY_DO_CHO_CAP];
 export const TRU_MAC_DINH = new Set(["Thời tiết xấu", "Mưa", "Hoa tiêu lên tàu", "Lai dắt / di chuyển cầu"]);
-export const TRONG_MANG_MAC_DINH = new Set(["Trống máng", "Chờ hàng", "Chờ bãi", "Chờ xe"]);
+export const TRONG_MANG_MAC_DINH = new Set(["Trống máng", "Chờ hàng", "Chờ xe"]);

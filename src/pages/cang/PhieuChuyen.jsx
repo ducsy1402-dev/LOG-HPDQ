@@ -8,7 +8,7 @@ import { NgayGio } from "@/components/ui/ngaygio";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { TrangThaiBadge, TienDo, MucIcon, ConfirmButton, Empty } from "@/components/common";
-import { MOC, DU_KIEN, chiSo, rangBuocEtb } from "@/lib/linetime";
+import { MOC, DU_KIEN, chiSo, rangBuocEtb, laChoHang } from "@/lib/linetime";
 import { duToan, laCQD, tenMoc } from "@/lib/laytime";
 import { canhBaoChuyen } from "@/lib/checks";
 import { so, ngayGio, ngayGioNam, thoiLuong, toLocalInput, fromLocalInput, tien, pct, ms } from "@/lib/format";
@@ -239,7 +239,7 @@ function KhoangDung({ v, stops }) {
       setF({ ...f, tu: "", den: "", ghi_chu: "" });
   };
   const ds = [...stops].sort((a, b) => String(a.tu).localeCompare(String(b.tu)));
-  const tong = (chiTru) => ds.filter((s) => !chiTru || s.tru_tp).reduce((h, s) => h + ((ms(s.den) ?? Date.now()) - ms(s.tu)) / 36e5, 0);
+  const tong = (chiTru) => ds.filter((s) => !laChoHang(s) && (!chiTru || s.tru_tp)).reduce((h, s) => h + ((ms(s.den) ?? Date.now()) - ms(s.tu)) / 36e5, 0);
   return (
     <div className="grid gap-3">
       <div className="text-sm text-muted-foreground">Tổng dừng <b className="text-foreground">{thoiLuong(tong(false)) || "0 giờ"}</b>, trong đó đình trệ cho phép (trừ laytime) <b className="text-foreground">{thoiLuong(tong(true)) || "0 giờ"}</b>, trống máng <b className="text-foreground">{thoiLuong(ds.filter((s) => s.trong_mang).reduce((h, s) => h + ((ms(s.den) ?? Date.now()) - ms(s.tu)) / 36e5, 0)) || "0 giờ"}</b>. Thời gian hoa tiêu lên tàu → cập bến tự trừ theo điều khoản, không cần nhập ở đây.</div>
@@ -247,7 +247,7 @@ function KhoangDung({ v, stops }) {
         <div className="grid gap-2 rounded-md border p-3 sm:grid-cols-3">
           <Field label="Từ"><NgayGio value={f.tu} onChange={(x) => setF((o) => ({ ...o, tu: x }))} /></Field>
           <Field label="Đến (trống = đang dừng)"><NgayGio value={f.den} onChange={(x) => setF((o) => ({ ...o, den: x }))} /></Field>
-          <Field label="Lý do"><NativeSelect value={f.ly_do} onChange={(e) => setF({ ...f, ...macDinh(e.target.value) })} options={LY_DO_DUNG} /></Field>
+          <Field label="Lý do" hint={laChoHang({ ly_do: f.ly_do }) ? "Tàu chưa cập: vẽ xanh lá trong đoạn chờ bến (lịch cầu bến › Toàn thời gian)" : undefined}><NativeSelect value={f.ly_do} onChange={(e) => setF({ ...f, ...macDinh(e.target.value) })} options={LY_DO_DUNG} /></Field>
           <Field label="Ghi chú" className="sm:col-span-2"><Input value={f.ghi_chu} onChange={(e) => setF({ ...f, ghi_chu: e.target.value })} /></Field>
           <div className="flex items-end justify-between gap-2">
             <div className="grid gap-1">
