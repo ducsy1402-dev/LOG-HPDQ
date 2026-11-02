@@ -63,5 +63,5 @@ Thay đổi CSDL về sau: viết file SQL mới đánh số tiếp (07, 08…),
 - Tổng quan › Khối lượng xếp dỡ **chưa đổi**: vẫn lấy khối lượng chuyến tàu so với mục tiêu cảng.
 
 ## Kho › Sơ đồ bãi (02/11/2026)
-- Tab Sơ đồ bãi là **sơ đồ tư duy** (`src/pages/kho/SoDoTuDuy.jsx`): kho ở giữa, bãi lớn tỏa hai bên (màn hình hẹp: một bên), mỗi bãi lớn nối tới các bãi nhỏ; màu nút / đường nối theo mức lấp đầy; bấm bãi lớn mở chi tiết, mũi tên thu gọn / mở bãi nhỏ. Phần hiển thị dùng chung của trang Kho ở `khoUi.jsx`.
+- Tab Sơ đồ bãi là **sơ đồ tư duy khổ ngang** (`src/pages/kho/SoDoTuDuy.jsx`): kho ở góc trên trái, một đường ngang chung nối xuống một hàng các bãi lớn, mỗi bãi lớn nối xuống các bãi nhỏ xếp dọc; màu nút / đường nối theo mức lấp đầy; bấm bãi lớn mở chi tiết, mũi tên thu gọn / mở bãi nhỏ; có nút thu phóng (35–130%) và "Vừa khung". Phần hiển thị dùng chung của trang Kho ở `khoUi.jsx`.
 - "Ngày cấp" (kho nguyên liệu) = tồn của hàng đó ở mọi bãi ÷ tiêu thụ bình quân mỗi ngày (ô "Tiêu thụ / ngày" ở Danh mục › Kho bãi; trống thì lấy tổng xuất 30 ngày ÷ 30). Dưới 7 ngày vàng, dưới 3 ngày đỏ.
