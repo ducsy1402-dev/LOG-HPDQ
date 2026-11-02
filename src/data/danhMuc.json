@@ -1,0 +1,2022 @@
+{
+ "berths": [
+  {
+   "ma": "1A",
+   "ten_khac": [
+    "TL",
+    "BTL",
+    "B1A",
+    "Tàu Lai",
+    "Bến 1A"
+   ],
+   "dwt_max": 8000,
+   "mon_max": 7.2,
+   "mon_cung": false,
+   "loa_max": 140,
+   "loai_hang": "Thép thành phẩm, HRC, phôi vuông",
+   "thu_tu": 1,
+   "ghi_chu": null
+  },
+  {
+   "ma": "1",
+   "ten_khac": [
+    "B01",
+    "B1",
+    "Bến 1"
+   ],
+   "dwt_max": 8000,
+   "mon_max": 7.2,
+   "mon_cung": false,
+   "loa_max": 140,
+   "loai_hang": "Thép thành phẩm, HRC, phôi vuông",
+   "thu_tu": 2,
+   "ghi_chu": null
+  },
+  {
+   "ma": "2",
+   "ten_khac": [
+    "B02",
+    "B2",
+    "Bến 2"
+   ],
+   "dwt_max": 8000,
+   "mon_max": 7.2,
+   "mon_cung": false,
+   "loa_max": 140,
+   "loai_hang": "Xỉ, thép thành phẩm, HRC",
+   "thu_tu": 3,
+   "ghi_chu": null
+  },
+  {
+   "ma": "3",
+   "ten_khac": [
+    "B03",
+    "B3",
+    "Bến 3"
+   ],
+   "dwt_max": 40000,
+   "mon_max": 12,
+   "mon_cung": false,
+   "loa_max": 200,
+   "loai_hang": "HRC, xỉ, quặng hồi, thạch cao",
+   "thu_tu": 4,
+   "ghi_chu": null
+  },
+  {
+   "ma": "5",
+   "ten_khac": [
+    "B05",
+    "B5",
+    "Bến 5"
+   ],
+   "dwt_max": 150000,
+   "mon_max": 14.7,
+   "mon_cung": false,
+   "loa_max": 300,
+   "loai_hang": "Than, quặng, HRC, thép cuộn",
+   "thu_tu": 5,
+   "ghi_chu": null
+  },
+  {
+   "ma": "10",
+   "ten_khac": [
+    "B10",
+    "Bến 10"
+   ],
+   "dwt_max": 250000,
+   "mon_max": 18.5,
+   "mon_cung": true,
+   "loa_max": 410,
+   "loai_hang": "Than, quặng, HRC xuất khẩu",
+   "thu_tu": 6,
+   "ghi_chu": null
+  },
+  {
+   "ma": "4",
+   "ten_khac": [
+    "B04",
+    "B4",
+    "Bến 4"
+   ],
+   "dwt_max": 30000,
+   "mon_max": 8.9,
+   "mon_cung": false,
+   "loa_max": 200,
+   "loai_hang": "Xỉ hạt, phế liệu nội địa",
+   "thu_tu": 7,
+   "ghi_chu": null
+  },
+  {
+   "ma": "6",
+   "ten_khac": [
+    "B06",
+    "B6",
+    "Bến 6"
+   ],
+   "dwt_max": 110000,
+   "mon_max": 14.9,
+   "mon_cung": false,
+   "loa_max": 300,
+   "loai_hang": "Than, quặng, HRC, thép cuộn",
+   "thu_tu": 8,
+   "ghi_chu": null
+  },
+  {
+   "ma": "11",
+   "ten_khac": [
+    "B11",
+    "Bến 11"
+   ],
+   "dwt_max": 250000,
+   "mon_max": 18.5,
+   "mon_cung": true,
+   "loa_max": 410,
+   "loai_hang": "Than, quặng, HRC xuất khẩu",
+   "thu_tu": 9,
+   "ghi_chu": null
+  },
+  {
+   "ma": "7",
+   "ten_khac": [
+    "B07",
+    "B7",
+    "Bến 7"
+   ],
+   "dwt_max": 20000,
+   "mon_max": 9,
+   "mon_cung": false,
+   "loa_max": 180,
+   "loai_hang": "Đá, xỉ, quặng hồi, HRC",
+   "thu_tu": 10,
+   "ghi_chu": null
+  },
+  {
+   "ma": "8",
+   "ten_khac": [
+    "B08",
+    "B8",
+    "Bến 8"
+   ],
+   "dwt_max": 10000,
+   "mon_max": 7.2,
+   "mon_cung": false,
+   "loa_max": 126.5,
+   "loai_hang": "Đá, xỉ, quặng hồi",
+   "thu_tu": 11,
+   "ghi_chu": null
+  },
+  {
+   "ma": "9",
+   "ten_khac": [
+    "B09",
+    "B9",
+    "Bến 9"
+   ],
+   "dwt_max": 10000,
+   "mon_max": 7.2,
+   "mon_cung": false,
+   "loa_max": 126.5,
+   "loai_hang": "Đá, xỉ, quặng hồi",
+   "thu_tu": 12,
+   "ghi_chu": null
+  },
+  {
+   "ma": "HH2",
+   "ten_khac": [
+    "BHH2",
+    "Bến 2-HH"
+   ],
+   "dwt_max": 50000,
+   "mon_max": 11.7,
+   "mon_cung": true,
+   "loa_max": 242,
+   "loai_hang": "HRC, phôi, đá, xỉ, thiết bị",
+   "thu_tu": 13,
+   "ghi_chu": null
+  },
+  {
+   "ma": "HH3",
+   "ten_khac": [
+    "BHH3",
+    "Bến 3-HH"
+   ],
+   "dwt_max": 30000,
+   "mon_max": 10.8,
+   "mon_cung": true,
+   "loa_max": 190,
+   "loai_hang": "HRC, phôi, đá, xỉ, thiết bị",
+   "thu_tu": 14,
+   "ghi_chu": null
+  },
+  {
+   "ma": "6CTH",
+   "ten_khac": [
+    "B6CTH",
+    "Bến 6-CTH"
+   ],
+   "dwt_max": 70000,
+   "mon_max": 12.2,
+   "mon_cung": false,
+   "loa_max": 250,
+   "loai_hang": "Phế, HRC, thép cuộn, phôi, slab, xỉ",
+   "thu_tu": 15,
+   "ghi_chu": null
+  },
+  {
+   "ma": "7CTH",
+   "ten_khac": [
+    "B7CTH",
+    "Bến 7-CTH"
+   ],
+   "dwt_max": 70000,
+   "mon_max": 12.2,
+   "mon_cung": false,
+   "loa_max": 250,
+   "loai_hang": "Phế, HRC, thép cuộn, phôi, slab, xỉ",
+   "thu_tu": 16,
+   "ghi_chu": null
+  }
+ ],
+ "cranes": [
+  {
+   "ma": "OHC 40T",
+   "doi": "Cẩu",
+   "model": "Cầu trục",
+   "to_xe": null,
+   "che_do": "Đi ca",
+   "ben_phuc_vu": [
+    "1A",
+    "1",
+    "2"
+   ],
+   "tai_nang": "40 T",
+   "tam_voi": null,
+   "nang_suat": null,
+   "pham_vi": null,
+   "bang_tai": null,
+   "ghi_chu": null,
+   "thu_tu": 1
+  },
+  {
+   "ma": "OHC 30T",
+   "doi": "Cẩu",
+   "model": "Cầu trục",
+   "to_xe": null,
+   "che_do": "Đi ca",
+   "ben_phuc_vu": [
+    "1A",
+    "1",
+    "2"
+   ],
+   "tai_nang": "30 T",
+   "tam_voi": null,
+   "nang_suat": null,
+   "pham_vi": null,
+   "bang_tai": null,
+   "ghi_chu": null,
+   "thu_tu": 2
+  },
+  {
+   "ma": "SLD bến 2",
+   "doi": "Cẩu",
+   "model": "Ship loader (SLD)",
+   "to_xe": null,
+   "che_do": "Đi ca",
+   "ben_phuc_vu": [
+    "2"
+   ],
+   "tai_nang": null,
+   "tam_voi": null,
+   "nang_suat": "720",
+   "pham_vi": null,
+   "bang_tai": null,
+   "ghi_chu": null,
+   "thu_tu": 3
+  },
+  {
+   "ma": "QC03",
+   "doi": "Cẩu",
+   "model": "Cẩu giàn",
+   "to_xe": null,
+   "che_do": "Đi ca",
+   "ben_phuc_vu": [
+    "3"
+   ],
+   "tai_nang": "40 T",
+   "tam_voi": "20 m",
+   "nang_suat": null,
+   "pham_vi": "15-210m",
+   "bang_tai": null,
+   "ghi_chu": null,
+   "thu_tu": 4
+  },
+  {
+   "ma": "QC04",
+   "doi": "Cẩu",
+   "model": "Cẩu giàn",
+   "to_xe": null,
+   "che_do": "Đi ca",
+   "ben_phuc_vu": [
+    "3"
+   ],
+   "tai_nang": "40 T",
+   "tam_voi": "35 m",
+   "nang_suat": null,
+   "pham_vi": "40-350m",
+   "bang_tai": null,
+   "ghi_chu": null,
+   "thu_tu": 5
+  },
+  {
+   "ma": "QC05",
+   "doi": "Cẩu",
+   "model": "Cẩu giàn",
+   "to_xe": null,
+   "che_do": "Đi ca",
+   "ben_phuc_vu": [
+    "3"
+   ],
+   "tai_nang": "40 T",
+   "tam_voi": "35 m",
+   "nang_suat": null,
+   "pham_vi": "60-480m",
+   "bang_tai": null,
+   "ghi_chu": null,
+   "thu_tu": 6
+  },
+  {
+   "ma": "SC02",
+   "doi": "Cẩu",
+   "model": "Cẩu gọng kìm",
+   "to_xe": null,
+   "che_do": "Đi ca",
+   "ben_phuc_vu": [
+    "5"
+   ],
+   "tai_nang": "32 T",
+   "tam_voi": "43 m",
+   "nang_suat": null,
+   "pham_vi": "220-500m",
+   "bang_tai": "#1, #2",
+   "ghi_chu": null,
+   "thu_tu": 7
+  },
+  {
+   "ma": "QC10",
+   "doi": "Cẩu",
+   "model": "Cẩu giàn",
+   "to_xe": null,
+   "che_do": "Đi ca",
+   "ben_phuc_vu": [
+    "5"
+   ],
+   "tai_nang": "52 T",
+   "tam_voi": "40 m",
+   "nang_suat": "2000",
+   "pham_vi": "280-580m",
+   "bang_tai": "#1, #2, #5",
+   "ghi_chu": null,
+   "thu_tu": 8
+  },
+  {
+   "ma": "QC11",
+   "doi": "Cẩu",
+   "model": "Cẩu giàn",
+   "to_xe": null,
+   "che_do": "Đi ca",
+   "ben_phuc_vu": [
+    "5"
+   ],
+   "tai_nang": "52 T",
+   "tam_voi": "40 m",
+   "nang_suat": "2000",
+   "pham_vi": "370-790m",
+   "bang_tai": "#1, #2, #5",
+   "ghi_chu": null,
+   "thu_tu": 9
+  },
+  {
+   "ma": "QC08",
+   "doi": "Cẩu",
+   "model": "Cẩu giàn",
+   "to_xe": null,
+   "che_do": "Đi ca",
+   "ben_phuc_vu": [
+    "10"
+   ],
+   "tai_nang": "62 T",
+   "tam_voi": "43 m",
+   "nang_suat": "2000",
+   "pham_vi": "530-830m",
+   "bang_tai": "#1, #2, #5",
+   "ghi_chu": null,
+   "thu_tu": 10
+  },
+  {
+   "ma": "QC06",
+   "doi": "Cẩu",
+   "model": "Cẩu giàn",
+   "to_xe": null,
+   "che_do": "Đi ca",
+   "ben_phuc_vu": [
+    "10"
+   ],
+   "tai_nang": "62 T",
+   "tam_voi": "43 m",
+   "nang_suat": "2000",
+   "pham_vi": "530-830m",
+   "bang_tai": "#1, #2, #5",
+   "ghi_chu": null,
+   "thu_tu": 11
+  },
+  {
+   "ma": "QC07",
+   "doi": "Cẩu",
+   "model": "Cẩu giàn",
+   "to_xe": null,
+   "che_do": "Đi ca",
+   "ben_phuc_vu": [
+    "10"
+   ],
+   "tai_nang": "62 T",
+   "tam_voi": "43 m",
+   "nang_suat": "2000",
+   "pham_vi": "640-910m",
+   "bang_tai": "#1, #2, #5",
+   "ghi_chu": null,
+   "thu_tu": 12
+  },
+  {
+   "ma": "SLD bến 4",
+   "doi": "Cẩu",
+   "model": "Ship loader (SLD)",
+   "to_xe": null,
+   "che_do": "Đi ca",
+   "ben_phuc_vu": [
+    "4"
+   ],
+   "tai_nang": null,
+   "tam_voi": "15 m",
+   "nang_suat": "1000",
+   "pham_vi": "30-170m",
+   "bang_tai": null,
+   "ghi_chu": null,
+   "thu_tu": 13
+  },
+  {
+   "ma": "SC01",
+   "doi": "Cẩu",
+   "model": "Cẩu gọng kìm",
+   "to_xe": null,
+   "che_do": "Đi ca",
+   "ben_phuc_vu": [
+    "4"
+   ],
+   "tai_nang": "16 T",
+   "tam_voi": "30 m",
+   "nang_suat": null,
+   "pham_vi": "40-275m",
+   "bang_tai": null,
+   "ghi_chu": "Cẩu 16 tấn, hạn chế khi nào không thể cẩu máy đào (xe nhóp 22-25 Tấn) xuống hầm tàu, chỉ cẩu được máy đào nhỏ dưới 16T",
+   "thu_tu": 14
+  },
+  {
+   "ma": "SC07",
+   "doi": "Cẩu",
+   "model": "Cẩu gọng kìm",
+   "to_xe": null,
+   "che_do": "Đi ca",
+   "ben_phuc_vu": [
+    "6"
+   ],
+   "tai_nang": "32 T",
+   "tam_voi": "43 m",
+   "nang_suat": null,
+   "pham_vi": "205-400m",
+   "bang_tai": "#3, #4",
+   "ghi_chu": null,
+   "thu_tu": 15
+  },
+  {
+   "ma": "SC06",
+   "doi": "Cẩu",
+   "model": "Cẩu gọng kìm",
+   "to_xe": null,
+   "che_do": "Đi ca",
+   "ben_phuc_vu": [
+    "6"
+   ],
+   "tai_nang": "32 T",
+   "tam_voi": "43 m",
+   "nang_suat": null,
+   "pham_vi": "205-505m",
+   "bang_tai": "#3, #4",
+   "ghi_chu": null,
+   "thu_tu": 16
+  },
+  {
+   "ma": "SC05",
+   "doi": "Cẩu",
+   "model": "Cẩu gọng kìm",
+   "to_xe": null,
+   "che_do": "Đi ca",
+   "ben_phuc_vu": [
+    "6"
+   ],
+   "tai_nang": "32 T",
+   "tam_voi": "43 m",
+   "nang_suat": null,
+   "pham_vi": "310-550m",
+   "bang_tai": "#3, #4",
+   "ghi_chu": null,
+   "thu_tu": 17
+  },
+  {
+   "ma": "SLD bến 6",
+   "doi": "Cẩu",
+   "model": "Ship loader (SLD)",
+   "to_xe": null,
+   "che_do": "Đi ca",
+   "ben_phuc_vu": [
+    "6"
+   ],
+   "tai_nang": null,
+   "tam_voi": null,
+   "nang_suat": null,
+   "pham_vi": null,
+   "bang_tai": null,
+   "ghi_chu": null,
+   "thu_tu": 18
+  },
+  {
+   "ma": "QC01",
+   "doi": "Cẩu",
+   "model": "Cẩu giàn",
+   "to_xe": null,
+   "che_do": "Đi ca",
+   "ben_phuc_vu": [
+    "11"
+   ],
+   "tai_nang": "62 T",
+   "tam_voi": "43 m",
+   "nang_suat": "2500",
+   "pham_vi": "530-830m",
+   "bang_tai": "#3, #4, #5",
+   "ghi_chu": null,
+   "thu_tu": 19
+  },
+  {
+   "ma": "QC02",
+   "doi": "Cẩu",
+   "model": "Cẩu giàn",
+   "to_xe": null,
+   "che_do": "Đi ca",
+   "ben_phuc_vu": [
+    "11"
+   ],
+   "tai_nang": "62 T",
+   "tam_voi": "43 m",
+   "nang_suat": "2500",
+   "pham_vi": "640-910m",
+   "bang_tai": "#3, #4, #5",
+   "ghi_chu": null,
+   "thu_tu": 20
+  },
+  {
+   "ma": "QC09",
+   "doi": "Cẩu",
+   "model": "Cẩu giàn",
+   "to_xe": null,
+   "che_do": "Đi ca",
+   "ben_phuc_vu": [
+    "11"
+   ],
+   "tai_nang": "62 T",
+   "tam_voi": "43 m",
+   "nang_suat": "2500",
+   "pham_vi": "530-830m",
+   "bang_tai": "#3, #4, #5",
+   "ghi_chu": null,
+   "thu_tu": 21
+  },
+  {
+   "ma": "QC12",
+   "doi": "Cẩu",
+   "model": "Cẩu giàn",
+   "to_xe": null,
+   "che_do": "Đi ca",
+   "ben_phuc_vu": [
+    "11"
+   ],
+   "tai_nang": "52 T",
+   "tam_voi": "40 m",
+   "nang_suat": "2000",
+   "pham_vi": "355-805m",
+   "bang_tai": "#3, #4, #5",
+   "ghi_chu": null,
+   "thu_tu": 22
+  },
+  {
+   "ma": "SC11",
+   "doi": "Cẩu",
+   "model": "Cẩu gọng kìm",
+   "to_xe": null,
+   "che_do": "Đi ca",
+   "ben_phuc_vu": [
+    "7"
+   ],
+   "tai_nang": "32 T",
+   "tam_voi": "30 m",
+   "nang_suat": "1000",
+   "pham_vi": "0-193m",
+   "bang_tai": "#101,#201,#301",
+   "ghi_chu": null,
+   "thu_tu": 23
+  },
+  {
+   "ma": "SC12",
+   "doi": "Cẩu",
+   "model": "Cẩu gọng kìm",
+   "to_xe": null,
+   "che_do": "Đi ca",
+   "ben_phuc_vu": [
+    "7"
+   ],
+   "tai_nang": "32 T",
+   "tam_voi": "30 m",
+   "nang_suat": "1000",
+   "pham_vi": "0-293m",
+   "bang_tai": "#101,#201,#301",
+   "ghi_chu": null,
+   "thu_tu": 24
+  },
+  {
+   "ma": "SLD bến 7",
+   "doi": "Cẩu",
+   "model": "Ship loader (SLD)",
+   "to_xe": null,
+   "che_do": "Đi ca",
+   "ben_phuc_vu": [
+    "7"
+   ],
+   "tai_nang": null,
+   "tam_voi": null,
+   "nang_suat": "280",
+   "pham_vi": "60-120m",
+   "bang_tai": null,
+   "ghi_chu": null,
+   "thu_tu": 25
+  },
+  {
+   "ma": "SC12A",
+   "doi": "Cẩu",
+   "model": "Cẩu gọng kìm",
+   "to_xe": null,
+   "che_do": "Đi ca",
+   "ben_phuc_vu": [
+    "8"
+   ],
+   "tai_nang": "16 T",
+   "tam_voi": "30 m",
+   "nang_suat": "1000",
+   "pham_vi": "55-355m",
+   "bang_tai": "#101,#201,#301",
+   "ghi_chu": null,
+   "thu_tu": 26
+  },
+  {
+   "ma": "SC08",
+   "doi": "Cẩu",
+   "model": "Cẩu gọng kìm",
+   "to_xe": null,
+   "che_do": "Đi ca",
+   "ben_phuc_vu": [
+    "8"
+   ],
+   "tai_nang": "16 T",
+   "tam_voi": "30 m",
+   "nang_suat": "1000",
+   "pham_vi": "107-407m",
+   "bang_tai": "#101,#201",
+   "ghi_chu": null,
+   "thu_tu": 27
+  },
+  {
+   "ma": "SC09",
+   "doi": "Cẩu",
+   "model": "Cẩu gọng kìm",
+   "to_xe": null,
+   "che_do": "Đi ca",
+   "ben_phuc_vu": [
+    "9"
+   ],
+   "tai_nang": "16 T",
+   "tam_voi": "25 m",
+   "nang_suat": "1000",
+   "pham_vi": "158-433m",
+   "bang_tai": "#101,#201",
+   "ghi_chu": null,
+   "thu_tu": 28
+  },
+  {
+   "ma": "SC10",
+   "doi": "Cẩu",
+   "model": "Cẩu gọng kìm",
+   "to_xe": null,
+   "che_do": "Đi ca",
+   "ben_phuc_vu": [
+    "9"
+   ],
+   "tai_nang": "50 T",
+   "tam_voi": "25 m",
+   "nang_suat": "1000",
+   "pham_vi": "208-433m",
+   "bang_tai": "#101,#201",
+   "ghi_chu": null,
+   "thu_tu": 29
+  },
+  {
+   "ma": "SCHH02",
+   "doi": "Cẩu",
+   "model": "Cẩu gọng kìm",
+   "to_xe": null,
+   "che_do": "Đi ca",
+   "ben_phuc_vu": [
+    "HH2"
+   ],
+   "tai_nang": "50 T",
+   "tam_voi": "35 m",
+   "nang_suat": null,
+   "pham_vi": "40-310m",
+   "bang_tai": null,
+   "ghi_chu": null,
+   "thu_tu": 30
+  },
+  {
+   "ma": "SCHH03",
+   "doi": "Cẩu",
+   "model": "Cẩu gọng kìm",
+   "to_xe": null,
+   "che_do": "Đi ca",
+   "ben_phuc_vu": [
+    "HH2"
+   ],
+   "tai_nang": "50 T",
+   "tam_voi": "35 m",
+   "nang_suat": null,
+   "pham_vi": "90-370m",
+   "bang_tai": null,
+   "ghi_chu": null,
+   "thu_tu": 31
+  },
+  {
+   "ma": "Cẩu xích 350T",
+   "doi": "Cẩu",
+   "model": "Cẩu xích",
+   "to_xe": null,
+   "che_do": "Đi ca",
+   "ben_phuc_vu": [
+    "HH3"
+   ],
+   "tai_nang": "86 / 47 / 33 T",
+   "tam_voi": "20 / 30 / 40 m",
+   "nang_suat": null,
+   "pham_vi": null,
+   "bang_tai": null,
+   "ghi_chu": "Biểu đồ tải: 86T tầm 20m, 47T tầm 30m, 33T tầm 40m",
+   "thu_tu": 32
+  },
+  {
+   "ma": "Cẩu xích 260T #1",
+   "doi": "Cẩu",
+   "model": "Cẩu xích",
+   "to_xe": null,
+   "che_do": "Đi ca",
+   "ben_phuc_vu": [
+    "HH3"
+   ],
+   "tai_nang": "51 / 30 / 20 T",
+   "tam_voi": "20 / 30 / 40 m",
+   "nang_suat": null,
+   "pham_vi": null,
+   "bang_tai": null,
+   "ghi_chu": "Biểu đồ tải: 51T tầm 20m, 30T tầm 30m, 20T tầm 40m",
+   "thu_tu": 33
+  },
+  {
+   "ma": "Cẩu xích 260T #2",
+   "doi": "Cẩu",
+   "model": "Cẩu xích",
+   "to_xe": null,
+   "che_do": "Đi ca",
+   "ben_phuc_vu": [
+    "HH3"
+   ],
+   "tai_nang": "51 / 30 / 20 T",
+   "tam_voi": "20 / 30 / 40 m",
+   "nang_suat": null,
+   "pham_vi": null,
+   "bang_tai": null,
+   "ghi_chu": "Biểu đồ tải: 51T tầm 20m, 30T tầm 30m, 20T tầm 40m",
+   "thu_tu": 34
+  },
+  {
+   "ma": "SHC01",
+   "doi": "Cẩu",
+   "model": "Cẩu xích",
+   "to_xe": null,
+   "che_do": "Đi ca",
+   "ben_phuc_vu": [
+    "6CTH"
+   ],
+   "tai_nang": "40 T",
+   "tam_voi": "37.5 m",
+   "nang_suat": null,
+   "pham_vi": "90-460m",
+   "bang_tai": null,
+   "ghi_chu": null,
+   "thu_tu": 35
+  },
+  {
+   "ma": "SHC02",
+   "doi": "Cẩu",
+   "model": "Cẩu xích",
+   "to_xe": null,
+   "che_do": "Đi ca",
+   "ben_phuc_vu": [
+    "6CTH"
+   ],
+   "tai_nang": "40 T",
+   "tam_voi": "37.5 m",
+   "nang_suat": null,
+   "pham_vi": "155-485m",
+   "bang_tai": null,
+   "ghi_chu": null,
+   "thu_tu": 36
+  },
+  {
+   "ma": "SC03",
+   "doi": "Cẩu",
+   "model": "Cẩu xích",
+   "to_xe": null,
+   "che_do": "Đi ca",
+   "ben_phuc_vu": [
+    "7CTH"
+   ],
+   "tai_nang": "32 T",
+   "tam_voi": "43 m",
+   "nang_suat": null,
+   "pham_vi": "10-315m",
+   "bang_tai": null,
+   "ghi_chu": null,
+   "thu_tu": 37
+  },
+  {
+   "ma": "SC04",
+   "doi": "Cẩu",
+   "model": "Cẩu xích",
+   "to_xe": null,
+   "che_do": "Đi ca",
+   "ben_phuc_vu": [
+    "7CTH"
+   ],
+   "tai_nang": "32 T",
+   "tam_voi": "43 m",
+   "nang_suat": null,
+   "pham_vi": "40-415m",
+   "bang_tai": null,
+   "ghi_chu": null,
+   "thu_tu": 38
+  }
+ ],
+ "hanghoa": [
+  {
+   "loai_hang": "Phế HMS",
+   "nhom": "Phế",
+   "ti_trong": 0.6,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Phế HS",
+   "nhom": "Phế",
+   "ti_trong": 0.7,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Phế PNS",
+   "nhom": "Phế",
+   "ti_trong": 0.7,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Phế băm",
+   "nhom": "Phế",
+   "ti_trong": 1.1,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Phế bloom",
+   "nhom": "Phế",
+   "ti_trong": null,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Phế nội",
+   "nhom": "Phế",
+   "ti_trong": 0.2,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Thép phế >= 3mm",
+   "nhom": "Phế",
+   "ti_trong": 0.2,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Phế hình (nhật)",
+   "nhom": "Phế",
+   "ti_trong": 0.7,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Bùn đất",
+   "nhom": "Đất",
+   "ti_trong": 1.2,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Phế cấp phối",
+   "nhom": "Phế",
+   "ti_trong": 0.6,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Phế lẫn đất",
+   "nhom": "Đất",
+   "ti_trong": 0.9,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Xỉ lật phôi vuông",
+   "nhom": "Xỉ",
+   "ti_trong": 1.623,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Xỉ gầm lò",
+   "nhom": "Xỉ",
+   "ti_trong": 1.564,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Liệu hồi trạm đá",
+   "nhom": "Bụi",
+   "ti_trong": 1.54,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Vật liệu chịu lửa phế",
+   "nhom": "Vật liệu chịu lửa",
+   "ti_trong": 0,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Rác thải CN",
+   "nhom": "Rác",
+   "ti_trong": 0,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Kim loại màu",
+   "nhom": "Phế",
+   "ti_trong": 0.5,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Quặng trung hòa",
+   "nhom": "Quặng",
+   "ti_trong": 1.877,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Quặng hồi thiêu kết",
+   "nhom": "Quặng",
+   "ti_trong": 1.994,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Quặng hồi lò cao",
+   "nhom": "Quặng",
+   "ti_trong": 1.992,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Quặng cỡ Hemantit Lào",
+   "nhom": "Quặng",
+   "ti_trong": 1.958,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Quặng vê viên thành phẩm",
+   "nhom": "Quặng",
+   "ti_trong": 2.21,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Quặng thiêu kết thành phẩm",
+   "nhom": "Quặng",
+   "ti_trong": 1.576,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Quặng Cỡ Roy Hill-Úc",
+   "nhom": "Quặng",
+   "ti_trong": 1.992,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Quặng cỡ Glencore",
+   "nhom": "Quặng",
+   "ti_trong": 2.355,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Quặng cỡ Fenix-Úc",
+   "nhom": "Quặng",
+   "ti_trong": 2.205,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Quặng cỡ Newman - Úc",
+   "nhom": "Quặng",
+   "ti_trong": 1.946,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Quặng cỡ BOMI - LIBERIA",
+   "nhom": "Quặng",
+   "ti_trong": 2.31,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Quắc Zit",
+   "nhom": "Quặng",
+   "ti_trong": 1.423,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Hot Briquetted Iron (HBI)",
+   "nhom": "Phế",
+   "ti_trong": 2.72,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Xí thép nghiền cỡ hạt (5x20)mm",
+   "nhom": "Xỉ",
+   "ti_trong": 1.538,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Xí thép cấp phối SS10",
+   "nhom": "Xỉ",
+   "ti_trong": 1.603,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Xí thép cấp phối SS14",
+   "nhom": "Xỉ",
+   "ti_trong": 1.779,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Xí thép cấp phối SS40",
+   "nhom": "Xỉ",
+   "ti_trong": 1.45,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Xỉ vệ sinh gầm lò thổi",
+   "nhom": "Xỉ",
+   "ti_trong": 1.564,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Xỉ sau ủ",
+   "nhom": "Xỉ",
+   "ti_trong": 2.371,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Xỉ tổng hợp",
+   "nhom": "Xỉ",
+   "ti_trong": 2.734,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Xí thép sau ủ (tách lọc mê > 200 mm)",
+   "nhom": "Xỉ",
+   "ti_trong": 1.704,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Xí thép sau ủ (chưa tách lọc mê)",
+   "nhom": "Xỉ",
+   "ti_trong": 2.37,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Xỉ làm việc NM cán TD",
+   "nhom": "Xỉ",
+   "ti_trong": 1.623,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Xỉ làm việc NM cán QSP",
+   "nhom": "Xỉ",
+   "ti_trong": 1.438,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Xỉ hạt lò cao",
+   "nhom": "Xỉ",
+   "ti_trong": 0.942,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Xỉ hạt lò cao nghiền mịn",
+   "nhom": "Xỉ",
+   "ti_trong": 0.952,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Đá vôi 10-20 mm",
+   "nhom": "Đá",
+   "ti_trong": 1.532,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Đá vôi < 10 mm",
+   "nhom": "Đá",
+   "ti_trong": 1.459,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Đá vôi < 20 mm",
+   "nhom": "Đá",
+   "ti_trong": 1.46,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Đá vôi < 40 mmm",
+   "nhom": "Đá",
+   "ti_trong": 1.559,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Đá vôi > 40 mmm",
+   "nhom": "Đá",
+   "ti_trong": 1.44,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Đá vôi 20 -45",
+   "nhom": "Đá",
+   "ti_trong": 1.118,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Đá vôi 40-90",
+   "nhom": "Đá",
+   "ti_trong": 1.446,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Đá loại lò Dolo đứng",
+   "nhom": "Đá",
+   "ti_trong": 1.761,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Dolomite nung thành phẩm",
+   "nhom": "Đá",
+   "ti_trong": 1.101,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Đá dolomite <10",
+   "nhom": "Đá",
+   "ti_trong": 1.657,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Đá dolomite 20-40",
+   "nhom": "Đá",
+   "ti_trong": 1.46,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Đá dolomite 40-90",
+   "nhom": "Đá",
+   "ti_trong": 1.45,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Đá dolomite 45-100",
+   "nhom": "Đá",
+   "ti_trong": 1.478,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Đá dolomite 50-100",
+   "nhom": "Đá",
+   "ti_trong": 1.531,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Bột đá vôi <3 mm",
+   "nhom": "Đá",
+   "ti_trong": 1.435,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Bột đá Dolomite nung 0-3",
+   "nhom": "Đá",
+   "ti_trong": 1.118,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Bột đá Dolomite 0-3",
+   "nhom": "Đá",
+   "ti_trong": 1.658,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Bụi coke",
+   "nhom": "Bụi",
+   "ti_trong": 0.898,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Bụi túi vải LT",
+   "nhom": "Bụi",
+   "ti_trong": 1.081,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Bụi tĩnh điện LT",
+   "nhom": "Bụi",
+   "ti_trong": 0.771,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Bụi trọng lực LT",
+   "nhom": "Bụi",
+   "ti_trong": 1.757,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Bụi silo ngầm LG",
+   "nhom": "Bụi",
+   "ti_trong": 0.765,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Bụi túi vải LG",
+   "nhom": "Bụi",
+   "ti_trong": 0.996,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Bụi trọng lực LG (quặng hồi)",
+   "nhom": "Quặng",
+   "ti_trong": 1.254,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Vỉa thép 0-10 mm",
+   "nhom": "Vải",
+   "ti_trong": 1.751,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Vỉa thép 10-40 mm",
+   "nhom": "Vải",
+   "ti_trong": 1.864,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Vỉa thép 40-200 mm",
+   "nhom": "Vải",
+   "ti_trong": 1.773,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Vôi bôt lò quay",
+   "nhom": "Đá",
+   "ti_trong": 1.364,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Vôi nung lò quay",
+   "nhom": "Đá",
+   "ti_trong": 1.151,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Coke 0-80 chưa qua sàng",
+   "nhom": "Cốc",
+   "ti_trong": 0.576,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Coke 10-80",
+   "nhom": "Cốc",
+   "ti_trong": 0.586,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Vảy cán thu hồi từ S95",
+   "nhom": "Vảy cán",
+   "ti_trong": 4.373,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Vảy cán mua ngoài",
+   "nhom": "Vảy cán",
+   "ti_trong": 2.23,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Gang thỏi",
+   "nhom": "Gang thỏi",
+   "ti_trong": 3.837,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Than coke < 10",
+   "nhom": "Cốc",
+   "ti_trong": 0.796,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Thạch cao",
+   "nhom": "Thạch cao",
+   "ti_trong": 0.786,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Quặng tinh Sino iron (Ma)",
+   "nhom": "Quặng",
+   "ti_trong": 1.597,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Quặng He Kumba fines",
+   "nhom": "Quặng",
+   "ti_trong": 2.535,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Quặng Cám Limonit Tắc Ái",
+   "nhom": "Quặng",
+   "ti_trong": 1.467,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Quặng Li FB - FMG",
+   "nhom": "Quặng",
+   "ti_trong": 1.89,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Quặng Li Simec 1ow-Frade",
+   "nhom": "Quặng",
+   "ti_trong": 1.807,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Quặng He Yara",
+   "nhom": "Quặng",
+   "ti_trong": 1.4,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Quặng vê viên dưới cỡ",
+   "nhom": "Quặng",
+   "ti_trong": 1.57,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Quặng He Spain 1ow-Frade",
+   "nhom": "Quặng",
+   "ti_trong": 1.432,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Quặng He Brazil Low-grade",
+   "nhom": "Quặng",
+   "ti_trong": 1.06,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Quặng Li SS-FMG",
+   "nhom": "Quặng",
+   "ti_trong": 1.888,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Quặng He BRBF Vale",
+   "nhom": "Quặng",
+   "ti_trong": 2.12,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Quặng Li Carina",
+   "nhom": "Quặng",
+   "ti_trong": 1.991,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Quặng cám Roy Hill-Úc",
+   "nhom": "Quặng",
+   "ti_trong": 1.892,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Quặng cám Tiến Bộ",
+   "nhom": "Quặng",
+   "ti_trong": 1.539,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Quặng cám He Fenix-Úc",
+   "nhom": "Quặng",
+   "ti_trong": 1.95,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Quặng cám BHP-Úc",
+   "nhom": "Quặng",
+   "ti_trong": 1.912,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Quặng cám Newman High Grade-Úc",
+   "nhom": "Quặng",
+   "ti_trong": 2.055,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Quặng hồi máy bản lược",
+   "nhom": "Quặng",
+   "ti_trong": 1.85,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Quặng Manhetic Sin Quyen",
+   "nhom": "Quặng",
+   "ti_trong": 1.55,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Quặng Manhetic Nhât Anh",
+   "nhom": "Quặng",
+   "ti_trong": 1.708,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Quặng Manhetit noi dia (Si thíÏp)",
+   "nhom": "Quặng",
+   "ti_trong": 1.565,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Quăng Manhetit noi dia (Si cao)",
+   "nhom": "Quặng",
+   "ti_trong": 1.7,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Quặng sau nghien tinh (QMA noi dia)",
+   "nhom": "Quặng",
+   "ti_trong": 2.01,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Quặng tinh Tho Nhï Kÿ",
+   "nhom": "Quặng",
+   "ti_trong": 1.057,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Quặng tinh Karara-Úc",
+   "nhom": "Quặng",
+   "ti_trong": 1.504,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Huỳnh thạch cỡ hạt 0-10",
+   "nhom": "Huỳnh thạch",
+   "ti_trong": 1.712,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Huỳnh thạch cỡ hạt 10-90",
+   "nhom": "Huỳnh thạch",
+   "ti_trong": 1.35,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Than HCC Mabu",
+   "nhom": "Than",
+   "ti_trong": 0.641,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Than PCI HWW",
+   "nhom": "Than",
+   "ti_trong": 0.661,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Than HCC Byerwen",
+   "nhom": "Than",
+   "ti_trong": 0.711,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Than HCC Saraji",
+   "nhom": "Than",
+   "ti_trong": 0.733,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Than HCC Illawara",
+   "nhom": "Than",
+   "ti_trong": 0.657,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Than HCC BBP",
+   "nhom": "Than",
+   "ti_trong": 0.57,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Than HCC Leer",
+   "nhom": "Than",
+   "ti_trong": 0.629,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Than SHCC Raspadskaya",
+   "nhom": "Than",
+   "ti_trong": 0.721,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Than PCI Yarranbee",
+   "nhom": "Than",
+   "ti_trong": 0.758,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Than PCI Bachatsky",
+   "nhom": "Than",
+   "ti_trong": 0.724,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Than PCI ASSH-UHG",
+   "nhom": "Than",
+   "ti_trong": 0.835,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Than PCI Middle Mount",
+   "nhom": "Than",
+   "ti_trong": 0.671,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Than PCI Lake Vermont",
+   "nhom": "Than",
+   "ti_trong": 0.835,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Than PCI MV",
+   "nhom": "Than",
+   "ti_trong": null,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Than PCI LV",
+   "nhom": "Than",
+   "ti_trong": null,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Than HCC Appin",
+   "nhom": "Than",
+   "ti_trong": 0.72,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Than HCC HV Uvalnaya",
+   "nhom": "Than",
+   "ti_trong": 0.84,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Than HCC Peck Down North",
+   "nhom": "Than",
+   "ti_trong": 0.698,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Than HCC Sonoina",
+   "nhom": "Than",
+   "ti_trong": 0.82,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Than HCC Riverside",
+   "nhom": "Than",
+   "ti_trong": 0.696,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Than HCC Caval Ridge",
+   "nhom": "Than",
+   "ti_trong": 0.684,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Than HCC Peak Down",
+   "nhom": "Than",
+   "ti_trong": 0.72,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Than SHCC Nantoy",
+   "nhom": "Than",
+   "ti_trong": 0.651,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Than cám 2A",
+   "nhom": "Than",
+   "ti_trong": 0.723,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Than cám nghiền",
+   "nhom": "Than",
+   "ti_trong": 0.694,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Than HCC Oaky North",
+   "nhom": "Than",
+   "ti_trong": 0.669,
+   "ghi_chu": null
+  },
+  {
+   "loai_hang": "Trấu luyện kim qua nung",
+   "nhom": "Trấu",
+   "ti_trong": 0.164,
+   "ghi_chu": null
+  }
+ ],
+ "khoBai": [
+  {
+   "id": 1,
+   "ten_bai": "Bãi Duafat",
+   "dien_tich": 5500,
+   "hang": "Bột đá V 0-3mm",
+   "thiet_bi": null,
+   "ghi_chu": null
+  },
+  {
+   "id": 2,
+   "ten_bai": "Bãi Duafat",
+   "dien_tich": 1500,
+   "hang": "Bùn vảy cán HRC",
+   "thiet_bi": null,
+   "ghi_chu": null
+  },
+  {
+   "id": 3,
+   "ten_bai": "Bãi Duafat",
+   "dien_tich": 10000,
+   "hang": "Phế",
+   "thiet_bi": null,
+   "ghi_chu": null
+  },
+  {
+   "id": 4,
+   "ten_bai": "Bãi Duafat",
+   "dien_tich": 5200,
+   "hang": "Quặng vê viên",
+   "thiet_bi": null,
+   "ghi_chu": null
+  },
+  {
+   "id": 5,
+   "ten_bai": "Bãi Duafat",
+   "dien_tich": 2000,
+   "hang": "Quặng cỡ titan",
+   "thiet_bi": null,
+   "ghi_chu": null
+  },
+  {
+   "id": 6,
+   "ten_bai": "Bãi Duafat",
+   "dien_tich": 900,
+   "hang": "Quặng cỡ Khumani",
+   "thiet_bi": null,
+   "ghi_chu": null
+  },
+  {
+   "id": 7,
+   "ten_bai": "Bãi Duafat",
+   "dien_tich": 2500,
+   "hang": "Quặng cỡ BOMI - LIBERIA",
+   "thiet_bi": null,
+   "ghi_chu": null
+  },
+  {
+   "id": 8,
+   "ten_bai": "Bãi DQS7",
+   "dien_tich": 6300,
+   "hang": "HBI",
+   "thiet_bi": null,
+   "ghi_chu": null
+  },
+  {
+   "id": 9,
+   "ten_bai": "Bãi DQS7",
+   "dien_tich": 12500,
+   "hang": "Đá 40-90mm",
+   "thiet_bi": null,
+   "ghi_chu": null
+  },
+  {
+   "id": 10,
+   "ten_bai": "Bãi DQS7",
+   "dien_tich": 7500,
+   "hang": "Đá 45-100mm",
+   "thiet_bi": null,
+   "ghi_chu": null
+  },
+  {
+   "id": 11,
+   "ten_bai": "Bãi HRCE",
+   "dien_tich": 12000,
+   "hang": "Phế",
+   "thiet_bi": null,
+   "ghi_chu": null
+  },
+  {
+   "id": 12,
+   "ten_bai": "Bãi HRCE",
+   "dien_tich": 5200,
+   "hang": "Xỉ thép sau tuyển",
+   "thiet_bi": null,
+   "ghi_chu": null
+  },
+  {
+   "id": 13,
+   "ten_bai": "Bãi HRCE",
+   "dien_tich": 3000,
+   "hang": "Đá 45-100mm",
+   "thiet_bi": null,
+   "ghi_chu": null
+  },
+  {
+   "id": 14,
+   "ten_bai": "Bãi 02 DQ2",
+   "dien_tich": 6000,
+   "hang": "Xỉ hạt lò cao",
+   "thiet_bi": null,
+   "ghi_chu": null
+  },
+  {
+   "id": 15,
+   "ten_bai": "Bãi đuôi kho 3",
+   "dien_tich": 3500,
+   "hang": "Đá vôi <20mm",
+   "thiet_bi": null,
+   "ghi_chu": null
+  },
+  {
+   "id": 16,
+   "ten_bai": "Bãi đuôi kho 3",
+   "dien_tich": 3000,
+   "hang": "Bột đá D 0-3mm",
+   "thiet_bi": null,
+   "ghi_chu": null
+  },
+  {
+   "id": 17,
+   "ten_bai": "Bãi đuôi kho 3",
+   "dien_tich": 2000,
+   "hang": "Bột đá V 0-3mm",
+   "thiet_bi": null,
+   "ghi_chu": null
+  },
+  {
+   "id": 18,
+   "ten_bai": "Bãi đuôi kho 3",
+   "dien_tich": 4500,
+   "hang": "Quặng cỡ Pilbara-Úc",
+   "thiet_bi": null,
+   "ghi_chu": null
+  },
+  {
+   "id": 19,
+   "ten_bai": "Bãi đuôi kho 3",
+   "dien_tich": 4200,
+   "hang": "Quặng cỡ Kumba",
+   "thiet_bi": null,
+   "ghi_chu": null
+  },
+  {
+   "id": 20,
+   "ten_bai": "Bãi đuôi kho 3",
+   "dien_tich": null,
+   "hang": "Quặng cỡ Khumani",
+   "thiet_bi": null,
+   "ghi_chu": null
+  },
+  {
+   "id": 21,
+   "ten_bai": "Bãi đuôi kho 2",
+   "dien_tich": null,
+   "hang": "Vảy cán thu hồi giá S = 0",
+   "thiet_bi": null,
+   "ghi_chu": null
+  },
+  {
+   "id": 22,
+   "ten_bai": "Bãi đuôi kho 2",
+   "dien_tich": 2000,
+   "hang": "Đá 20-45mm",
+   "thiet_bi": null,
+   "ghi_chu": null
+  },
+  {
+   "id": 23,
+   "ten_bai": "Bãi đuôi kho 2",
+   "dien_tich": 1500,
+   "hang": "Đá dolomit 20-40mm",
+   "thiet_bi": null,
+   "ghi_chu": null
+  },
+  {
+   "id": 24,
+   "ten_bai": "Bãi đuôi kho 2",
+   "dien_tich": 10000,
+   "hang": "Xỉ hạt lò cao",
+   "thiet_bi": null,
+   "ghi_chu": null
+  },
+  {
+   "id": 25,
+   "ten_bai": "Bãi cốc 3",
+   "dien_tich": 2600,
+   "hang": "Xỉ thép sau tuyển",
+   "thiet_bi": null,
+   "ghi_chu": null
+  },
+  {
+   "id": 26,
+   "ten_bai": "Bãi cốc 3",
+   "dien_tich": 6000,
+   "hang": "Phế",
+   "thiet_bi": null,
+   "ghi_chu": null
+  },
+  {
+   "id": 27,
+   "ten_bai": "Kho hở TX2",
+   "dien_tich": 1000,
+   "hang": "Xỉ thép sau tuyển",
+   "thiet_bi": null,
+   "ghi_chu": null
+  },
+  {
+   "id": 28,
+   "ten_bai": "Bãi Hào hưng",
+   "dien_tich": 2800,
+   "hang": "Bột đá D 0-3mm",
+   "thiet_bi": null,
+   "ghi_chu": null
+  },
+  {
+   "id": 29,
+   "ten_bai": "Bãi Hào hưng",
+   "dien_tich": 2700,
+   "hang": "Đá 40-90mm",
+   "thiet_bi": null,
+   "ghi_chu": null
+  },
+  {
+   "id": 30,
+   "ten_bai": "Bãi Hào hưng",
+   "dien_tich": 5000,
+   "hang": "Đá 45-100mm",
+   "thiet_bi": null,
+   "ghi_chu": null
+  },
+  {
+   "id": 31,
+   "ten_bai": "Bãi C2 CTH",
+   "dien_tich": 9240,
+   "hang": "Than cốc 10-80mm",
+   "thiet_bi": null,
+   "ghi_chu": null
+  },
+  {
+   "id": 32,
+   "ten_bai": "Bãi CTH",
+   "dien_tich": 73000,
+   "hang": "Phế",
+   "thiet_bi": null,
+   "ghi_chu": null
+  },
+  {
+   "id": 33,
+   "ten_bai": "Kho F",
+   "dien_tich": 7500,
+   "hang": "Phế",
+   "thiet_bi": null,
+   "ghi_chu": null
+  },
+  {
+   "id": 34,
+   "ten_bai": "Kho G",
+   "dien_tich": 9000,
+   "hang": "Phế",
+   "thiet_bi": null,
+   "ghi_chu": null
+  },
+  {
+   "id": 35,
+   "ten_bai": "Bãi KTX",
+   "dien_tich": 3900,
+   "hang": "Đá vôi <20mm",
+   "thiet_bi": null,
+   "ghi_chu": null
+  },
+  {
+   "id": 36,
+   "ten_bai": "Bãi KTX",
+   "dien_tich": 8500,
+   "hang": "Đá vôi <40mm",
+   "thiet_bi": null,
+   "ghi_chu": null
+  },
+  {
+   "id": 37,
+   "ten_bai": "Bãi KTX",
+   "dien_tich": 7100,
+   "hang": "Đá 45-100mm",
+   "thiet_bi": null,
+   "ghi_chu": null
+  },
+  {
+   "id": 38,
+   "ten_bai": "Bãi KTX",
+   "dien_tich": 9500,
+   "hang": "Đá 40-90mm",
+   "thiet_bi": null,
+   "ghi_chu": null
+  },
+  {
+   "id": 39,
+   "ten_bai": "Bãi xe BP.LOG",
+   "dien_tich": 6000,
+   "hang": null,
+   "thiet_bi": null,
+   "ghi_chu": null
+  },
+  {
+   "id": 40,
+   "ten_bai": "Bãi S95",
+   "dien_tich": 6000,
+   "hang": "Xỉ hạt lò cao",
+   "thiet_bi": "2 cầu trục",
+   "ghi_chu": null
+  },
+  {
+   "id": 41,
+   "ten_bai": "Bãi lò cao 6",
+   "dien_tich": 19200,
+   "hang": "Phế",
+   "thiet_bi": "6 cổng trục",
+   "ghi_chu": null
+  }
+ ]
+}

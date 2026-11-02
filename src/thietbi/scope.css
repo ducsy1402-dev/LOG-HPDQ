@@ -1,0 +1,17 @@
+/* Khung chứa phần Thiết bị cơ giới (mã từ web cũ) bên trong web chung.
+   1. Trả các thẻ HTML về mặc định của trình duyệt (Tailwind đã "reset" chúng), vì CSS web cũ viết dựa trên mặc định đó.
+      Dùng :where để độ ưu tiên thấp: mọi luật của styles.css (đã gắn .ttb) vẫn thắng.
+   2. Khung .ttb trong trang không cần nền / chiều cao toàn màn hình như thẻ body của web cũ. */
+.ttb :where(h1, h2, h3, h4, h5, h6, p, ul, ol, li, hr, blockquote, figure, pre, dl, dd, button, input, select, textarea, table, th, td, small, b, strong, a, img, label, fieldset, legend):not(:where(.khong-ttb, .khong-ttb *)) {
+  all: revert;
+}
+/* .khong-ttb: thành phần dùng chung viết bằng Tailwind (ô ngày giờ…) đặt trong phần Thiết bị cơ giới thì giữ giao diện Tailwind */
+.ttb :where(svg) { display: inline; vertical-align: baseline; }
+.ttb :where(canvas) { display: inline; }
+
+.ttb.ttb-khung {
+  min-height: 0;
+  background: transparent;
+  background-image: none;
+  color: var(--ink);
+}

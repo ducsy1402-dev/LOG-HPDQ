@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#070b14" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    <title>Quản trị Logistics</title>
+    <script>
+      // Áp chế độ sáng / tối trước khi vẽ trang (dùng chung lựa chọn với web Thiết bị cơ giới nếu có)
+      // Phần Thiết bị cơ giới đọc thuộc tính data-theme, phần còn lại đọc lớp "dark"
+      var t = "dark"; try { t = localStorage.getItem("qltb-theme") || "dark"; } catch (e) {}
+      document.documentElement.dataset.theme = t; if (t === "dark") document.documentElement.classList.add("dark");
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

@@ -1,0 +1,13 @@
+# Thư viện tải về bằng npm install (không đưa lên GitHub)
+node_modules/
+# Bản build, Cloudflare tự build lại từ mã nguồn
+dist/
+# Cấu hình riêng của Claude trên máy này
+.claude/
+# File tạm của hệ điều hành / trình soạn thảo
+Thumbs.db
+.DS_Store
+*.log
+.vscode/
+# File dữ liệu nguồn của anh Sỹ (sinh ra src/data/danhMuc.json và sql/02 bằng npm run danh-muc)
+Danh mục.xlsx

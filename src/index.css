@@ -1,0 +1,77 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Bảng màu đồng bộ với web Thiết bị cơ giới (app/src/styles.css), viết theo biến HSL của shadcn/ui */
+@layer base {
+  :root {
+    --background: 216 45% 95%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 192 91% 36%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 214 32% 91%;
+    --secondary-foreground: 222 47% 15%;
+    --muted: 214 32% 91%;
+    --muted-foreground: 215 16% 42%;
+    --accent: 210 40% 90%;
+    --accent-foreground: 222 47% 11%;
+    --destructive: 350 80% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 28% 84%;
+    --input: 214 28% 80%;
+    --ring: 192 91% 36%;
+    --ok: 160 84% 30%;
+    --warn: 32 95% 40%;
+    --bad: 350 80% 48%;
+    --info: 217 91% 50%;
+    --radius: 0.6rem;
+    color-scheme: light;
+  }
+  .dark {
+    --background: 220 52% 5%;
+    --foreground: 215 56% 93%;
+    --card: 219 49% 10%;
+    --card-foreground: 215 56% 93%;
+    --popover: 219 45% 12%;
+    --popover-foreground: 215 56% 93%;
+    --primary: 188 86% 53%;
+    --primary-foreground: 194 73% 6%;
+    --secondary: 218 40% 16%;
+    --secondary-foreground: 215 40% 88%;
+    --muted: 218 40% 14%;
+    --muted-foreground: 217 17% 57%;
+    --accent: 218 40% 18%;
+    --accent-foreground: 215 56% 93%;
+    --destructive: 351 80% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 219 30% 18%;
+    --input: 219 30% 22%;
+    --ring: 188 86% 53%;
+    --ok: 158 64% 52%;
+    --warn: 43 96% 56%;
+    --bad: 351 95% 71%;
+    --info: 213 94% 68%;
+    color-scheme: dark;
+  }
+  * { @apply border-border; }
+  body { @apply bg-background text-foreground font-sans antialiased; font-size: 14px; }
+  input[type="datetime-local"]::-webkit-calendar-picker-indicator { opacity: 0.6; cursor: pointer; }
+  .dark input[type="datetime-local"]::-webkit-calendar-picker-indicator { filter: invert(1); }
+}
+
+@layer components {
+  .num { @apply tabular-nums text-right; }
+  .tbl { @apply w-full text-sm border-collapse; }
+  .tbl th { @apply sticky top-0 z-10 bg-card text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground px-2.5 py-2 border-b whitespace-nowrap; }
+  .tbl td { @apply px-2.5 py-2 border-b align-middle; }
+  .tbl tbody tr:hover { @apply bg-accent/40; }
+  .scroll-x { @apply overflow-auto; scrollbar-width: thin; }
+  /* Ô lưới được co nhỏ hơn bảng bên trong (bảng tự cuộn ngang), tránh trang bị kéo rộng trên điện thoại */
+  main .grid > *, main .flex-1 { min-width: 0; }
+}
+/* Toàn màn hình (thẻ, hộp thoại): vùng cuộn bên trong cao gần hết màn hình thay vì bị khống chế (max-h-[60vh], .tw 340 / 560 px…). Dùng !important để thắng cả style gắn trực tiếp. */
+[data-tmh] [class*="max-h-"]:not([class*="max-h-none"]), [data-tmh] .scroll-x, [data-tmh] .tw, [data-tmh] .tw.short { max-height: calc(100dvh - 120px) !important; }

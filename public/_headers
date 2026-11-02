@@ -1,0 +1,7 @@
+# Cấu hình header cho Cloudflare Pages
+# Service worker và manifest luôn được kiểm tra bản mới để ứng dụng đã cài tự cập nhật
+/sw.js
+  Cache-Control: no-cache
+/manifest.webmanifest
+  Content-Type: application/manifest+json
+  Cache-Control: no-cache
