@@ -28,7 +28,8 @@ Chạy lần lượt trong Supabase › SQL Editor, trên project mới còn tr�
 3. `03_bo_tri_ben.sql` – tuyến bến, mét từng bến, thứ tự bến, băng tải của bến.
 4. `04_cap_quyen.sql` – cấp quyền quản trị cho tài khoản đầu tiên (tạo người dùng ở Authentication trước).
 5. `05_lich_chay_nen.sql` – tùy chọn, cần bật tiện ích pg_cron (dọn kế hoạch ngắn hạn cũ mỗi ngày).
-Thay đổi CSDL về sau: viết file SQL mới đánh số tiếp (06, 07…), báo anh Sỹ chạy trong Supabase **trước** khi đẩy code.
+6. `06_san_luong_thuc_te.sql` – bảng mục tiêu / sản lượng thực tế theo ca, ngày (hai tab Mục tiêu sản lượng). Chạy sau 01…04.
+Thay đổi CSDL về sau: viết file SQL mới đánh số tiếp (07, 08…), báo anh Sỹ chạy trong Supabase **trước** khi đẩy code.
 
 ## Cách làm việc (đã chốt)
 1. Làm trên nhánh riêng, cho anh Sỹ xem bản demo (`?demo`; thử vai trò `?demo=xem|nhap|quan_ly`).
@@ -53,3 +54,10 @@ Thay đổi CSDL về sau: viết file SQL mới đánh số tiếp (06, 07…),
 - Đã bỏ các cảnh báo: chờ neo, chưa khai báo cầu bến / số máng, chưa lập phương án, ETD không khả thi, dự báo bị phạt.
 - Xanh lá = tàu CHƯA cập bến vì chưa đủ hàng / chưa có bãi nhập: ghi ở phiếu chuyến › Khoảng dừng với lý do "Chờ cập bến: chưa đủ hàng" hoặc "Chờ cập bến: chưa có bãi nhập" (không tính vào giờ dừng làm hàng, laytime). Không còn vẽ xanh lá trên thanh tàu đã cập.
 - Không còn cảnh báo năng suất (cả chữ cảnh báo lẫn tô màu thấp hơn cam kết). Lịch cầu bến theo bến và theo mét đều có nút Chiếm bến / Toàn thời gian; đoạn chờ xanh lá vẽ cùng kiểu sọc với đoạn đỏ (`src/pages/cang/doanCho.jsx`). Chú thích màu không liệt kê "Hủy".
+
+## Mục tiêu sản lượng: hai tab (SQL 06, anh Sỹ chốt 02/11/2026)
+- Khai thác Cảng › Mục tiêu sản lượng có 2 tab, mỗi tab gồm **bảng mục tiêu tháng** và **bảng nhập thực tế theo ca / ngày** (CA 1, CA 2; tháng chọn ở góc phải, dùng chung hai tab). Code: `src/pages/cang/MucTieu.jsx` (khung + tab), `SanLuongTab.jsx` (hai bảng), `src/lib/sanLuongTT.js` (cấu hình, khóa dòng).
+  - **Mục tiêu khai thác cảng**: hướng nhập / xuất × loại hàng (bảng `muc_tieu_san_luong`), thực tế `san_luong_cang`.
+  - **Mục tiêu khai thác vận tải**: hướng Phục vụ cảng / Phục vụ sản xuất × loại xe (Xe ben, Xe đầu kéo…) × đơn vị thực hiện (Hòa Phát / Nhà thầu): `muc_tieu_van_tai`, thực tế `san_luong_van_tai`.
+- Cột "Thực hiện" của bảng mục tiêu = tổng số đã nhập ở bảng thực tế (không còn lấy theo khối lượng chuyến tàu; vẫn ghi chú "tàu trong tháng X t" để đối chiếu). Quản lý trở lên đặt mục tiêu; nhập liệu trở lên nhập số thực tế (xóa số trong ô = xóa dòng).
+- Tổng quan › Khối lượng xếp dỡ **chưa đổi**: vẫn lấy khối lượng chuyến tàu so với mục tiêu cảng.

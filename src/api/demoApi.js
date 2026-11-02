@@ -2,6 +2,8 @@
 // Kiểm tra quyền giống RLS để thử vai trò: ?demo=xem | nhap | quan_ly (mặc định quản trị).
 import { demoData } from "../data/demoData";
 import { DEMO_ROLE } from "../config";
+import { NHOM, khoaDong, tuDb } from "../lib/sanLuongTT";
+import { congThang } from "../lib/format";
 
 const clone = (x) => JSON.parse(JSON.stringify(x));
 const wait = (ms = 120) => new Promise((r) => setTimeout(r, ms));
@@ -103,6 +105,30 @@ export function makeDemoApi() {
         if (r.tan != null) db.mucTieu.push({ ...clone(r), ghi_chu: r.ghi_chu || null, updated_at: new Date().toISOString() });
       }
       db.mucTieu.sort((a, b) => a.thang.localeCompare(b.thang));
+    },
+    // Mục tiêu tháng + sản lượng thực tế theo ca / ngày (SQL 06): dữ liệu mẫu trong bộ nhớ
+    async docSanLuongThang(nhom, thang) {
+      await wait(60);
+      const c = NHOM[nhom], mt = nhom === "cang" ? db.mucTieu : db.mucTieuVanTai, tt = nhom === "cang" ? db.sanLuongCang : db.sanLuongVanTai;
+      return clone({ mucTieu: mt.filter((x) => x.thang === thang), thucTe: tt.filter((x) => x.ngay >= thang + "-01" && x.ngay < congThang(thang, 1) + "-01") });
+    },
+    async saveMucTieuNhom(nhom, rows) {
+      can("quan_ly"); await wait();
+      const kho = (r) => khoaDong(r.huong, r.loai, r.donVi);
+      const bang = nhom === "cang" ? "mucTieu" : "mucTieuVanTai";
+      for (const r of rows) {
+        db[bang] = db[bang].filter((x) => !(x.thang === r.thang && kho(tuDb(nhom, x)) === kho(r)));
+        if (r.tan != null) db[bang].push({ thang: r.thang, huong: r.huong, ...(nhom === "van_tai" ? { loai_xe: r.loai, don_vi: r.donVi } : { loai_hang: r.loai }), tan: r.tan, ghi_chu: r.ghi_chu || null, updated_at: new Date().toISOString() });
+      }
+    },
+    async saveThucTe(nhom, rows) {
+      can("nhap"); await wait();
+      const kho = (r) => khoaDong(r.huong, r.loai, r.donVi);
+      const bang = nhom === "cang" ? "sanLuongCang" : "sanLuongVanTai";
+      for (const r of rows) {
+        db[bang] = db[bang].filter((x) => !(x.ngay === r.ngay && x.ca === r.ca && kho(tuDb(nhom, x)) === kho(r)));
+        if (r.tan != null) db[bang].push({ ngay: r.ngay, ca: r.ca, huong: r.huong, ...(nhom === "van_tai" ? { loai_xe: r.loai, don_vi: r.donVi } : { loai_hang: r.loai }), tan: r.tan, updated_at: new Date().toISOString() });
+      }
     },
     async saveKeHoachKho({ them = [], sua = [], xoa = [] }) {
       can("nhap"); await wait();

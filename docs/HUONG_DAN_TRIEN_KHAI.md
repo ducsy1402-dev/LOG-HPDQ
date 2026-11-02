@@ -3,7 +3,7 @@
 ## 1. Supabase (project `tggigcprrbpbbospqfto`)
 1. **Authentication › Providers › Email**: tắt "Allow new users to sign up" (web không cho tự đăng ký).
 2. **Authentication › Users › Add user**: tạo tài khoản đầu tiên (email + mật khẩu, tích "Auto Confirm User").
-3. **SQL Editor** chạy lần lượt (mỗi file một lần, dán toàn bộ rồi Run): `sql/01_cau_truc.sql`, `02_nap_danh_muc.sql`, `03_bo_tri_ben.sql`.
+3. **SQL Editor** chạy lần lượt (mỗi file một lần, dán toàn bộ rồi Run): `sql/01_cau_truc.sql`, `02_nap_danh_muc.sql`, `03_bo_tri_ben.sql`, rồi `06_san_luong_thuc_te.sql` (sau khi đã chạy 04).
 4. Mở `sql/04_cap_quyen.sql`, sửa email cho đúng tài khoản vừa tạo, chạy.
 5. (Tùy chọn) Database › Extensions: bật `pg_cron`, rồi chạy `sql/05_lich_chay_nen.sql`.
 6. Thêm tài khoản khác: Authentication › Users › Add user, rồi vào web › Phân quyền để cấp vai trò từng phân hệ.
