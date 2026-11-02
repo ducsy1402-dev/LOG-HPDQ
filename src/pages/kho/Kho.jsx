@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Boxes, Plus, Minus, ArrowLeftRight, ClipboardCheck, ClipboardPaste, Trash2, Bell, Package, LayoutGrid, List, LineChart, CalendarRange, ChevronRight } from "lucide-react";
+import { Boxes, Plus, Minus, ArrowLeftRight, ClipboardCheck, ClipboardPaste, Trash2, Bell, Package, Network, List, LineChart, CalendarRange, ChevronRight } from "lucide-react";
 import { useApp } from "@/store";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,8 @@ import EChart from "@/components/EChart";
 import { so, pct, ngayNam, matchQ, plain } from "@/lib/format";
 import { LOAI_GD, TRANG_THAI_LO, NGUONG_KHO, tonTheoNgay } from "@/lib/kho";
 import { cn } from "@/lib/utils";
+import { mauDay, KIEU_TONE, KIEU_NGAN, Chi, Thanh, NgayDay, ThongQua, LuuBai, T_NGAY_DAY, T_LUU_BAI, T_THONG_QUA, T_NHAP_XUAT } from "./khoUi";
+import SoDoTuDuy from "./SoDoTuDuy";
 import { useKho } from "./useKho";
 import GiaoDichForm, { KiemKeForm } from "./GiaoDichForm";
 import DanNhanhKho from "./DanNhanhKho";
@@ -19,61 +21,6 @@ import KeHoachKho from "./KeHoachKho";
 
 const TEN_LOAI = { thanh_pham: "Kho thành phẩm", nguyen_lieu: "Kho nguyên liệu" };
 const TEN_GD = Object.fromEntries(LOAI_GD);
-const mauDay = (p) => (p == null ? "bg-muted-foreground/40" : p > 1.0001 || p >= NGUONG_KHO.do ? "bg-bad" : p >= NGUONG_KHO.vang ? "bg-warn" : "bg-ok");
-
-const KIEU_TONE = { co_dinh_hang: "info", co_dinh_nhom: "primary", tu_do: "ok", hon_hop: "outline" };
-const KIEU_NGAN = { co_dinh_hang: "Cố định", co_dinh_nhom: "Nhóm", tu_do: "Tự do" };
-const Chi = ({ ten, title, children, className }) => <div title={title} className={cn("flex justify-between gap-2", className)}><span className="text-muted-foreground">{ten}</span><span className="text-right tabular-nums">{children}</span></div>;
-const Thanh = ({ p, className }) => <div className={cn("h-2.5 overflow-hidden rounded-full bg-muted", className)}><div className={cn("h-full", mauDay(p))} style={{ width: `${Math.min(100, (p ?? 0) * 100)}%` }} /></div>;
-const NgayDay = ({ l }) => (!l ? "—" : l.trangThaiDay === "da_day" ? <span className="font-semibold text-bad">Đã đầy</span>
-  : l.trangThaiDay === "tang" ? <span className={cn(l.ngayDay < NGUONG_KHO.ngayDayVang && "font-semibold text-warn")}>{ngayNam(l.luc)} · {l.ngayDay < 1 ? "dưới 1" : so(l.ngayDay, l.ngayDay < 10 ? 1 : 0)} ngày</span>
-  : l.trangThaiDay ? <span className="text-muted-foreground">Không ({l.trangThaiDay === "giam" ? "tồn đang giảm" : "nhập ≈ xuất"})</span>
-  : <span className="text-muted-foreground">Chưa có sức chứa</span>);
-const ThongQua = ({ l }) => (!l ? "—" : l.nangLuc ? <>{so(l.thucTe)} / {so(l.nangLuc)} t/ngày <span className={cn(l.suDung >= 0.9 ? "text-bad" : l.suDung >= 0.75 ? "text-warn" : "text-muted-foreground")}>({pct(l.suDung)})</span></> : l.thucTe ? `${so(l.thucTe)} t/ngày` : "—");
-const LuuBai = ({ l }) => (l?.luuBai != null ? `${so(l.luuBai, l.luuBai < 10 ? 1 : 0)} ngày` : "—");
-const T_NGAY_DAY = "(Sức chứa − tồn) ÷ (nhập − xuất bình quân mỗi ngày)";
-const T_LUU_BAI = "Tồn bình quân ÷ xuất bình quân mỗi ngày: hàng nằm bãi bao lâu thì được xuất";
-const T_THONG_QUA = `Năng lực thông qua = sức chứa × ${pct(NGUONG_KHO.heSoBai)} ÷ lưu bãi bình quân (t/ngày)`;
-const T_NHAP_XUAT = "Bình quân mỗi ngày, gồm điều chuyển đến / đi; không tính tồn đầu kỳ và kiểm kê";
-
-// Thẻ một bãi lớn: tổng tồn / sức chứa, lưu lượng, dự kiến đầy, thông qua, tàu sắp về, danh sách bãi nhỏ. Bấm để xem chi tiết từng bãi nhỏ.
-function TheBai({ b, l, trong, onMo }) {
-  const tauVe = (l?.tau || []).reduce((s, t) => s + t.con, 0);
-  return (
-    <Card role="button" tabIndex={0} onClick={onMo} onKeyDown={(e) => e.key === "Enter" && onMo()} title="Bấm để xem chi tiết từng bãi nhỏ"
-      className={cn("cursor-pointer transition-colors hover:border-primary/60", b.lapDay >= NGUONG_KHO.do && "border-bad/60", b.lapDay >= NGUONG_KHO.vang && b.lapDay < NGUONG_KHO.do && "border-warn/60")}>
-      <CardContent className="grid gap-2 pt-3">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0"><b className="text-sm">{b.ten_bai}</b>
-            {l?.kieu && <div><Badge tone={KIEU_TONE[l.kieu.ma]} className="mt-0.5 font-medium" title={l.kieu.chiTiet}>{l.kieu.ten}</Badge></div>}</div>
-          <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{b.dienTich ? `${so(b.dienTich)} m²` : ""}</span>
-        </div>
-        <Thanh p={b.lapDay} />
-        <div className="flex justify-between text-xs tabular-nums"><span>{so(b.ton)} t</span><span className={cn(b.lapDay >= NGUONG_KHO.vang && "font-semibold text-warn")}>{b.lapDay != null ? pct(b.lapDay) : "chưa có sức chứa"}{b.sucChua ? ` / ${so(b.sucChua)} t` : ""}</span></div>
-        {l && (
-          <div className="grid gap-0.5 border-t pt-2 text-[11px]">
-            <Chi ten={`Nhập / xuất TB (${l.soNgay} ngày)`} title={T_NHAP_XUAT}><span className="text-ok">+{so(l.nhap)}</span> / <span className="text-bad">−{so(l.xuat)}</span> t/ngày</Chi>
-            <Chi ten="Dự kiến đầy" title={T_NGAY_DAY}><NgayDay l={l} /></Chi>
-            <Chi ten="Lưu bãi bình quân" title={T_LUU_BAI}><LuuBai l={l} /></Chi>
-            <Chi ten="Thông qua thực tế / năng lực" title={T_THONG_QUA}><ThongQua l={l} /></Chi>
-            {l.tau.length > 0 && (
-              <Chi ten="Tàu sắp về (7 ngày)" className={cn(trong != null && tauVe > trong && "text-bad")} title={trong != null ? `Bãi còn trống ${so(trong)} t` : undefined}>
-                {l.tau.map((t) => <div key={t.id}>{t.ten} {so(t.con)} t{t.chia ? "*" : ""}</div>)}
-              </Chi>)}
-          </div>)}
-        <div className="grid gap-1 border-t pt-2 text-[11px]">
-          <div className="flex justify-between text-muted-foreground"><span>{b.dong.length} bãi nhỏ</span><span className="text-primary">Xem chi tiết ›</span></div>
-          {b.dong.map((d) => (
-            <div key={d.key} className="grid grid-cols-[minmax(0,1fr)_auto_36px] items-center gap-2">
-              <span className={cn("truncate", d.saiBai && "text-bad")}>{d.ten}{d.kieu && d.kieu !== "co_dinh_hang" && <span className="ml-1 text-primary">· {KIEU_NGAN[d.kieu]}</span>}{d.saiBai && " · sai bãi"}</span>
-              <span className="tabular-nums text-muted-foreground">{so(d.ton)} t</span>
-              <span className={cn("text-right tabular-nums", d.lapDay >= NGUONG_KHO.vang ? "font-semibold text-warn" : "text-muted-foreground")}>{d.lapDay != null ? pct(d.lapDay) : "—"}</span>
-            </div>))}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
 
 // Chi tiết một bãi lớn: từng bãi nhỏ với kiểu, hàng đang chứa, tồn / sức chứa, lưu lượng, dự kiến đầy, lưu bãi, thông qua
 function ChiTietBai({ b, kho, onClose }) {
@@ -190,7 +137,7 @@ export default function Kho({ loai }) {
 
       <Tabs defaultValue="so-do" className="mt-3">
         <TabsList>
-          <TabsTrigger value="so-do"><LayoutGrid />Sơ đồ bãi</TabsTrigger>
+          <TabsTrigger value="so-do"><Network />Sơ đồ bãi</TabsTrigger>
           <TabsTrigger value="ton"><List />Tồn theo bãi nhỏ</TabsTrigger>
           {tp && <TabsTrigger value="lo"><Package />Lô thành phẩm ({lo.length})</TabsTrigger>}
           <TabsTrigger value="so"><Boxes />Sổ nhập – xuất</TabsTrigger>
@@ -200,10 +147,7 @@ export default function Kho({ loai }) {
 
         <TabsContent value="so-do">
           {bai.length ? (
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              {bai.sort((a, b) => (b.lapDay ?? -1) - (a.lapDay ?? -1)).map((b) => (
-                <TheBai key={b.ten_bai} b={b} l={kho.luuLuong.bai.get(b.ten_bai)} trong={kho.choTrong(b.ten_bai)} onMo={() => setMoBai(b.ten_bai)} />))}
-            </div>
+            <SoDoTuDuy bai={bai} kho={kho} ten={TEN_LOAI[loai]} tp={tp} onMo={setMoBai} />
           ) : <Empty>Chưa có bãi {tp ? "thành phẩm" : "nguyên liệu"}. Thêm ở Danh mục › Kho bãi (loại kho tự theo nhóm hàng, sửa được).</Empty>}
         </TabsContent>
 
