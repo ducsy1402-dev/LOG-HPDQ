@@ -68,13 +68,6 @@ describe("Thưởng phạt (laytime)", () => {
     expect(mocBatDau({ nor, moc_tinh_tp: "nor_12h", bd_lam_hang: iso(2026, 10, 20, 20, 0) }).t).toBe(t(2026, 10, 20, 20, 0));
     expect(mocBatDau({ nor, moc_tinh_tp: "nor_12h", bd_lam_hang: iso(2026, 10, 21, 9, 0) }).t).toBe(t(2026, 10, 21, 3, 0));
   });
-  it("tự trừ thời gian hoa tiêu lên tàu -> cập bến (lai dắt)", () => {
-    const v = { khoi_luong: 10000, cam_ket: 5000, moc_tinh_tp: "tay", tg_tinh_tp: iso(2026, 10, 1, 0), cho_phep_cap: iso(2026, 10, 1, 6), atb: iso(2026, 10, 1, 9), bd_lam_hang: iso(2026, 10, 1, 10), kt_lam_hang: iso(2026, 10, 3, 3), da_lam: 10000 };
-    const co = duToan(v, []), khong = duToan({ ...v, tru_hoa_tieu: false }, []);
-    expect((co.han - khong.han) / 3600e3).toBeCloseTo(3, 6);
-    expect(co.loaiTruGio).toBeCloseTo(3, 6);
-    expect(co.chenhNgay).toBeCloseTo(0, 6); // 2 ngày cho phép + 3 giờ hoa tiêu = xong đúng hạn
-  });
   it("hết laytime thì không trừ thời gian đình trệ nữa", () => {
     const v = { khoi_luong: 5000, cam_ket: 5000, moc_tinh_tp: "tay", tg_tinh_tp: iso(2026, 10, 1, 0), bd_lam_hang: iso(2026, 10, 1, 0), kt_lam_hang: iso(2026, 10, 4, 0), da_lam: 5000 };
     const mua = [{ tu: iso(2026, 10, 3, 0), den: iso(2026, 10, 3, 6), tru_tp: true }]; // mưa sau khi đã hết laytime (hết lúc 2/10 0:00)
@@ -103,14 +96,14 @@ describe("Thưởng phạt (laytime)", () => {
 describe("Linetime", () => {
   it("trạng thái theo mốc", () => {
     expect(trangThai({})).toBe("du_kien");
-    expect(trangThai({ den_neo: "x" })).toBe("cho_neo");
+    expect(trangThai({ nor: "x" })).toBe("cho_neo");
     expect(trangThai({ atb: "x" })).toBe("cap_ben");
     expect(trangThai({ atb: "x", bd_lam_hang: "x" })).toBe("lam_hang");
     expect(trangThai({ atd: "x" })).toBe("da_roi");
     expect(trangThai({ atd: "x", huy: true })).toBe("huy");
   });
-  it("chỉ số: chờ neo, làm hàng thực trừ dừng, năng suất, % hoàn tất vượt 100%", () => {
-    const v = { den_neo: iso(2026, 10, 1, 0), atb: iso(2026, 10, 2, 12), bd_lam_hang: iso(2026, 10, 2, 14), kt_lam_hang: iso(2026, 10, 4, 14), khoi_luong: 10000, da_lam: 10135, cam_ket: 5000 };
+  it("chỉ số: chờ bến (từ NOR), làm hàng thực trừ dừng, năng suất, % hoàn tất vượt 100%", () => {
+    const v = { nor: iso(2026, 10, 1, 0), atb: iso(2026, 10, 2, 12), bd_lam_hang: iso(2026, 10, 2, 14), kt_lam_hang: iso(2026, 10, 4, 14), khoi_luong: 10000, da_lam: 10135, cam_ket: 5000 };
     const stops = [{ tu: iso(2026, 10, 3, 0), den: iso(2026, 10, 3, 12), tru_tp: true }];
     const cs = chiSo(v, stops);
     expect(cs.choNeo).toBe(36);
@@ -151,9 +144,9 @@ describe("Kiểm tra tàu - bến", () => {
     expect(m.get(1)[0].id).toBe(2);
     expect(m.has(3)).toBe(false);
   });
-  it("cảnh báo chuyến mẫu có ETD không khả thi", () => {
+  it("chuyến mẫu không còn cảnh báo ETD không khả thi (đã bỏ)", () => {
     const c = canhBaoChuyen(MARINE, { berths: [BEN10], now: t(2026, 10, 22, 11, 26) });
-    expect(c.some((x) => x.ma === "etd" && x.muc === "bad")).toBe(true);
+    expect(c.some((x) => x.ma === "etd")).toBe(false);
   });
 });
 

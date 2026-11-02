@@ -44,3 +44,10 @@ Thay đổi CSDL về sau: viết file SQL mới đánh số tiếp (06, 07…),
 - Phần Cảng, trong `src/lib/`: `linetime.js` (9 mốc giờ, trạng thái), `laytime.js` (giờ laytime), `checks.js` (cảnh báo), `paste.js` (dán nhanh), `thietBi.js`, `phuongAn.js` (tính xe / thiết bị chuyến), `capBen.js` (quy tắc số mét cập cầu bến, bến phụ, sơ đồ), `kho.js` (kho bãi), `tauDaiHan.js` (tàu → việc Dài hạn).
 - Phần Thiết bị cơ giới: `src/thietbi/lib/compute.js`, `plan.js`.
 - Quyền: Thiết bị cơ giới theo `user_roles`; Cảng / kho theo `user_module_roles` + `co_quyen()`.
+
+## Quy định màu và mốc giờ (anh Sỹ chốt 02/11/2026)
+- Thanh tàu: **cam** = chưa đến neo (chỉ có ETA) · **xanh dương** = đã đến neo (có NOR) chưa cập cầu · **vàng** = đang làm hàng · **xanh lá** = đã cập, chờ làm hàng · tím = xong hàng · xám = đã rời / hủy. Định nghĩa ở `TRANG_THAI` trong `src/lib/linetime.js`.
+- Khoảng chờ vẽ trên lịch cầu bến (chế độ Toàn thời gian): **đỏ** = chờ có bến cập (từ NOR, tàu chưa đến neo thì từ ETA, tới lúc cập bến); **xanh lá** = chờ đủ hàng / chờ có bãi nhập (khoảng dừng có lý do "Chờ hàng" hoặc "Chờ bãi"). Màu ở `MAU_CHO`.
+- Còn **7 mốc thực tế** (ETA, NOR, ATB, bắt đầu làm hàng, kết thúc làm hàng, hoàn tất thủ tục, ATD). Đã bỏ "Đến neo / phao" và "Được phép cập / hoa tiêu lên tàu" (cột `den_neo`, `cho_phep_cap` vẫn còn trong CSDL nhưng web không dùng). "Đã đến neo" = có NOR.
+- **ETB luôn sau ETA**: nhập ETA hoặc ETB sai thì web tự đặt ETB = giờ gợi ý (sớm nhất từ ETA mà bến đã chọn trống, cách tàu trước 1 giờ), ETD dời theo. Hàm `etbGoiY`, `rangBuocEtb` trong `linetime.js`; áp ở form chuyến, mốc giờ trong phiếu, kéo thả lịch (theo bến và theo mét), dán nhanh. Tàu đã cập thật (có ATB) thì không đụng.
+- Đã bỏ các cảnh báo: chờ neo, chưa khai báo cầu bến / số máng, chưa lập phương án, ETD không khả thi, dự báo bị phạt.

@@ -1,12 +1,10 @@
-// Linetime chuyến tàu: 9 mốc thực tế, trạng thái, các chỉ số tự tính.
+// Linetime chuyến tàu: 7 mốc thực tế, trạng thái, các chỉ số tự tính.
 import { ms, HOUR, DAY } from "./format";
 
-// 9 mốc theo thứ tự (tài liệu kế hoạch, mục Tab 1). Mốc 1 là ETA báo về.
+// Các mốc thực tế theo thứ tự. Mốc 1 là ETA báo về.
 export const MOC = [
   { k: "eta", ten: "ETA báo về", ngan: "ETA" },
-  { k: "den_neo", ten: "Đến neo / phao", ngan: "Neo" },
   { k: "nor", ten: "Nộp NOR (sẵn sàng)", ngan: "NOR" },
-  { k: "cho_phep_cap", ten: "Được phép cập / hoa tiêu lên tàu", ngan: "Hoa tiêu" },
   { k: "atb", ten: "Cập bến (ATB)", ngan: "ATB" },
   { k: "bd_lam_hang", ten: "Bắt đầu làm hàng", ngan: "BĐ làm hàng" },
   { k: "kt_lam_hang", ten: "Kết thúc làm hàng", ngan: "KT làm hàng" },
@@ -19,15 +17,23 @@ export const DU_KIEN = [
   { k: "etd", ten: "Dự kiến rời (ETD)" },
 ];
 
+// Quy định màu của thanh tàu:
+//   cam = chưa đến neo (chỉ có ETA) · xanh dương = đã đến neo (có NOR) nhưng chưa cập cầu · vàng = đang làm hàng
+//   xanh lá = đã cập, chờ đủ hàng / chờ có bãi nhập (chưa làm hàng)
+// Hai màu của khoảng thời gian chờ (vẽ trên lịch cầu bến, xem MAU_CHO): đỏ = chờ có bến cập; xanh lá = chờ đủ hàng hoặc chờ có bãi.
 export const TRANG_THAI = {
-  du_kien: { ten: "Dự kiến", tone: "outline", mau: "#94a3b8" },
-  cho_neo: { ten: "Chờ neo", tone: "warn", mau: "#f59e0b" },
-  cap_ben: { ten: "Đã cập", tone: "info", mau: "#3b82f6" },
-  lam_hang: { ten: "Đang làm hàng", tone: "primary", mau: "#06b6d4" },
-  xong_hang: { ten: "Xong hàng", tone: "ok", mau: "#10b981" },
+  du_kien: { ten: "Chưa đến neo", tone: "warn", mau: "#f97316" },
+  cho_neo: { ten: "Đã đến neo, chưa cập", tone: "info", mau: "#3b82f6" },
+  cap_ben: { ten: "Đã cập, chờ làm hàng", tone: "ok", mau: "#22c55e" },
+  lam_hang: { ten: "Đang làm hàng", tone: "warn", mau: "#eab308" },
+  xong_hang: { ten: "Xong hàng", tone: "primary", mau: "#8b5cf6" },
   da_roi: { ten: "Đã rời", tone: "default", mau: "#64748b" },
-  huy: { ten: "Hủy", tone: "bad", mau: "#f43f5e" },
+  huy: { ten: "Hủy", tone: "default", mau: "#94a3b8" },
 };
+export const MAU_CHO = { ben: "#ef4444", hang: "#22c55e" };
+// Khoảng dừng có lý do này là thời gian chờ đủ hàng / chờ có bãi (vẽ màu xanh lá)
+export const LY_DO_CHO_HANG = new Set(["Chờ hàng", "Chờ bãi"]);
+export const laChoHang = (s) => LY_DO_CHO_HANG.has(s?.ly_do);
 
 export function trangThai(v) {
   if (v.huy) return "huy";
@@ -35,7 +41,7 @@ export function trangThai(v) {
   if (v.kt_lam_hang) return "xong_hang";
   if (v.bd_lam_hang) return "lam_hang";
   if (v.atb) return "cap_ben";
-  if (v.den_neo || v.nor || v.cho_phep_cap) return "cho_neo";
+  if (v.nor) return "cho_neo"; // đã đến neo: nộp NOR
   return "du_kien";
 }
 
@@ -78,7 +84,7 @@ export function chiSo(v, stops = [], now = Date.now()) {
   const gioLamThuc = gioLamGop != null ? Math.max(0, gioLamGop - dungLam) : null;
   const kl = klCanLam(v), lam = daLam(v);
   const nangSuat = gioLamThuc > 0 ? (lam / gioLamThuc) * 24 : null; // tấn / ngày
-  const choNeo = v.den_neo ? gioGiua(v.den_neo, v.atb ?? (st === "cho_neo" ? now : null)) : null;
+  const choNeo = v.nor ? gioGiua(v.nor, v.atb ?? (st === "cho_neo" ? now : null)) : null; // chờ bến: từ NOR đến cập bến
   return {
     trangThai: st,
     choNeo, // giờ (đang chờ thì tính đến hiện tại)
@@ -147,4 +153,49 @@ export function mocSaiThuTu(v) {
   const sai = [];
   for (let i = 1; i < ds.length; i++) if (ms(v[ds[i].k]) < ms(v[ds[i - 1].k])) sai.push(`${ds[i].ngan} trước ${ds[i - 1].ngan}`);
   return sai;
+}
+
+// ---------- ETB luôn sau ETA ----------
+const isoGio = (t) => new Date(t).toISOString();
+// Thời gian tàu ở bến dự kiến (ms): ETD − ETB nếu có; không thì khối lượng ÷ cam kết (tối thiểu 6 giờ); không có gì thì 1 ngày
+export function thoiGianO(v) {
+  const etb = ms(v.etb), etd = ms(v.etd);
+  if (etb != null && etd != null && etd > etb) return etd - etb;
+  const ngay = +v.cam_ket > 0 && +v.khoi_luong > 0 ? +v.khoi_luong / +v.cam_ket : 1;
+  return Math.max(ngay * DAY, 6 * HOUR);
+}
+
+// ETB gợi ý: giờ sớm nhất từ ETA trở đi mà bến đã chọn (và bến phụ) không có tàu khác trong suốt thời gian tàu ở bến, cách tàu trước 1 giờ.
+// Chưa chọn bến thì là chính ETA. Chỉ xét theo bến; tàu hai bến cùng tuyến đủ số mét vẫn được cập chung thì đã có cảnh báo riêng ở bước lưu.
+export function etbGoiY(v, { voyages = [], stopsOf = () => [], now = Date.now(), cach = HOUR } = {}) {
+  const eta = ms(v.eta);
+  if (eta == null) return null;
+  const ben = new Set([v.ben_ma, v.ben_phu].filter(Boolean));
+  if (!ben.size) return eta;
+  const dai = thoiGianO(v), khac = [];
+  for (const o of voyages) {
+    if (o.id === v.id || o.huy || o.atd) continue;
+    for (const d of doanBen(o, stopsOf(o.id) || [], now)) if ((d.ben && ben.has(d.ben)) || (d.phu && ben.has(d.phu))) khac.push([d.a, d.b]);
+  }
+  khac.sort((x, y) => x[0] - y[0]);
+  let t = eta;
+  for (const [a, b] of khac) if (t < b + cach && t + dai + cach > a) t = b + cach;
+  return t;
+}
+
+// Ràng buộc: ETB không được trước ETA (tàu chưa cập thật). Trước ETA hoặc chưa có ETB thì tự đặt ETB = giờ gợi ý, ETD dời theo
+// (giữ thời gian ở bến). Trả về patch đã chỉnh; patch.etb khác đầu vào nghĩa là đã tự sắp xếp lại.
+export function rangBuocEtb(v, patch = {}, ctx = {}) {
+  const m = { ...v, ...patch };
+  if (m.atb || m.huy) return patch;
+  const eta = ms(m.eta);
+  if (eta == null) return patch;
+  const etb = ms(m.etb);
+  if (etb != null && etb >= eta) return patch;
+  const moi = etbGoiY(m, ctx), etd = ms(m.etd), out = { ...patch, etb: isoGio(moi) };
+  if (etd != null) {
+    if (etb != null) out.etd = isoGio(moi + Math.max(etd - etb, HOUR));
+    else if (etd <= moi) out.etd = isoGio(moi + thoiGianO({ ...m, etb: null, etd: null }));
+  }
+  return out;
 }

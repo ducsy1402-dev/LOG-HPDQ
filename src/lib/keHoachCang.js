@@ -38,7 +38,7 @@ export function duLieuKeHoachCang({ voyages = [], stopsOf = () => [], tu, den })
     const tCap = ms(v.atb) ?? ms(v.etb);
     if (trong(tCap)) {
       const c = cangCuaBen(benDau);
-      if (c) { theoCang[c].cap.push(dong(v, tCap, v.den_neo ? "NEO" : "PS", nhanIn(benDau, phuDau, c), c)); coDong = true; }
+      if (c) { theoCang[c].cap.push(dong(v, tCap, v.nor ? "NEO" : "PS", nhanIn(benDau, phuDau, c), c)); coDong = true; }
     }
     const tRoi = ms(v.atd) ?? ms(v.etd);
     if (trong(tRoi)) {

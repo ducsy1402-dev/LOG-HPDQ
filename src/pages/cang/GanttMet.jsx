@@ -3,7 +3,7 @@ import { useApp } from "@/store";
 import { trangThai, chiSo, TRANG_THAI } from "@/lib/linetime";
 import { cacTuyen, viTriTrenLich, benTheoViTri, kiemTraXepBen, nhanCho, tenTuyen } from "@/lib/capBen";
 import { kiemTraBen } from "@/lib/checks";
-import { DAY, ngayGio, so, pad, iso } from "@/lib/format";
+import { DAY, ngayGio, so, pad, iso, ms } from "@/lib/format";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { MucIcon } from "@/components/common";
@@ -55,7 +55,9 @@ export default function GanttMet({ voyages, tu, soNgay, pxNgay, gon = false, max
     const top = yMet(d0, it.x) + (doiMetDuoc(it) ? k.dy : 0);
     const d = dai.find((z) => top >= z.y && top < z.y + z.h) || (top < 0 ? dai[0] : dai[dai.length - 1]);
     const x = doiMetDuoc(it) ? Math.round(d.t.tu + (top - d.y - K.pad) / K.mPx) : it.x;
-    const lech = doiGioDuoc(it) ? Math.round(((k.dx / pxNgay) * DAY) / SNAP) * SNAP : 0;
+    let lech = doiGioDuoc(it) ? Math.round(((k.dx / pxNgay) * DAY) / SNAP) * SNAP : 0;
+    const eta = ms(it.v.eta); // ETB không được trước ETA
+    if (lech && eta != null && !it.v.atb && it.seg.a + lech < eta) lech = eta - it.seg.a;
     const ben = benTheoViTri(D.berths, d.t.bens[0].ma, x, it.L);
     return { d, x, lech, ben, a: it.seg.a + lech, b: it.seg.b + lech };
   };

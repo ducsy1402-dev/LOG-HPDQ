@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { MucIcon } from "@/components/common";
 import { TRUONG_DAN, tachBang, nhanDienTieuDe, dongThanhChuyen, fmtNgayNhap } from "@/lib/paste";
 import { timBen, kiemTraBen } from "@/lib/checks";
-import { maChuyenMoi } from "@/lib/linetime";
+import { maChuyenMoi, rangBuocEtb } from "@/lib/linetime";
 import { so, ms } from "@/lib/format";
 import { ghiDanhMuc } from "./ChuyenForm";
 import { tenBen, tenBenChuyen } from "./BangTauBen";
@@ -58,8 +58,9 @@ export default function DanNhanh({ onClose }) {
     const them = hopLe.filter((x) => !x.goc).map((x) => x.v), sua = hopLe.filter((x) => x.goc);
     const r = await run(async () => {
       const tachTien = (v) => { const { _tien, ...rest } = v; return [rest, _tien]; };
-      const daThem = them.length ? await api.insertVoyages(them.map((v) => tachTien(v)[0])) : [];
-      for (const x of sua) { const [patch] = tachTien(x.v); delete patch.ma_chuyen; delete patch.ten_tau; if (Object.keys(patch).length) await api.updateVoyage(x.goc.id, patch); }
+      const ctxEtb = { voyages: D.voyages, stopsOf: D.stopsOf, now: D.now };
+      const daThem = them.length ? await api.insertVoyages(them.map((v) => rangBuocEtb({}, tachTien(v)[0], ctxEtb))) : [];
+      for (const x of sua) { const [patch0] = tachTien(x.v); const patch = rangBuocEtb(x.goc, patch0, ctxEtb); delete patch.ma_chuyen; delete patch.ten_tau; if (Object.keys(patch).length) await api.updateVoyage(x.goc.id, patch); }
       for (const v of them) await ghiDanhMuc(api, D, v);
     }, `Đã lưu: thêm ${them.length} chuyến, cập nhật ${sua.length} chuyến`);
     if (r) onClose();

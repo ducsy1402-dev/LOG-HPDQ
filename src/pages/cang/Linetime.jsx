@@ -30,7 +30,7 @@ export default function Linetime() {
   const [tu, setTu] = useState(() => homNay() - 3 * DAY);
   const [soNgay, setSoNgay] = useState(30);
   const [zoom, setZoom] = useState(1);
-  // Chế độ xem lịch cầu bến: "ben" chỉ thời gian chiếm bến, "toan" thêm thời gian chờ từ lúc đến neo / NOR; gon: dòng thấp, chữ nhỏ
+  // Chế độ xem lịch cầu bến: "ben" chỉ thời gian chiếm bến, "toan" thêm đoạn chờ bến từ NOR hoặc ETA; gon: dòng thấp, chữ nhỏ
   const doc = (k, md) => { try { return localStorage.getItem(k) ?? md; } catch { return md; } };
   const ghi = (k, v) => { try { localStorage.setItem(k, v); } catch { /* bỏ qua */ } };
   const [che, setChe] = useState(() => doc("lg-gantt-che", "ben"));
@@ -57,7 +57,7 @@ export default function Linetime() {
 
   return (
     <>
-      <PageHead title="Linetime tàu cập bến" desc="Lịch cầu bến, tiến độ theo bến và danh sách chuyến. Bấm vào tàu để mở phiếu chuyến (9 mốc giờ, nhật ký, khoảng dừng, laytime).">
+      <PageHead title="Linetime tàu cập bến" desc="Lịch cầu bến, tiến độ theo bến và danh sách chuyến. Bấm vào tàu để mở phiếu chuyến (7 mốc giờ, nhật ký, khoảng dừng, laytime).">
         {quyen.nhap && <><Button variant="outline" onClick={() => setDan(true)}><ClipboardPaste />Dán nhanh</Button><Button onClick={() => setThem(true)}><Plus />Thêm chuyến</Button></>}
       </PageHead>
       <Card className="mb-3">
@@ -98,7 +98,7 @@ export default function Linetime() {
                   onClick={() => { setTruc(k); ghi("lg-gantt-truc", k); }}>{k === "met" ? <Ruler /> : <Rows4 />}{t}</Button>))}
             </div>
             {truc === "ben" && <div className="inline-flex rounded-md border p-0.5" role="group" aria-label="Chế độ xem">
-              {[["ben", "Chiếm bến", "Thanh tàu = thời gian ở bến (ATB / ETB → ATD / ETD)"], ["toan", "Toàn thời gian", "Thêm đoạn chờ từ lúc đến neo / NOR tới lúc cập bến, vạch NOR và làm hàng"]].map(([k, t, mo]) => (
+              {[["ben", "Chiếm bến", "Thanh tàu = thời gian ở bến (ATB / ETB → ATD / ETD)"], ["toan", "Toàn thời gian", "Thêm đoạn chờ bến (đỏ) từ NOR hoặc ETA tới lúc cập bến, vạch NOR và làm hàng"]].map(([k, t, mo]) => (
                 <Button key={k} size="xs" variant={che === k ? "secondary" : "ghost"} className={cn(che === k && "text-primary")} title={mo} aria-pressed={che === k}
                   onClick={() => { setChe(k); ghi("lg-gantt-che", k); }}>{k === "toan" ? <Clock3 /> : <Anchor />}{t}</Button>))}
             </div>}

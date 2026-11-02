@@ -4,7 +4,7 @@
 //   - Thời gian cho phép (laytime) = KL ÷ CAM KẾT (tấn/ngày), tính cả giờ lẻ.
 //   - Bắt đầu tính (moc_tinh_tp) theo hợp đồng: NOR + 12h | NOR + 24h | 8h ngày kế tiếp sau ngày trao NOR | giờ nhập tay | …
 //     Nếu tàu bắt đầu làm hàng SỚM hơn mốc đó thì laytime tính từ lúc bắt đầu làm hàng. Chủ nhật, ngày lễ vẫn tính bình thường.
-//   - Thời gian đình trệ cho phép (không tính vào laytime): hoa tiêu lên tàu → lai dắt → cập bến (tự trừ, tru_hoa_tieu)
+//   - Thời gian đình trệ cho phép (không tính vào laytime): các khoảng dừng đánh dấu "trừ laytime"
 //     và các khoảng dừng được đánh dấu "trừ" (thời tiết xấu…). CHỈ trừ khi còn trong laytime: hết laytime thì không trừ nữa.
 //   - Hết laytime mà chưa xong: phạt = thời gian quá × đơn giá phạt (DEM, tiền / ngày).
 //     Xong trước khi hết laytime: thưởng = thời gian tiết kiệm × đơn giá phạt × 50% (ty_le_thuong).
@@ -62,10 +62,9 @@ export function mocBatDau(v) {
   return { t, ten, tam };
 }
 
-// Các khoảng được trừ khỏi laytime: khoảng dừng đánh dấu trừ + hoa tiêu lên tàu → cập bến (nếu bật tru_hoa_tieu)
+// Các khoảng được trừ khỏi laytime: khoảng dừng đánh dấu trừ
 export function khoangTru(v, stops, tu, den) {
   const ds = [...(stops || []).filter((s) => s.tru_tp)];
-  if (v.tru_hoa_tieu !== false && v.cho_phep_cap && v.atb && ms(v.atb) > ms(v.cho_phep_cap)) ds.push({ tu: v.cho_phep_cap, den: v.atb, tru_tp: true, ly_do: "Hoa tiêu, lai dắt" });
   return khoangGop(ds, tu, den);
 }
 

@@ -132,7 +132,7 @@ function TauTaiCang({ ds }) {
             <td className="min-w-[120px]">{v.huong === "xuat" ? "Xuất" : "Nhập"} · {v.ten_hang || v.loai_hang || "—"}</td>
             <td className="num">{so(v.khoi_luong)}</td>
             <td className="whitespace-nowrap tabular-nums">{ngayGio(v.atb) || <span className="text-muted-foreground">ETB {ngayGio(v.etb) || "—"}</span>}</td>
-            <td className={cn("num whitespace-nowrap", cs.choNeo > D.nguong.choNeoGio && "font-semibold text-warn")}>{cs.choNeo != null ? thoiLuong(cs.choNeo, { ngan: true }) : ""}</td>
+            <td className="num whitespace-nowrap">{cs.choNeo != null ? thoiLuong(cs.choNeo, { ngan: true }) : ""}</td>
             <td className="num whitespace-nowrap">{cs.oBen != null ? thoiLuong(cs.oBen, { ngan: true }) : ""}</td>
             <td className={cn("num whitespace-nowrap", cs.soCamKet != null && cs.soCamKet < 0.9 && "text-bad")}>{cs.nangSuat != null ? so(cs.nangSuat) : "—"}{+v.cam_ket ? <span className="text-muted-foreground"> / {so(v.cam_ket)}</span> : ""}{cs.soCamKet != null && <div className={nho}>{pct(cs.soCamKet)}</div>}</td>
             <td>{["lam_hang", "xong_hang"].includes(st) ? <TienDo v={cs.hoanTat} /> : <span className="text-muted-foreground">—</span>}</td>

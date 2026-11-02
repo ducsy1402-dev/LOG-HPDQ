@@ -8,7 +8,7 @@ import { NgayGio } from "@/components/ui/ngaygio";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { TrangThaiBadge, TienDo, MucIcon, ConfirmButton, Empty } from "@/components/common";
-import { MOC, DU_KIEN, chiSo } from "@/lib/linetime";
+import { MOC, DU_KIEN, chiSo, rangBuocEtb } from "@/lib/linetime";
 import { duToan, laCQD, tenMoc } from "@/lib/laytime";
 import { canhBaoChuyen } from "@/lib/checks";
 import { so, ngayGio, ngayGioNam, thoiLuong, toLocalInput, fromLocalInput, tien, pct, ms } from "@/lib/format";
@@ -26,7 +26,7 @@ import { KhoiDiem, KhoiXe, KhoiTbKhac, CauTauO, CauGanO, sachTB, so0, nhan, the 
 import { tenBen, tenBenChuyen } from "./BangTauBen";
 import { viTriChu } from "@/lib/tenBen";
 
-// Phiếu chuyến tàu (như hình 2): thông tin, 9 mốc, chỉ số, thưởng phạt, làm hàng, nhật ký, khoảng dừng, lịch sử sửa.
+// Phiếu chuyến tàu (như hình 2): thông tin, 7 mốc, chỉ số, thưởng phạt, làm hàng, nhật ký, khoảng dừng, lịch sử sửa.
 // Mở dạng ngăn kéo bên phải; nội dung (NoiDungPhieu) dùng lại trong trang Phương án làm hàng.
 export default function PhieuChuyen({ id, onClose }) {
   const { D } = useApp();
@@ -102,7 +102,7 @@ export function NoiDungPhieu({ v, onDaXoa }) {
               <Chi l="Hoàn tất" v={`${so(cs.daLam)} t`} sub={<TienDo v={cs.hoanTat} />} />
               <Chi l="Còn lại" v={`${so(cs.conLai)} t`} />
               <Chi l="Năng suất thực" v={cs.nangSuat != null ? `${so(cs.nangSuat)} t/ngày` : "—"} sub={cs.soCamKet != null ? `${pct(cs.soCamKet)} cam kết` : null} tone={cs.soCamKet != null && cs.soCamKet < 0.9 ? "text-warn" : undefined} />
-              <Chi l="Chờ neo" v={thoiLuong(cs.choNeo) || "—"} tone={cs.choNeo > D.nguong.choNeoGio ? "text-warn" : undefined} />
+              <Chi l="Chờ bến (từ NOR)" v={thoiLuong(cs.choNeo) || "—"} />
               <Chi l="Ở bến" v={thoiLuong(cs.oBen) || "—"} />
               <Chi l="Làm hàng (gộp / thực)" v={cs.lamHang != null ? `${thoiLuong(cs.lamHang, { ngan: true })} / ${thoiLuong(cs.lamHangThuc, { ngan: true })}` : "—"} />
               <Chi l="Tổng dừng" v={thoiLuong(cs.dung) || "0 giờ"} />
@@ -148,10 +148,16 @@ export function NoiDungPhieu({ v, onDaXoa }) {
 const O = ({ l, v, sub }) => <div className="min-w-0"><div className="text-[11px] text-muted-foreground">{l}</div><div className="truncate font-medium" title={typeof v === "string" ? v : undefined}>{v || "—"}</div>{sub && <div className="truncate text-[11px] text-muted-foreground">{sub}</div>}</div>;
 const Chi = ({ l, v, sub, tone }) => <div className="rounded-md border bg-background/50 p-2"><div className="text-[11px] text-muted-foreground">{l}</div><div className={cn("text-[15px] font-semibold tabular-nums", tone)}>{v}</div>{sub && <div className="mt-0.5 text-[11px] text-muted-foreground">{sub}</div>}</div>;
 
-// 9 mốc thực tế + giờ dự kiến + mốc bắt đầu tính thưởng phạt. Lưu ngay khi rời ô.
+// 7 mốc thực tế + giờ dự kiến + mốc bắt đầu tính thưởng phạt. Lưu ngay khi rời ô.
 function MocGio({ v, moDieuKhoan }) {
-  const { quyen, run, api } = useApp();
-  const luu = (k, val) => { const moi = fromLocalInput(val); if ((moi && ms(moi)) === (v[k] && ms(v[k]))) return; run(() => api.updateVoyage(v.id, { [k]: moi }), "Đã lưu mốc giờ"); };
+  const { D, quyen, run, api, toast } = useApp();
+  // ETB luôn sau ETA: ETA đổi hoặc ETB nhập trước ETA thì web tự xếp lại ETB (gợi ý theo bến trống), ETD dời theo
+  const luu = (k, val) => {
+    const moi = fromLocalInput(val); if ((moi && ms(moi)) === (v[k] && ms(v[k]))) return;
+    const patch = ["eta", "etb", "etd"].includes(k) ? rangBuocEtb(v, { [k]: moi }, { voyages: D.voyages, stopsOf: D.stopsOf, now: D.now }) : { [k]: moi };
+    const xep = patch.etb && patch.etb !== (k === "etb" ? moi : v.etb) && ms(patch.etb) !== ms(v.etb);
+    run(() => api.updateVoyage(v.id, patch), xep ? `Đã lưu; ETB tự xếp lại sau ETA: ${ngayGio(patch.etb)}` : "Đã lưu mốc giờ");
+  };
   const dong = (m, i) => (
     <div key={m.k} className="flex flex-wrap items-center gap-2 border-b py-1.5 last:border-0">
       <span className="w-6 text-center font-mono text-xs text-muted-foreground">{i ?? ""}</span>
@@ -168,8 +174,7 @@ function MocGio({ v, moDieuKhoan }) {
       <div><div className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Giờ dự kiến (kéo thả trên lịch cầu bến cũng sửa hai giờ này)</div>{DU_KIEN.map((m) => dong(m))}</div>
       <div className="flex flex-wrap items-center gap-2 rounded-md border p-3 text-sm">
         <span className="flex-1">{laCQD(v) ? <>Tính theo <b>CQD</b>: ngưỡng trống máng {so(v.cqd_nguong_gio, 1) || 0} giờ.</>
-          : <>Laytime bắt đầu: <b>{tenMoc(v.moc_tinh_tp)}</b>{v.moc_tinh_tp === "tay" && v.tg_tinh_tp ? ` (${ngayGio(v.tg_tinh_tp)})` : ""}; làm hàng sớm hơn thì tính từ lúc bắt đầu làm hàng.
-            {v.tru_hoa_tieu !== false && " Tự trừ thời gian hoa tiêu lên tàu → cập bến."}</>}</span>
+          : <>Laytime bắt đầu: <b>{tenMoc(v.moc_tinh_tp)}</b>{v.moc_tinh_tp === "tay" && v.tg_tinh_tp ? ` (${ngayGio(v.tg_tinh_tp)})` : ""}; làm hàng sớm hơn thì tính từ lúc bắt đầu làm hàng.</>}</span>
         <Button size="sm" variant="outline" onClick={moDieuKhoan}><Settings2 />Điều khoản xếp dỡ</Button>
       </div>
     </div>

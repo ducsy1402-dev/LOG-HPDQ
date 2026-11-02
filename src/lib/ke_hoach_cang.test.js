@@ -10,7 +10,7 @@ const TU = t(24, 17), DEN = t(25, 17);
 describe("Kế hoạch điều động tàu cập / rời cảng", () => {
   const vs = [
     { id: 1, ten_tau: "HOÀNG PHÚC 36", ben_ma: "2", huong: "xuat", ten_hang: "HRC", draft: 5.78, loa: 79.86, dwt: 4442.8, atb: iso(23, 10), etd: iso(24, 20) },
-    { id: 2, ten_tau: "VIỆT THUẬN QN-02", ben_ma: "2", huong: "xuat", ten_hang: "xỉ", draft: 3.5, loa: 79.98, dwt: 6071, etb: iso(24, 20, 30), den_neo: iso(24, 10), etd: iso(26, 8) },
+    { id: 2, ten_tau: "VIỆT THUẬN QN-02", ben_ma: "2", huong: "xuat", ten_hang: "xỉ", draft: 3.5, loa: 79.98, dwt: 6071, etb: iso(24, 20, 30), nor: iso(24, 10), etd: iso(26, 8) },
     { id: 3, ten_tau: "TÀU HH", ben_ma: "HH2", huong: "nhap", ten_hang: "đá", draft: 8.2, loa: 149.79, dwt: 23830, etb: iso(25, 4), etd: iso(28, 4) },
     { id: 4, ten_tau: "QUANG VINH 189", ben_ma: "6CTH", huong: "xuat", ten_hang: "HRC", draft: 3.6, loa: 119.9, dwt: 11168, etb: iso(25, 2, 30), etd: iso(27, 4) },
     { id: 5, ten_tau: "NGOÀI KHOẢNG", ben_ma: "5", etb: iso(20, 1), etd: iso(21, 1) },

@@ -7,7 +7,7 @@ import { Input, NativeSelect, Field, Textarea, Checkbox } from "@/components/ui/
 import { ChonGo } from "@/components/ui/combobox";
 import { NgayGio } from "@/components/ui/ngaygio";
 import { MucIcon } from "@/components/common";
-import { maChuyenMoi, khoangBen } from "@/lib/linetime";
+import { maChuyenMoi, khoangBen, rangBuocEtb, etbGoiY } from "@/lib/linetime";
 import { kiemTraXepBen, nhanCho, benLienKe, laBenLienKe, tuyenCuaBen, benTheoViTri, tenTuyen } from "@/lib/capBen";
 import { kiemTraBen } from "@/lib/checks";
 import { toLocalInput, fromLocalInput, ms, plain, so } from "@/lib/format";
@@ -83,8 +83,14 @@ export default function ChuyenForm({ v, onClose, onSaved }) {
   // Số mét cập bến: cùng lúc với các tàu khác ở bến này có đủ chỗ không (theo quy tắc cập cầu bến)
   const k0 = khoangBen({ ...(v || {}), ...r0 }, D.now);
   if (r0.ben_ma && k0) for (const t of kiemTraXepBen({ ...(v || {}), ...r0, id: v?.id ?? -1 }, r0.ben_ma, k0.a, k0.b, { voyages: D.voyages, berths: D.berths, stopsOf: D.stopsOf, now: D.now })) canh.push({ muc: "warn", ma: "cho", nd: nhanCho(t, r0) });
+  // ETB luôn sau ETA: dựng chuyến tạm từ các ô đang nhập để tính ETB gợi ý (bến trống sớm nhất từ ETA)
+  const ctxEtb = { voyages: D.voyages, stopsOf: D.stopsOf, now: D.now };
+  const tam = (o) => ({ ...(v || {}), id: v?.id ?? -1, eta: fromLocalInput(o.eta), etb: fromLocalInput(o.etb), etd: fromLocalInput(o.etd), ben_ma: o.ben_ma || null, ben_phu: o.ben_phu || null,
+    loa: soHoacNull(o.loa), khoi_luong: tongKL, cam_ket: soHoacNull(o.cam_ket) });
+  const xepEtb = (o) => { const p = rangBuocEtb(tam(o), {}, ctxEtb); return p.etb ? { ...o, etb: toLocalInput(p.etb), ...(p.etd ? { etd: toLocalInput(p.etd) } : {}) } : o; };
+  const goiYEtb = f.eta ? etbGoiY(tam(f), ctxEtb) : null;
   const save = async () => {
-    const r = rec();
+    const r = { ...rec(), ...(() => { const p = rangBuocEtb(tam(f), {}, ctxEtb); return p.etb ? { etb: p.etb, ...(p.etd ? { etd: p.etd } : {}) } : {}; })() };
     if ([...SO, "so_mang", "vi_tri"].some((k) => r[k] != null && !Number.isFinite(r[k])) || hangSach.some((h) => h.khoi_luong != null && !Number.isFinite(h.khoi_luong))) return toast("Có ô số không hợp lệ", "bad");
     if (r.etb && r.etd && ms(r.etd) <= ms(r.etb)) return toast("ETD phải sau ETB", "bad");
     if (v) {
@@ -145,8 +151,8 @@ export default function ChuyenForm({ v, onClose, onSaved }) {
         <Field label="DWT"><Input className="num" inputMode="decimal" value={f.dwt} onChange={set("dwt")} /></Field>
         <Field label="Mớn / DRAFT (m)"><Input className="num" inputMode="decimal" value={f.draft} onChange={set("draft")} /></Field>
         <Field label="LOA (m)"><Input className="num" inputMode="decimal" value={f.loa} onChange={set("loa")} /></Field>
-        <Field label="ETA báo về" className="min-w-0"><NgayGio value={f.eta} onChange={(x) => setF((o) => ({ ...o, eta: x }))} /></Field>
-        <Field label="Dự kiến cập (ETB)" className="min-w-0"><NgayGio value={f.etb} onChange={(x) => setF((o) => ({ ...o, etb: x }))} /></Field>
+        <Field label="ETA báo về" className="min-w-0"><NgayGio value={f.eta} onChange={(x) => setF((o) => xepEtb({ ...o, eta: x }))} /></Field>
+        <Field label="Dự kiến cập (ETB)" className="min-w-0" hint={goiYEtb != null ? `Luôn sau ETA. Gợi ý: ${toLocalInput(goiYEtb).replace("T", " ")}` : "Luôn sau ETA"}><NgayGio value={f.etb} onChange={(x) => setF((o) => xepEtb({ ...o, etb: x }))} /></Field>
         <Field label="Dự kiến rời (ETD)" className="min-w-0"><NgayGio value={f.etd} onChange={(x) => setF((o) => ({ ...o, etd: x }))} /></Field>
         {c19 ? <label className="flex items-end gap-2 pb-2 text-sm"><Checkbox checked={f.uu_tien} onChange={set("uu_tien")} />Tàu ưu tiên vào sớm</label> : <div />}
         <Field label="Ghi chú" className="col-span-2 sm:col-span-4"><Textarea rows={2} className="min-h-0" value={f.ghi_chu} onChange={set("ghi_chu")} /></Field>
