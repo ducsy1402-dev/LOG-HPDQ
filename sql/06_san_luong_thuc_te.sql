@@ -1,9 +1,10 @@
 -- 06. Mục tiêu và sản lượng THỰC TẾ nhập tay theo ca / ngày, cho hai tab của Khai thác Cảng › Mục tiêu sản lượng:
 --   Mục tiêu khai thác cảng : mục tiêu tháng dùng bảng muc_tieu_san_luong (SQL 21, theo hướng nhập / xuất và loại hàng);
 --                             thực tế theo ca / ngày: bảng san_luong_cang (CA 1, CA 2).
---   Mục tiêu khai thác vận tải: mục tiêu tháng: bảng muc_tieu_van_tai, theo hướng (Phục vụ cảng / Phục vụ sản xuất), loại xe,
---                             đơn vị thực hiện (Hòa Phát / Nhà thầu); thực tế theo ca / ngày: bảng san_luong_van_tai.
--- Chạy SAU 01_cau_truc.sql. Chạy được nhiều lần.
+--   Mục tiêu khai thác vận tải: mục tiêu tháng: bảng muc_tieu_van_tai, theo hướng (Phục vụ cảng / Phục vụ sản xuất), loại xe (đội xe),
+--                             đơn vị thực hiện (Hòa Phát / Nhà thầu) và loại hàng (nhóm hàng như bên cảng; trống = mọi hàng);
+--                             thực tế theo ca / ngày: bảng san_luong_van_tai.
+-- Chạy SAU 01_cau_truc.sql. Chạy được nhiều lần (bản đã chạy trước khi có cột loại hàng của vận tải sẽ được bổ sung cột và khóa mới).
 -- Ai có quyền phần Cảng đọc được; nhập liệu trở lên nhập / sửa / xóa số thực tế; mục tiêu tháng chỉ quản lý trở lên.
 
 create table if not exists public.san_luong_cang (
@@ -24,12 +25,12 @@ create table if not exists public.muc_tieu_van_tai (
   id         bigint generated always as identity primary key,
   thang      text not null check (thang ~ '^\d{4}-(0[1-9]|1[0-2])$'),   -- 'YYYY-MM'
   huong      text not null check (huong in ('phuc_vu_cang', 'phuc_vu_san_xuat')),
-  loai_xe    text not null,                         -- Xe ben, Xe đầu kéo…
+  loai_xe    text not null,                         -- đội xe: Xe ben, Xe đầu kéo, Xe bồn…
   don_vi     text not null check (don_vi in ('hoa_phat', 'nha_thau')),
+  loai_hang  text not null default '',              -- nhóm hàng vận chuyển; trống = mọi hàng
   tan        numeric not null check (tan >= 0),
   ghi_chu    text,
-  updated_at timestamptz not null default now(),
-  unique (thang, huong, loai_xe, don_vi)
+  updated_at timestamptz not null default now()
 );
 
 create table if not exists public.san_luong_van_tai (
@@ -39,13 +40,21 @@ create table if not exists public.san_luong_van_tai (
   huong      text not null check (huong in ('phuc_vu_cang', 'phuc_vu_san_xuat')),
   loai_xe    text not null,
   don_vi     text not null check (don_vi in ('hoa_phat', 'nha_thau')),
+  loai_hang  text not null default '',
   tan        numeric not null check (tan >= 0),
   ghi_chu    text,
   nguoi      uuid default auth.uid(),
-  updated_at timestamptz not null default now(),
-  unique (ngay, ca, huong, loai_xe, don_vi)
+  updated_at timestamptz not null default now()
 );
 create index if not exists san_luong_van_tai_ngay_idx on public.san_luong_van_tai (ngay);
+
+-- Bản đã chạy trước đây chưa có cột loại hàng: bổ sung, bỏ khóa duy nhất cũ (không có loại hàng)
+alter table public.muc_tieu_van_tai  add column if not exists loai_hang text not null default '';
+alter table public.san_luong_van_tai add column if not exists loai_hang text not null default '';
+alter table public.muc_tieu_van_tai  drop constraint if exists muc_tieu_van_tai_thang_huong_loai_xe_don_vi_key;
+alter table public.san_luong_van_tai drop constraint if exists san_luong_van_tai_ngay_ca_huong_loai_xe_don_vi_key;
+create unique index if not exists muc_tieu_van_tai_khoa on public.muc_tieu_van_tai (thang, huong, loai_xe, don_vi, loai_hang);
+create unique index if not exists san_luong_van_tai_khoa on public.san_luong_van_tai (ngay, ca, huong, loai_xe, don_vi, loai_hang);
 
 alter table public.san_luong_cang    enable row level security;
 alter table public.muc_tieu_van_tai  enable row level security;

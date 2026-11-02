@@ -129,17 +129,17 @@ export function makeSupabaseApi() {
     },
     // rows: [{ thang, huong, loai, donVi, tan, ghi_chu }]; tan = null thì xóa dòng đó
     async saveMucTieuNhom(nhom, rows) {
-      const c = NHOM[nhom], lien = (q, r) => (nhom === "van_tai" ? q.eq("loai_xe", r.loai).eq("don_vi", r.donVi) : q.eq("loai_hang", r.loai));
+      const c = NHOM[nhom], lien = (q, r) => (nhom === "van_tai" ? q.eq("loai_xe", r.loai).eq("don_vi", r.donVi).eq("loai_hang", r.hang || "") : q.eq("loai_hang", r.loai));
       for (const r of rows.filter((x) => x.tan == null)) ok(await lien(sb.from(c.bangMT).delete().eq("thang", r.thang).eq("huong", r.huong), r));
-      const ghi = rows.filter((x) => x.tan != null).map((r) => ({ thang: r.thang, huong: r.huong, ...(nhom === "van_tai" ? { loai_xe: r.loai, don_vi: r.donVi } : { loai_hang: r.loai }), tan: r.tan, ghi_chu: r.ghi_chu || null, updated_at: now() }));
-      if (ghi.length) ok(await sb.from(c.bangMT).upsert(ghi, { onConflict: nhom === "van_tai" ? "thang,huong,loai_xe,don_vi" : "thang,huong,loai_hang" }));
+      const ghi = rows.filter((x) => x.tan != null).map((r) => ({ thang: r.thang, huong: r.huong, ...(nhom === "van_tai" ? { loai_xe: r.loai, don_vi: r.donVi, loai_hang: r.hang || "" } : { loai_hang: r.loai }), tan: r.tan, ghi_chu: r.ghi_chu || null, updated_at: now() }));
+      if (ghi.length) ok(await sb.from(c.bangMT).upsert(ghi, { onConflict: nhom === "van_tai" ? "thang,huong,loai_xe,don_vi,loai_hang" : "thang,huong,loai_hang" }));
     },
     // rows: [{ ngay, ca, huong, loai, donVi, tan }]; tan = null thì xóa số của ô đó
     async saveThucTe(nhom, rows) {
-      const c = NHOM[nhom], lien = (q, r) => (nhom === "van_tai" ? q.eq("loai_xe", r.loai).eq("don_vi", r.donVi) : q.eq("loai_hang", r.loai));
+      const c = NHOM[nhom], lien = (q, r) => (nhom === "van_tai" ? q.eq("loai_xe", r.loai).eq("don_vi", r.donVi).eq("loai_hang", r.hang || "") : q.eq("loai_hang", r.loai));
       for (const r of rows.filter((x) => x.tan == null)) ok(await lien(sb.from(c.bangTT).delete().eq("ngay", r.ngay).eq("ca", r.ca).eq("huong", r.huong), r));
-      const ghi = rows.filter((x) => x.tan != null).map((r) => ({ ngay: r.ngay, ca: r.ca, huong: r.huong, ...(nhom === "van_tai" ? { loai_xe: r.loai, don_vi: r.donVi } : { loai_hang: r.loai }), tan: r.tan, updated_at: now() }));
-      for (const g of chunk(ghi, 300)) ok(await sb.from(c.bangTT).upsert(g, { onConflict: nhom === "van_tai" ? "ngay,ca,huong,loai_xe,don_vi" : "ngay,ca,huong,loai_hang" }));
+      const ghi = rows.filter((x) => x.tan != null).map((r) => ({ ngay: r.ngay, ca: r.ca, huong: r.huong, ...(nhom === "van_tai" ? { loai_xe: r.loai, don_vi: r.donVi, loai_hang: r.hang || "" } : { loai_hang: r.loai }), tan: r.tan, updated_at: now() }));
+      for (const g of chunk(ghi, 300)) ok(await sb.from(c.bangTT).upsert(g, { onConflict: nhom === "van_tai" ? "ngay,ca,huong,loai_xe,don_vi,loai_hang" : "ngay,ca,huong,loai_hang" }));
     },
     // Kế hoạch xuất / nhập tồn kho: { them: [dòng mới], sua: [{ id, ...cột đổi }], xoa: [id] }
     async saveKeHoachKho({ them = [], sua = [], xoa = [] }) {

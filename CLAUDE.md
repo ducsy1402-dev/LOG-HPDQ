@@ -58,6 +58,6 @@ Thay đổi CSDL về sau: viết file SQL mới đánh số tiếp (07, 08…),
 ## Mục tiêu sản lượng: hai tab (SQL 06, anh Sỹ chốt 02/11/2026)
 - Khai thác Cảng › Mục tiêu sản lượng có 2 tab, mỗi tab gồm **bảng mục tiêu tháng** và **bảng nhập thực tế theo ca / ngày** (CA 1, CA 2; tháng chọn ở góc phải, dùng chung hai tab). Code: `src/pages/cang/MucTieu.jsx` (khung + tab), `SanLuongTab.jsx` (hai bảng), `src/lib/sanLuongTT.js` (cấu hình, khóa dòng).
   - **Mục tiêu khai thác cảng**: hướng nhập / xuất × loại hàng (bảng `muc_tieu_san_luong`), thực tế `san_luong_cang`.
-  - **Mục tiêu khai thác vận tải**: hướng Phục vụ cảng / Phục vụ sản xuất × loại xe (Xe ben, Xe đầu kéo…) × đơn vị thực hiện (Hòa Phát / Nhà thầu): `muc_tieu_van_tai`, thực tế `san_luong_van_tai`.
+  - **Mục tiêu khai thác vận tải**: hướng Phục vụ cảng / Phục vụ sản xuất × loại xe (đội xe: Xe ben, Xe đầu kéo, Xe bồn…) × đơn vị thực hiện (Hòa Phát / Nhà thầu) × loại hàng (nhóm hàng như bên cảng; trống = mọi hàng): `muc_tieu_van_tai`, thực tế `san_luong_van_tai`. Có bộ lọc đội xe áp cho cả hai bảng.
 - Cột "Thực hiện" của bảng mục tiêu = tổng số đã nhập ở bảng thực tế (không còn lấy theo khối lượng chuyến tàu; vẫn ghi chú "tàu trong tháng X t" để đối chiếu). Quản lý trở lên đặt mục tiêu; nhập liệu trở lên nhập số thực tế (xóa số trong ô = xóa dòng).
 - Tổng quan › Khối lượng xếp dỡ **chưa đổi**: vẫn lấy khối lượng chuyến tàu so với mục tiêu cảng.

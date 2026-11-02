@@ -154,15 +154,15 @@ export function demoData() {
   const MT_MAU = [["nhap", "Quặng", 400000], ["nhap", "Than", 180000], ["nhap", "Phế", 50000], ["nhap", "Đá", 20000], ["xuat", "HRC", 70000], ["xuat", "Thép thành phẩm", 30000], ["xuat", "Slab", 20000]];
   const mucTieu = [-1, 0].flatMap((lech) => MT_MAU.map(([huong, loai_hang, tan]) => ({ thang: thang(lech), huong, loai_hang, tan: lech ? Math.round(tan * 0.92) : tan, ghi_chu: null })));
   // Mục tiêu vận tải và sản lượng thực tế theo ca / ngày mẫu (SQL 06): tháng này, từ đầu tháng đến hôm qua
-  const MT_VT = [["phuc_vu_cang", "Xe ben", "hoa_phat", 120000], ["phuc_vu_cang", "Xe đầu kéo", "nha_thau", 60000], ["phuc_vu_san_xuat", "Xe ben", "hoa_phat", 80000], ["phuc_vu_san_xuat", "Xe đầu kéo", "hoa_phat", 50000], ["phuc_vu_san_xuat", "Xe ben", "nha_thau", 30000]];
-  const mucTieuVanTai = [-1, 0].flatMap((lech) => MT_VT.map(([huong, loai_xe, don_vi, tan]) => ({ thang: thang(lech), huong, loai_xe, don_vi, tan: lech ? Math.round(tan * 0.9) : tan, ghi_chu: null })));
+  const MT_VT = [["phuc_vu_cang", "Xe ben", "hoa_phat", "Quặng", 90000], ["phuc_vu_cang", "Xe ben", "hoa_phat", "Than", 40000], ["phuc_vu_cang", "Xe đầu kéo", "nha_thau", "HRC", 60000], ["phuc_vu_san_xuat", "Xe ben", "hoa_phat", "Phế", 50000], ["phuc_vu_san_xuat", "Xe ben", "nha_thau", "Đá", 30000], ["phuc_vu_san_xuat", "Xe đầu kéo", "hoa_phat", "Thép thành phẩm", 50000], ["phuc_vu_san_xuat", "Xe bồn", "hoa_phat", "Xỉ", 20000]];
+  const mucTieuVanTai = [-1, 0].flatMap((lech) => MT_VT.map(([huong, loai_xe, don_vi, loai_hang, tan]) => ({ thang: thang(lech), huong, loai_xe, don_vi, loai_hang, tan: lech ? Math.round(tan * 0.9) : tan, ghi_chu: null })));
   const hom = new Date(), thangNay = thang(0), pad2 = (n) => String(n).padStart(2, "0");
   const taoTT = (dongs, cap) => { const out = []; for (let d = 1; d < hom.getDate(); d++) dongs.forEach((x, i) => ["CA 1", "CA 2"].forEach((ca, c) => {
     const he = 0.7 + (((d * 7 + c * 3 + i * 5) % 9) / 9) * 0.6; // 0,7 – 1,3 lần mức bình quân
     out.push({ ngay: `${thangNay}-${pad2(d)}`, ca, ...cap(x), tan: Math.round((x.tan / 30) * he * (c ? 0.45 : 0.55)), updated_at: null });
   })); return out; };
   const sanLuongCang = taoTT(MT_MAU.map(([huong, loai_hang, tan]) => ({ huong, loai_hang, tan })), (x) => ({ huong: x.huong, loai_hang: x.loai_hang }));
-  const sanLuongVanTai = taoTT(MT_VT.map(([huong, loai_xe, don_vi, tan]) => ({ huong, loai_xe, don_vi, tan })), (x) => ({ huong: x.huong, loai_xe: x.loai_xe, don_vi: x.don_vi }));
+  const sanLuongVanTai = taoTT(MT_VT.map(([huong, loai_xe, don_vi, loai_hang, tan]) => ({ huong, loai_xe, don_vi, loai_hang, tan })), (x) => ({ huong: x.huong, loai_xe: x.loai_xe, don_vi: x.don_vi, loai_hang: x.loai_hang }));
   // Cột tự thêm "Khu vực" của danh mục kho bãi (mẫu): chia bãi lớn vào 4 khu theo thứ tự trong danh mục
   const dmCot = [{ bang: "kho", ma: "khu_vuc", ten: "Khu vực", loai: "text", thu_tu: 0 }];
   const tenBaiDs = [...new Set(kho.khoBai.map((r) => r.ten_bai))];

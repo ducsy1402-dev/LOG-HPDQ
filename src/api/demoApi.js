@@ -114,20 +114,20 @@ export function makeDemoApi() {
     },
     async saveMucTieuNhom(nhom, rows) {
       can("quan_ly"); await wait();
-      const kho = (r) => khoaDong(r.huong, r.loai, r.donVi);
+      const kho = (r) => khoaDong(r.huong, r.loai, r.donVi, r.hang);
       const bang = nhom === "cang" ? "mucTieu" : "mucTieuVanTai";
       for (const r of rows) {
         db[bang] = db[bang].filter((x) => !(x.thang === r.thang && kho(tuDb(nhom, x)) === kho(r)));
-        if (r.tan != null) db[bang].push({ thang: r.thang, huong: r.huong, ...(nhom === "van_tai" ? { loai_xe: r.loai, don_vi: r.donVi } : { loai_hang: r.loai }), tan: r.tan, ghi_chu: r.ghi_chu || null, updated_at: new Date().toISOString() });
+        if (r.tan != null) db[bang].push({ thang: r.thang, huong: r.huong, ...(nhom === "van_tai" ? { loai_xe: r.loai, don_vi: r.donVi, loai_hang: r.hang || "" } : { loai_hang: r.loai }), tan: r.tan, ghi_chu: r.ghi_chu || null, updated_at: new Date().toISOString() });
       }
     },
     async saveThucTe(nhom, rows) {
       can("nhap"); await wait();
-      const kho = (r) => khoaDong(r.huong, r.loai, r.donVi);
+      const kho = (r) => khoaDong(r.huong, r.loai, r.donVi, r.hang);
       const bang = nhom === "cang" ? "sanLuongCang" : "sanLuongVanTai";
       for (const r of rows) {
         db[bang] = db[bang].filter((x) => !(x.ngay === r.ngay && x.ca === r.ca && kho(tuDb(nhom, x)) === kho(r)));
-        if (r.tan != null) db[bang].push({ ngay: r.ngay, ca: r.ca, huong: r.huong, ...(nhom === "van_tai" ? { loai_xe: r.loai, don_vi: r.donVi } : { loai_hang: r.loai }), tan: r.tan, updated_at: new Date().toISOString() });
+        if (r.tan != null) db[bang].push({ ngay: r.ngay, ca: r.ca, huong: r.huong, ...(nhom === "van_tai" ? { loai_xe: r.loai, don_vi: r.donVi, loai_hang: r.hang || "" } : { loai_hang: r.loai }), tan: r.tan, updated_at: new Date().toISOString() });
       }
     },
     async saveKeHoachKho({ them = [], sua = [], xoa = [] }) {

@@ -10,7 +10,7 @@ import { so, pct, tenThang, congThang } from "@/lib/format";
 import { docSo } from "@/lib/paste";
 import { cn } from "@/lib/utils";
 import { tinhThang, khoaLoai } from "@/lib/sanLuong";
-import { CA, DON_VI, NHOM, tenDonVi, khoaDong, khoaCua, tuDb, ngayCuaThang, khoaO, tongTheoCot } from "@/lib/sanLuongTT";
+import { CA, DON_VI, NHOM, tenDonVi, khoaDong, khoaCua, tuDb, ngayCuaThang, khoaO, tongTheoCot, khopDoiXe } from "@/lib/sanLuongTT";
 import { useThietBi } from "@/thietbi/Host";
 import { useNhomHang } from "./useNhomHang";
 
@@ -18,52 +18,66 @@ const THU = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 const fmt = (n) => (n == null ? "" : Number.isInteger(+n) ? so(n) : so(n, 2));
 
 // Một tab của Khai thác Cảng › Mục tiêu sản lượng (nhom = "cang" | "van_tai"): bảng mục tiêu tháng và bảng nhập thực tế theo ca / ngày.
+// Tab vận tải có thêm cột Loại hàng (nhóm hàng như bên cảng) và bộ lọc đội xe (Xe ben, Xe đầu kéo, Xe bồn…) áp cho cả hai bảng.
 // Dữ liệu của tháng đang chọn tải riêng từ Supabase (SQL 06); sau mỗi lần lưu tải lại.
 export default function SanLuongTab({ nhom, thang }) {
   const { api } = useApp();
   const [lan, setLan] = useState(0);
   const [kq, setKq] = useState(undefined); // undefined: đang tải · null: chưa chạy SQL · { mucTieu, thucTe }
+  const [doiXe, setDoiXe] = useState(""); // bộ lọc đội xe (vận tải); "" = tất cả
   const tai = useCallback(() => setLan((x) => x + 1), []);
   useEffect(() => {
     let huy = false;
     api.docSanLuongThang(nhom, thang).then((r) => { if (!huy) setKq(r); }).catch(() => { if (!huy) setKq(null); });
     return () => { huy = true; };
   }, [api, nhom, thang, lan]);
+  const loaiDaCo = useMemo(() => (nhom === "van_tai" && kq ? [...kq.mucTieu, ...kq.thucTe].map((r) => r.loai_xe) : []), [nhom, kq]);
+  const dsDoiXe = useLoaiGoiY("van_tai", loaiDaCo);
   if (kq === null) return <div className="rounded-md border border-warn/40 bg-warn/5 px-3 py-2 text-sm">Chưa có bảng sản lượng: quản trị cần chạy <b>sql/06_san_luong_thuc_te.sql</b> trong Supabase (sau 01 … 04).</div>;
   if (kq === undefined) return <div className="flex items-center gap-2 py-6 text-sm text-muted-foreground"><RefreshCw className="h-4 w-4 animate-spin" />Đang tải số liệu {tenThang(thang).toLowerCase()}…</div>;
+  const loc = nhom === "van_tai" ? (r) => khopDoiXe(r, doiXe) : () => true;
   return (
     <div className="grid gap-4">
-      <Card><CardContent className="pt-4"><BangMucTieu key={`mt-${nhom}-${thang}-${lan}`} nhom={nhom} thang={thang} mucTieu={kq.mucTieu} thucTe={kq.thucTe} onLuu={tai} /></CardContent></Card>
-      <Card><CardContent className="pt-4"><BangThucTe key={`tt-${nhom}-${thang}-${lan}`} nhom={nhom} thang={thang} mucTieu={kq.mucTieu} thucTe={kq.thucTe} onLuu={tai} /></CardContent></Card>
+      {nhom === "van_tai" && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm text-muted-foreground">Đội xe</span>
+          <NativeSelect className="h-8 w-48" value={doiXe} onChange={(e) => setDoiXe(e.target.value)} options={[["", "Tất cả đội xe"], ...dsDoiXe.map((x) => [x, x])]} aria-label="Lọc theo đội xe" />
+          {doiXe && <Button size="sm" variant="ghost" onClick={() => setDoiXe("")}><X />Bỏ lọc</Button>}
+          {doiXe && <span className="text-xs text-muted-foreground">Cả hai bảng chỉ hiện {doiXe}; tổng và % Đạt tính theo đội xe đang lọc.</span>}
+        </div>)}
+      <Card><CardContent className="pt-4"><BangMucTieu key={`mt-${nhom}-${thang}-${lan}`} nhom={nhom} thang={thang} mucTieu={kq.mucTieu} thucTe={kq.thucTe} loc={loc} onLuu={tai} /></CardContent></Card>
+      <Card><CardContent className="pt-4"><BangThucTe key={`tt-${nhom}-${thang}-${lan}`} nhom={nhom} thang={thang} mucTieu={kq.mucTieu} thucTe={kq.thucTe} loc={loc} onLuu={tai} /></CardContent></Card>
     </div>
   );
 }
 
-// Danh sách gợi ý loại hàng (cảng: nhóm hàng trong Danh mục) hoặc loại xe (vận tải: đội xe trong Thiết bị cơ giới)
-function useLoaiGoiY(nhom, hangDaCo) {
+// Danh sách gợi ý loại hàng (cảng: nhóm hàng trong Danh mục) hoặc loại xe / đội xe (vận tải: đội xe trong Thiết bị cơ giới)
+function useLoaiGoiY(nhom, daCo) {
   const { D } = useApp();
   const tb = useThietBi()?.D;
   return useMemo(() => {
     if (nhom === "van_tai") {
       const doi = (tb?.vehicles || []).map((x) => x.doi).filter((d) => d && d !== "Cẩu");
-      return [...new Set(["Xe ben", "Xe đầu kéo", ...doi, ...hangDaCo])].sort((a, b) => a.localeCompare(b, "vi"));
+      return [...new Set(["Xe ben", "Xe đầu kéo", "Xe bồn", ...doi, ...daCo])].sort((a, b) => a.localeCompare(b, "vi"));
     }
     const nhomDM = [...new Set((tb?.hanghoa || []).map((h) => String(h.nhom ?? "").trim()).filter(Boolean))];
-    return [...new Set(nhomDM.length ? [...nhomDM, ...hangDaCo] : [...hangDaCo, ...(D.mucTieu || []).map((m) => m.loai_hang)].filter((x) => x && x !== "(chưa ghi)"))].sort((a, b) => a.localeCompare(b, "vi"));
-  }, [nhom, tb, D.mucTieu, hangDaCo]);
+    return [...new Set(nhomDM.length ? [...nhomDM, ...daCo] : [...daCo, ...(D.mucTieu || []).map((m) => m.loai_hang)].filter((x) => x && x !== "(chưa ghi)"))].sort((a, b) => a.localeCompare(b, "vi"));
+  }, [nhom, tb, D.mucTieu, daCo]);
 }
 
 // ---------- Bảng mục tiêu tháng ----------
-function BangMucTieu({ nhom, thang, mucTieu, thucTe, onLuu }) {
+function BangMucTieu({ nhom, thang, mucTieu, thucTe, loc, onLuu }) {
   const { D, quyen, api, run, toast } = useApp();
   const c = NHOM[nhom], nhomHang = useNhomHang();
-  const goc = useMemo(() => Object.fromEntries(mucTieu.map((m) => { const r = tuDb(nhom, m); return [khoaCua(r), { huong: r.huong, loai: r.loai, donVi: r.donVi, tan: so(r.tan), ghi_chu: r.ghi_chu || "" }]; })), [mucTieu, nhom]);
+  const goc = useMemo(() => Object.fromEntries(mucTieu.map((m) => { const r = tuDb(nhom, m); return [khoaCua(r), { huong: r.huong, loai: r.loai, donVi: r.donVi, hang: r.hang, tan: so(r.tan), ghi_chu: r.ghi_chu || "" }]; })), [mucTieu, nhom]);
   const [f, setF] = useState(goc);
   const [xoa, setXoa] = useState(() => new Set());
   const [them, setThem] = useState({});
+  const thRows = useMemo(() => thucTe.map((r) => tuDb(nhom, r)), [thucTe, nhom]);
   const th = useMemo(() => tongTheoCot(nhom, thucTe), [nhom, thucTe]);
   const tau = useMemo(() => (nhom === "cang" ? tinhThang(D, thang, nhomHang) : null), [nhom, D, thang, nhomHang]);
-  const goiY = useLoaiGoiY(nhom, useMemo(() => [...new Set(thucTe.map((r) => tuDb(nhom, r).loai))], [thucTe, nhom]));
+  const goiY = useLoaiGoiY(nhom, useMemo(() => [...new Set(thRows.map((r) => r.loai))], [thRows]));
+  const goiYHang = useLoaiGoiY("cang", useMemo(() => [...new Set(thRows.map((r) => r.hang).filter(Boolean))], [thRows]));
   const sua = quyen.quanLy;
   const dong = useMemo(() => { const o = { ...f }; for (const k of xoa) delete o[k]; return o; }, [f, xoa]);
   const rong = { tan: "", ghi_chu: "" };
@@ -74,30 +88,32 @@ function BangMucTieu({ nhom, thang, mucTieu, thucTe, onLuu }) {
   const xoaDong = (k) => { setXoa((o) => new Set(o).add(k)); setF((o) => { const n = { ...o }; delete n[k]; return n; }); };
   const themDong = (huong) => {
     const t = them[huong] || {}, loai = (t.loai || "").trim(); if (!loai) return;
-    const donVi = c.coDonVi ? t.donVi || DON_VI[0][0] : "", k = khoaDong(huong, loai, donVi);
-    if (!dong[k]) { setF({ ...f, [k]: { huong, loai, donVi, tan: "", ghi_chu: "" } }); setXoa((o) => { const n = new Set(o); n.delete(k); return n; }); }
-    setThem({ ...them, [huong]: { ...t, loai: "" } });
+    const donVi = c.coDonVi ? t.donVi || DON_VI[0][0] : "", hang = c.coLoaiHang ? (t.hang || "").trim() : "", k = khoaDong(huong, loai, donVi, hang);
+    if (!dong[k]) { setF({ ...f, [k]: { huong, loai, donVi, hang, tan: "", ghi_chu: "" } }); setXoa((o) => { const n = new Set(o); n.delete(k); return n; }); }
+    setThem({ ...them, [huong]: { ...t, loai: "", hang: "" } });
   };
   const truoc = congThang(thang, -1);
   const [dsTruoc, setDsTruoc] = useState(null);
   useEffect(() => { let huy = false; if (sua) api.docSanLuongThang(nhom, truoc).then((r) => { if (!huy) setDsTruoc(r?.mucTieu || []); }).catch(() => {}); return () => { huy = true; }; }, [api, nhom, truoc, sua]);
   const chepTruoc = () => {
     const moi = { ...f };
-    for (const m of dsTruoc || []) { const r = tuDb(nhom, m), k = khoaCua(r); if (!(dong[k]?.tan || "").trim()) moi[k] = { huong: r.huong, loai: r.loai, donVi: r.donVi, tan: so(r.tan), ghi_chu: dong[k]?.ghi_chu || r.ghi_chu || "" }; }
+    for (const m of dsTruoc || []) { const r = tuDb(nhom, m), k = khoaCua(r); if (!(dong[k]?.tan || "").trim()) moi[k] = { huong: r.huong, loai: r.loai, donVi: r.donVi, hang: r.hang, tan: so(r.tan), ghi_chu: dong[k]?.ghi_chu || r.ghi_chu || "" }; }
     setF(moi); setXoa(new Set());
   };
   const luu = async () => {
-    const rows = daXoa.map((k) => ({ thang, huong: goc[k].huong, loai: goc[k].loai, donVi: goc[k].donVi, tan: null }));
+    const rows = daXoa.map((k) => ({ thang, huong: goc[k].huong, loai: goc[k].loai, donVi: goc[k].donVi, hang: goc[k].hang, tan: null }));
     for (const k of doi.filter((x) => !daXoa.includes(x))) {
       const r = dong[k], txt = r.tan.trim(), tan = txt ? docSo(txt) : null;
       if (txt && !(tan >= 0)) return toast(`${r.loai}: mục tiêu phải là số tấn`, "bad");
-      rows.push({ thang, huong: r.huong, loai: r.loai, donVi: r.donVi, tan, ghi_chu: r.ghi_chu.trim() || null });
+      rows.push({ thang, huong: r.huong, loai: r.loai, donVi: r.donVi, hang: r.hang, tan, ghi_chu: r.ghi_chu.trim() || null });
     }
     if (await run(() => api.saveMucTieuNhom(nhom, rows), `Đã lưu mục tiêu ${tenThang(thang).toLowerCase()} (${rows.length} dòng)`)) onLuu();
   };
-  const tongMT = (huong) => Object.values(dong).filter((r) => r.huong === huong).reduce((s, r) => s + (docSo(r.tan) || 0), 0);
-  const tongTH = (huong) => [...th.entries()].filter(([k]) => k.startsWith(huong + "|")).reduce((s, [, v]) => s + v, 0);
+  // Tổng theo hướng, chỉ tính các dòng đang hiện (theo bộ lọc đội xe)
+  const tongMT = (huong) => Object.values(dong).filter((r) => r.huong === huong && loc(r)).reduce((s, r) => s + (docSo(r.tan) || 0), 0);
+  const tongTH = (huong) => thRows.filter((r) => r.huong === huong && loc(r)).reduce((s, r) => s + (+r.tan || 0), 0);
   const tongAll = (fn) => c.huong.reduce((s, [h]) => s + fn(h), 0);
+  const soCotPhu = (c.coDonVi ? 1 : 0) + (c.coLoaiHang ? 1 : 0);
   return (
     <div className="grid gap-3">
       <div className="flex flex-wrap items-center gap-2">
@@ -110,14 +126,14 @@ function BangMucTieu({ nhom, thang, mucTieu, thucTe, onLuu }) {
       </div>
       <div className="grid gap-3 lg:grid-cols-2">
         {c.huong.map(([huong, ten]) => {
-          const ds = Object.entries(dong).filter(([, r]) => r.huong === huong).sort((a, b) => (docSo(b[1].tan) || 0) - (docSo(a[1].tan) || 0) || a[1].loai.localeCompare(b[1].loai, "vi"));
+          const ds = Object.entries(dong).filter(([, r]) => r.huong === huong && loc(r)).sort((a, b) => (docSo(b[1].tan) || 0) - (docSo(a[1].tan) || 0) || a[1].loai.localeCompare(b[1].loai, "vi") || a[1].hang.localeCompare(b[1].hang, "vi"));
           const mtT = tongMT(huong), thT = tongTH(huong), t = them[huong] || {};
           return (
             <div key={huong} className="rounded-md border">
               <div className="flex items-center gap-2 border-b bg-muted/30 px-3 py-2 text-sm font-semibold">{ten}<span className="ml-auto text-xs font-normal text-muted-foreground">{ds.length} dòng</span></div>
               <div className="scroll-x max-h-[50vh]">
                 <table className="tbl text-xs">
-                  <thead><tr><th>{c.nhanLoai}</th>{c.coDonVi && <th>Đơn vị</th>}<th className="num">Mục tiêu (t)</th><th className="num">Thực hiện</th><th className="num">Đạt</th><th>Ghi chú</th>{sua && <th className="w-8" />}</tr></thead>
+                  <thead><tr><th>{c.nhanLoai}</th>{c.coDonVi && <th>Đơn vị</th>}{c.coLoaiHang && <th>Loại hàng</th>}<th className="num">Mục tiêu (t)</th><th className="num">Thực hiện</th><th className="num">Đạt</th><th>Ghi chú</th>{sua && <th className="w-8" />}</tr></thead>
                   <tbody>
                     {ds.map(([k, r]) => {
                       const mt = docSo(r.tan) || 0, tt = th.get(k) || 0, tauT = tau?.theoLoai.get(khoaLoai(huong, r.loai))?.tau;
@@ -125,21 +141,23 @@ function BangMucTieu({ nhom, thang, mucTieu, thucTe, onLuu }) {
                         <tr key={k} className={cn(doi.includes(k) && "bg-warn/5")}>
                           <td className="whitespace-nowrap font-medium">{r.loai}{tauT > 0 && <div className="text-[11px] font-normal text-muted-foreground">tàu trong tháng {so(tauT)} t</div>}</td>
                           {c.coDonVi && <td className="whitespace-nowrap">{tenDonVi(r.donVi)}</td>}
-                          <td className="num">{sua ? <Input className="ml-auto h-8 w-28 text-right tabular-nums" inputMode="decimal" value={r.tan} placeholder="—" onChange={(e) => dat1(k, "tan", e.target.value)} aria-label={`Mục tiêu ${r.loai}`} /> : (r.tan || "—")}</td>
+                          {c.coLoaiHang && <td className="whitespace-nowrap">{r.hang || <span className="text-muted-foreground">Mọi hàng</span>}</td>}
+                          <td className="num">{sua ? <Input className="ml-auto h-8 w-28 text-right tabular-nums" inputMode="decimal" value={r.tan} placeholder="—" onChange={(e) => dat1(k, "tan", e.target.value)} aria-label={`Mục tiêu ${r.loai} ${r.hang}`} /> : (r.tan || "—")}</td>
                           <td className="num">{so(tt)}</td>
                           <td className={cn("num", mt > 0 && tt >= mt && "font-semibold text-ok")}>{mt ? pct(tt / mt) : ""}</td>
-                          <td className="min-w-[110px]">{sua ? <Input className="h-8" value={r.ghi_chu} onChange={(e) => dat1(k, "ghi_chu", e.target.value)} aria-label={`Ghi chú ${r.loai}`} /> : r.ghi_chu}</td>
-                          {sua && <td className="w-8"><button type="button" className="rounded p-1 text-muted-foreground hover:text-bad" onClick={() => xoaDong(k)} title={`Xóa dòng ${r.loai}`} aria-label={`Xóa dòng ${r.loai}`}><X className="h-4 w-4" /></button></td>}
+                          <td className="min-w-[110px]">{sua ? <Input className="h-8" value={r.ghi_chu} onChange={(e) => dat1(k, "ghi_chu", e.target.value)} aria-label={`Ghi chú ${r.loai} ${r.hang}`} /> : r.ghi_chu}</td>
+                          {sua && <td className="w-8"><button type="button" className="rounded p-1 text-muted-foreground hover:text-bad" onClick={() => xoaDong(k)} title={`Xóa dòng ${r.loai}`} aria-label={`Xóa dòng ${r.loai} ${r.hang}`}><X className="h-4 w-4" /></button></td>}
                         </tr>);
                     })}
-                    {!ds.length && <tr><td colSpan={(sua ? 6 : 5) + (c.coDonVi ? 1 : 0)} className="py-4 text-center text-muted-foreground">Chưa có dòng nào. Chọn {c.nhanLoai.toLowerCase()} ở ô bên dưới rồi bấm Thêm, nhập mục tiêu và bấm Lưu.</td></tr>}
+                    {!ds.length && <tr><td colSpan={(sua ? 6 : 5) + soCotPhu} className="py-4 text-center text-muted-foreground">Chưa có dòng nào. Chọn {c.nhanLoai.toLowerCase()}{c.coLoaiHang ? ", loại hàng" : ""} ở ô bên dưới rồi bấm Thêm, nhập mục tiêu và bấm Lưu.</td></tr>}
                   </tbody>
-                  <tfoot><tr className="font-semibold"><td>Tổng</td>{c.coDonVi && <td />}<td className="num">{so(mtT)}</td><td className="num">{so(thT)}</td><td className="num">{mtT ? pct(thT / mtT) : ""}</td><td />{sua && <td />}</tr></tfoot>
+                  <tfoot><tr className="font-semibold"><td>Tổng</td>{c.coDonVi && <td />}{c.coLoaiHang && <td />}<td className="num">{so(mtT)}</td><td className="num">{so(thT)}</td><td className="num">{mtT ? pct(thT / mtT) : ""}</td><td />{sua && <td />}</tr></tfoot>
                 </table>
               </div>
               {sua && (
                 <div className="flex flex-wrap items-center gap-2 border-t p-2">
-                  <ChonGo className="min-w-[160px] flex-1" value={t.loai || ""} onChange={(x) => setThem({ ...them, [huong]: { ...t, loai: x } })} options={goiY} placeholder={`Thêm ${c.nhanLoai.toLowerCase()} (chọn hoặc gõ)`} />
+                  <ChonGo className="min-w-[170px] flex-1" value={t.loai || ""} onChange={(x) => setThem({ ...them, [huong]: { ...t, loai: x } })} options={goiY} placeholder={`${c.nhanLoai} (chọn hoặc gõ)`} />
+                  {c.coLoaiHang && <ChonGo className="min-w-[170px] flex-1" value={t.hang || ""} onChange={(x) => setThem({ ...them, [huong]: { ...t, hang: x } })} options={goiYHang} placeholder="Loại hàng (để trống = mọi hàng)" />}
                   {c.coDonVi && <NativeSelect className="h-9 w-32" value={t.donVi || DON_VI[0][0]} onChange={(e) => setThem({ ...them, [huong]: { ...t, donVi: e.target.value } })} options={DON_VI} aria-label="Đơn vị thực hiện" />}
                   <Button size="sm" variant="outline" disabled={!(t.loai || "").trim()} onClick={() => themDong(huong)}><Plus />Thêm</Button>
                 </div>)}
@@ -155,7 +173,7 @@ function BangMucTieu({ nhom, thang, mucTieu, thucTe, onLuu }) {
 }
 
 // ---------- Bảng nhập thực tế theo ca / ngày ----------
-function BangThucTe({ nhom, thang, mucTieu, thucTe, onLuu }) {
+function BangThucTe({ nhom, thang, mucTieu, thucTe, loc, onLuu }) {
   const { D, quyen, api, run, toast } = useApp();
   const c = NHOM[nhom], nhap = quyen.nhap;
   const ngays = useMemo(() => ngayCuaThang(thang), [thang]);
@@ -164,22 +182,24 @@ function BangThucTe({ nhom, thang, mucTieu, thucTe, onLuu }) {
   const goc = useMemo(() => { const m = {}; for (const r of thucTe) { const x = tuDb(nhom, r); m[khoaO(String(r.ngay).slice(0, 10), r.ca, khoaCua(x))] = +r.tan; } return m; }, [thucTe, nhom]);
   const [sua, setSua] = useState({}); // ô đã gõ: khóa ô -> chữ
   const [extra, setExtra] = useState([]); // cột người dùng vừa thêm (chưa có số)
-  const [them, setThem] = useState({ huong: c.huong[0][0], loai: "", donVi: DON_VI[0][0] });
-  // Cột: mọi dòng có mục tiêu hoặc có số thực tế + cột vừa thêm; sắp theo hướng rồi mục tiêu giảm dần
-  const cot = useMemo(() => {
+  const [them, setThem] = useState({ huong: c.huong[0][0], loai: "", hang: "", donVi: DON_VI[0][0] });
+  // Cột: mọi dòng có mục tiêu hoặc có số thực tế + cột vừa thêm; sắp theo hướng, đội xe rồi mục tiêu giảm dần
+  const cotTat = useMemo(() => {
     const m = new Map(), mt = new Map();
-    for (const r of mucTieu) { const x = tuDb(nhom, r); m.set(khoaCua(x), { huong: x.huong, loai: x.loai, donVi: x.donVi }); mt.set(khoaCua(x), +x.tan || 0); }
-    for (const r of thucTe) { const x = tuDb(nhom, r), k = khoaCua(x); if (!m.has(k)) m.set(k, { huong: x.huong, loai: x.loai, donVi: x.donVi }); }
+    for (const r of mucTieu) { const x = tuDb(nhom, r); m.set(khoaCua(x), { huong: x.huong, loai: x.loai, donVi: x.donVi, hang: x.hang }); mt.set(khoaCua(x), +x.tan || 0); }
+    for (const r of thucTe) { const x = tuDb(nhom, r), k = khoaCua(x); if (!m.has(k)) m.set(k, { huong: x.huong, loai: x.loai, donVi: x.donVi, hang: x.hang }); }
     for (const x of extra) { const k = khoaCua(x); if (!m.has(k)) m.set(k, x); }
     const thuTuHuong = c.huong.map(([h]) => h);
     return [...m.entries()].map(([k, x]) => ({ ...x, k, mt: mt.get(k) || 0 }))
-      .sort((a, b) => thuTuHuong.indexOf(a.huong) - thuTuHuong.indexOf(b.huong) || b.mt - a.mt || a.loai.localeCompare(b.loai, "vi") || a.donVi.localeCompare(b.donVi));
+      .sort((a, b) => thuTuHuong.indexOf(a.huong) - thuTuHuong.indexOf(b.huong) || (nhom === "van_tai" ? a.loai.localeCompare(b.loai, "vi") : 0) || b.mt - a.mt || a.loai.localeCompare(b.loai, "vi") || a.donVi.localeCompare(b.donVi) || a.hang.localeCompare(b.hang, "vi"));
   }, [mucTieu, thucTe, extra, nhom, c.huong]);
-  const goiY = useLoaiGoiY(nhom, useMemo(() => cot.map((x) => x.loai), [cot]));
+  const cot = useMemo(() => cotTat.filter(loc), [cotTat, loc]); // các cột đang hiện (theo bộ lọc đội xe)
+  const goiY = useLoaiGoiY(nhom, useMemo(() => cotTat.map((x) => x.loai), [cotTat]));
+  const goiYHang = useLoaiGoiY("cang", useMemo(() => cotTat.map((x) => x.hang).filter(Boolean), [cotTat]));
   const giaTri = (key) => (key in sua ? docSo(sua[key]) || 0 : goc[key] || 0);
   const hienThi = (key) => (key in sua ? sua[key] : key in goc ? fmt(goc[key]) : "");
   const kDirty = Object.keys(sua).filter((key) => (sua[key] || "").trim() !== (key in goc ? fmt(goc[key]) : ""));
-  const cotCua = useMemo(() => new Map(cot.map((x) => [x.k, x])), [cot]);
+  const cotCua = useMemo(() => new Map(cotTat.map((x) => [x.k, x])), [cotTat]);
   const tongCot = (k, ca) => ngays.reduce((s, n) => s + (ca ? giaTri(khoaO(n, ca, k)) : CA.reduce((t, cc) => t + giaTri(khoaO(n, cc, k)), 0)), 0);
   const tongDong = (n, ca) => cot.reduce((s, x) => s + (ca ? giaTri(khoaO(n, ca, x.k)) : CA.reduce((t, cc) => t + giaTri(khoaO(n, cc, x.k)), 0)), 0);
   const nhomCot = c.huong.map(([h, ten]) => ({ h, ten, n: cot.filter((x) => x.huong === h).length })).filter((x) => x.n);
@@ -189,15 +209,15 @@ function BangThucTe({ nhom, thang, mucTieu, thucTe, onLuu }) {
       const [ngay, ca, ...r] = key.split("|"), col = cotCua.get(r.join("|")), txt = (sua[key] || "").trim(), tan = txt ? docSo(txt) : null;
       if (txt && !(tan >= 0)) return toast(`Ngày ${ngay.slice(8)}/${ngay.slice(5, 7)} ${ca} ${col.loai}: không phải số tấn`, "bad");
       if (tan == null && !(key in goc)) continue;
-      rows.push({ ngay, ca, huong: col.huong, loai: col.loai, donVi: col.donVi, tan });
+      rows.push({ ngay, ca, huong: col.huong, loai: col.loai, donVi: col.donVi, hang: col.hang, tan });
     }
     if (!rows.length) { setSua({}); return; }
     if (await run(() => api.saveThucTe(nhom, rows), `Đã lưu sản lượng thực tế (${rows.length} ô)`)) onLuu();
   };
   const themCot = () => {
     const loai = them.loai.trim(); if (!loai) return;
-    setExtra((o) => [...o, { huong: them.huong, loai, donVi: c.coDonVi ? them.donVi : "" }]);
-    setThem({ ...them, loai: "" });
+    setExtra((o) => [...o, { huong: them.huong, loai, donVi: c.coDonVi ? them.donVi : "", hang: c.coLoaiHang ? them.hang.trim() : "" }]);
+    setThem({ ...them, loai: "", hang: "" });
   };
   const ngayHienTai = (n) => n === homNay;
   const stk = (left) => ({ position: "sticky", left, zIndex: 2 });
@@ -224,7 +244,9 @@ function BangThucTe({ nhom, thang, mucTieu, thucTe, onLuu }) {
               <tr style={{ position: "sticky", top: 28, zIndex: 4 }} className="bg-card">
                 {cot.map((x, i) => (
                   <th key={x.k} className={cn("num min-w-[96px] bg-card", (i === 0 || cot[i - 1].huong !== x.huong) && "border-l")}>
-                    {x.loai}{c.coDonVi && <div className="text-[10px] font-normal text-muted-foreground">{tenDonVi(x.donVi)}</div>}
+                    {c.coLoaiHang ? (x.hang || "Mọi hàng") : x.loai}
+                    {c.coLoaiHang && <div className="text-[10px] font-normal text-muted-foreground">{x.loai}</div>}
+                    {c.coDonVi && <div className="text-[10px] font-normal text-muted-foreground">{tenDonVi(x.donVi)}</div>}
                     {x.mt > 0 && <div className="text-[10px] font-normal text-muted-foreground">MT {so(x.mt)}</div>}
                   </th>))}
               </tr>
@@ -243,7 +265,7 @@ function BangThucTe({ nhom, thang, mucTieu, thucTe, onLuu }) {
                         return (
                           <td key={x.k} className={cn("num p-0.5", (j === 0 || cot[j - 1].huong !== x.huong) && "border-l", i === 0 && "border-t", co && "bg-warn/10")}>
                             {nhap
-                              ? <input className="h-7 w-24 rounded border border-transparent bg-transparent px-1.5 text-right tabular-nums hover:border-input focus:border-ring focus:bg-background focus:outline-none" inputMode="decimal" value={hienThi(key)} onChange={(e) => setSua((o) => ({ ...o, [key]: e.target.value }))} aria-label={`${ca} ngày ${n.slice(8)} ${x.loai}`} />
+                              ? <input className="h-7 w-24 rounded border border-transparent bg-transparent px-1.5 text-right tabular-nums hover:border-input focus:border-ring focus:bg-background focus:outline-none" inputMode="decimal" value={hienThi(key)} onChange={(e) => setSua((o) => ({ ...o, [key]: e.target.value }))} aria-label={`${ca} ngày ${n.slice(8)} ${x.loai} ${x.hang}`} />
                               : <span className="px-1.5">{hienThi(key)}</span>}
                           </td>);
                       })}
@@ -264,12 +286,13 @@ function BangThucTe({ nhom, thang, mucTieu, thucTe, onLuu }) {
             </tfoot>
           </table>
         </div>
-      ) : <Empty>Chưa có {c.nhanLoai.toLowerCase()} nào. Đặt mục tiêu ở bảng trên, hoặc thêm cột bên dưới rồi nhập số.</Empty>}
+      ) : <Empty>Chưa có {c.nhanLoai.toLowerCase()} nào{cotTat.length ? " ứng với bộ lọc đội xe" : ""}. Đặt mục tiêu ở bảng trên, hoặc thêm cột bên dưới rồi nhập số.</Empty>}
       {nhap && (
         <div className="flex flex-wrap items-center gap-2 rounded-md border p-2">
           <span className="text-xs text-muted-foreground">Thêm cột</span>
           <NativeSelect className="h-9 w-40" value={them.huong} onChange={(e) => setThem({ ...them, huong: e.target.value })} options={c.huong} aria-label="Hướng" />
-          <ChonGo className="min-w-[160px] flex-1" value={them.loai} onChange={(x) => setThem({ ...them, loai: x })} options={goiY} placeholder={`${c.nhanLoai} (chọn hoặc gõ)`} />
+          <ChonGo className="min-w-[170px] flex-1" value={t.em.loai} onChange={(x) => setThem({ ...them, loai: x })} options={goiY} placeholder={`${c.nhanLoai} (chọn hoặc gõ)`} />
+          {c.coLoaiHang && <ChonGo className="min-w-[170px] flex-1" value={t.em.hang} onChange={(x) => setThem({ ...them, hang: x })} options={goiYHang} placeholder="Loại hàng (trống = mọi hàng)" />}
           {c.coDonVi && <NativeSelect className="h-9 w-32" value={them.donVi} onChange={(e) => setThem({ ...them, donVi: e.target.value })} options={DON_VI} aria-label="Đơn vị thực hiện" />}
           <Button size="sm" variant="outline" disabled={!them.loai.trim()} onClick={themCot}><Plus />Thêm</Button>
         </div>)}
