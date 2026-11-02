@@ -291,8 +291,8 @@ function BangThucTe({ nhom, thang, mucTieu, thucTe, loc, onLuu }) {
         <div className="flex flex-wrap items-center gap-2 rounded-md border p-2">
           <span className="text-xs text-muted-foreground">Thêm cột</span>
           <NativeSelect className="h-9 w-40" value={them.huong} onChange={(e) => setThem({ ...them, huong: e.target.value })} options={c.huong} aria-label="Hướng" />
-          <ChonGo className="min-w-[170px] flex-1" value={t.em.loai} onChange={(x) => setThem({ ...them, loai: x })} options={goiY} placeholder={`${c.nhanLoai} (chọn hoặc gõ)`} />
-          {c.coLoaiHang && <ChonGo className="min-w-[170px] flex-1" value={t.em.hang} onChange={(x) => setThem({ ...them, hang: x })} options={goiYHang} placeholder="Loại hàng (trống = mọi hàng)" />}
+          <ChonGo className="min-w-[170px] flex-1" value={them.loai} onChange={(x) => setThem({ ...them, loai: x })} options={goiY} placeholder={`${c.nhanLoai} (chọn hoặc gõ)`} />
+          {c.coLoaiHang && <ChonGo className="min-w-[170px] flex-1" value={them.hang} onChange={(x) => setThem({ ...them, hang: x })} options={goiYHang} placeholder="Loại hàng (trống = mọi hàng)" />}
           {c.coDonVi && <NativeSelect className="h-9 w-32" value={them.donVi} onChange={(e) => setThem({ ...them, donVi: e.target.value })} options={DON_VI} aria-label="Đơn vị thực hiện" />}
           <Button size="sm" variant="outline" disabled={!them.loai.trim()} onClick={themCot}><Plus />Thêm</Button>
         </div>)}
