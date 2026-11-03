@@ -22,13 +22,13 @@ export function khoangKy(ky, homNay) {
 }
 
 // Khóa nhóm điểm: theo ngày, theo tuần (thứ Hai đầu tuần) hoặc theo tháng
-function khoaDiem(buoc, s) {
+export function khoaDiem(buoc, s) {
   if (buoc === "ngay") return s;
   if (buoc === "thang") return s.slice(0, 7);
   const [y, m, d] = s.split("-").map(Number), lui = (new Date(y, m - 1, d).getDay() + 6) % 7;
   return ymd(new Date(y, m - 1, d - lui));
 }
-const nhanDiem = (buoc, ngayDau) => (buoc === "thang" ? `T${+ngayDau.slice(5, 7)}` : ddmm(ngayDau));
+export const nhanDiem = (buoc, ngayDau) => (buoc === "thang" ? `T${+ngayDau.slice(5, 7)}` : ddmm(ngayDau));
 
 // Mục tiêu theo ngày (Map ngày -> tấn) của các dòng thỏa loc
 function mucTieuNgay(nhom, mucTieu, loc) {

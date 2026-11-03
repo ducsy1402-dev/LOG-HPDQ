@@ -4,7 +4,7 @@ import { useApp } from "@/store";
 import EChart from "@/components/EChart";
 import { so, pct } from "@/lib/format";
 import { NHOM, tenHuong, tenDonVi, DON_VI } from "@/lib/sanLuongTT";
-import { KY, khoangKy, chuoiKy, tongTheoNhom } from "@/lib/bieuDoSanLuong";
+import { chuoiKy, tongTheoNhom } from "@/lib/bieuDoSanLuong";
 import { cn } from "@/lib/utils";
 import { MAU } from "./khung";
 
@@ -14,10 +14,10 @@ import { MAU } from "./khung";
 //  4. Vận tải phục vụ cảng theo đơn vị thực hiện          5. Vận tải phục vụ sản xuất theo đơn vị thực hiện (4, 5 lọc theo đội xe)
 // Số liệu từ bảng nhập thực tế theo ca / ngày (SQL 06); mục tiêu tháng chia đều theo ngày.
 
-const nghin = (x) => (x == null ? "—" : Math.abs(x) >= 1000 ? so(x / 1000, Math.abs(x) >= 1e5 ? 0 : 1) + "k" : so(x));
+export const nghin = (x) => (x == null ? "—" : Math.abs(x) >= 1000 ? so(x / 1000, Math.abs(x) >= 1e5 ? 0 : 1) + "k" : so(x));
 const MAU_HUONG = { nhap: MAU.info, xuat: MAU.tim, phuc_vu_cang: MAU.info, phuc_vu_san_xuat: MAU.warn };
 
-function Khung({ ten, phu, onChiTiet, bo, className, children }) {
+export function Khung({ ten, phu, onChiTiet, bo, className, children }) {
   return (
     <section className={cn("flex min-w-0 flex-col rounded-md border border-border/70 bg-card/70 p-2.5", className)}>
       <div className="mb-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -33,10 +33,10 @@ function Khung({ ten, phu, onChiTiet, bo, className, children }) {
     </section>
   );
 }
-const ChuaCo = ({ children }) => <div className="flex flex-1 items-center justify-center py-10 text-center text-xs text-muted-foreground">{children}</div>;
+export const ChuaCo = ({ children }) => <div className="flex flex-1 items-center justify-center py-10 text-center text-xs text-muted-foreground">{children}</div>;
 
 // Nhóm nút chọn
-function Chon({ gt, dat, ds }) {
+export function Chon({ gt, dat, ds }) {
   return (
     <div className="inline-flex overflow-hidden rounded border border-border/70 text-[10px]">
       {ds.map(([k, t]) => <button key={k} type="button" onClick={() => dat(k)} className={cn("px-1.5 py-0.5", gt === k ? "bg-primary/20 font-semibold text-primary" : "text-muted-foreground hover:bg-accent")}>{t}</button>)}
@@ -113,11 +113,9 @@ function SoLon({ tt, mt }) {
   );
 }
 
-export default function KhoiSanLuong({ homNay, go }) {
-  const [ky, setKy] = useState("thang");
-  const [huongC, setHuongC] = useState(""), [huongV, setHuongV] = useState("");
+export default function KhoiSanLuong({ kyInfo, go }) {
+  const [huongC, setHuongC] = useState(""), [huongV, setHuongV] = useState(""), [huongH, setHuongH] = useState("");
   const [doiC, setDoiC] = useState(""), [doiS, setDoiS] = useState("");
-  const kyInfo = useMemo(() => khoangKy(ky, homNay), [ky, homNay]);
   const cang = useSanLuongKy("cang", kyInfo.thangs), vt = useSanLuongKy("van_tai", kyInfo.thangs);
   const loadHuong = (nhom) => NHOM[nhom].huong.map(([k]) => k);
 
@@ -125,9 +123,9 @@ export default function KhoiSanLuong({ homNay, go }) {
   const c3 = useMemo(() => (vt ? chuoiKy(kyInfo, vt, "van_tai", { loc: (x) => !huongV || x.huong === huongV, chia: (x) => x.huong }) : null), [kyInfo, vt, huongV]);
   const nhomHang = useMemo(() => {
     if (!cang) return [];
-    const m = tongTheoNhom(kyInfo, cang, "cang", (x) => `${x.huong}|${x.loai}`);
+    const m = tongTheoNhom(kyInfo, cang, "cang", (x) => `${x.huong}|${x.loai}`, (x) => !huongH || x.huong === huongH);
     return [...m].map(([k, v]) => { const [h, loai] = k.split("|"); return { ...v, ten: `${tenHuong("cang", h)} · ${loai}`, ord: (h === "nhap" ? 0 : 1) + loai }; }).sort((a, b) => a.ord.localeCompare(b.ord, "vi"));
-  }, [kyInfo, cang]);
+  }, [kyInfo, cang, huongH]);
   const doiXe = useMemo(() => [...new Set([...(vt?.mucTieu || []), ...(vt?.thucTe || [])].map((r) => r.loai_xe).filter(Boolean))].sort((a, b) => a.localeCompare(b, "vi")), [vt]);
   const theoDonVi = (huong, doi) => {
     if (!vt) return [];
@@ -151,10 +149,6 @@ export default function KhoiSanLuong({ homNay, go }) {
 
   return (
     <div className="grid gap-2.5">
-      <div className="flex flex-wrap items-center gap-2">
-        <Chon gt={ky} dat={setKy} ds={KY} />
-        <span className="text-[11px] text-muted-foreground">{kyInfo.nhan} · mục tiêu tháng chia đều theo ngày</span>
-      </div>
       {chuaSql ? <ChuaCo>Chưa có bảng sản lượng thực tế (chạy sql/06).</ChuaCo>
         : tai ? <ChuaCo>Đang tải sản lượng…</ChuaCo>
         : <>
@@ -169,7 +163,7 @@ export default function KhoiSanLuong({ homNay, go }) {
             </Khung>
           </div>
           <div className="grid gap-2.5 lg:grid-cols-3">
-            <Khung ten="Cảng theo loại hàng" phu={`${kyInfo.nhan} · mục tiêu – lũy kế`} onChiTiet={() => go("cang/muc-tieu")}>
+            <Khung ten="Cảng theo loại hàng" phu={`${kyInfo.nhan} · mục tiêu – lũy kế`} onChiTiet={() => go("cang/muc-tieu")} bo={boHuong("cang", huongH, setHuongH)}>
               {nhomHang.length ? <>
                 <SoLon {...tongDV(nhomHang)} />
                 <EChart height={chieuCao(nhomHang.length)} option={optNhom(nhomHang)} />

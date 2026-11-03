@@ -11,10 +11,12 @@ import { cn } from "@/lib/utils";
 import GanttMet from "../cang/GanttMet";
 import { useKho } from "../kho/useKho";
 import { MAU } from "./khung";
-import KhoiSanLuong from "./KhoiSanLuong";
+import KhoiSanLuong, { Chon } from "./KhoiSanLuong";
+import KhoiKho from "./KhoiKho";
+import { KY, khoangKy } from "@/lib/bieuDoSanLuong";
 
 // Tổng quan dạng bảng điều khiển: dải chỉ số trên cùng; khối trên 5 biểu đồ sản lượng (KhoiSanLuong); giữa là lịch cầu bến theo mét (Linetime);
-// khối dưới: kho bãi, thiết bị cơ giới. Mỗi khung có "Chi tiết" mở hộp chi tiết cũ (onMo(khóa)). Số sản lượng lấy từ bảng nhập thực tế theo ca / ngày (SQL 06).
+// khối dưới 5 biểu đồ kho (KhoiKho); cuối cùng lấp đầy kho bãi và thiết bị cơ giới. Mỗi khung có "Chi tiết" mở hộp chi tiết cũ (onMo(khóa)). Số sản lượng lấy từ bảng nhập thực tế theo ca / ngày (SQL 06).
 
 const nghin = (x) => (x == null ? "—" : Math.abs(x) >= 1000 ? so(x / 1000, Math.abs(x) >= 1e5 ? 0 : 1) + "k" : so(x));
 const ddmm = (d) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
@@ -86,6 +88,8 @@ export default function BangDieuKhien({ onMo, go }) {
   const kho = useKho();
   const thang = thangCua(D.now), homNay = ngayStr(D.now);
   const coCang = quyen.coCang, coTB = quyen.coThietBi, coKho = quyen.kho?.co || quyen.coCang;
+  const [ky, setKy] = useState("thang");
+  const kyInfo = useMemo(() => khoangKy(ky, homNay), [ky, homNay]);
   const slCang = useSanLuong("cang", thang), slVT = useSanLuong("van_tai", thang);
 
   // ---------- Sản lượng (dải chỉ số) ----------
@@ -150,8 +154,14 @@ export default function BangDieuKhien({ onMo, go }) {
         {coCang && <span><span className="text-muted-foreground">VẬN TẢI</span> <b>{nghin(lkVT.th)}</b>{lkVT.mt ? <span className="text-muted-foreground"> / {nghin(lkVT.mt)}</span> : null}</span>}
       </div>
 
+      {/* Kỳ xem dùng chung cho khối biểu đồ sản lượng (trên) và khối kho (dưới) */}
+      <div className="flex flex-wrap items-center gap-2">
+        <Chon gt={ky} dat={setKy} ds={KY} />
+        <span className="text-[11px] text-muted-foreground">{kyInfo.nhan} · áp dụng cho các biểu đồ sản lượng và kho · mục tiêu / kế hoạch tháng chia đều theo ngày</span>
+      </div>
+
       {/* Khối trên: 5 biểu đồ sản lượng cảng / vận tải */}
-      {coCang && <KhoiSanLuong homNay={homNay} go={go} />}
+      {coCang && <KhoiSanLuong kyInfo={kyInfo} go={go} />}
 
       {/* Giữa: Linetime theo mét */}
       {coCang && (
@@ -161,6 +171,9 @@ export default function BangDieuKhien({ onMo, go }) {
           </div>
           <button type="button" onClick={() => onMo("tau")} className="mt-1.5 self-start text-[11px] text-primary hover:underline">Bảng tàu đang ở cảng ›</button>
         </Khung>)}
+
+      {/* Khối dưới: 5 biểu đồ kho (thành phẩm, nguyên liệu, tồn cần giải phóng / đầu cơ / lưu động) */}
+      {coKho && <KhoiKho kyInfo={kyInfo} go={go} />}
 
       {/* Hàng dưới */}
       <div className="grid gap-2.5 lg:grid-cols-2">

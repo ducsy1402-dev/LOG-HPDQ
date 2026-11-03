@@ -176,7 +176,14 @@ export function demoData() {
     const nh = nhomCua(k.hang, DM.hanghoa) || null;
     for (const [huong, he] of [["nhap", 0.3], ["xuat", 0.26]]) khoKeHoach.push({ id: khoKeHoach.length + 1, thang: thang(lech), ten_bai: k.ten_bai, khu_key: `k${k.id}`, ten_khu: k.ten_khu || k.hang || "Khu tự do", hang: k.hang || null, nhom: nh, huong, khoi_luong: Math.round((cap * he) / 100) * 100, ghi_chu: null });
   }
-  return { mucTieu, mucTieuVanTai, sanLuongCang, sanLuongVanTai, khoKeHoach, dmCot, berths: DM.berths.map((b) => ({ ...b, bang_tai: bangTaiBen(b.ma) })), khoBai: kho.khoBai, giaoDich: kho.giaoDich, khoLo: kho.khoLo, plans, voyages, stops, events, tien, agents, vessels, nextId: { v: id, s: sid, e: eid, p: plans.length, g: kho.giaoDich.length, k: khoKeHoach.length } };
+  // Phân loại tồn mẫu (SQL 07): cần giải phóng / đầu cơ, khai báo từ vài tuần trước, có đợt tăng thêm
+  const ngayLui = (lui) => { const d = new Date(Date.now() - lui * 864e5); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+  const tonPhanLoai = [
+    [25, "Bãi TP-B", "Thép thanh vằn", "can_giai_phong", 3000], [9, "Bãi TP-B", "Thép thanh vằn", "can_giai_phong", 5000],
+    [20, "Bãi TP-A", "Thép cuộn HRC", "dau_co", 6000], [6, "Bãi TP-A", "Thép cuộn HRC", "dau_co", 9000],
+    [22, "Bãi CTH", "Phế", "dau_co", 7000], [14, "Bãi đuôi kho 3", "Quặng cỡ Pilbara-Úc", "can_giai_phong", 4000],
+  ].map(([lui, ten_bai, hang, loai, tan], i) => ({ id: i + 1, ngay: ngayLui(lui), ten_bai, hang, loai, tan, ghi_chu: null, created_at: ngayLui(lui) + "T08:00:00.000Z" }));
+  return { tonPhanLoai, mucTieu, mucTieuVanTai, sanLuongCang, sanLuongVanTai, khoKeHoach, dmCot, berths: DM.berths.map((b) => ({ ...b, bang_tai: bangTaiBen(b.ma) })), khoBai: kho.khoBai, giaoDich: kho.giaoDich, khoLo: kho.khoLo, plans, voyages, stops, events, tien, agents, vessels, nextId: { v: id, s: sid, e: eid, p: plans.length, g: kho.giaoDich.length, k: khoKeHoach.length } };
 }
 
 // ---------- Kho demo: chiều cao chất đống, tồn đầu kỳ, nhập từ tàu / sản xuất, xuất cấp sản xuất / theo tàu, lô thành phẩm ----------

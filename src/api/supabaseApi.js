@@ -147,6 +147,10 @@ export function makeSupabaseApi() {
       for (const c of chunk(them, 300)) ok(await sb.from("kho_ke_hoach").insert(c));
       for (const { id, ...r } of sua) ok(await sb.from("kho_ke_hoach").update({ ...r, updated_at: now() }).eq("id", id));
     },
+    // Phân loại tồn kho: cần giải phóng / đầu cơ (SQL 07). null = chưa chạy SQL 07
+    async loadTonPhanLoai() { const r = await sb.from("kho_ton_phan_loai").select("*").order("ngay").order("id").range(0, 9999); return r.error ? null : r.data; },
+    async addTonPhanLoai(rows) { ok(await sb.from("kho_ton_phan_loai").insert(rows)); },
+    deleteTonPhanLoai: async (id) => ok(await sb.from("kho_ton_phan_loai").delete().eq("id", id)),
     // Kho: sổ nhập – xuất, lô thành phẩm
     async addGiaoDich(rows) { for (const c of chunk(rows, 300)) ok(await sb.from("kho_giao_dich").insert(c)); },
     updateGiaoDich: async (id, patch) => ok(await sb.from("kho_giao_dich").update(patch).eq("id", id)),

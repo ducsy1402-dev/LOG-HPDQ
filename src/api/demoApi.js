@@ -24,6 +24,8 @@ export function makeDemoApi() {
   const db = demoData();
   db.traHang = db.traHang || [];
   db.nextId.t = db.nextId.t || 0;
+  db.tonPhanLoai = db.tonPhanLoai || [];
+  db.nextId.pl = db.tonPhanLoai.length;
   const role = DEMO_ROLE;
   const can = (r) => { if (BAC[role] < BAC[r]) throw new Error(`Chế độ demo đang thử vai trò "${role}": không đủ quyền thao tác này`); };
   const KHOA = { berths: "ma", vessels: "ten", agents: "ten", kho_bai: "id" };
@@ -138,6 +140,10 @@ export function makeDemoApi() {
       for (const r of them) db.khoKeHoach.push({ ...clone(r), id: ++db.nextId.k, created_at: new Date().toISOString() });
       db.khoKeHoach.sort((a, b) => a.thang.localeCompare(b.thang) || a.id - b.id);
     },
+    // Phân loại tồn kho (SQL 07): dữ liệu mẫu trong bộ nhớ
+    async loadTonPhanLoai() { await wait(60); return clone(db.tonPhanLoai); },
+    async addTonPhanLoai(rows) { can("nhap"); await wait(); for (const r of rows) db.tonPhanLoai.push({ ...clone(r), id: ++db.nextId.pl, created_at: new Date().toISOString() }); },
+    async deleteTonPhanLoai(id) { can("quan_ly"); await wait(); db.tonPhanLoai = db.tonPhanLoai.filter((x) => x.id !== id); },
     async saveCot(bang, cols) { can("quan_tri"); await wait(); db.dmCot = [...db.dmCot.filter((c) => c.bang !== bang), ...clone(cols).map((c) => ({ ...c, bang }))]; },
     async deleteRow(bang, khoa, val) {
       can(bang === "berths" || bang === "kho_bai" ? "quan_tri" : "quan_ly"); await wait();

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Boxes, Plus, Minus, ArrowLeftRight, ClipboardCheck, ClipboardPaste, Trash2, Bell, Package, Network, List, LineChart, CalendarRange, ChevronRight } from "lucide-react";
+import { Boxes, Plus, Minus, ArrowLeftRight, ClipboardCheck, ClipboardPaste, Trash2, Bell, Package, Network, List, LineChart, CalendarRange, ChevronRight, Layers } from "lucide-react";
 import { useApp } from "@/store";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import { useKho } from "./useKho";
 import GiaoDichForm, { KiemKeForm } from "./GiaoDichForm";
 import DanNhanhKho from "./DanNhanhKho";
 import KeHoachKho from "./KeHoachKho";
+import PhanLoaiTon from "./PhanLoaiTon";
 
 const TEN_LOAI = { thanh_pham: "Kho thành phẩm", nguyen_lieu: "Kho nguyên liệu" };
 const TEN_GD = Object.fromEntries(LOAI_GD);
@@ -143,6 +144,7 @@ export default function Kho({ loai }) {
           <TabsTrigger value="so"><Boxes />Sổ nhập – xuất</TabsTrigger>
           <TabsTrigger value="bd"><LineChart />Biểu đồ tồn</TabsTrigger>
           <TabsTrigger value="kh"><CalendarRange />Kế hoạch Xuất/Nhập tồn</TabsTrigger>
+          <TabsTrigger value="pl"><Layers />Phân loại tồn</TabsTrigger>
         </TabsList>
 
         <TabsContent value="so-do">
@@ -227,6 +229,10 @@ export default function Kho({ loai }) {
 
         <TabsContent value="kh">
           <Card><CardContent className="pt-4"><KeHoachKho loai={loai} kho={kho} /></CardContent></Card>
+        </TabsContent>
+
+        <TabsContent value="pl">
+          <Card><CardContent className="pt-4"><PhanLoaiTon loai={loai} kho={kho} /></CardContent></Card>
         </TabsContent>
       </Tabs>
 
