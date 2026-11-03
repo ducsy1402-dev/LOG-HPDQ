@@ -3,20 +3,18 @@ import { ChevronRight } from "lucide-react";
 import { useApp } from "@/store";
 import { useThietBi } from "@/thietbi/Host";
 import EChart from "@/components/EChart";
-import { so, pct, thangCua, tenThang, congThang, DAY } from "@/lib/format";
-import { trangThai, chiSo, TRANG_THAI } from "@/lib/linetime";
-import { tinhThang } from "@/lib/sanLuong";
+import { so, pct, thangCua, tenThang, DAY } from "@/lib/format";
+import { trangThai, TRANG_THAI } from "@/lib/linetime";
 import { tonTheoNgay, NGUONG_KHO } from "@/lib/kho";
 import { ngayCuaThang } from "@/lib/sanLuongTT";
 import { cn } from "@/lib/utils";
 import GanttMet from "../cang/GanttMet";
-import { useNhomHang } from "../cang/useNhomHang";
 import { useKho } from "../kho/useKho";
 import { MAU } from "./khung";
+import KhoiSanLuong from "./KhoiSanLuong";
 
-// Tổng quan dạng bảng điều khiển: dải chỉ số trên cùng; hàng trên 3 khung (sản lượng cảng lũy kế, sản lượng theo ngày, thiết bị cơ giới);
-// giữa là lịch cầu bến theo mét (Linetime) kẹp hai cột chỉ số tàu; hàng dưới 2 khung (kho bãi, vận tải). Ưu tiên biểu đồ đường.
-// Mỗi khung có "Chi tiết" mở hộp chi tiết cũ (onMo(khóa)). Số sản lượng lấy từ bảng nhập thực tế theo ca / ngày (SQL 06).
+// Tổng quan dạng bảng điều khiển: dải chỉ số trên cùng; khối trên 5 biểu đồ sản lượng (KhoiSanLuong); giữa là lịch cầu bến theo mét (Linetime);
+// khối dưới: kho bãi, thiết bị cơ giới. Mỗi khung có "Chi tiết" mở hộp chi tiết cũ (onMo(khóa)). Số sản lượng lấy từ bảng nhập thực tế theo ca / ngày (SQL 06).
 
 const nghin = (x) => (x == null ? "—" : Math.abs(x) >= 1000 ? so(x / 1000, Math.abs(x) >= 1e5 ? 0 : 1) + "k" : so(x));
 const ddmm = (d) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
@@ -57,13 +55,6 @@ const SoLon = ({ v, sub, tone }) => (
     {sub && <span className="text-[11px] text-muted-foreground">{sub}</span>}
   </div>
 );
-const TheNho = ({ ten, v, sub, mau }) => (
-  <div className="rounded-md border border-border/70 bg-card/70 px-2.5 py-2" style={mau ? { borderLeft: `3px solid ${mau}` } : undefined}>
-    <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{ten}</div>
-    <div className="font-mono text-xl font-semibold tabular-nums">{v}</div>
-    {sub && <div className="truncate text-[10px] text-muted-foreground">{sub}</div>}
-  </div>
-);
 const ChuaCo = ({ children }) => <div className="flex flex-1 items-center justify-center py-6 text-center text-xs text-muted-foreground">{children}</div>;
 
 // Mục tiêu + sản lượng thực tế (nhập theo ca / ngày) tháng này của một nhóm; null = chưa chạy SQL 06
@@ -93,37 +84,18 @@ export default function BangDieuKhien({ onMo, go }) {
   const { D, quyen } = useApp();
   const tb = useThietBi()?.D;
   const kho = useKho();
-  const nhomHang = useNhomHang();
   const thang = thangCua(D.now), homNay = ngayStr(D.now);
   const coCang = quyen.coCang, coTB = quyen.coThietBi, coKho = quyen.kho?.co || quyen.coCang;
   const slCang = useSanLuong("cang", thang), slVT = useSanLuong("van_tai", thang);
-  const thangTruoc = congThang(thang, -1);
-  const slCangT = useSanLuong("cang", thangTruoc), slVTT = useSanLuong("van_tai", thangTruoc); // cho biểu đồ 30 ngày gần nhất
 
-  // ---------- Sản lượng ----------
+  // ---------- Sản lượng (dải chỉ số) ----------
   const lkCang = useMemo(() => luyKe(slCang, thang, homNay), [slCang, thang, homNay]);
   const lkVT = useMemo(() => luyKe(slVT, thang, homNay), [slVT, thang, homNay]);
-  const klTau = useMemo(() => (coCang ? tinhThang(D, thang, nhomHang) : null), [coCang, D, thang, nhomHang]);
-  const ngayQua = lkCang.ngays.filter((d) => d <= homNay);
-  // Sản lượng theo ngày, 30 ngày gần nhất (gộp tháng này và tháng trước)
-  const ngay30 = useMemo(() => Array.from({ length: 30 }, (_, i) => ngayStr(D.now - (29 - i) * DAY)), [D.now]);
-  const daily = useMemo(() => {
-    const m = { nhap: new Map(), xuat: new Map(), vt: new Map() };
-    const cong = (mm, r) => { const d = String(r.ngay).slice(0, 10); mm.set(d, (mm.get(d) || 0) + (+r.tan || 0)); };
-    for (const r of [...(slCangT?.thucTe || []), ...(slCang?.thucTe || [])]) if (m[r.huong]) cong(m[r.huong], r);
-    for (const r of [...(slVTT?.thucTe || []), ...(slVT?.thucTe || [])]) cong(m.vt, r);
-    return m;
-  }, [slCang, slCangT, slVT, slVTT]);
-  const homQua = ngayStr(D.now - DAY);
 
-  // ---------- Tàu ----------
+  // ---------- Tàu (dải chỉ số) ----------
   const tau = useMemo(() => {
-    const st = D.voyages.filter((v) => !v.huy).map((v) => ({ v, st: trangThai(v) }));
-    const dem = (k) => st.filter((x) => x.st === k).length;
-    const choNeo = st.filter((x) => x.st === "cho_neo").map((x) => chiSo(x.v, D.stopsOf(x.v.id), D.now).choNeo).filter((h) => h != null);
-    const sapDen = st.filter((x) => x.st === "du_kien" && (() => { const t = new Date(x.v.etb || x.v.eta).getTime(); return t >= D.now && t <= D.now + 7 * DAY; })()).length;
-    const benCo = new Set(st.filter((x) => ["cap_ben", "lam_hang", "xong_hang"].includes(x.st)).flatMap((x) => [x.v.ben_ma, x.v.ben_phu].filter(Boolean))).size;
-    return { lam: dem("lam_hang"), cap: dem("cap_ben"), neo: dem("cho_neo"), xong: dem("xong_hang"), sapDen, benCo, choTB: choNeo.length ? choNeo.reduce((s, h) => s + h, 0) / choNeo.length : null };
+    const dem = (k) => D.voyages.filter((v) => !v.huy && trangThai(v) === k).length;
+    return { lam: dem("lam_hang"), neo: dem("cho_neo") };
   }, [D]);
 
   // ---------- Thiết bị ----------
@@ -164,9 +136,7 @@ export default function BangDieuKhien({ onMo, go }) {
   const pxNgay = Math.max(48, Math.floor((rongLich - 84) / soNgay));
   const tauLich = useMemo(() => D.voyages.filter((v) => !v.huy), [D.voyages]);
 
-  const datCang = lkCang.mt ? lkCang.th / lkCang.mt : null, keHomNay = lkCang.ke[ngayQua.length - 1];
-  const datVT = lkVT.mt ? lkVT.th / lkVT.mt : null;
-  const chuaSql = slCang === null;
+  const datCang = lkCang.mt ? lkCang.th / lkCang.mt : null;
 
   return (
     <div className="grid gap-2.5">
@@ -180,55 +150,17 @@ export default function BangDieuKhien({ onMo, go }) {
         {coCang && <span><span className="text-muted-foreground">VẬN TẢI</span> <b>{nghin(lkVT.th)}</b>{lkVT.mt ? <span className="text-muted-foreground"> / {nghin(lkVT.mt)}</span> : null}</span>}
       </div>
 
-      {/* Hàng trên */}
-      <div className="grid gap-2.5 lg:grid-cols-3">
-        {coCang && (
-          <Khung ten="Sản lượng cảng" phu={`lũy kế ${tenThang(thang).toLowerCase()}`} onChiTiet={() => onMo("khoi-luong")}>
-            <SoLon v={nghin(lkCang.th)} sub={lkCang.mt ? `/ ${so(lkCang.mt)} t · đạt ${pct(datCang)}${keHomNay ? ` · kế hoạch đến nay ${nghin(keHomNay)}` : ""}` : "chưa đặt mục tiêu tháng"} tone={datCang != null && keHomNay ? (lkCang.th >= keHomNay ? "ok" : "warn") : undefined} />
-            {chuaSql ? <ChuaCo>Chưa có bảng sản lượng thực tế (chạy sql/06).</ChuaCo>
-              : <EChart height={150} option={optDuong(lkCang.ngays.map(ddmm), [duong("Thực hiện", lkCang.thuc, MAU.primary, { vung: true }), duong("Kế hoạch", lkCang.ke, MAU.xam, { net: true, rong: 1.5 })])} />}
-            {klTau && <div className="mt-1 text-[10px] text-muted-foreground">KL tàu cập trong tháng {so(klTau.klTau)} t ({klTau.ds.length} chuyến)</div>}
-          </Khung>)}
-        {coCang && (
-          <Khung ten="Sản lượng theo ngày" phu="30 ngày · nhập · xuất · vận tải" onChiTiet={() => go("cang/muc-tieu")}>
-            <SoLon v={nghin((daily.nhap.get(homQua) || 0) + (daily.xuat.get(homQua) || 0))} sub={`t cảng ngày ${ddmm(homQua)} · vận tải ${nghin(daily.vt.get(homQua) || 0)} · hôm nay ${nghin((daily.nhap.get(homNay) || 0) + (daily.xuat.get(homNay) || 0))}`} />
-            {chuaSql ? <ChuaCo>Chưa có bảng sản lượng thực tế (chạy sql/06).</ChuaCo>
-              : <EChart height={150} option={optDuong(ngay30.map(ddmm), [
-                duong("Nhập", ngay30.map((d) => daily.nhap.get(d) ?? null), MAU.info),
-                duong("Xuất", ngay30.map((d) => daily.xuat.get(d) ?? null), MAU.tim),
-                duong("Vận tải", ngay30.map((d) => daily.vt.get(d) ?? null), MAU.ok, { net: true }),
-              ])} />}
-          </Khung>)}
-        {coTB && (
-          <Khung ten="Thiết bị cơ giới" phu="tỉ lệ sẵn sàng 30 ngày" onChiTiet={() => onMo("thiet-bi")}>
-            {thietBi ? <>
-              <SoLon v={pct(thietBi.s.rate, 1)} sub={`${thietBi.s.ready}/${thietBi.s.tong} xe · cẩu ${thietBi.sc.ready}/${thietBi.sc.tong} · hỏng ${thietBi.s.hong} · BDCL ${thietBi.s.bdcl}`} tone={thietBi.s.rate < (thietBi.nguong ?? 0.85) ? "warn" : "ok"} />
-              <EChart height={150} option={optDuong(thietBi.x, [duong("Xe di động", thietBi.xe, MAU.ok, { vung: true }), ...(thietBi.cau ? [duong("Cẩu cảng", thietBi.cau, MAU.info)] : [])], { phanTram: true, nguong: thietBi.nguong })} />
-            </> : <ChuaCo>Đang tải dữ liệu thiết bị…</ChuaCo>}
-          </Khung>)}
-      </div>
+      {/* Khối trên: 5 biểu đồ sản lượng cảng / vận tải */}
+      {coCang && <KhoiSanLuong homNay={homNay} go={go} />}
 
       {/* Giữa: Linetime theo mét */}
       {coCang && (
-        <div className="grid gap-2.5 lg:grid-cols-[150px_minmax(0,1fr)_150px]">
-          <div className="grid content-start gap-2.5 max-lg:grid-cols-2 sm:max-lg:grid-cols-4">
-            <TheNho ten="Đang làm hàng" v={tau.lam} mau={TRANG_THAI.lam_hang.mau} sub={`${tau.xong} xong hàng chưa rời`} />
-            <TheNho ten="Đã cập, chờ làm" v={tau.cap} mau={TRANG_THAI.cap_ben.mau} />
-            <TheNho ten="Đã đến neo" v={tau.neo} mau={TRANG_THAI.cho_neo.mau} sub={tau.choTB != null ? `chờ bến TB ${so(tau.choTB, 0)} giờ` : null} />
-            <TheNho ten="Sắp cập (7 ngày)" v={tau.sapDen} mau={TRANG_THAI.du_kien.mau} />
+        <Khung ten="Linetime tàu cập bến theo mét" phu="hôm kia → 8 ngày tới · toàn thời gian" onChiTiet={() => go("cang/linetime")}>
+          <div ref={khungLich} className="min-w-0">
+            <GanttMet voyages={tauLich} tu={tuLich} soNgay={soNgay} pxNgay={pxNgay} che="toan" gon maxH="520px" />
           </div>
-          <Khung ten="Linetime tàu cập bến theo mét" phu="hôm kia → 8 ngày tới · toàn thời gian" onChiTiet={() => go("cang/linetime")}>
-            <div ref={khungLich} className="min-w-0">
-              <GanttMet voyages={tauLich} tu={tuLich} soNgay={soNgay} pxNgay={pxNgay} che="toan" gon maxH="520px" />
-            </div>
-          </Khung>
-          <div className="grid content-start gap-2.5 max-lg:grid-cols-2 sm:max-lg:grid-cols-4">
-            <TheNho ten="Bến có tàu" v={`${tau.benCo}/${D.berths.length}`} sub="đang cập / làm hàng" />
-            <TheNho ten="KL tàu tháng" v={nghin(klTau?.klTau)} sub={klTau ? `${klTau.ds.length} chuyến` : null} />
-            <TheNho ten="Cảnh báo tàu" v={D.alerts.length} mau={D.alerts.some((a) => a.muc === "bad") ? MAU.bad : MAU.warn} sub={`${D.alerts.filter((a) => a.muc === "bad").length} khẩn`} />
-            <button type="button" onClick={() => onMo("tau")} className="rounded-md border border-dashed border-border/70 px-2.5 py-2 text-left text-[11px] text-primary hover:bg-accent">Bảng tàu đang ở cảng ›</button>
-          </div>
-        </div>)}
+          <button type="button" onClick={() => onMo("tau")} className="mt-1.5 self-start text-[11px] text-primary hover:underline">Bảng tàu đang ở cảng ›</button>
+        </Khung>)}
 
       {/* Hàng dưới */}
       <div className="grid gap-2.5 lg:grid-cols-2">
@@ -242,16 +174,12 @@ export default function BangDieuKhien({ onMo, go }) {
               ], { phanTram: true, nguong: NGUONG_KHO.vang })} />
             </> : <ChuaCo>Phần kho bãi chưa sẵn sàng.</ChuaCo>}
           </Khung>)}
-        {coCang && (
-          <Khung ten="Sản lượng vận tải" phu={`lũy kế ${tenThang(thang).toLowerCase()}`} onChiTiet={() => go("cang/muc-tieu")}>
-            <SoLon v={nghin(lkVT.th)} sub={lkVT.mt ? `/ ${so(lkVT.mt)} t · đạt ${pct(datVT)}` : "chưa đặt mục tiêu vận tải"} />
-            {slVT === null ? <ChuaCo>Chưa có bảng sản lượng thực tế (chạy sql/06).</ChuaCo>
-              : <EChart height={160} option={optDuong(lkVT.ngays.map(ddmm), [
-                duong("Phục vụ cảng", luyKe(slVT, thang, homNay, (r) => r.huong === "phuc_vu_cang").thuc, MAU.info),
-                duong("Phục vụ sản xuất", luyKe(slVT, thang, homNay, (r) => r.huong === "phuc_vu_san_xuat").thuc, MAU.warn),
-                duong("Tổng", lkVT.thuc, MAU.ok, { vung: true }),
-                duong("Kế hoạch", lkVT.ke, MAU.xam, { net: true, rong: 1.5 }),
-              ])} />}
+        {coTB && (
+          <Khung ten="Thiết bị cơ giới" phu="tỉ lệ sẵn sàng 30 ngày" onChiTiet={() => onMo("thiet-bi")}>
+            {thietBi ? <>
+              <SoLon v={pct(thietBi.s.rate, 1)} sub={`${thietBi.s.ready}/${thietBi.s.tong} xe · cẩu ${thietBi.sc.ready}/${thietBi.sc.tong} · hỏng ${thietBi.s.hong} · BDCL ${thietBi.s.bdcl}`} tone={thietBi.s.rate < (thietBi.nguong ?? 0.85) ? "warn" : "ok"} />
+              <EChart height={160} option={optDuong(thietBi.x, [duong("Xe di động", thietBi.xe, MAU.ok, { vung: true }), ...(thietBi.cau ? [duong("Cẩu cảng", thietBi.cau, MAU.info)] : [])], { phanTram: true, nguong: thietBi.nguong })} />
+            </> : <ChuaCo>Đang tải dữ liệu thiết bị…</ChuaCo>}
           </Khung>)}
       </div>
     </div>
