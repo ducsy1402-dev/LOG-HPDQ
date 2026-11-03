@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { ChevronRight } from "lucide-react";
 import { useApp } from "@/store";
 import EChart from "@/components/EChart";
 import { so, pct } from "@/lib/format";
 import { NHOM, tenHuong, tenDonVi, DON_VI } from "@/lib/sanLuongTT";
 import { chuoiKy, tongTheoNhom } from "@/lib/bieuDoSanLuong";
-import { cn } from "@/lib/utils";
 import { MAU } from "./khung";
+import { Khung, ChuaCo, Chon, ChonDs, BangChiTiet, nghin } from "./khungBD";
 
 // Khối 5 biểu đồ sản lượng phía trên Linetime (Tổng quan): chọn kỳ (tuần / tháng / quý / năm) dùng chung.
 //  1. Cảng: mục tiêu – thực tế – lũy kế, nhập / xuất      2. Cảng: mục tiêu – lũy kế theo hướng · loại hàng
@@ -14,41 +13,7 @@ import { MAU } from "./khung";
 //  4. Vận tải phục vụ cảng theo đơn vị thực hiện          5. Vận tải phục vụ sản xuất theo đơn vị thực hiện (4, 5 lọc theo đội xe)
 // Số liệu từ bảng nhập thực tế theo ca / ngày (SQL 06); mục tiêu tháng chia đều theo ngày.
 
-export const nghin = (x) => (x == null ? "—" : Math.abs(x) >= 1000 ? so(x / 1000, Math.abs(x) >= 1e5 ? 0 : 1) + "k" : so(x));
 const MAU_HUONG = { nhap: MAU.info, xuat: MAU.tim, phuc_vu_cang: MAU.info, phuc_vu_san_xuat: MAU.warn };
-
-export function Khung({ ten, phu, onChiTiet, bo, className, children }) {
-  return (
-    <section className={cn("flex min-w-0 flex-col rounded-md border border-border/70 bg-card/70 p-2.5", className)}>
-      <div className="mb-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-        <span className="text-[10px] text-primary">◆</span>
-        <h3 className="truncate text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{ten}</h3>
-        {phu && <span className="truncate text-[10px] text-muted-foreground/80">· {phu}</span>}
-        <div className="ml-auto flex items-center gap-2">
-          {bo}
-          {onChiTiet && <button type="button" onClick={onChiTiet} className="inline-flex shrink-0 items-center text-[11px] text-primary hover:underline">Chi tiết<ChevronRight className="h-3 w-3" /></button>}
-        </div>
-      </div>
-      {children}
-    </section>
-  );
-}
-export const ChuaCo = ({ children }) => <div className="flex flex-1 items-center justify-center py-10 text-center text-xs text-muted-foreground">{children}</div>;
-
-// Nhóm nút chọn
-export function Chon({ gt, dat, ds }) {
-  return (
-    <div className="inline-flex overflow-hidden rounded border border-border/70 text-[10px]">
-      {ds.map(([k, t]) => <button key={k} type="button" onClick={() => dat(k)} className={cn("px-1.5 py-0.5", gt === k ? "bg-primary/20 font-semibold text-primary" : "text-muted-foreground hover:bg-accent")}>{t}</button>)}
-    </div>
-  );
-}
-const ChonDoi = ({ gt, dat, ds }) => (
-  <select value={gt} onChange={(e) => dat(e.target.value)} className="max-w-[110px] rounded border border-border/70 bg-transparent px-1 py-0.5 text-[10px] text-muted-foreground">
-    <option value="">Mọi đội xe</option>
-    {ds.map((d) => <option key={d} value={d}>{d}</option>)}
-  </select>
-);
 
 // Mục tiêu + sản lượng thực tế của các tháng trong kỳ; null = chưa chạy SQL 06
 function useSanLuongKy(nhom, thangs) {
@@ -65,7 +30,6 @@ function useSanLuongKy(nhom, thangs) {
   return kq;
 }
 
-const dau = { symbol: "none" };
 // Biểu đồ theo điểm của kỳ: cột thực tế (xếp chồng theo hướng), đường mục tiêu từng điểm, đường lũy kế thực tế và lũy kế mục tiêu (trục phải)
 function optKy(c, huongs, nhomSL) {
   const cot = huongs.map((h) => ({ name: h ? tenHuong(nhomSL, h) : "Thực tế", type: "bar", stack: "tt", barMaxWidth: 18, itemStyle: { color: MAU_HUONG[h] || MAU.primary, opacity: 0.85 }, data: c.diem.map((o) => o.theo.get(h) ?? 0) }));
@@ -102,6 +66,18 @@ function optNhom(ds) {
     ],
   };
 }
+// Hộp chi tiết: từng điểm của kỳ (mục tiêu, thực tế theo hướng, lũy kế, % đạt lũy kế)
+function ctKy(c, huongs, nhomSL, kyInfo) {
+  const cot = [[kyInfo.buoc === "thang" ? "Tháng" : kyInfo.buoc === "tuan" ? "Tuần từ" : "Ngày", ""], ["Mục tiêu", "t"], ...huongs.map((h) => [tenHuong(nhomSL, h), "t"]), ["Thực tế", "t"], ["Lũy kế mục tiêu", "t"], ["Lũy kế thực tế", "t"], ["% đạt lũy kế", "%"]];
+  const dong = c.diem.map((o) => [o.nhan, o.mt, ...huongs.map((h) => o.theo.get(h) ?? 0), o.tt, o.lkMt, o.lkTt, o.lkTt != null && o.lkMt ? o.lkTt / o.lkMt : null]);
+  return { node: <BangChiTiet cot={cot} dong={dong} tong={["Cả kỳ", c.tongMt, ...huongs.map((h) => c.diem.reduce((s, o) => s + (o.theo.get(h) || 0), 0)), c.tongTt, null, null, c.tongMt ? c.tongTt / c.tongMt : null]} /> };
+}
+// Hộp chi tiết: từng nhóm (mục tiêu cả kỳ, lũy kế, % đạt, còn thiếu)
+function ctNhom(ds, tenNhom) {
+  const mt = ds.reduce((s, d) => s + d.mt, 0), tt = ds.reduce((s, d) => s + d.tt, 0);
+  return { node: <BangChiTiet cot={[[tenNhom, ""], ["Mục tiêu kỳ", "t"], ["Lũy kế", "t"], ["% đạt", "%"], ["Còn thiếu", "t"]]}
+    dong={ds.map((d) => [d.ten, d.mt, d.tt, d.mt ? d.tt / d.mt : null, Math.max(0, d.mt - d.tt)])} tong={["Tổng", mt, tt, mt ? tt / mt : null, Math.max(0, mt - tt)]} /> };
+}
 const chieuCao = (n) => Math.max(180, 56 + n * 34);
 
 function SoLon({ tt, mt }) {
@@ -113,7 +89,7 @@ function SoLon({ tt, mt }) {
   );
 }
 
-export default function KhoiSanLuong({ kyInfo, go }) {
+export default function KhoiSanLuong({ kyInfo }) {
   const [huongC, setHuongC] = useState(""), [huongV, setHuongV] = useState(""), [huongH, setHuongH] = useState("");
   const [doiC, setDoiC] = useState(""), [doiS, setDoiS] = useState("");
   const cang = useSanLuongKy("cang", kyInfo.thangs), vt = useSanLuongKy("van_tai", kyInfo.thangs);
@@ -140,8 +116,8 @@ export default function KhoiSanLuong({ kyInfo, go }) {
   const huongList = (nhom, sel, c) => (sel ? [sel] : loadHuong(nhom).filter((h) => c?.nhomChia.includes(h)));
   const boHuong = (nhom, gt, dat) => <Chon gt={gt} dat={dat} ds={[["", "Tổng"], ...NHOM[nhom].huong]} />;
   const tongDV = (ds) => ({ mt: ds.reduce((s, d) => s + d.mt, 0), tt: ds.reduce((s, d) => s + d.tt, 0) });
-  const khungDV = (ten, ds, doi, datDoi, huong) => (
-    <Khung ten={ten} phu={kyInfo.nhan} onChiTiet={() => go("cang/muc-tieu")} bo={<ChonDoi gt={doi} dat={datDoi} ds={doiXe} />}>
+  const khungDV = (ten, ds, doi, datDoi) => (
+    <Khung ten={ten} phu={kyInfo.nhan} chiTiet={{ ...ctNhom(ds, "Đơn vị thực hiện"), description: `${kyInfo.nhan}${doi ? ` · ${doi}` : " · mọi đội xe"}` }} bo={<ChonDs gt={doi} dat={datDoi} ds={doiXe} tatCa="Mọi đội xe" />}>
       <SoLon {...tongDV(ds)} />
       <EChart height={chieuCao(ds.length)} option={optNhom(ds)} />
     </Khung>
@@ -153,17 +129,17 @@ export default function KhoiSanLuong({ kyInfo, go }) {
         : tai ? <ChuaCo>Đang tải sản lượng…</ChuaCo>
         : <>
           <div className="grid gap-2.5 lg:grid-cols-2">
-            <Khung ten="Sản lượng cảng" phu={`${kyInfo.nhan} · mục tiêu – thực tế – lũy kế`} onChiTiet={() => go("cang/muc-tieu")} bo={boHuong("cang", huongC, setHuongC)}>
+            <Khung ten="Sản lượng cảng" phu={`${kyInfo.nhan} · mục tiêu – thực tế – lũy kế`} chiTiet={ctKy(c1, huongList("cang", huongC, c1), "cang", kyInfo)} bo={boHuong("cang", huongC, setHuongC)}>
               <SoLon tt={c1.tongTt} mt={c1.tongMt} />
               <EChart height={210} option={optKy(c1, huongList("cang", huongC, c1), "cang")} />
             </Khung>
-            <Khung ten="Sản lượng vận tải" phu={`${kyInfo.nhan} · mục tiêu – thực tế – lũy kế`} onChiTiet={() => go("cang/muc-tieu")} bo={boHuong("van_tai", huongV, setHuongV)}>
+            <Khung ten="Sản lượng vận tải" phu={`${kyInfo.nhan} · mục tiêu – thực tế – lũy kế`} chiTiet={ctKy(c3, huongList("van_tai", huongV, c3), "van_tai", kyInfo)} bo={boHuong("van_tai", huongV, setHuongV)}>
               <SoLon tt={c3.tongTt} mt={c3.tongMt} />
               <EChart height={210} option={optKy(c3, huongList("van_tai", huongV, c3), "van_tai")} />
             </Khung>
           </div>
           <div className="grid gap-2.5 lg:grid-cols-3">
-            <Khung ten="Cảng theo loại hàng" phu={`${kyInfo.nhan} · mục tiêu – lũy kế`} onChiTiet={() => go("cang/muc-tieu")} bo={boHuong("cang", huongH, setHuongH)}>
+            <Khung ten="Cảng theo loại hàng" phu={`${kyInfo.nhan} · mục tiêu – lũy kế`} chiTiet={ctNhom(nhomHang, "Hướng · loại hàng")} bo={boHuong("cang", huongH, setHuongH)}>
               {nhomHang.length ? <>
                 <SoLon {...tongDV(nhomHang)} />
                 <EChart height={chieuCao(nhomHang.length)} option={optNhom(nhomHang)} />

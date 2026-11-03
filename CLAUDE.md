@@ -29,6 +29,7 @@ Chạy lần lượt trong Supabase › SQL Editor, trên project mới còn tr�
 4. `04_cap_quyen.sql` – cấp quyền quản trị cho tài khoản đầu tiên (tạo người dùng ở Authentication trước).
 5. `05_lich_chay_nen.sql` – tùy chọn, cần bật tiện ích pg_cron (dọn kế hoạch ngắn hạn cũ mỗi ngày).
 6. `06_san_luong_thuc_te.sql` – bảng mục tiêu / sản lượng thực tế theo ca, ngày (hai tab Mục tiêu sản lượng). Chạy sau 01…04.
+7. `07_phan_loai_ton.sql` – bảng `kho_ton_phan_loai` (khai báo tồn cần giải phóng / đầu cơ; tab Kho › Phân loại tồn). Chạy được nhiều lần.
 Thay đổi CSDL về sau: viết file SQL mới đánh số tiếp (07, 08…), báo anh Sỹ chạy trong Supabase **trước** khi đẩy code.
 
 ## Cách làm việc (đã chốt)
@@ -66,6 +67,8 @@ Thay đổi CSDL về sau: viết file SQL mới đánh số tiếp (07, 08…),
 - Tab Sơ đồ bãi là **sơ đồ tư duy khổ ngang** (`src/pages/kho/SoDoTuDuy.jsx`): kho ở góc trên trái, một đường ngang chung nối xuống một hàng các bãi lớn, mỗi bãi lớn nối xuống các bãi nhỏ xếp dọc; màu nút / đường nối theo mức lấp đầy; bấm bãi lớn mở chi tiết, mũi tên thu gọn / mở bãi nhỏ; có nút thu phóng (35–130%) và "Vừa khung". Phần hiển thị dùng chung của trang Kho ở `khoUi.jsx`.
 - "Ngày cấp" (kho nguyên liệu) = tồn của hàng đó ở mọi bãi ÷ tiêu thụ bình quân mỗi ngày (ô "Tiêu thụ / ngày" ở Danh mục › Kho bãi; trống thì lấy tổng xuất 30 ngày ÷ 30). Dưới 7 ngày vàng, dưới 3 ngày đỏ.
 
-## Tổng quan dạng bảng điều khiển (02/11/2026)
-- `src/pages/tongquan/BangDieuKhien.jsx` thay lưới thẻ cũ: dải chỉ số trên cùng; hàng trên 3 khung biểu đồ đường (Sản lượng cảng lũy kế so kế hoạch tháng, Sản lượng theo ngày 30 ngày nhập / xuất / vận tải, Thiết bị cơ giới tỉ lệ sẵn sàng 30 ngày); giữa là Linetime tàu cập bến theo mét (`GanttMet`, chế độ toàn thời gian, hôm kia → 8 ngày tới) kẹp hai cột chỉ số tàu; hàng dưới Kho bãi (% lấp đầy 30 ngày thành phẩm / nguyên liệu) và Sản lượng vận tải lũy kế.
-- Sản lượng lấy từ bảng nhập thực tế theo ca / ngày (SQL 06); mục tiêu tháng chia đều theo ngày làm đường kế hoạch. "Chi tiết" ở mỗi khung mở hộp chi tiết cũ (`HopKhoiLuong`, `HopThietBi`, `HopKho`, `HopTau`) hoặc trang tương ứng. Các hàm thẻ cũ (`TheKho`, `TheTau`…) không còn dùng ở Tổng quan.
+## Tổng quan dạng bảng điều khiển (03/11/2026)
+- `src/pages/tongquan/BangDieuKhien.jsx`: dải chỉ số; ô chọn kỳ **Tuần / Tháng / Quý / Năm** dùng chung (`khoangKy` trong `src/lib/bieuDoSanLuong.js`; mục tiêu / kế hoạch tháng chia đều theo ngày); khối trên 5 biểu đồ sản lượng (`KhoiSanLuong.jsx`); Linetime theo mét (không còn thẻ hai bên); khối dưới 5 biểu đồ kho (`KhoiKho.jsx`); cuối cùng Kho bãi (lấp đầy 30 ngày) và Thiết bị cơ giới.
+- Khối sản lượng: Sản lượng cảng và Sản lượng vận tải (cột thực tế theo hướng, mục tiêu từng điểm, lũy kế; nút Tổng / theo hướng); Cảng theo loại hàng (nút Tổng / Nhập / Xuất); Vận tải phục vụ cảng / phục vụ sản xuất theo đơn vị thực hiện (lọc đội xe).
+- Khối kho (`src/lib/bieuDoKho.js`): Kho thành phẩm, Kho nguyên liệu (kế hoạch – lũy kế nhập / xuất / tồn, lọc theo nhóm hàng); Cơ cấu tồn (cần giải phóng + đầu cơ, % tổng tồn; lưu động = tồn − hai loại); Tuổi tồn (lô theo ngày nhập, hàng khác theo lần xuất gần nhất; 0–30 / 31–60 / 61–90 / >90 ngày); Hàng cần xử lý top 10 (đã khai báo + gợi ý hàng trên 60 ngày chưa phân loại).
+- Mọi khung dùng `khungBD.jsx`: nút **Phóng to** (phủ màn hình, biểu đồ cao lên qua `PhongToCtx` của `EChart`) và **Chi tiết** mở hộp bảng số liệu của chính biểu đồ (`BangChiTiet`), không chuyển trang. Linetime, Kho bãi, Thiết bị vẫn mở hộp cũ (`HopTau`, `HopKho`, `HopThietBi`).

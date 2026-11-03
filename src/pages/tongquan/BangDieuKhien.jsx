@@ -1,5 +1,4 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { ChevronRight } from "lucide-react";
 import { useApp } from "@/store";
 import { useThietBi } from "@/thietbi/Host";
 import EChart from "@/components/EChart";
@@ -11,12 +10,13 @@ import { cn } from "@/lib/utils";
 import GanttMet from "../cang/GanttMet";
 import { useKho } from "../kho/useKho";
 import { MAU } from "./khung";
-import KhoiSanLuong, { Chon } from "./KhoiSanLuong";
+import KhoiSanLuong from "./KhoiSanLuong";
+import { Khung, Chon } from "./khungBD";
 import KhoiKho from "./KhoiKho";
 import { KY, khoangKy } from "@/lib/bieuDoSanLuong";
 
 // Tổng quan dạng bảng điều khiển: dải chỉ số trên cùng; khối trên 5 biểu đồ sản lượng (KhoiSanLuong); giữa là lịch cầu bến theo mét (Linetime);
-// khối dưới 5 biểu đồ kho (KhoiKho); cuối cùng lấp đầy kho bãi và thiết bị cơ giới. Mỗi khung có "Chi tiết" mở hộp chi tiết cũ (onMo(khóa)). Số sản lượng lấy từ bảng nhập thực tế theo ca / ngày (SQL 06).
+// khối dưới 5 biểu đồ kho (KhoiKho); cuối cùng lấp đầy kho bãi và thiết bị cơ giới. Mỗi khung có nút Phóng to và "Chi tiết" mở hộp dữ liệu của chính biểu đồ (không chuyển trang). Số sản lượng lấy từ bảng nhập thực tế theo ca / ngày (SQL 06).
 
 const nghin = (x) => (x == null ? "—" : Math.abs(x) >= 1000 ? so(x / 1000, Math.abs(x) >= 1e5 ? 0 : 1) + "k" : so(x));
 const ddmm = (d) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
@@ -37,20 +37,6 @@ const optDuong = (x, series, { phanTram = false, donVi = "t", nguong } = {}) => 
   series: nguong != null ? [...series, { type: "line", data: [], markLine: { symbol: "none", silent: true, lineStyle: { color: MAU.warn, type: "dotted" }, label: { show: false }, data: [{ yAxis: nguong }] } }] : series,
 });
 
-// Khung: tiêu đề nhỏ in hoa, nút Chi tiết
-function Khung({ ten, phu, onChiTiet, className, children }) {
-  return (
-    <section className={cn("flex min-w-0 flex-col rounded-md border border-border/70 bg-card/70 p-2.5", className)}>
-      <div className="mb-1.5 flex items-center gap-2">
-        <span className="text-[10px] text-primary">◆</span>
-        <h3 className="truncate text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{ten}</h3>
-        {phu && <span className="truncate text-[10px] text-muted-foreground/80">· {phu}</span>}
-        {onChiTiet && <button type="button" onClick={onChiTiet} className="ml-auto inline-flex shrink-0 items-center text-[11px] text-primary hover:underline">Chi tiết<ChevronRight className="h-3 w-3" /></button>}
-      </div>
-      {children}
-    </section>
-  );
-}
 const SoLon = ({ v, sub, tone }) => (
   <div className="flex items-baseline gap-2">
     <span className={cn("font-mono text-2xl font-semibold tabular-nums", tone && `text-${tone}`)}>{v}</span>
@@ -82,7 +68,7 @@ function luyKe(kq, thang, homNay, loc = () => true) {
   return { ngays, mt, th: cong, thuc, ke: ngays.map((_, i) => (mt ? Math.round((mt * (i + 1)) / n) : null)), theoNgay };
 }
 
-export default function BangDieuKhien({ onMo, go }) {
+export default function BangDieuKhien({ onMo }) {
   const { D, quyen } = useApp();
   const tb = useThietBi()?.D;
   const kho = useKho();
@@ -161,19 +147,18 @@ export default function BangDieuKhien({ onMo, go }) {
       </div>
 
       {/* Khối trên: 5 biểu đồ sản lượng cảng / vận tải */}
-      {coCang && <KhoiSanLuong kyInfo={kyInfo} go={go} />}
+      {coCang && <KhoiSanLuong kyInfo={kyInfo} />}
 
       {/* Giữa: Linetime theo mét */}
       {coCang && (
-        <Khung ten="Linetime tàu cập bến theo mét" phu="hôm kia → 8 ngày tới · toàn thời gian" onChiTiet={() => go("cang/linetime")}>
+        <Khung ten="Linetime tàu cập bến theo mét" phu="hôm kia → 8 ngày tới · toàn thời gian" onChiTiet={() => onMo("tau")}>
           <div ref={khungLich} className="min-w-0">
             <GanttMet voyages={tauLich} tu={tuLich} soNgay={soNgay} pxNgay={pxNgay} che="toan" gon maxH="520px" />
           </div>
-          <button type="button" onClick={() => onMo("tau")} className="mt-1.5 self-start text-[11px] text-primary hover:underline">Bảng tàu đang ở cảng ›</button>
         </Khung>)}
 
       {/* Khối dưới: 5 biểu đồ kho (thành phẩm, nguyên liệu, tồn cần giải phóng / đầu cơ / lưu động) */}
-      {coKho && <KhoiKho kyInfo={kyInfo} go={go} />}
+      {coKho && <KhoiKho kyInfo={kyInfo} />}
 
       {/* Hàng dưới */}
       <div className="grid gap-2.5 lg:grid-cols-2">

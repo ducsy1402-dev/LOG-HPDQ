@@ -1,6 +1,7 @@
 // Số liệu theo kỳ cho khối biểu đồ kho ở Tổng quan: kế hoạch – lũy kế nhập / xuất / tồn của từng loại kho, và tồn phân loại (cần giải phóng / đầu cơ / lưu động).
 // Dùng chung chuẩn kỳ với bieuDoSanLuong.js (kyInfo = khoangKy(...)). Giao dịch kho truyền vào phải phủ từ ngày đầu kỳ đến hôm nay.
-import { tonTheoNgay, khuCuaKeHoach } from "./kho";
+import { tonTheoNgay, khuCuaKeHoach, nhomCua } from "./kho";
+import { plain } from "./format";
 import { ngayCuaThang } from "./sanLuongTT";
 import { khoaDiem, nhanDiem } from "./bieuDoSanLuong";
 
@@ -20,25 +21,38 @@ function tonCacNgay(kyInfo, tonHT, giaoDich, loc, now) {
 }
 const fmt = (t) => { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
 
-// Một loại kho (thanh_pham | nguyen_lieu): từng điểm của kỳ có nhập / xuất thực tế và kế hoạch, lũy kế, tồn thực tế và tồn kế hoạch
-export function chuoiKho(kyInfo, { kho, loai, keHoach = [], giaoDich = [], now }) {
+// Nhóm hàng (loại hàng) để lọc biểu đồ kho: theo cột Nhóm của Danh mục › Hàng hóa
+export const nhomHangKho = (hang, kho) => nhomCua(hang, kho.hangHoa || []) || "";
+// Các nhóm hàng đang có tồn hoặc có kế hoạch trong một loại kho
+export function dsNhomKho(kho, loai, keHoach = []) {
+  const dongOk = kho.dong.filter((d) => !d.saiBai), s = new Set();
+  for (const c of kho.cap) if (c.loai === loai && Math.abs(c.ton) > 1e-6) s.add(nhomHangKho(c.hang, kho));
+  for (const r of keHoach) { const d = khuCuaKeHoach(r, dongOk); if (d?.loai === loai) s.add(r.nhom || nhomHangKho(r.hang || d.hang, kho)); }
+  return [...s].filter(Boolean).sort((a, b) => a.localeCompare(b, "vi"));
+}
+
+// Một loại kho (thanh_pham | nguyen_lieu): từng điểm của kỳ có nhập / xuất thực tế và kế hoạch, lũy kế, tồn thực tế và tồn kế hoạch.
+// nhom: chỉ lấy hàng thuộc nhóm hàng này ("" = mọi hàng)
+export function chuoiKho(kyInfo, { kho, loai, nhom = "", keHoach = [], giaoDich = [], now }) {
   const { ngays, buoc, homNay } = kyInfo, tap = new Set(ngays), loaiOf = loaiCua(kho);
+  const khop = (hang) => !nhom || plain(nhomHangKho(hang, kho)) === plain(nhom);
   const dongOk = kho.dong.filter((d) => !d.saiBai);
   const nhapTT = new Map(), xuatTT = new Map(), nhapKH = new Map(), xuatKH = new Map();
   const cong = (m, k, v) => m.set(k, (m.get(k) || 0) + v);
   for (const g of giaoDich) {
     const n = String(g.ngay).slice(0, 10);
-    if (!tap.has(n) || (g.loai !== "nhap" && g.loai !== "xuat") || loaiOf(g.ten_bai, g.hang) !== loai) continue;
+    if (!tap.has(n) || (g.loai !== "nhap" && g.loai !== "xuat") || loaiOf(g.ten_bai, g.hang) !== loai || !khop(g.hang)) continue;
     cong(g.loai === "nhap" ? nhapTT : xuatTT, n, +g.so_luong || 0);
   }
   for (const r of keHoach) {
     const d = khuCuaKeHoach(r, dongOk);
     if (!d || d.loai !== loai) continue;
+    if (nhom && plain(r.nhom || nhomHangKho(r.hang || d.hang, kho)) !== plain(nhom)) continue;
     const nd = ngayCuaThang(r.thang), moi = (+r.khoi_luong || 0) / nd.length;
     for (const n of nd) if (tap.has(n)) cong(r.huong === "xuat" ? xuatKH : nhapKH, n, moi);
   }
-  const tonHT = kho.dong.filter((d) => d.loai === loai).reduce((s, d) => s + d.ton, 0);
-  const ton = tonCacNgay(kyInfo, tonHT, giaoDich, (b, h) => loaiOf(b, h) === loai, now);
+  const tonHT = nhom ? kho.cap.filter((c) => c.loai === loai && khop(c.hang)).reduce((s, c) => s + c.ton, 0) : kho.dong.filter((d) => d.loai === loai).reduce((s, d) => s + d.ton, 0);
+  const ton = tonCacNgay(kyInfo, tonHT, giaoDich, (b, h) => loaiOf(b, h) === loai && khop(h), now);
   const tonDau = ton.get(lui(ngays[0], 1)) ?? tonHT;
   const diem = new Map(), ds = [];
   for (const n of ngays) {

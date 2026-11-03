@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { createContext, useContext, useEffect, useRef } from "react";
 import * as echarts from "echarts/core";
 import { BarChart, LineChart, PieChart } from "echarts/charts";
 import { GridComponent, TooltipComponent, LegendComponent, MarkLineComponent } from "echarts/components";
@@ -7,12 +7,16 @@ import { useApp } from "@/store";
 
 echarts.use([BarChart, LineChart, PieChart, GridComponent, TooltipComponent, LegendComponent, MarkLineComponent, CanvasRenderer]);
 
+// Khung đang phóng to (Tổng quan): biểu đồ cao lên theo màn hình
+export const PhongToCtx = createContext(false);
+
 // Biểu đồ ECharts tự đổi màu chữ / lưới theo chế độ sáng tối và tự co giãn theo khung.
 // onClick(params): bấm vào một điểm / cột (params.componentType, params.dataIndex, params.name, params.value…).
 export default function EChart({ option, height = 260, onClick }) {
   const el = useRef(), chart = useRef(), bam = useRef(onClick);
   bam.current = onClick;
   const { theme } = useApp();
+  const to = useContext(PhongToCtx);
   useEffect(() => {
     chart.current = echarts.init(el.current, null, { renderer: "canvas" });
     chart.current.on("click", (p) => bam.current?.(p));
@@ -36,5 +40,5 @@ export default function EChart({ option, height = 260, onClick }) {
       yAxis: truc(option.yAxis),
     }, true);
   }, [option, theme]);
-  return <div ref={el} style={{ height, width: "100%" }} />;
+  return <div ref={el} style={{ height: to ? `max(${height}px, calc(100dvh - 190px))` : height, width: "100%" }} />;
 }
