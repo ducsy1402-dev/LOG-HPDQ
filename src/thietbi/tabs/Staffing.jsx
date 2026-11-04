@@ -1,3 +1,4 @@
+import { useCotThem } from "../components/cotThemTB";
 import { useEffect, useMemo, useState } from "react";
 import { Users, AlertTriangle, CheckCircle2, Save, Scale, UserCog, ChevronDown, ChevronUp, Info, Upload, Clock3, MessageSquare, Plus, Pencil, Download } from "lucide-react";
 import { useApp } from "../store";
@@ -222,6 +223,7 @@ function StaffList({ onImport }) {
   // Tick chọn nhiều dòng (kể cả các dòng đang lọc mà chưa hiện hết) rồi xóa một lần
   const c = useChonNhieu();
   const keys = list.map((x) => x.ma);
+  const ct = useCotThem("nhan_su", [["ma", "Mã NV"], ["ho_ten", "Họ tên"], ["doi", "Đội"], ["to_xe", "Tổ"], ["kip", "Kíp"], ["nhom", "Nhóm"], ["trang_thai", "Trạng thái"]], { can08: true });
   return (
     <Card title={`Danh sách nhân sự (${list.length}/${D.staff.length})`} icon={UserCog}
       right={<>
@@ -233,6 +235,7 @@ function StaffList({ onImport }) {
         <Search value={q} onChange={setQ} placeholder="Tìm tên, mã…" style={{ width: 170 }} />
         <button className="btn sm" onClick={() => downloadTemplate("staff", D).catch(fail)}><Download size={14} />Xuất Excel</button>
         {isAdmin && <button className="btn sm" onClick={onImport}><Upload size={14} />Import</button>}
+        {isAdmin && ct.nut}
         {isAdmin && <button className="btn sm pri" onClick={() => setDlg({})}><Plus size={14} />Thêm</button>}
       </>}>
       {sample ? (
@@ -243,10 +246,10 @@ function StaffList({ onImport }) {
       {list.length ? (
         <div className="tw short">
           <table className="t">
-            <thead><tr>{isAdmin && <OTickTieuDe c={c} keys={keys} />}<th>Mã</th><th>Họ tên</th><th>Đội</th><th>Tổ</th><th>Kíp</th><th>Nhóm</th><th>Trạng thái</th>{isAdmin && <th className="act"></th>}</tr></thead>
+            <thead><tr>{isAdmin && <OTickTieuDe c={c} keys={keys} />}<th>Mã</th><th>Họ tên</th><th>Đội</th><th>Tổ</th><th>Kíp</th><th>Nhóm</th><th>Trạng thái</th>{ct.th}{isAdmin && <th className="act"></th>}</tr></thead>
             <tbody>{list.slice(0, 500).map((s) => (
               <tr key={s.ma}>{isAdmin && <OTick c={c} k={s.ma} ten={s.ho_ten} />}<td className="mono">{s.ma}</td><td>{s.ho_ten}</td><td>{s.doi}</td><td>{shortTo(s.to_xe)}</td><td><Badge tone="accent" plain>{s.kip || "–"}</Badge></td><td>{s.nhom}</td>
-                <td><Badge tone={(s.trang_thai || ACTIVE) === ACTIVE ? "ok" : "warn"}>{s.trang_thai || ACTIVE}</Badge></td>
+                <td><Badge tone={(s.trang_thai || ACTIVE) === ACTIVE ? "ok" : "warn"}>{s.trang_thai || ACTIVE}</Badge></td>{ct.td(s)}
                 {isAdmin && <td className="act"><div className="row" style={{ gap: 4, flexWrap: "nowrap" }}>
                   <button className="btn sm" onClick={() => setDlg(s)}><Pencil size={13} />Sửa</button>
                   <ConfirmButton onConfirm={() => xoa(s)} title={`Xóa ${s.ma} khỏi danh sách`} />
@@ -261,6 +264,7 @@ function StaffList({ onImport }) {
         {list.length > 500 && <span className="small mute">· Bảng hiển thị 500 dòng đầu, dùng bộ lọc / ô tìm để thu hẹp (số đếm vẫn tính đủ).</span>}
       </div>
       {dlg && <StaffForm s={dlg.ma ? dlg : null} onClose={() => setDlg(null)} />}
+      {ct.hop}
     </Card>
   );
 }
@@ -273,10 +277,12 @@ function StaffForm({ s, onClose }) {
     : { ma: "", ho_ten: "", doi: D.doiList[0] || "", to_xe: "", kip: "A", nhom: "Lái xe", trang_thai: ACTIVE });
   const set = (k) => (v) => setF((o) => ({ ...o, [k]: v?.target ? v.target.value : v }));
   const nhomList = [...new Set(["Lái xe", "Tổ trưởng", ...D.staff.map((x) => x.nhom)].filter(Boolean))];
+  const ct = useCotThem("nhan_su", [["ma", "Mã NV"], ["ho_ten", "Họ tên"], ["doi", "Đội"], ["to_xe", "Tổ"], ["kip", "Kíp"], ["nhom", "Nhóm"], ["trang_thai", "Trạng thái"]], { can08: true });
   const ttList = [...new Set([ACTIVE, "Nghỉ việc", "Nghỉ dài hạn", ...D.staff.map((x) => x.trang_thai)].filter(Boolean))];
   const save = async () => {
     const gon = (x) => String(x ?? "").replace(/\s+/g, " ").trim();
     const rec = { ma: gon(f.ma).toUpperCase(), ho_ten: gon(f.ho_ten), doi: f.doi || null, to_xe: gon(f.to_xe) || null, kip: f.kip || null, nhom: gon(f.nhom) || null, trang_thai: f.trang_thai || ACTIVE };
+    Object.assign(rec, ct.gom(f.them));
     if (!rec.ma || !rec.ho_ten) return toast("Cần nhập mã và họ tên", "bad");
     if (isNew && D.staff.some((x) => x.ma.toUpperCase() === rec.ma)) return toast(`Mã ${rec.ma} đã có trong danh sách`, "bad");
     if (await run(() => api.upsertStaff([rec]), (isNew ? "Đã thêm " : "Đã cập nhật ") + `${rec.ma} · ${rec.ho_ten}`)) onClose();
@@ -292,6 +298,7 @@ function StaffForm({ s, onClose }) {
         <Field label="Kíp"><Select value={f.kip} onChange={set("kip")} options={D.kipList} blank="—" /></Field>
         <Field label="Nhóm (chọn hoặc gõ)"><input className="inp" list="dl-ns-nhom" value={f.nhom} onChange={set("nhom")} /><datalist id="dl-ns-nhom">{nhomList.map((x) => <option key={x} value={x} />)}</datalist></Field>
         <Field label="Trạng thái"><Select value={f.trang_thai} onChange={set("trang_thai")} options={ttList} /></Field>
+        {ct.truong(f, setF)}
       </div>
       <div className="small mute" style={{ marginTop: 10 }}>Định biên kíp ở các khối ca phía trên đếm người "Đang làm việc" theo đội và kíp. Người nghỉ thì đổi trạng thái thay vì xóa để giữ lịch sử.</div>
     </Modal>

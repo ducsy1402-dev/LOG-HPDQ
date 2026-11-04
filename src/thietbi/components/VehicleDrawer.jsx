@@ -1,3 +1,4 @@
+import { useCotThem } from "./cotThemTB";
 import { useState } from "react";
 import { Truck, Wrench, History, Pencil, Trash2, Gauge, Plus, CheckCircle2 } from "lucide-react";
 import { useApp } from "../store";
@@ -114,11 +115,13 @@ export function VehicleForm({ v, onClose }) {
   const [f, setF] = useState(() => v ? { ...v, tai_trong: v.tai_trong || "", thiet_bi_gan: v.thiet_bi_gan || "" } : { ma: "", doi: D.doiList[0], model: "", to_xe: "", che_do: "Đi ca", tai_trong: "", thiet_bi_gan: "", ghi_chu: "" });
   const laXeNang = f.doi === "Xe nâng";
   const coXuong = D.vehicles.some((x) => "xuong" in x); // SQL 08: xưởng, hệ số làm việc
+  const ct = useCotThem("xe", [["ma", "Mã xe"], ["doi", "Đội xe"], ["model", "Model"], ["to_xe", "Tổ"], ["che_do", "Chế độ"], ["xuong", "Xưởng"], ["he_so", "Hệ số làm việc"], ["tai_trong", "Tải trọng"], ["thiet_bi_gan", "Thiết bị gắn"], ["ghi_chu", "Ghi chú"]]);
   const laXucDao = f.doi === "Xúc đào";
   const set = (k) => (x) => setF((o) => ({ ...o, [k]: x?.target ? x.target.value : x }));
   const models = [...new Set([...D.vehicles.map((x) => x.model), ...D.specs.map((s) => s.model)].filter(Boolean))].sort();
   const save = async () => {
     const rec = { ma: f.ma.trim().toUpperCase(), doi: f.doi, model: f.model?.trim() || null, to_xe: f.to_xe?.replace(/\s+/g, " ").trim() || null, che_do: f.che_do, tai_trong: laXeNang ? f.tai_trong || null : null, thiet_bi_gan: laXucDao ? f.thiet_bi_gan || null : null, ghi_chu: f.ghi_chu?.trim() || null };
+    Object.assign(rec, ct.gom(f.them));
     if (coXuong) { rec.xuong = String(f.xuong ?? "").trim() || null; const hs = Number(String(f.he_so ?? "").replace(",", ".")); rec.he_so = String(f.he_so ?? "").trim() !== "" && Number.isFinite(hs) ? hs : null; }
     if (laXeNang && !rec.tai_trong) return alert("Xe nâng phải chọn tải trọng");
     if (!/^[A-ZĐ0-9][A-ZĐ0-9\-_.]*$/.test(rec.ma)) return alert("Mã xe chỉ gồm chữ, số, dấu gạch");
@@ -145,6 +148,7 @@ export function VehicleForm({ v, onClose }) {
           <datalist id="dl-model">{models.map((x) => <option key={x} value={x} />)}</datalist>
         </Field>
         <Field label="Ghi chú" className="wide"><input className="inp" value={f.ghi_chu || ""} onChange={set("ghi_chu")} /></Field>
+        {ct.truong(f, setF)}
       </div>
     </Modal>
   );

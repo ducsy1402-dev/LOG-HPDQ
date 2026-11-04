@@ -1,10 +1,9 @@
 import { useRef, useState } from "react";
-import { Truck, Users, Anchor, Package, Warehouse, HardHat, Ship, Plus, Save, Upload, Download, Pencil, Database, Wrench, Construction, Columns3, Trash2, ArrowUp, Gauge, ListOrdered, Boxes, Route, MapPinned, Layers } from "lucide-react";
+import { Truck, Users, Anchor, Package, Warehouse, HardHat, Plus, Save, Upload, Download, Pencil, Database, Wrench, Construction, Columns3, Trash2, Gauge, ListOrdered, Boxes, Route, MapPinned, Layers } from "lucide-react";
 import { useApp } from "@/store";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageHead } from "@/components/common";
 import { plain, matchQ, so } from "@/lib/format";
-import { TEN_KIEU_BAI, KIEU_BAI } from "@/lib/kho";
 import { docSo } from "@/lib/paste";
 import { useThietBi, TBCho, TB } from "@/thietbi/Host";
 import { Card as TCard, Search, Modal, Field, ConfirmButton as TConfirm, Empty as TEmpty, Select as TSelect } from "@/thietbi/components/ui";
@@ -13,12 +12,12 @@ import DanhMucXe from "@/thietbi/tabs/DanhMucXe";
 import { DanhSachNhanSu } from "@/thietbi/tabs/Staffing";
 import { DEFAULT_NHA_THAU } from "@/thietbi/lib/plan";
 import DM_BANG from "@/data/dmBang.json";
+import CotThem from "@/components/CotThem";
 
 // Danh mục dùng chung cho cả web. Mỗi danh sách cùng giao diện Danh mục xe: Thêm, Import, Xuất Excel; Sửa / Xóa ở từng dòng (sửa trong hộp riêng).
 // Cột: [khóa, tên cột, loại (text | so | bool | mang), độ rộng, tên cột khác khi nhập Excel]
 // Thêm tùy chọn cho hộp sửa: chon (ô chọn), chonTrong (chữ khi để trống), goiY (gợi ý khi gõ), ph (chữ mờ), macDinh (giá trị khi thêm mới)
 
-const maKieuBai = (x) => { const p = plain(x); return !p ? null : /tu do/.test(p) ? "tu_do" : /nhom/.test(p) ? "co_dinh_nhom" : /co dinh|1 hang|mot hang/.test(p) ? "co_dinh_hang" : null; };
 const hienO = (v, loai) => (loai === "mang" ? (v || []).join("; ") : loai === "bool" ? !!v : v ?? "");
 const docO = (s, loai) => {
   if (loai === "mang") return Array.isArray(s) ? s : String(s ?? "").split(/[;,]+/).map((x) => x.trim()).filter(Boolean);
@@ -54,11 +53,6 @@ export default function DanhMuc() {
   // Danh sách lưu nguyên một bản ghi (nhà thầu, thiết bị gắn): gộp các dòng sửa theo khóa rồi lưu cả danh sách
   const gopDs = (ds, rows, khoa) => { const m = new Map(ds.map((x) => [x[khoa], x])); for (const r of rows) m.set(r[khoa], { ...m.get(r[khoa]), ...r }); return [...m.values()]; };
 
-  // Thiết bị gắn: mỗi dòng { ten, dung_cho: "Gắn xe" | "Cẩu cảng", them }; lưu cả danh sách, cột Dùng cho và cột tự thêm
-  const tbGanDong = (ten) => ({ ten, dung_cho: tbD.thietBiGanDungOf(ten), them: tbD.meta?.thietBiGanThem?.[ten] });
-  const luuTbGan = (ds, thongBao) => tb.run(() => tb.api.saveThietBiGan(ds.map((x) => x.ten),
-    Object.fromEntries(ds.filter((x) => x.them && Object.keys(x.them).length).map((x) => [x.ten, x.them])),
-    Object.fromEntries(ds.filter((x) => x.dung_cho === "Cẩu cảng").map((x) => [x.ten, "Cẩu cảng"]))), thongBao);
   // Cột mới của SQL 08 (xưởng, hệ số, loại hàng, đơn trọng, số lớp…): chỉ hiện khi CSDL đã có
   const coSql08 = !!D.coSql08;
   const hangMoi = (tbD?.hanghoa || []).some((h) => "loai_hh" in h);
@@ -112,23 +106,21 @@ export default function DanhMuc() {
   const nguonKho = (loai) => {
     const tp = loai === "thanh_pham";
     return {
-      ten: tp ? "Kho thành phẩm" : "Kho nguyên liệu", khoa: "id", batBuoc: "ten_bai", coSua: quyen.quanTri || adminTB, ai: "quản trị", bang: "kho",
-      rows: (D.khoBai || []).filter((r) => (tp ? r.loai_kho === "thanh_pham" : r.loai_kho !== "thanh_pham")).map((r) => ({ ...r, ...(D.coSql17 ? { kieu_bai: TEN_KIEU_BAI[r.kieu_bai] || "" } : {}) })),
-      mo: `Mỗi dòng là một gian / lô trong kho / bãi lớn. Sức chứa khả dụng (tấn) là số web dùng; để trống thì tính = diện tích × ${tp ? "chiều cao" : "chiều cao đống"} × tỷ khối hàng. Kiểu bãi: Cố định 1 hàng (trống = kiểu này) chỉ nhận đúng hàng của dòng; Cố định nhóm nhận mọi hàng cùng nhóm; Tự do nhận mọi hàng.`,
+      ten: tp ? "Kho thành phẩm" : "Kho nguyên liệu", khoa: "id", batBuoc: "ten_bai", coSua: quyen.quanTri || adminTB, ai: "quản trị", bang: "kho", anCot: ["khu vuc"],
+      rows: (D.khoBai || []).filter((r) => (tp ? r.loai_kho === "thanh_pham" : r.loai_kho !== "thanh_pham")),
+      mo: `Mỗi dòng là một gian / lô trong kho / bãi lớn. Sức chứa khả dụng (tấn) là số web dùng; để trống thì tính = diện tích × ${tp ? "chiều cao" : "chiều cao đống"} × tỷ khối hàng. Kho / bãi khai báo "Cố định" thì mỗi gian / lô chỉ nhận đúng hàng của dòng; "Tự do" nhận mọi hàng (sửa ở tab Khai báo kho / bãi).`,
       cot: [["ten_bai", "Tên kho / bãi", "text", 150, ["ten kho/bai", "ten kho bai", "bai lon", "ten bai"]], ["ten_khu", "Gian / lô", "text", 140, ["gian/lo", "gian lo", "bai nho", "khu"]],
         ["dien_tich", "Diện tích phân bổ (m²)", "so", 100, ["dien tich phan bo", "dien tich"]],
         ...(tp ? (khoMoi ? [["so_lop", "Số lớp xếp khả dụng", "so", 90, ["so lop xep kha dung", "so lop"]]] : []) : [["chieu_cao", "Chiều cao đống (m)", "so", 90, ["chieu cao dong", "chieu cao"]]]),
         ["hang", "Hàng đang chứa", "text", 200, ["ten hang", "ten hang (hang dang chua)", "hang hoa"]],
         ...(khoMoi ? [["suc_chua_dn", "Sức chứa danh nghĩa (t)", "so", 110, ["suc chua danh nghia"]], ["he_so_luu_chua", "Hệ số lưu chứa", "so", 80, ["he so luu chua"]]] : []),
         ["suc_chua_tay", "Sức chứa khả dụng (t)", "so", 110, ["suc chua kha dung", "suc chua nhap tay"]],
-        ...(D.coSql17 ? [["kieu_bai", "Kiểu bãi", "text", 120, ["kieu"]], ["nhom_bai", "Nhóm (cố định nhóm)", "text", 100, ["nhom bai"]]] : []),
         ...(tp ? [] : [["tieu_thu_ngay", "Tiêu thụ / ngày (t)", "so", 100, ["tieu thu"]]]),
         ["thiet_bi", "Thiết bị tại kho / bãi", "text", 140, ["thiet bi tai kho/bai", "thiet bi"]], ["ghi_chu", "Ghi chú", "text", 180]],
-      chon: { kieu_bai: KIEU_BAI.map((x) => x[1]) }, chonTrong: { kieu_bai: "(trống = cố định 1 hàng)" },
-      ph: { ten_khu: "Trống = tên hàng", nhom_bai: "Trống = nhóm của hàng", suc_chua_tay: "Trống = tính theo công thức" },
-      goiY: { ten_bai: [...new Set((D.khoBai || []).map((r) => r.ten_bai).filter(Boolean))], hang: (tbD?.hanghoa || []).map((h) => h.loai_hang), nhom_bai: [...new Set((tbD?.hanghoa || []).map((h) => h.nhom).filter(Boolean))] },
+      ph: { ten_khu: "Trống = tên hàng", suc_chua_tay: "Trống = tính theo công thức" },
+      goiY: { ten_bai: [...new Set((D.khoBai || []).map((r) => r.ten_bai).filter(Boolean))], hang: (tbD?.hanghoa || []).map((h) => h.loai_hang) },
       khop: (o, rows) => rows.find((x) => x.ten_bai === o.ten_bai && (x.ten_khu || "") === (o.ten_khu || "") && (x.hang || "") === (o.hang || ""))?.id,
-      luu: (rows) => run(() => api.upsertRows("kho_bai", rows.map((r) => ({ ...r, loai_kho: loai, ...(D.coSql17 ? { kieu_bai: maKieuBai(r.kieu_bai), ten_khu: String(r.ten_khu || "").trim() || null, nhom_bai: String(r.nhom_bai || "").trim() || null } : {}) })), "id"), `Đã lưu ${rows.length} dòng kho bãi`),
+      luu: (rows) => run(() => api.upsertRows("kho_bai", rows.map((r) => ({ ...r, loai_kho: loai, ...(D.coSql17 ? { ten_khu: String(r.ten_khu || "").trim() || null } : {}) })), "id"), `Đã lưu ${rows.length} dòng kho bãi`),
       xoa: (r) => run(() => api.deleteRow("kho_bai", "id", r.id), `Đã xóa ${r.ten_bai}${r.ten_khu ? ` › ${r.ten_khu}` : ""}`),
       xoaNhieu: (rs) => run(() => api.deleteRows("kho_bai", "id", rs.map((r) => r.id)), `Đã xóa ${rs.length} dòng`),
     };
@@ -137,24 +129,15 @@ export default function DanhMuc() {
   const NGUON = {
     cau: tbD && {
       ten: "Cẩu cảng", khoa: "ma", rows: tbD.vehicles.filter((v) => v.doi === "Cẩu"), coSua: adminTB, ai: "quản trị", bang: "cau",
-      mo: "Cẩu là xe đội \"Cẩu\" trong danh mục thiết bị (theo dõi hỏng / bảo dưỡng như xe). Tải trọng, tầm với theo Thông số cẩu cảng; năng suất = định mức cao nhất của loại cẩu (t/h). Cẩu phục vụ nhiều bến: ghi các bến cách nhau dấu ;.",
+      mo: "Cẩu là xe đội \"Cẩu\" trong danh mục thiết bị (theo dõi hỏng / bảo dưỡng như xe). Tải trọng, tầm với theo Thông số cẩu cảng. Cẩu phục vụ nhiều bến: ghi các bến cách nhau dấu ;.",
       goiY: { model: [...new Set(tbD.vehicles.filter((v) => v.doi === "Cẩu").map((v) => v.model).filter(Boolean))], ben_phuc_vu: D.berths.map((b) => b.ma) },
       cot: [["ma", "Mã", "text", 90, ["ma cau", "ten cau"]], ...(xeMoi ? [["ten_loai", "Tên", "text", 120, ["ten"]]] : []), ["model", "Loại", "text", 110, ["loai cau"]], ["ben_phuc_vu", "Thuộc bến (;)", "mang", 100, ["thuoc ben", "ben phuc vu"]],
-        ["tai_nang", "Tải trọng", "text", 90, ["tai trong"]], ["tam_voi", "Tầm với", "text", 80], ["nang_suat", "Năng suất (t/h)", "text", 90], ["bang_tai", "Băng tải làm hàng", "text", 120],
+        ["tai_nang", "Tải trọng", "text", 90, ["tai trong"]], ["tam_voi", "Tầm với", "text", 80], ["bang_tai", "Băng tải làm hàng", "text", 120],
         ...(xeMoi ? [["he_so", "Hệ số làm việc", "so", 80, ["he so lam viec"]]] : []), ["ghi_chu", "Ghi chú", "text", 200]],
       chuyenNhap: (o) => ({ ...o, ben_phuc_vu: (o.ben_phuc_vu || []).map((b) => { const t = String(b).toUpperCase(); return t === "B1A" ? "TL" : /^B(6|7)CTH$/.test(t) ? t.slice(1) : t; }) }),
       luu: (rows) => tb.run(() => tb.api.upsertVehicles(rows.map((r) => ({ ...r, doi: "Cẩu" }))), `Đã lưu ${rows.length} cẩu`),
       xoa: (r) => tb.run(() => tb.api.deleteVehicle(r.ma), `Đã xóa cẩu ${r.ma}`),
       xoaNhieu: (rs) => tb.run(() => tb.api.deleteVehicles(rs.map((r) => r.ma)), `Đã xóa ${rs.length} cẩu`),
-    },
-    tbGan: tbD && {
-      ten: "Loại thiết bị gắn (chọn cho xe / cẩu)", khoa: "ten", rows: tbD.thietBiGanAll.map(tbGanDong), coSua: adminTB, ai: "quản trị", macDinh: { dung_cho: "Gắn xe" }, bang: "tbGan",
-      mo: "Danh sách tên để chọn: Gắn xe (gầu, búa, nhóp… ở cột Thiết bị gắn của xe xúc đào) hoặc Cẩu cảng (mâm từ, nhóp, ngáng… ở phiếu chuyến).",
-      cot: [["ten", "Tên thiết bị gắn", "text", 220, ["loai thiet bi", "thiet bi gan"]], ["dung_cho", "Dùng cho", "text", 110, ["dung cho", "gan xe", "loai"]]],
-      chon: { dung_cho: ["Gắn xe", "Cẩu cảng"] }, chonTrong: { dung_cho: "Gắn xe" },
-      luu: (rows) => luuTbGan(gopDs(tbD.thietBiGanAll.map(tbGanDong), rows.map((r) => ({ ...r, dung_cho: /cau/.test(plain(r.dung_cho)) ? "Cẩu cảng" : "Gắn xe" })), "ten"), "Đã lưu danh mục thiết bị gắn"),
-      xoa: (r) => luuTbGan(tbD.thietBiGanAll.filter((x) => x !== r.ten).map(tbGanDong), `Đã xóa ${r.ten}`),
-      xoaNhieu: (rs) => { const bo = new Set(rs.map((r) => r.ten)); return luuTbGan(tbD.thietBiGanAll.filter((x) => !bo.has(x)).map(tbGanDong), `Đã xóa ${rs.length} thiết bị gắn`); },
     },
     nhaThau: tbD && (() => {
       const ds = (tbD.nhaThau?.list?.length ? tbD.nhaThau.list : DEFAULT_NHA_THAU).map((x) => ({ dang_dung: true, ...x }));
@@ -167,14 +150,6 @@ export default function DanhMuc() {
         xoaNhieu: (rs) => { const bo = new Set(rs.map((r) => r.ten)); return tb.run(() => tb.api.saveNhaThau(ds.filter((x) => !bo.has(x.ten))), `Đã xóa ${rs.length} nhà thầu`); },
       };
     })(),
-    tau: {
-      ten: "Tàu", khoa: "ten", rows: D.vessels, coSua: quyen.nhap, ai: "người nhập liệu trở lên", bang: "tau",
-      mo: "Tự thêm khi lưu chuyến tàu; chọn lại tàu cũ sẽ tự điền DWT, mớn, LOA.",
-      cot: [["ten", "Tên tàu", "text", 200, ["ten tau"]], ["dwt", "DWT", "so", 100], ["draft", "Mớn (m)", "so", 80, ["draft", "mon"]], ["loa", "LOA (m)", "so", 80], ["ghi_chu", "Ghi chú", "text", 200]],
-      luu: (rows) => run(() => api.upsertRows("vessels", rows.map((r) => ({ ...r, ten: String(r.ten).toUpperCase() })), "ten"), `Đã lưu ${rows.length} tàu`),
-      xoa: (r) => run(() => api.deleteRow("vessels", "ten", r.ten), `Đã xóa tàu ${r.ten}`),
-      xoaNhieu: (rs) => run(() => api.deleteRows("vessels", "ten", rs.map((r) => r.ten)), `Đã xóa ${rs.length} tàu`),
-    },
   };
   const canCang = !quyen.coCang && <div className="rounded-md border border-warn/40 bg-warn/5 px-3 py-2 text-sm">Danh mục này thuộc phần Khai thác Cảng: cần quyền Cảng.</div>;
   const tsXe = Object.entries(DM_BANG).filter(([, c]) => c.nhom === "ts_xe");
@@ -183,7 +158,7 @@ export default function DanhMuc() {
     ["thiet-bi", "Thiết bị cơ giới", Truck, <TabNho key="tb" khoa="thiet-bi" ds={[
       ["xe", "Danh sách xe", Truck, <TBCho key="xe"><DanhMucXe /></TBCho>],
       ["cau", "Cẩu cảng", Construction, NGUON.cau ? <BangSua nguon={NGUON.cau} icon={Construction} /> : <TBCho />],
-      ["tb-gan", "Thiết bị gắn", Wrench, <>{bangPhuO("tb_gan", Wrench)}{NGUON.tbGan && <BangSua nguon={NGUON.tbGan} icon={ListOrdered} />}</>],
+      ["tb-gan", "Thiết bị gắn", Wrench, bangPhuO("tb_gan", Wrench)],
       ["cau-ts", "Thông số cẩu cảng", Gauge, bangPhuO("cau_ts", Gauge)],
       ["cau-dm", "Định mức cẩu cảng", ListOrdered, bangPhuO("cau_dm", ListOrdered)],
       ["ts-xe", "Thông số xe", Gauge, canSql08 || <TabNho khoa="ts-xe" ds={tsXe.map(([k, c]) => [k, c.ten, null, <BangSua key={k} nguon={bangPhu(k)} icon={Gauge} />])} />],
@@ -203,7 +178,6 @@ export default function DanhMuc() {
       ["ds", "Danh sách bến", Anchor, <BangSua nguon={nguonBen("Cầu bến", cotBen, "Mã bến theo file danh mục: TL (bến tàu lai), B01…B11, HH2, HH3, 6CTH, 7CTH; cột Tên khác giữ mã cũ (1A, 1…11) để dán / nhập kiểu cũ vẫn nhận. Mớn ghi ≤ là giới hạn cứng khi kiểm tra tàu – bến.")} icon={Anchor} />],
       ...(D.coSql28 ? [["tuyen", "Bố trí tuyến bến", Route, <BangSua nguon={nguonBen("Bố trí tuyến bến", [["ma", "Bến", "text", 70], ["tuyen", "Tuyến bến", "text", 120], ["met_tu", "Từ mét", "so", 80], ["met_den", "Đến mét", "so", 80], ["goc_vuong", "Đầu góc vuông (dau / cuoi)", "text", 120], ["thu_tu", "Thứ tự trên lịch", "so", 80], ["bang_tai", "Băng tải làm hàng", "text", 140]],
         "Các bến cùng tuyến nối tiếp nhau trên một đoạn cầu cảng thẳng (tàu cập được hai bến liền nhau). Đầu góc vuông ghi dau (phía mét nhỏ) hoặc cuoi. Dùng cho lịch cầu bến theo mét và sơ đồ cầu bến.")} icon={Route} />]] : []),
-      ["tau", "Tàu", Ship, <BangSua nguon={NGUON.tau} icon={Ship} />],
     ]} />],
   ];
   return (
@@ -222,7 +196,7 @@ function BangSua({ nguon, icon }) {
   const { D, quyen, api, run, toast, fail } = useApp();
   // Cột tự thêm (SQL 18): định nghĩa ở danh_muc_cot, giá trị trong r.them; trên bảng / hộp sửa / Excel dùng khóa "$mã cột"
   const coThem = !!D.coSql18;
-  const cotThem = (D.dmCot || []).filter((c) => c.bang === nguon.bang).sort((a, b) => a.thu_tu - b.thu_tu);
+  const cotThem = (D.dmCot || []).filter((c) => c.bang === nguon.bang && !(nguon.anCot || []).includes(plain(c.ten))).sort((a, b) => a.thu_tu - b.thu_tu);
   const cfg = { ...nguon, cot: [...nguon.cot, ...cotThem.map((c) => ["$" + c.ma, c.ten, c.loai, 130])],
     rows: nguon.rows.map((r) => ({ ...r, _them: r.them || {}, ...Object.fromEntries(Object.entries(r.them || {}).map(([k, v]) => ["$" + k, v])) })) };
   const [moCot, setMoCot] = useState(false);
@@ -396,42 +370,6 @@ function FormDong({ cfg, r, onClose, onLuu }) {
                 </>}
             </Field>);
         })}
-      </div>
-    </Modal>
-  );
-}
-
-// Hộp quản lý cột tự thêm của một danh mục: thêm, đổi tên, đổi loại, đổi thứ tự, xóa.
-// Chỉ để ghi thêm thông tin; các phép tính của web chỉ dùng cột có sẵn.
-const LOAI_COT = [["text", "Chữ"], ["so", "Số"], ["bool", "Có / không"]];
-function CotThem({ ten, cotGoc, cot, onClose, onLuu }) {
-  const { toast } = useApp();
-  const [ds, setDs] = useState(() => cot.map((c) => ({ ma: c.ma, ten: c.ten, loai: c.loai })));
-  const set = (i, k, v) => setDs((o) => o.map((c, j) => (j === i ? { ...c, [k]: v } : c)));
-  const len = (i) => setDs((o) => { const n = [...o]; [n[i - 1], n[i]] = [n[i], n[i - 1]]; return n; });
-  const luu = async () => {
-    const sach = ds.map((c) => ({ ...c, ten: c.ten.trim() }));
-    if (sach.some((c) => !c.ten)) return toast("Còn cột chưa có tên", "bad");
-    const ten = [...cotGoc.map((c) => plain(c[1])), ...sach.map((c) => plain(c.ten))];
-    const trung = ten.find((t, i) => ten.indexOf(t) !== i);
-    if (trung) return toast(`Trùng tên cột "${sach.find((c) => plain(c.ten) === trung)?.ten}"`, "bad");
-    const moc = Date.now().toString(36);
-    if (await onLuu(sach.map((c, i) => ({ ma: c.ma || `c${moc}${i}`, ten: c.ten, loai: c.loai, thu_tu: i })))) onClose();
-  };
-  return (
-    <Modal title={`Cột thêm · ${ten}`} onClose={onClose} width={620}
-      footer={<><button className="btn" onClick={onClose}>Hủy</button><button className="btn pri" onClick={luu}><Save size={14} />Lưu</button></>}>
-      <div className="small mute mb">Cột thêm dùng để ghi thêm thông tin cho từng dòng (hiện trên bảng, hộp sửa, Import / Xuất Excel). Các phép tính của web chỉ dùng cột có sẵn. Xóa cột chỉ ẩn cột; thêm lại cùng tên không lấy lại số cũ.</div>
-      <div className="grid" style={{ display: "grid", gap: 8 }}>
-        {ds.map((c, i) => (
-          <div key={c.ma || "moi" + i} className="row" style={{ gap: 6, flexWrap: "nowrap" }}>
-            <input className="inp" style={{ flex: 1 }} value={c.ten} placeholder="Tên cột" onChange={(e) => set(i, "ten", e.target.value)} autoFocus={!c.ma && i === ds.length - 1} />
-            <TSelect value={c.loai} onChange={(v) => set(i, "loai", v)} options={LOAI_COT} style={{ width: 130 }} />
-            <button className="btn sm" disabled={!i} onClick={() => len(i)} title="Đưa lên"><ArrowUp size={13} /></button>
-            <button className="btn sm danger" onClick={() => setDs((o) => o.filter((_, j) => j !== i))} title="Xóa cột"><Trash2 size={13} /></button>
-          </div>))}
-        {!ds.length && <div className="small mute">Chưa có cột thêm.</div>}
-        <div><button className="btn sm" onClick={() => setDs((o) => [...o, { ma: "", ten: "", loai: "text" }])}><Plus size={14} />Thêm cột</button></div>
       </div>
     </Modal>
   );

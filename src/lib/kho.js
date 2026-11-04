@@ -4,6 +4,7 @@
 //   Nguyên liệu: số ngày cấp còn lại = tồn ÷ tiêu thụ bình quân mỗi ngày (30 ngày gần nhất, hoặc nhập tay).
 import { plain, DAY } from "./format";
 import { thangTrongKy } from "./ky";
+import DM_BANG from "../data/dmBang.json";
 
 export const NGUONG_KHO = { vang: 0.85, do: 0.95, ngayCapVang: 7, ngayCapDo: 3, tonLauNgay: 60, kiemKeVang: 0.02, kiemKeDo: 0.05, ngayDayVang: 7, heSoBai: 0.8 };
 export const LOAI_GD = [
@@ -66,18 +67,34 @@ export const TEN_KIEU_BAI = Object.fromEntries(KIEU_BAI);
 export const kieuKhu = (r) => (TEN_KIEU_BAI[r?.kieu_bai] ? r.kieu_bai : "co_dinh_hang");
 export const tenKhu = (r) => String(r?.ten_khu || "").trim() || r?.hang || "Khu tự do";
 
-// Cột tự thêm "Khu vực" ở Danh mục › Kho bãi (danh_muc_cot bảng "kho", giá trị trong cột them). Không có cột thì null.
-export function khuVucKho(dmCot) {
-  const c = (dmCot || []).find((x) => x.bang === "kho" && plain(x.ten) === "khu vuc");
-  if (!c) return null;
-  const cua = (r) => String(r?.them?.[c.ma] ?? "").trim();
+// Khai báo kho / bãi lớn (Danh mục › Kho bãi › Khai báo kho / bãi, bảng danh_muc_bang "bai_lon", SQL 08):
+// Map(khóa tên bãi -> { khuVuc, kieu }); kiểu: "Tự do" -> tu_do, "Cố định" -> co_dinh_hang. Tên so không dấu, bỏ ký tự đặc biệt ("Kho G - CTH" = "Kho G CTH").
+export const khoaTenBai = (t) => plain(t).replace(/[^a-z0-9]/g, "");
+export function khaiBaoBai(dmBang) {
+  const cot = DM_BANG.bai_lon?.cot || [], k = (re) => cot.find(([, t]) => re.test(plain(t)))?.[0];
+  const kTen = cot[0]?.[0], kKhu = k(/khu vuc/), kLoai = k(/^loai/);
+  const m = new Map();
+  for (const r of dmBang || []) {
+    if (r.bang !== "bai_lon" || !r.data?.[kTen]) continue;
+    const loai = plain(r.data[kLoai]);
+    m.set(khoaTenBai(r.data[kTen]), { khuVuc: String(r.data[kKhu] ?? "").trim(), kieu: /tu do/.test(loai) ? "tu_do" : /co dinh/.test(loai) ? "co_dinh_hang" : null });
+  }
+  return m;
+}
+
+// Khu vực của kho / bãi: theo Khai báo kho / bãi (cột Phạm vi / Khu vực); chưa có thì theo cột tự thêm "Khu vực" ở Danh mục › Kho bãi (cũ). Không có thì null.
+export function khuVucKho(dmCot, dmBang) {
+  const kb = khaiBaoBai(dmBang), c = (dmCot || []).find((x) => x.bang === "kho" && plain(x.ten) === "khu vuc");
+  const coKb = [...kb.values()].some((x) => x.khuVuc);
+  if (!coKb && !c) return null;
+  const cua = coKb ? (r) => kb.get(khoaTenBai(r?.ten_bai))?.khuVuc || "" : (r) => String(r?.them?.[c.ma] ?? "").trim();
   // Khu vực của bãi lớn: giá trị gặp nhiều nhất trong các bãi nhỏ
-  const cuaBai = (b) => { const dem = new Map(); for (const d of b.dong || []) { const k = cua(d); if (k) dem.set(k, (dem.get(k) || 0) + 1); } return [...dem].sort((x, y) => y[1] - x[1])[0]?.[0] || ""; };
+  const cuaBai = (b) => { if (coKb) return kb.get(khoaTenBai(b?.ten_bai))?.khuVuc || ""; const dem = new Map(); for (const d of b.dong || []) { const k = cua(d); if (k) dem.set(k, (dem.get(k) || 0) + 1); } return [...dem].sort((x, y) => y[1] - x[1])[0]?.[0] || ""; };
   // So sánh: theo khu vực (chữ số so như số, trống xếp cuối), cùng khu thì theo thứ tự trong danh mục
-  const ss = (ka, kb, ia, ib) => (!ka !== !kb ? (ka ? -1 : 1) : ka.localeCompare(kb, "vi", { numeric: true }) || ia - ib);
+  const ss = (ka, kb2, ia, ib) => (!ka !== !kb2 ? (ka ? -1 : 1) : ka.localeCompare(kb2, "vi", { numeric: true }) || ia - ib);
   const thuTu = (r) => (r?.id != null ? +r.id : Infinity);
   return {
-    ten: c.ten, cua, cuaBai,
+    ten: "Khu vực", cua, cuaBai,
     sapBai: (ds) => [...ds].sort((a, b) => ss(cuaBai(a), cuaBai(b), Math.min(...a.dong.map(thuTu)), Math.min(...b.dong.map(thuTu)))),
     sapDong: (ds) => [...ds].sort((a, b) => ss(cua(a), cua(b), thuTu(a), thuTu(b))),
   };

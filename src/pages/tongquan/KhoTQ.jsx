@@ -128,7 +128,7 @@ const NhapXuatTB = ({ l }) => (l ? <><span className="text-ok">+{so(l.nhap)}</sp
 const theoLapDay = (a, b) => (b.lapDay ?? -1) - (a.lapDay ?? -1);
 function LapDay({ kho }) {
   const { D } = useApp();
-  const kv = useMemo(() => khuVucKho(D.dmCot), [D.dmCot]);
+  const kv = useMemo(() => khuVucKho(D.dmCot, D.dmBang), [D.dmCot, D.dmBang]);
   const [chon, setChon] = useState(null); // tên bãi lớn đang xem chi tiết
   const bai = useMemo(() => (kv ? kv.sapBai(kho.bai) : [...kho.bai].sort(theoLapDay)).map((b) => ({ ...b, ten: b.ten_bai, khu: kv?.cuaBai(b) })), [kho, kv]);
   const b = chon && bai.find((x) => x.ten_bai === chon);
@@ -208,7 +208,7 @@ function TonDuBao({ kho }) {
   const [cap, setCap] = useState("lon"); // lon: bãi lớn · nho: bãi nhỏ
   const [chon, setChon] = useState([]); // khóa: "b:tên bãi lớn" | "k:khóa bãi nhỏ"
   const [them, setThem] = useState("");
-  const kv = useMemo(() => khuVucKho(D.dmCot), [D.dmCot]);
+  const kv = useMemo(() => khuVucKho(D.dmCot, D.dmBang), [D.dmCot, D.dmBang]);
   // Danh sách để chọn (xếp theo khu vực nếu danh mục có cột Khu vực) và cách tính từng mục
   const muc = useMemo(() => {
     const m = new Map();

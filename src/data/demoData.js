@@ -165,10 +165,7 @@ export function demoData() {
   }))); return out; };
   const sanLuongCang = taoTT(MT_MAU.map(([huong, loai_hang, tan]) => ({ huong, loai_hang, tan })), (x) => ({ huong: x.huong, loai_hang: x.loai_hang }));
   const sanLuongVanTai = taoTT(MT_VT.map(([huong, loai_xe, don_vi, loai_hang, tan]) => ({ huong, loai_xe, don_vi, loai_hang, tan })), (x) => ({ huong: x.huong, loai_xe: x.loai_xe, don_vi: x.don_vi, loai_hang: x.loai_hang }));
-  // Cột tự thêm "Khu vực" của danh mục kho bãi (mẫu): chia bãi lớn vào 4 khu theo thứ tự trong danh mục
-  const dmCot = [{ bang: "kho", ma: "khu_vuc", ten: "Khu vực", loai: "text", thu_tu: 0 }];
-  const tenBaiDs = [...new Set(kho.khoBai.map((r) => r.ten_bai))];
-  for (const r of kho.khoBai) r.them = { ...(r.them || {}), khu_vuc: `Khu ${"ABCD"[Math.floor((tenBaiDs.indexOf(r.ten_bai) * 4) / tenBaiDs.length)]}` };
+  const dmCot = [];
   // Kế hoạch xuất / nhập tồn kho theo tháng và bãi nhỏ mẫu (SQL 27): tháng trước, tháng này, tháng sau
   const khoKeHoach = [];
   for (const lech of [-1, 0, 1]) for (const k of kho.khoBai) {

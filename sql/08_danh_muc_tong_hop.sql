@@ -1,9 +1,9 @@
 -- =====================================================================
 -- 08. DANH MỤC TỔNG HỢP: thay toàn bộ danh mục cũ bằng file "Danh_muc_tong_hop.xlsx".
 -- File này do máy sinh ra (scripts/danh-muc.mjs, lệnh: npm run danh-muc). Không sửa tay.
--- Sinh lúc 19:08:24 4/11/2026 từ Danh_muc_tong_hop.xlsx. Chạy SAU 01…07. Chạy lại được (nạp lại theo file).
+-- Sinh lúc 19:36:15 4/11/2026 từ Danh_muc_tong_hop.xlsx. Chạy SAU 01…07. Chạy lại được (nạp lại theo file).
 --   0. Cấu trúc: thêm cột cho xe / cẩu (xưởng, hệ số làm việc, tên thiết bị), hàng hóa (loại, đơn vị, độ ẩm, đơn trọng),
---      kho bãi (số lớp, sức chứa danh nghĩa, hệ số lưu chứa); bảng danh_muc_bang cho các danh mục phụ.
+--      kho bãi (số lớp, sức chứa danh nghĩa, hệ số lưu chứa), cột tự thêm cho nhân sự; bảng danh_muc_bang cho các danh mục phụ.
 --   A. Cầu bến: đổi mã 1A -> TL, 1…11 -> B01…B11 (chuyến tàu, khoảng dừng, cẩu đổi theo), nạp 16 bến kèm tuyến / mét.
 --   B. Xe và cẩu: XÓA danh sách cũ, nạp 240 xe và 40 cẩu cảng; cập nhật danh sách đội, tổ.
 --   C. Hàng hóa: XÓA danh sách cũ, nạp 229 hàng rời và 7 hàng thành phẩm.
@@ -22,6 +22,12 @@ alter table public.hang_hoa add column if not exists don_trong numeric; -- hàng
 alter table public.kho_bai add column if not exists so_lop         numeric; -- kho thành phẩm: số lớp xếp khả dụng
 alter table public.kho_bai add column if not exists suc_chua_dn    numeric; -- sức chứa danh nghĩa (tấn)
 alter table public.kho_bai add column if not exists he_so_luu_chua numeric; -- hệ số lưu chứa
+alter table public.staff add column if not exists them jsonb not null default '{}'; -- cột tự thêm của Nhân sự
+-- Cột tự thêm (danh_muc_cot): quản trị Thiết bị cơ giới cũng thêm / sửa được (danh sách xe, nhân sự)
+drop policy if exists danh_muc_cot_ghi on public.danh_muc_cot;
+create policy danh_muc_cot_ghi on public.danh_muc_cot for all
+  using (public.co_quyen('cang', array['quan_tri']) or public.co_quyen('kho', array['quan_tri']) or public.co_vai_tro(array['quan_tri']))
+  with check (public.co_quyen('cang', array['quan_tri']) or public.co_quyen('kho', array['quan_tri']) or public.co_vai_tro(array['quan_tri']));
 
 create table if not exists public.danh_muc_bang (
   id         bigint generated always as identity primary key,
