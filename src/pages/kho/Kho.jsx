@@ -148,8 +148,8 @@ export default function Kho({ loai }) {
         </TabsList>
 
         <TabsContent value="so-do">
-          {bai.length ? (
-            <SoDoTuDuy bai={bai} kho={kho} ten={TEN_LOAI[loai]} tp={tp} onMo={setMoBai} />
+          {bai.length || quyen.kho.quanTri ? (
+            <SoDoTuDuy bai={bai} kho={kho} ten={TEN_LOAI[loai]} tp={tp} loai={loai} onMo={setMoBai} coSua={quyen.kho.quanTri} />
           ) : <Empty>Chưa có bãi {tp ? "thành phẩm" : "nguyên liệu"}. Thêm ở Danh mục › Kho bãi (loại kho tự theo nhóm hàng, sửa được).</Empty>}
         </TabsContent>
 

@@ -68,16 +68,16 @@ export const kieuKhu = (r) => (TEN_KIEU_BAI[r?.kieu_bai] ? r.kieu_bai : "co_dinh
 export const tenKhu = (r) => String(r?.ten_khu || "").trim() || r?.hang || "Khu tự do";
 
 // Khai báo kho / bãi lớn (Danh mục › Kho bãi › Khai báo kho / bãi, bảng danh_muc_bang "bai_lon", SQL 08):
-// Map(khóa tên bãi -> { khuVuc, kieu }); kiểu: "Tự do" -> tu_do, "Cố định" -> co_dinh_hang. Tên so không dấu, bỏ ký tự đặc biệt ("Kho G - CTH" = "Kho G CTH").
+// Map(khóa tên bãi -> { khuVuc, kieu, dienTich (diện tích bãi lớn, m²) }); kiểu: "Tự do" -> tu_do, "Cố định" -> co_dinh_hang. Tên so không dấu, bỏ ký tự đặc biệt ("Kho G - CTH" = "Kho G CTH").
 export const khoaTenBai = (t) => plain(t).replace(/[^a-z0-9]/g, "");
 export function khaiBaoBai(dmBang) {
   const cot = DM_BANG.bai_lon?.cot || [], k = (re) => cot.find(([, t]) => re.test(plain(t)))?.[0];
-  const kTen = cot[0]?.[0], kKhu = k(/khu vuc/), kLoai = k(/^loai/);
+  const kTen = cot[0]?.[0], kKhu = k(/khu vuc/), kLoai = k(/^loai/), kDT = k(/dien tich/);
   const m = new Map();
   for (const r of dmBang || []) {
     if (r.bang !== "bai_lon" || !r.data?.[kTen]) continue;
     const loai = plain(r.data[kLoai]);
-    m.set(khoaTenBai(r.data[kTen]), { khuVuc: String(r.data[kKhu] ?? "").trim(), kieu: /tu do/.test(loai) ? "tu_do" : /co dinh/.test(loai) ? "co_dinh_hang" : null });
+    m.set(khoaTenBai(r.data[kTen]), { khuVuc: String(r.data[kKhu] ?? "").trim(), kieu: /tu do/.test(loai) ? "tu_do" : /co dinh/.test(loai) ? "co_dinh_hang" : null, dienTich: Number.isFinite(+r.data[kDT]) && r.data[kDT] !== null && r.data[kDT] !== "" ? +r.data[kDT] : null });
   }
   return m;
 }
