@@ -44,8 +44,14 @@ export function uocThongSo(v) {
 }
 
 // ---------- Hàng của tàu so với danh sách hàng của bến / định mức ----------
-const tuCua = (s) => plain(s).split(/[^a-z0-9]+/).filter((w) => w.length > 2);
-const khopHang = (hang, mau) => { const h = plain(hang), m = plain(mau); return !!h && !!m && (h.includes(m) || m.includes(h) || tuCua(m).some((w) => tuCua(h).includes(w))); };
+// Hàng của tàu có thuộc một mục trong danh sách "loại hàng thường làm" của bến (hoặc tên hàng trong định mức) không: so cả cụm từ, KHÔNG so từng từ lẻ
+// (VD "Xỉ thép" khớp "Xỉ thép", "Xỉ" khớp "Xỉ thép", "Xỉ thép cấp phối SS10" khớp "Xỉ thép"; nhưng "Xỉ thép" KHÔNG khớp "Thép thành phẩm" vì chỉ chung chữ "thép").
+const chuanHang = (s) => ` ${plain(s).replace(/[^a-z0-9]+/g, " ").trim()} `;
+export function khopLoaiHang(hang, mau) {
+  const h = chuanHang(hang), m = chuanHang(mau);
+  return h.trim() !== "" && m.trim() !== "" && (h === m || h.includes(m) || m.includes(h));
+}
+const khopHang = khopLoaiHang;
 const hangCua = (v) => [v.loai_hang, v.ten_hang].flatMap((x) => String(x || "").split(";")).map((x) => x.trim()).filter(Boolean);
 // Vị trí ưu tiên của hàng tàu trong "Loại hàng thường làm" của bến (0 = đầu danh sách); -1 = bến không làm hàng này. Tàu chưa có hàng: 0
 export function viTriHang(v, b) {

@@ -91,10 +91,10 @@ export default function ChuyenForm({ v, onClose, onSaved }) {
   const tam = (o) => ({ ...(v || {}), id: v?.id ?? -1, eta: fromLocalInput(o.eta), etb: fromLocalInput(o.etb), etd: fromLocalInput(o.etd), ben_ma: o.ben_ma || null, ben_phu: o.ben_phu || null,
     loa: soHoacNull(o.loa), khoi_luong: tongKL, cam_ket: soHoacNull(o.cam_ket) });
   // Chuyến mới chưa chọn bến: không tự điền ETB / ETD (để web tự xếp bến cùng ETB / ETD khi lưu)
-  const xepEtb = (o) => { if (!v && !o.ben_ma) return o; const p = rangBuocEtb(tam(o), {}, ctxEtb); return p.etb ? { ...o, etb: toLocalInput(p.etb), ...(p.etd ? { etd: toLocalInput(p.etd) } : {}) } : o; };
+  const xepEtb = (o) => { if (!o.ben_ma) return o; const p = rangBuocEtb(tam(o), {}, ctxEtb); return p.etb ? { ...o, etb: toLocalInput(p.etb), ...(p.etd ? { etd: toLocalInput(p.etd) } : {}) } : o; };
   const goiYEtb = f.eta ? etbGoiY(tam(f), ctxEtb) : null;
   // Chuyến mới chưa có bến, ETB, ETD: web tự xếp bến phù hợp (mớn, chiều dài, DWT, loại hàng) và ETB / ETD theo nguyên tắc (xepBen.js)
-  const tuXep = !v && canXepBen({ ...r0, atb: null }) ? tuXepBenGiuMoc({ ...r0, id: -1, etb: fromLocalInput(f.etb), etd: fromLocalInput(f.etd) }, ctxEtb) : null;
+  const tuXep = !v?.atb && canXepBen({ ...r0, atb: null }) ? tuXepBenGiuMoc({ ...r0, id: v?.id ?? -1, etb: fromLocalInput(f.etb), etd: fromLocalInput(f.etd) }, ctxEtb) : null;
   const uoc = tuXep ? uocThongSo(r0) : null;
   const save = async () => {
     const r = { ...rec(), ...(tuXep ? { ben_ma: tuXep.ben_ma, etb: tuXep.etb, etd: tuXep.etd } : (() => { const p = rangBuocEtb(tam(f), {}, ctxEtb); return p.etb ? { etb: p.etb, ...(p.etd ? { etd: p.etd } : {}) } : {}; })()) };
@@ -165,7 +165,12 @@ export default function ChuyenForm({ v, onClose, onSaved }) {
         <Field label="Ghi chú" className="col-span-2 sm:col-span-4"><Textarea rows={2} className="min-h-0" value={f.ghi_chu} onChange={set("ghi_chu")} /></Field>
         {!c19 && <div className="col-span-2 text-xs text-muted-foreground sm:col-span-4">Nhiều loại hàng, số máng, tàu ưu tiên: cần chạy SQL 19 trong Supabase.</div>}
       </div>
-      {!v && !f.ben_ma && (
+      {v && !v.atb && f.ben_ma && (
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+          <Button size="sm" variant="outline" onClick={() => setF((o) => ({ ...o, ben_ma: "", ben_phu: "", vi_tri: "", etb: "", etd: "" }))}>Tự xếp lại bến</Button>
+          <span className="text-xs text-muted-foreground">Đổi hàng, khối lượng, DWT… thì bấm để web chọn lại bến, ETB, ETD theo nguyên tắc (bến đang chọn không tự đổi).</span>
+        </div>)}
+      {!v?.atb && !f.ben_ma && (
         <div className="mt-3 rounded-md border border-info/40 bg-info/5 p-2.5 text-sm">
           {tuXep ? <>Chưa chọn bến: khi lưu web <b>tự xếp bến {tuXep.ben_ma}</b>, ETB <b>{ngayGio(tuXep.etb)}</b>, ETD <b>{ngayGio(tuXep.etd)}</b>.
             <div className="mt-0.5 text-xs text-muted-foreground">{tuXep.ly}.{uoc?.uoc.size ? ` Thông số ước tính: ${[uoc.uoc.has("dwt") && `DWT ≈ ${so(uoc.dwt)}`, uoc.uoc.has("loa") && `LOA ≈ ${so(uoc.loa)} m`, uoc.uoc.has("draft") && `mớn ≈ ${so(uoc.draft, 1)} m`, uoc.uoc.has("khoi_luong") && `khối lượng ≈ ${so(uoc.khoi_luong)} t`].filter(Boolean).join(", ")}.` : ""} ETB sau ETA và sau tàu trước rời 2 giờ (đã nhập ETB / ETD thì giữ nếu bến trống đúng giờ đó); ETD = ETB + 1 giờ + làm hàng + 2 giờ thủ tục + 30 phút.</div></>

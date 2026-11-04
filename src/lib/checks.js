@@ -3,6 +3,7 @@
 import { plain, so, thoiLuong, ms } from "./format";
 import { chiSo, mocSaiThuTu, trangThai } from "./linetime";
 import { choBenTheoChuyen, nhanCho, laBenLienKe } from "./capBen";
+import { khopLoaiHang } from "./xepBen";
 
 export const NGUONG_MAC_DINH = { nangSuatTyLe: 0.9 };
 
@@ -32,7 +33,7 @@ export function kiemTraBen(v, b, bPhu = null, berths = null) {
   const hang = plain(v.loai_hang || v.ten_hang);
   if (hang && b.loai_hang) {
     const ds = plain(b.loai_hang).split(/[,;/]+/).map((s) => s.trim()).filter(Boolean);
-    const khop = ds.some((h) => hang.includes(h) || h.includes(hang) || h.split(" ").some((w) => w.length > 2 && hang.split(" ").includes(w)));
+    const khop = ds.some((h) => khopLoaiHang(hang, h));
     if (!khop) out.push({ muc: "info", ma: "hang", nd: `Hàng "${v.loai_hang || v.ten_hang}" không có trong danh mục hàng của bến ${b.ma} (${b.loai_hang})` });
   }
   return out;

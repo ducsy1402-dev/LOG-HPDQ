@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { uocThongSo, thoiGianLam, mocDuKien, viTriHang } from "./xepBen";
+import { uocThongSo, thoiGianLam, mocDuKien, viTriHang, khopLoaiHang } from "./xepBen";
 import { trangThai, laUoc } from "./linetime";
 import { tuXepBen, canTuXep } from "./tuXep";
 
@@ -141,5 +141,22 @@ describe("Xếp lại toàn bộ", async () => {
     const kq = xepLai([a, b], { berths: B1, now }, new Set([1]));
     expect(kq.map((x) => x.v.id)).toEqual([2]);
     expect(new Date(kq[0].r.etb).getTime()).toBeGreaterThanOrEqual(new Date(T("10T06:00")).getTime() + 2 * H);
+  });
+});
+
+describe("Khớp loại hàng với danh sách của bến", () => {
+  it("so cả cụm từ, không so từng từ lẻ", () => {
+    expect(khopLoaiHang("Xỉ thép", "Xỉ thép")).toBe(true);
+    expect(khopLoaiHang("Xỉ thép cấp phối SS10", "Xỉ thép")).toBe(true);
+    expect(khopLoaiHang("Xỉ", "Xỉ thép")).toBe(true);
+    expect(khopLoaiHang("Xỉ thép", "Thép thành phẩm")).toBe(false); // chỉ chung chữ "thép"
+    expect(khopLoaiHang("Xỉ thép cấp phối SS10", "Phôi vuông")).toBe(false); // "phối" khác "phôi" nhưng bỏ dấu giống nhau: không so từng từ
+    expect(khopLoaiHang("Phôi vuông", "Thép thành phẩm Phôi vuông")).toBe(true);
+  });
+  it("bến TL không làm xỉ thép; B03, B07 có", () => {
+    const TL = { loai_hang: "Thép thành phẩm, HRC, Phế bánh, Hàng bao, Phôi vuông" }, B03 = { loai_hang: "HRC, Quặng hồi, Xỉ thép, Thạch cao nhân tạo" };
+    const v = { loai_hang: "Xỉ thép", ten_hang: "Xỉ thép cấp phối SS10" };
+    expect(viTriHang(v, TL)).toBe(-1);
+    expect(viTriHang(v, B03)).toBe(2);
   });
 });
