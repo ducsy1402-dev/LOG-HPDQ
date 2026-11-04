@@ -17,6 +17,7 @@ import Plan from "./thietbi/tabs/Plan";
 import LookupDialog from "./thietbi/components/LookupDialog";
 import { exportExcel } from "./thietbi/lib/excel";
 import TongQuan from "./pages/TongQuan";
+import TuXepTuDong from "@/pages/cang/TuXepTuDong";
 import Linetime from "./pages/cang/Linetime";
 import PhieuChuyen from "./pages/cang/PhieuChuyen";
 import SapCo from "./pages/SapCo";
@@ -173,6 +174,7 @@ function Main() {
 
   return (
     <div className="min-h-screen lg:pl-[60px]">
+      {quyen.coCang && quyen.nhap && <TuXepTuDong />}
       {/* Thanh bên */}
       <aside onMouseEnter={() => setReChuot(true)} onMouseLeave={() => setReChuot(false)}
         className={cn("fixed inset-y-0 left-0 z-40 flex w-60 flex-col overflow-hidden border-r bg-card transition-[width,transform] duration-200",
