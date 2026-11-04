@@ -1,6 +1,6 @@
 import { Fragment, useMemo, useState } from "react";
 import { useApp } from "@/store";
-import { trangThai, chiSo, TRANG_THAI } from "@/lib/linetime";
+import { trangThai, laUoc, chiSo, TRANG_THAI } from "@/lib/linetime";
 import { cacTuyen, viTriTrenLich, benTheoViTri, kiemTraXepBen, nhanCho, tenTuyen } from "@/lib/capBen";
 import { kiemTraBen } from "@/lib/checks";
 import { DAY, ngayGio, so, pad, iso, ms, thoiLuong } from "@/lib/format";
@@ -45,7 +45,7 @@ export default function GanttMet({ voyages, tu, soNgay, pxNgay, che = "ben", gon
   const daiCua = new Map(dai.map((d) => [d.t.ma, d]));
   const yMet = (d, m) => d.y + K.pad + (m - d.t.tu) * K.mPx; // toạ độ dọc của mét m trên dải d
 
-  const tau = useMemo(() => viTriTrenLich(voyages, D.berths, D.stopsOf, tu, den, D.now).map((it) => ({ ...it, st: trangThai(it.v) })), [voyages, D.berths, D.stopsOf, tu, den, D.now]);
+  const tau = useMemo(() => viTriTrenLich(voyages, D.berths, D.stopsOf, tu, den, D.now).map((it) => ({ ...it, st: trangThai(it.v, D.now), uocTT: laUoc(it.v, D.now) })), [voyages, D.berths, D.stopsOf, tu, den, D.now]);
   const chuaXep = voyages.filter((v) => !v.huy && !v.ben_ma).length;
   const canhBaoCua = useMemo(() => new Map(D.alerts.map((a) => [a.voyage.id, a.muc === "bad" ? "bad" : a.muc])), [D.alerts]);
 
@@ -162,8 +162,8 @@ export default function GanttMet({ voyages, tu, soNgay, pxNgay, che = "ben", gon
                   style={{ left: LABEL + left, width: w, top, height: h, background: mau, transform: dangKeo ? `translate(${doiGioDuoc(it) ? keo.dx : 0}px, ${doiMetDuoc(it) ? keo.dy : 0}px)` : undefined }}
                   aria-label={`${it.v.ten_tau}: ${TRANG_THAI[it.st].ten}`}>
                   {cs && <div className="absolute inset-y-0 left-0 bg-black/25" style={{ width: `${Math.min(100, (cs.hoanTat || 0) * 100)}%` }} />}
-                  <span className="relative truncate">{it.v.uu_tien ? "★ " : ""}{it.v.ten_tau}</span>
-                  {h >= 26 && <span className="relative truncate opacity-85">{so(it.L)} m · {noiHaiBen(it.seg.ben, it.seg.phu)} {viTriChu(it.x, it.L)}</span>}
+                  <span className="relative truncate">{it.uocTT ? "≈ " : ""}{it.v.uu_tien ? "★ " : ""}{it.v.ten_tau}</span>
+                  {h >= 26 && <span className="relative truncate opacity-85">{it.v._loaUoc ? "≈" : ""}{so(it.L)} m · {noiHaiBen(it.seg.ben, it.seg.phu)} {viTriChu(it.x, it.L)}</span>}
                 </div>
                 </Fragment>);
             })}
@@ -185,7 +185,8 @@ export default function GanttMet({ voyages, tu, soNgay, pxNgay, che = "ben", gon
         {che === "toan" && <span className="flex items-center gap-1"><i className="inline-block h-3 w-0.5 bg-white" />Vạch NOR, bắt đầu / kết thúc làm hàng</span>}
         <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-4 rounded-sm border-2 border-dashed border-slate-400" />Chưa ghi vị trí (web tự xếp)</span>
         <span className="flex items-center gap-1"><i className="inline-block h-3 w-4 border-t-2 border-warn" />Đầu góc vuông</span>
-        {chuaXep > 0 && <span>{chuaXep} chuyến chưa xếp bến không hiện ở lịch theo mét</span>}
+        <span>≈ trước tên tàu: trạng thái theo giờ dự kiến · ≈ trước số mét: LOA ước tính (tàu chưa có LOA)</span>
+        {chuaXep > 0 && <span>{chuaXep} chuyến chưa xếp bến (bấm "Tự xếp bến" ở trên để web xếp)</span>}
       </div>
       {tro && !keo && <TheTau x={tro.x} cx={tro.cx} cy={tro.cy} />}
       {xacNhan && (

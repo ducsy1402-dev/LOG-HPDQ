@@ -1,5 +1,6 @@
 // Linetime chuyến tàu: 7 mốc thực tế, trạng thái, các chỉ số tự tính.
-import { ms, HOUR, DAY } from "./format";
+import { ms, HOUR } from "./format";
+import { mocDuKien, thoiGianOBen, CACH_TAU_TRUOC, xepBenTuDong } from "./xepBen";
 
 // Các mốc thực tế theo thứ tự. Mốc 1 là ETA báo về.
 export const MOC = [
@@ -36,15 +37,39 @@ export const MAU_CHO = { ben: "#ef4444", hang: "#22c55e" };
 export const LY_DO_CHO_HANG = new Set(["Chờ cập bến: chưa đủ hàng", "Chờ cập bến: chưa có bãi nhập"]);
 export const laChoHang = (s) => LY_DO_CHO_HANG.has(s?.ly_do);
 
-export function trangThai(v) {
+// Trạng thái so với "hôm nay" (anh Sỹ chốt 04/11/2026): mốc thực tế chỉ tính khi đã qua (nhập trước giờ tương lai thì chưa tính);
+// chưa nhập mốc thực tế thì tự chạy theo giờ dự kiến: qua ETA -> đã đến neo, qua ETB -> đã cập, qua giờ bắt đầu làm hàng dự kiến -> đang làm hàng,
+// qua giờ kết thúc làm hàng dự kiến -> xong hàng, qua ETD -> đã rời. Lấy giai đoạn xa hơn giữa thực tế và dự kiến (laUoc = đang theo dự kiến).
+const GIAI_DOAN = ["du_kien", "cho_neo", "cap_ben", "lam_hang", "xong_hang", "da_roi"];
+export function trangThaiThuc(v, now = Date.now()) {
   if (v.huy) return "huy";
-  if (v.atd) return "da_roi";
-  if (v.kt_lam_hang) return "xong_hang";
-  if (v.bd_lam_hang) return "lam_hang";
-  if (v.atb) return "cap_ben";
-  if (v.nor) return "cho_neo"; // đã đến neo: nộp NOR
+  const qua = (k) => v[k] && ms(v[k]) <= now;
+  if (qua("atd")) return "da_roi";
+  if (qua("kt_lam_hang")) return "xong_hang";
+  if (qua("bd_lam_hang")) return "lam_hang";
+  if (qua("atb")) return "cap_ben";
+  if (qua("nor")) return "cho_neo"; // đã đến neo: nộp NOR
   return "du_kien";
 }
+export function trangThaiDuKien(v, now = Date.now()) {
+  const m = mocDuKien(v), qua = (t) => t != null && t <= now;
+  if (qua(m.roi)) return "da_roi";
+  if (qua(m.kt)) return "xong_hang";
+  if (qua(m.bd)) return "lam_hang";
+  if (qua(m.cap)) return "cap_ben";
+  if (qua(m.eta)) return "cho_neo";
+  return "du_kien";
+}
+// Tàu đã cập thật (có ATB) mà chưa nhập ATD thì dự kiến dừng ở "xong hàng": tàu vẫn tính là đang ở bến cho tới khi ghi ATD.
+export function trangThai(v, now = Date.now()) {
+  if (v.huy) return "huy";
+  const a = trangThaiThuc(v, now);
+  let b = trangThaiDuKien(v, now);
+  if (b === "da_roi" && v.atb && !(v.atd && ms(v.atd) <= now)) b = "xong_hang";
+  return GIAI_DOAN.indexOf(b) > GIAI_DOAN.indexOf(a) ? b : a;
+}
+// Trạng thái đang theo giờ dự kiến (chưa có mốc thực tế tương ứng): thanh tàu vẽ viền nét đứt
+export const laUoc = (v, now = Date.now()) => !v.huy && trangThai(v, now) !== trangThaiThuc(v, now);
 
 const gioGiua = (a, b) => (a != null && b != null ? (ms(b) - ms(a)) / HOUR : null);
 
@@ -102,14 +127,14 @@ export function chiSo(v, stopsTat = [], now = Date.now()) {
   };
 }
 
-// Khoảng thời gian chiếm bến để vẽ lịch: thực tế nếu có, không thì dự kiến; chưa có giờ rời thì ước theo KL / cam kết
+// Khoảng thời gian chiếm bến để vẽ lịch: thực tế nếu có, không thì dự kiến; chưa có giờ rời thì ước theo mốc dự kiến
+// (kết thúc làm hàng + 2 giờ thủ tục + 30 phút, xem xepBen.js)
 export function khoangBen(v, now = Date.now()) {
   const a = ms(v.atb) ?? ms(v.etb) ?? ms(v.eta);
   if (a == null) return null;
   let b = ms(v.atd) ?? ms(v.etd);
   if (b == null) {
-    const ngayLam = +v.cam_ket > 0 && +v.khoi_luong > 0 ? +v.khoi_luong / +v.cam_ket : 1;
-    b = a + Math.max(ngayLam * DAY, 6 * HOUR);
+    b = mocDuKien(v).roi ?? a + thoiGianOBen(v);
     if (v.atb && !v.atd) b = Math.max(b, now);
   }
   return { a, b: Math.max(b, a + HOUR), uoc: ms(v.atd) == null && ms(v.etd) == null };
@@ -159,22 +184,21 @@ export function mocSaiThuTu(v) {
 
 // ---------- ETB luôn sau ETA ----------
 const isoGio = (t) => new Date(t).toISOString();
-// Thời gian tàu ở bến dự kiến (ms): ETD − ETB nếu có; không thì khối lượng ÷ cam kết (tối thiểu 6 giờ); không có gì thì 1 ngày
-export function thoiGianO(v) {
+// Thời gian tàu ở bến dự kiến (ms): ETD − ETB nếu có; không thì làm hàng + 2 giờ thủ tục + 30 phút (xepBen.js)
+export function thoiGianO(v, ctx) {
   const etb = ms(v.etb), etd = ms(v.etd);
   if (etb != null && etd != null && etd > etb) return etd - etb;
-  const ngay = +v.cam_ket > 0 && +v.khoi_luong > 0 ? +v.khoi_luong / +v.cam_ket : 1;
-  return Math.max(ngay * DAY, 6 * HOUR);
+  return thoiGianOBen(v, v.ben_ma, ctx);
 }
 
-// ETB gợi ý: giờ sớm nhất từ ETA trở đi mà bến đã chọn (và bến phụ) không có tàu khác trong suốt thời gian tàu ở bến, cách tàu trước 1 giờ.
+// ETB gợi ý: giờ sớm nhất từ ETA trở đi mà bến đã chọn (và bến phụ) không có tàu khác trong suốt thời gian tàu ở bến, cách tàu trước 2 giờ.
 // Chưa chọn bến thì là chính ETA. Chỉ xét theo bến; tàu hai bến cùng tuyến đủ số mét vẫn được cập chung thì đã có cảnh báo riêng ở bước lưu.
-export function etbGoiY(v, { voyages = [], stopsOf = () => [], now = Date.now(), cach = HOUR } = {}) {
+export function etbGoiY(v, { voyages = [], stopsOf = () => [], now = Date.now(), cach = CACH_TAU_TRUOC, ...ctx } = {}) {
   const eta = ms(v.eta);
   if (eta == null) return null;
   const ben = new Set([v.ben_ma, v.ben_phu].filter(Boolean));
   if (!ben.size) return eta;
-  const dai = thoiGianO(v), khac = [];
+  const dai = thoiGianO(v, ctx), khac = [];
   for (const o of voyages) {
     if (o.id === v.id || o.huy || o.atd) continue;
     for (const d of doanBen(o, stopsOf(o.id) || [], now)) if ((d.ben && ben.has(d.ben)) || (d.phu && ben.has(d.phu))) khac.push([d.a, d.b]);
@@ -186,18 +210,22 @@ export function etbGoiY(v, { voyages = [], stopsOf = () => [], now = Date.now(),
 }
 
 // Ràng buộc: ETB không được trước ETA (tàu chưa cập thật). Trước ETA hoặc chưa có ETB thì tự đặt ETB = giờ gợi ý, ETD dời theo
-// (giữ thời gian ở bến). Trả về patch đã chỉnh; patch.etb khác đầu vào nghĩa là đã tự sắp xếp lại.
+// (giữ thời gian ở bến). Có ETB mà chưa có ETD thì ETD = ETB + 1 giờ + làm hàng + 2 giờ thủ tục + 30 phút.
+// Trả về patch đã chỉnh; patch.etb khác đầu vào nghĩa là đã tự sắp xếp lại.
 export function rangBuocEtb(v, patch = {}, ctx = {}) {
   const m = { ...v, ...patch };
   if (m.atb || m.huy) return patch;
   const eta = ms(m.eta);
   if (eta == null) return patch;
-  const etb = ms(m.etb);
-  if (etb != null && etb >= eta) return patch;
-  const moi = etbGoiY(m, ctx), etd = ms(m.etd), out = { ...patch, etb: isoGio(moi) };
-  if (etd != null) {
-    if (etb != null) out.etd = isoGio(moi + Math.max(etd - etb, HOUR));
-    else if (etd <= moi) out.etd = isoGio(moi + thoiGianO({ ...m, etb: null, etd: null }));
-  }
+  const etb = ms(m.etb), etd = ms(m.etd);
+  if (etb != null && etb >= eta) return etd == null ? { ...patch, etd: isoGio(etb + thoiGianO({ ...m, etd: null }, ctx)) } : patch;
+  const moi = etbGoiY(m, ctx), out = { ...patch, etb: isoGio(moi) };
+  if (etd != null && etb != null) out.etd = isoGio(moi + Math.max(etd - etb, HOUR));
+  else if (etd == null || etd <= moi) out.etd = isoGio(moi + thoiGianO({ ...m, etb: null, etd: null }, ctx));
   return out;
 }
+
+// Tự xếp bến cho chuyến chưa có bến / ETB / ETD (xem xepBenTuDong trong xepBen.js). ctx: { berths, voyages, stopsOf, now, cranes, dinhMuc }
+export const tuXepBen = (v, ctx) => xepBenTuDong(v, { ...ctx, doanBen });
+// Chuyến cần web tự xếp: chưa cập thật, chưa có bến, chưa có ETB, ETD
+export const canTuXep = (v) => !v.huy && !v.atb && !v.ben_ma && !v.etb && !v.etd;

@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { TrangThaiBadge, TienDo, MucIcon, ConfirmButton, Empty } from "@/components/common";
 import { MOC, DU_KIEN, chiSo, rangBuocEtb, laChoHang } from "@/lib/linetime";
+import { mocDuKien } from "@/lib/xepBen";
+import { useCtxXep } from "./useXepBen";
 import { duToan, laCQD, tenMoc } from "@/lib/laytime";
 import { canhBaoChuyen } from "@/lib/checks";
 import { so, ngayGio, ngayGioNam, thoiLuong, toLocalInput, fromLocalInput, tien, pct, ms } from "@/lib/format";
@@ -151,17 +153,20 @@ const Chi = ({ l, v, sub, tone }) => <div className="rounded-md border bg-backgr
 // 7 mốc thực tế + giờ dự kiến + mốc bắt đầu tính thưởng phạt. Lưu ngay khi rời ô.
 function MocGio({ v, moDieuKhoan }) {
   const { D, quyen, run, api, toast } = useApp();
+  const ctxXep = useCtxXep();
+  // Mốc dự kiến (chưa nhập thực tế): bắt đầu làm hàng = cập + 1 giờ, thủ tục = kết thúc làm hàng + 2 giờ, rời = thủ tục + 30 phút
+  const dk = mocDuKien(v, ctxXep), DK = { atb: dk.cap, bd_lam_hang: dk.bd, kt_lam_hang: dk.kt, hoan_tat_tt: dk.thuTuc, atd: dk.roi };
   // ETB luôn sau ETA: ETA đổi hoặc ETB nhập trước ETA thì web tự xếp lại ETB (gợi ý theo bến trống), ETD dời theo
   const luu = (k, val) => {
     const moi = fromLocalInput(val); if ((moi && ms(moi)) === (v[k] && ms(v[k]))) return;
-    const patch = ["eta", "etb", "etd"].includes(k) ? rangBuocEtb(v, { [k]: moi }, { voyages: D.voyages, stopsOf: D.stopsOf, now: D.now }) : { [k]: moi };
+    const patch = ["eta", "etb", "etd"].includes(k) ? rangBuocEtb(v, { [k]: moi }, ctxXep) : { [k]: moi };
     const xep = patch.etb && patch.etb !== (k === "etb" ? moi : v.etb) && ms(patch.etb) !== ms(v.etb);
     run(() => api.updateVoyage(v.id, patch), xep ? `Đã lưu; ETB tự xếp lại sau ETA: ${ngayGio(patch.etb)}` : "Đã lưu mốc giờ");
   };
   const dong = (m, i) => (
     <div key={m.k} className="flex flex-wrap items-center gap-2 border-b py-1.5 last:border-0">
       <span className="w-6 text-center font-mono text-xs text-muted-foreground">{i ?? ""}</span>
-      <span className="min-w-[200px] flex-1 text-sm">{m.ten}</span>
+      <span className="min-w-[200px] flex-1 text-sm">{m.ten}{!v[m.k] && DK[m.k] != null && <span className="ml-2 text-xs text-muted-foreground" title="Tự tính theo nguyên tắc; trạng thái tàu tự chạy theo giờ này khi chưa nhập mốc thực tế">dự kiến {ngayGio(DK[m.k])}</span>}</span>
       {quyen.nhap ? <>
         <NgayGio className="w-[200px]" inputClassName="flex h-8 w-full rounded-md border border-input bg-background px-2.5 py-1 text-sm tabular-nums shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" value={toLocalInput(v[m.k])} onChange={(x) => luu(m.k, x)} aria-label={m.ten} />
         <Button size="xs" variant="ghost" title="Ghi giờ hiện tại" onClick={() => luu(m.k, toLocalInput(Date.now()))}><Clock />Bây giờ</Button>

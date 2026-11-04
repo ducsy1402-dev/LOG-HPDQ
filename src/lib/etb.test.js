@@ -11,9 +11,9 @@ describe("ETB luôn sau ETA", () => {
   it("chưa chọn bến: ETB gợi ý = ETA", () => {
     expect(etbGoiY({ id: 1, eta: T("03T08:00") }, ctx)).toBe(new Date(T("03T08:00")).getTime());
   });
-  it("bến đang có tàu khác: gợi ý sau khi tàu kia rời 1 giờ", () => {
+  it("bến đang có tàu khác: gợi ý sau khi tàu kia rời 2 giờ", () => {
     const g = etbGoiY({ id: 1, ben_ma: "3", eta: T("02T12:00"), khoi_luong: 10000, cam_ket: 5000 }, ctx);
-    expect(g).toBe(new Date(T("04T00:00")).getTime() + H);
+    expect(g).toBe(new Date(T("04T00:00")).getTime() + 2 * H);
   });
   it("bến trống lúc ETA: gợi ý đúng ETA", () => {
     expect(etbGoiY({ id: 1, ben_ma: "3", eta: T("08T00:00"), khoi_luong: 10000, cam_ket: 5000 }, ctx)).toBe(new Date(T("08T00:00")).getTime());
@@ -26,8 +26,11 @@ describe("ETB luôn sau ETA", () => {
   });
   it("chưa có ETB: tự điền; ETB hợp lệ thì giữ nguyên; đã cập thật thì không đụng", () => {
     expect(rangBuocEtb({ id: 1, eta: T("10T00:00") }, {}, ctx).etb).toBeTruthy();
-    const ok = { etb: T("10T06:00") };
+    const ok = { etb: T("10T06:00"), etd: T("11T06:00") };
     expect(rangBuocEtb({ id: 1, eta: T("10T00:00") }, ok, ctx)).toEqual(ok);
+    // có ETB mà chưa có ETD: ETD = ETB + 1 giờ + làm hàng (10000 t ÷ 5000 t/ngày = 2 ngày) + 2 giờ thủ tục + 30 phút
+    const p = rangBuocEtb({ id: 1, eta: T("10T00:00"), khoi_luong: 10000, cam_ket: 5000 }, { etb: T("10T06:00") }, ctx);
+    expect(new Date(p.etd).getTime() - new Date(T("10T06:00")).getTime()).toBe(H + 48 * H + 2.5 * H);
     const daCap = { id: 1, eta: T("10T00:00"), etb: T("09T00:00"), atb: T("09T01:00") };
     expect(rangBuocEtb(daCap, {}, ctx)).toEqual({});
   });
@@ -35,10 +38,11 @@ describe("ETB luôn sau ETA", () => {
 
 describe("Trạng thái và màu", () => {
   it("chưa có NOR: chưa đến neo (cam); có NOR chưa cập: đã đến neo (xanh dương); làm hàng: vàng", () => {
-    expect(trangThai({ eta: T("01T00:00") })).toBe("du_kien");
-    expect(trangThai({ nor: T("01T00:00") })).toBe("cho_neo");
-    expect(trangThai({ nor: T("01T00:00"), atb: T("02T00:00") })).toBe("cap_ben");
-    expect(trangThai({ atb: T("02T00:00"), bd_lam_hang: T("02T05:00") })).toBe("lam_hang");
+    const now = new Date(T("02T06:00")).getTime();
+    expect(trangThai({ eta: T("05T00:00") }, now)).toBe("du_kien");
+    expect(trangThai({ nor: T("01T00:00") }, now)).toBe("cho_neo");
+    expect(trangThai({ nor: T("01T00:00"), atb: T("02T00:00") }, new Date(T("02T00:30")).getTime())).toBe("cap_ben");
+    expect(trangThai({ atb: T("02T00:00"), bd_lam_hang: T("02T05:00") }, now)).toBe("lam_hang");
     expect(TRANG_THAI.du_kien.mau).toBe("#f97316");
     expect(TRANG_THAI.cho_neo.mau).toBe("#3b82f6");
     expect(TRANG_THAI.lam_hang.mau).toBe("#eab308");

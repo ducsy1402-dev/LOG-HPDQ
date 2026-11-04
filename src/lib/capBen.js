@@ -11,6 +11,7 @@ import { doanBen } from "./linetime";
 import { plain } from "./format";
 import { noiHaiBen } from "./tenBen";
 import { VI_TRI_MAC_DINH } from "../data/danhMucGoc";
+import { uocThongSo } from "./xepBen";
 
 // Cột theo chiều dài tàu: >300 | 201–300 | 151–200 | 100–150 | <100
 const cot = (L) => (L > 300 ? 0 : L > 200 ? 1 : L > 150 ? 2 : L >= 100 ? 3 : 4);
@@ -269,8 +270,10 @@ function timDaiNhat(dai, vua) {
 
 // Lịch cầu bến theo mét: mỗi đoạn tàu chiếm bến trong [tu, den) (ms) kèm tuyến và mét đầu tàu.
 // Đoạn đã ghi vị trí thì giữ; chưa ghi thì lấy chỗ web tự xếp lúc tàu vào bến (đầu đoạn), cùng các tàu đang ở tuyến lúc đó.
-// Trả [{ v, seg, tuyen, L, x, coDinh }] (đoạn không thuộc tuyến nào có mét hoặc tàu chưa có LOA thì bỏ).
-export function viTriTrenLich(voyages, berths = [], stopsOf = () => [], tu = -Infinity, den = Infinity, now = Date.now()) {
+// Trả [{ v, seg, tuyen, L, x, coDinh }] (đoạn không thuộc tuyến nào có mét thì bỏ). Tàu chưa có LOA (VD tàu TBA): LOA ước theo DWT / khối lượng / mớn
+// (không có gì thì 150 m), v._loaUoc = true để vẽ khác.
+export function viTriTrenLich(voyages0, berths = [], stopsOf = () => [], tu = -Infinity, den = Infinity, now = Date.now()) {
+  const voyages = voyages0.map((v) => (+v.loa > 0 ? v : { ...v, loa: uocThongSo(v).loa || 150, _loaUoc: true }));
   const tuyens = cacTuyen(berths), tuyenCua = new Map();
   for (const t of tuyens.values()) if (t.den != null) for (const b of t.bens) tuyenCua.set(b.ma, t);
   const segs = chuanHoa(voyages.filter((v) => !v.huy).flatMap((v) => segsCuaChuyen(v, stopsOf, now)), berths).filter((s) => tuyenCua.has(s.ben) && +s.v.loa > 0);

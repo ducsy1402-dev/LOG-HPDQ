@@ -1,6 +1,6 @@
 import { Fragment, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "@/store";
-import { khoangBen, doanBen, trangThai, chiSo, TRANG_THAI, MAU_CHO } from "@/lib/linetime";
+import { khoangBen, doanBen, trangThai, laUoc, chiSo, TRANG_THAI, MAU_CHO } from "@/lib/linetime";
 import { choBatDau, kieuCho, PhanChoHang, ChuThichCho } from "./doanCho";
 import { kiemTraXepBen, nhanCho, laBenLienKe } from "@/lib/capBen";
 import { kiemTraBen } from "@/lib/checks";
@@ -68,7 +68,7 @@ export default function Gantt({ voyages, tu, soNgay, pxNgay, che = "ben", gon = 
         const phu = d.phu && laBenLienKe(D.berths, d.ben, d.phu) ? d.phu : "";
         for (const ma of phu ? [d.ben, phu] : [d.ben || ""]) {
           const row = theoBen.has(ma) ? ma : "";
-          theoBen.get(row).push({ v, a: d.a, b: d.b, uoc: d.uoc, a0: i ? null : a0, la: i ? d.a : la, st: trangThai(v), rowMa: row, haiBen: phu ? noiHaiBen(d.ben, phu) : null });
+          theoBen.get(row).push({ v, a: d.a, b: d.b, uoc: d.uoc, a0: i ? null : a0, la: i ? d.a : la, st: trangThai(v, D.now), uocTT: laUoc(v, D.now), rowMa: row, haiBen: phu ? noiHaiBen(d.ben, phu) : null });
         }
       });
     }
@@ -180,12 +180,12 @@ export default function Gantt({ voyages, tu, soNgay, pxNgay, che = "ben", gon = 
                       onPointerMove={troVao} onPointerLeave={() => setTro(null)}
                       className={cn("absolute z-10 flex items-center overflow-hidden rounded-md px-1.5 font-medium text-white shadow-sm", K.chu, coCho && "rounded-l-none",
                         KEO_DUOC.has(x.st) && quyen.nhap ? "cursor-grab" : "cursor-pointer", dangKeo && "z-30 cursor-grabbing opacity-90 ring-2 ring-white",
-                        muc === "bad" && "outline outline-2 outline-offset-1 outline-bad", muc === "warn" && "outline outline-2 outline-offset-1 outline-warn", x.v.huy && "line-through opacity-50")}
+                        muc === "bad" && "outline outline-2 outline-offset-1 outline-bad", muc === "warn" && "outline outline-2 outline-offset-1 outline-warn", x.uocTT && "border-2 border-dashed border-white/80", x.v.huy && "line-through opacity-50")}
                       style={{ left: LABEL + left, width: w, top, height: K.bar, background: x.uoc ? `repeating-linear-gradient(135deg, ${mau}, ${mau} 8px, ${mau}cc 8px, ${mau}cc 12px)` : mau,
                         transform: dangKeo ? `translate(${keo.dx}px, ${keo.dy}px)` : undefined }}
                       aria-label={`${x.v.ten_tau}: ${TRANG_THAI[x.st].ten}`}>
                       {cs && <div className="absolute inset-y-0 left-0 bg-black/25" style={{ width: `${Math.min(100, (cs.hoanTat || 0) * 100)}%` }} />}
-                      <span className="relative truncate">{x.v.uu_tien ? "★ " : ""}{x.haiBen ? "⇕ " : ""}{x.v.ten_tau}{x.haiBen && !gon && w > 110 ? ` (${x.haiBen})` : ""}{!gon && w > 140 && x.v.khoi_luong ? ` · ${so(x.v.khoi_luong)}t` : ""}</span>
+                      <span className="relative truncate">{x.uocTT ? "≈ " : ""}{x.v.uu_tien ? "★ " : ""}{x.haiBen ? "⇕ " : ""}{x.v.ten_tau}{x.haiBen && !gon && w > 110 ? ` (${x.haiBen})` : ""}{!gon && w > 140 && x.v.khoi_luong ? ` · ${so(x.v.khoi_luong)}t` : ""}</span>
                     </div>
                     </Fragment>
                   );
@@ -198,6 +198,7 @@ export default function Gantt({ voyages, tu, soNgay, pxNgay, che = "ben", gon = 
       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
         {Object.entries(TRANG_THAI).filter(([k]) => k !== "huy").map(([k, t]) => <span key={k} className="flex items-center gap-1"><i className="inline-block h-2.5 w-4 rounded-sm" style={{ background: t.mau }} />{t.ten}</span>)}
         <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-4 rounded-sm" style={{ background: "repeating-linear-gradient(135deg,#94a3b8,#94a3b8 4px,#94a3b8aa 4px,#94a3b8aa 6px)" }} />Giờ rời ước tính</span>
+        <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-4 rounded-sm border-2 border-dashed border-slate-400" />≈ Trạng thái theo giờ dự kiến (chưa ghi mốc thực tế)</span>
         <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-4 rounded-sm outline outline-2 outline-bad" />Có cảnh báo khẩn</span>
         <span className="flex items-center gap-1"><i className="inline-block h-3 w-0.5 bg-bad" />Hiện tại</span>
         <ChuThichCho toan={che === "toan"} />

@@ -17,6 +17,7 @@ import BangTauBen, { tenBen, tenBenChuyen } from "./BangTauBen";
 import ChuyenForm from "./ChuyenForm";
 import KhaiBaoTT, { UuTien } from "./KhaiBaoTT";
 import DanNhanh from "./DanNhanh";
+import TuXepBen, { chuaCoBen } from "./TuXepBen";
 import SapDen from "./SapDen";
 import KeHoachNgay from "./KeHoachNgay";
 
@@ -40,6 +41,8 @@ export default function Linetime() {
   const [them, setThem] = useState(false);
   const [toanMH, doiToanMH] = useToanManHinh();
   const [dan, setDan] = useState(false);
+  const [xep, setXep] = useState(false);
+  const soChuaBen = useMemo(() => D.voyages.filter(chuaCoBen).length, [D.voyages]);
   const doiTab = (t) => { setTab(t); try { localStorage.setItem("lg-linetime-tab", t); } catch { /* bỏ qua */ } };
 
   const loc = useMemo(() => D.voyages.filter((v) => {
@@ -58,7 +61,7 @@ export default function Linetime() {
   return (
     <>
       <PageHead title="Linetime tàu cập bến" desc="Lịch cầu bến, tiến độ theo bến và danh sách chuyến. Bấm vào tàu để mở phiếu chuyến (7 mốc giờ, nhật ký, khoảng dừng, laytime).">
-        {quyen.nhap && <><Button variant="outline" onClick={() => setDan(true)}><ClipboardPaste />Dán nhanh</Button><Button onClick={() => setThem(true)}><Plus />Thêm chuyến</Button></>}
+        {quyen.nhap && <>{soChuaBen > 0 && <Button variant="outline" onClick={() => setXep(true)}><Anchor />Tự xếp bến ({soChuaBen})</Button>}<Button variant="outline" onClick={() => setDan(true)}><ClipboardPaste />Dán nhanh</Button><Button onClick={() => setThem(true)}><Plus />Thêm chuyến</Button></>}
       </PageHead>
       <Card className="mb-3">
         <CardContent className="flex flex-wrap items-center gap-2 pt-4">
@@ -156,6 +159,7 @@ export default function Linetime() {
       </Tabs>
       {them && <ChuyenForm onClose={() => setThem(false)} onSaved={(v) => v && setVoyageMo(v.id)} />}
       {dan && <DanNhanh onClose={() => setDan(false)} />}
+      {xep && <TuXepBen onClose={() => setXep(false)} />}
     </>
   );
 }

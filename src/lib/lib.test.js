@@ -94,13 +94,16 @@ describe("Thưởng phạt (laytime)", () => {
 });
 
 describe("Linetime", () => {
-  it("trạng thái theo mốc", () => {
-    expect(trangThai({})).toBe("du_kien");
-    expect(trangThai({ nor: "x" })).toBe("cho_neo");
-    expect(trangThai({ atb: "x" })).toBe("cap_ben");
-    expect(trangThai({ atb: "x", bd_lam_hang: "x" })).toBe("lam_hang");
-    expect(trangThai({ atd: "x" })).toBe("da_roi");
-    expect(trangThai({ atd: "x", huy: true })).toBe("huy");
+  it("trạng thái theo mốc (mốc đã qua so với hôm nay)", () => {
+    const qua = iso(2026, 10, 1), now = new Date(qua).getTime() + 18e5; // 30 phút sau mốc: chưa tới các mốc dự kiến sau
+    expect(trangThai({}, now)).toBe("du_kien");
+    expect(trangThai({ nor: qua }, now)).toBe("cho_neo");
+    expect(trangThai({ atb: qua }, now)).toBe("cap_ben");
+    expect(trangThai({ atb: qua, bd_lam_hang: qua }, now)).toBe("lam_hang");
+    expect(trangThai({ atd: qua }, now)).toBe("da_roi");
+    expect(trangThai({ atd: qua, huy: true }, now)).toBe("huy");
+    expect(trangThai({ nor: iso(2026, 10, 9) }, now)).toBe("du_kien");
+    expect(trangThai({ atb: qua }, now + 5 * 864e5)).toBe("xong_hang"); // đã cập thật, chưa ghi ATD: dự kiến dừng ở xong hàng // mốc nhập trước cho tương lai: chưa tính
   });
   it("chỉ số: chờ bến (từ NOR), làm hàng thực trừ dừng, năng suất, % hoàn tất vượt 100%", () => {
     const v = { nor: iso(2026, 10, 1, 0), atb: iso(2026, 10, 2, 12), bd_lam_hang: iso(2026, 10, 2, 14), kt_lam_hang: iso(2026, 10, 4, 14), khoi_luong: 10000, da_lam: 10135, cam_ket: 5000 };
