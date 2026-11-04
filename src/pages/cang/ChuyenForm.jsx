@@ -7,7 +7,8 @@ import { Input, NativeSelect, Field, Textarea, Checkbox } from "@/components/ui/
 import { ChonGo } from "@/components/ui/combobox";
 import { NgayGio } from "@/components/ui/ngaygio";
 import { MucIcon } from "@/components/common";
-import { maChuyenMoi, khoangBen, rangBuocEtb, etbGoiY, tuXepBenGiuMoc, canXepBen } from "@/lib/linetime";
+import { maChuyenMoi, khoangBen, rangBuocEtb, etbGoiY } from "@/lib/linetime";
+import { tuXepBenGiuMoc, canXepBen } from "@/lib/tuXep";
 import { uocThongSo } from "@/lib/xepBen";
 import { useCtxXep } from "./useXepBen";
 import { kiemTraXepBen, nhanCho, benLienKe, laBenLienKe, tuyenCuaBen, benTheoViTri, tenTuyen } from "@/lib/capBen";

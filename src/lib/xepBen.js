@@ -130,7 +130,7 @@ export function xepBenTuDong(v, ctx) {
   if (coHang) ds = ds.filter((x) => x.iHang >= 0);
   for (const x of ds) {
     x.dai = thoiGianOBen(t, x.b.ma, ctx);
-    x.etb = etbSomNhat(x.b.ma, tu, x.dai, { ...ctx, boQua: v.id ?? null });
+    x.etb = ctx.etbSom ? ctx.etbSom(t, x.b.ma, tu, x.dai, ctx) : etbSomNhat(x.b.ma, tu, x.dai, { ...ctx, boQua: v.id ?? null });
   }
   const som = Math.min(...ds.map((x) => x.etb));
   ds.sort((p, q) => (p.etb - som <= 6 * HOUR && q.etb - som <= 6 * HOUR ? (p.iHang - q.iHang) || (p.etb - q.etb) : p.etb - q.etb) || (+p.b.thu_tu || 0) - (+q.b.thu_tu || 0));

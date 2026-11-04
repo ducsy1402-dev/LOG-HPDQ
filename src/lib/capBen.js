@@ -11,7 +11,7 @@ import { doanBen } from "./linetime";
 import { plain } from "./format";
 import { noiHaiBen } from "./tenBen";
 import { VI_TRI_MAC_DINH } from "../data/danhMucGoc";
-import { uocThongSo } from "./xepBen";
+import { uocThongSo, CACH_TAU_TRUOC } from "./xepBen";
 
 // Cột theo chiều dài tàu: >300 | 201–300 | 151–200 | 100–150 | <100
 const cot = (L) => (L > 300 ? 0 : L > 200 ? 1 : L > 150 ? 2 : L >= 100 ? 3 : 4);
@@ -223,6 +223,19 @@ export function nhanCho(t, v) {
 }
 
 const segsCuaChuyen = (v, stopsOf, now) => doanBen(v, stopsOf(v.id), now).filter((d) => d.ben).map((d) => ({ v, a: d.a, b: d.b, ben: d.ben, phu: d.phu, viTri: d.viTri, nguon: d.nguon, cuoi: d.cuoi, dau: d.dau }));
+
+// ETB sớm nhất (ms) của chuyến v ở bến benMa từ thời điểm tu, ở lại dai (ms): chia sẻ bến theo số mét (hai tàu cùng bến cùng lúc nếu đủ chỗ theo quy tắc
+// cập cầu bến, xem phanTichCho); không đủ chỗ thì chờ tàu trước rời + 2 giờ. Tàu chưa có LOA / bến chưa có mét coi như chiếm cả bến.
+// Mỗi tàu được tính thêm 2 giờ sau khi rời (cách tàu cập sau). v.loa nên là LOA đã có hoặc ước.
+export function etbSomNhatMet(v, benMa, tu, dai, { voyages = [], berths = [], stopsOf = () => [], now = Date.now(), cach = CACH_TAU_TRUOC } = {}) {
+  const khac = voyages.filter((o) => !o.huy && !o.atd && o.id !== v.id).flatMap((o) => segsCuaChuyen(o, stopsOf, now)).map((s) => ({ ...s, b: s.b + cach }));
+  const moc = [...new Set([tu, ...khac.map((s) => s.b).filter((t) => t > tu)])].sort((x, y) => x - y);
+  for (const t of moc) {
+    const ung = { v, a: t, b: t + dai + cach, ben: benMa, phu: v.ben_phu || "", viTri: v.vi_tri };
+    if (!phanTichCho([...khac, ung], berths).some((x) => x.ds.includes(v))) return t;
+  }
+  return moc[moc.length - 1] ?? tu;
+}
 
 // Mọi chuyến không đủ chỗ ở bến: Map id chuyến -> [{ ...khoảng không đủ chỗ, cung: [tên tàu khác], ten_tau }]
 export function choBenTheoChuyen(voyages, berths = [], stopsOf = () => [], now = Date.now()) {

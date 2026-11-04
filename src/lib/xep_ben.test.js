@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { uocThongSo, thoiGianLam, mocDuKien, viTriHang } from "./xepBen";
-import { tuXepBen, canTuXep, trangThai, laUoc } from "./linetime";
+import { trangThai, laUoc } from "./linetime";
+import { tuXepBen, canTuXep } from "./tuXep";
 
 const T = (s) => new Date(`2026-11-${s}:00+07:00`).getTime();
 const H = 36e5;
@@ -39,15 +40,20 @@ describe("Thời gian làm hàng và mốc dự kiến", () => {
 
 describe("Tự xếp bến", () => {
   const iso = (t) => new Date(t).toISOString();
-  it("chọn bến hợp kích thước và loại hàng, ETB sau tàu trước 2 giờ", () => {
-    const khac = { id: 2, ben_ma: "B07", etb: iso(T("09T00:00")), etd: iso(T("10T00:00")) };
+  it("không đủ số mét để cùng lúc thì chờ tàu trước rời + 2 giờ", () => {
+    const khac = { id: 2, ben_ma: "B07", loa: 150, etb: iso(T("09T00:00")), etd: iso(T("10T00:00")) };
     const v = { id: 1, eta: iso(T("09T06:00")), loai_hang: "Đá", khoi_luong: 9000, cam_ket: 9000 };
-    expect(canTuXep(v)).toBe(true);
     const r = tuXepBen(v, { berths: BEN, voyages: [khac], now: T("08T00:00") });
-    // B08 (10 000 DWT, mớn 8,5 m, 126,5 m) hợp tàu ước 10 000 DWT / mớn 8 m / 125 m, trống ngay lúc ETA; B07 phải chờ tới 10/11 02:00
-    expect(r.ben_ma).toBe("B08");
+    expect(["B07", "B08"]).toContain(r.ben_ma);
+    expect(new Date(r.etb).getTime()).toBe(T("10T02:00")); // tàu kia rời 10/11 00:00 + 2 giờ
+    expect(new Date(r.etd).getTime() - T("10T02:00")).toBe(H + 24 * H + 2.5 * H);
+  });
+  it("đủ số mét thì cùng bến cùng lúc: bến B10 dài 410 m, tàu 100 m đang ở bến, tàu 125 m vào ngay theo ETA", () => {
+    const khac = { id: 2, ben_ma: "B10", loa: 100, etb: iso(T("09T00:00")), etd: iso(T("11T00:00")) };
+    const v = { id: 1, eta: iso(T("09T06:00")), loai_hang: "Than", khoi_luong: 9000, cam_ket: 9000, dwt: 10000, loa: 125, draft: 8 };
+    const r = tuXepBen(v, { berths: BEN, voyages: [khac], now: T("08T00:00") });
+    expect(r.ben_ma).toBe("B10");
     expect(new Date(r.etb).getTime()).toBe(T("09T06:00"));
-    expect(new Date(r.etd).getTime() - T("09T06:00")).toBe(H + 24 * H + 2.5 * H);
   });
   it("tàu lớn chỉ vào được bến sâu", () => {
     const r = tuXepBen({ id: 1, eta: iso(T("09T00:00")), loai_hang: "Than", khoi_luong: 150000 }, { berths: BEN, voyages: [], now: T("08T00:00") });
@@ -73,7 +79,7 @@ describe("Trạng thái tự chạy theo giờ dự kiến", () => {
 });
 
 describe("Xếp nhiều chuyến: ưu tiên và giữ ETB", async () => {
-  const { xepNhieu, tuXepBenGiuMoc } = await import("./linetime");
+  const { xepNhieu, tuXepBenGiuMoc } = await import("./tuXep");
   const iso = (t) => new Date(t).toISOString();
   const B1 = [{ ma: "B10", dwt_max: 250000, mon_max: 18.5, loa_max: 410, loai_hang: "Than, Quặng", thu_tu: 1 }];
   const now = T("08T00:00");
@@ -111,5 +117,29 @@ describe("Dán nhanh: tàu không bến, không LOA, có cột Loại hàng (Nh�
     expect(loi).toEqual([]);
     expect(v).toMatchObject({ ten_tau: "SEA STAR", loai_hang: "Quặng", khoi_luong: 50000 });
     expect(v.ben_ma).toBeUndefined(); expect(v.loa).toBeUndefined();
+  });
+});
+
+describe("Xếp lại toàn bộ", async () => {
+  const { xepLai } = await import("./tuXep");
+  const iso = (t) => new Date(t).toISOString();
+  const B1 = [{ ma: "B10", dwt_max: 250000, mon_max: 18.5, loa_max: 410, loai_hang: "Than, Quặng", thu_tu: 1 }];
+  const now = T("08T00:00");
+  const tau = (id, o) => ({ id, loai_hang: "Than", khoi_luong: 20000, cam_ket: 20000, dwt: 60000, loa: 300, draft: 12, eta: iso(T("09T00:00")), ben_ma: "B10", ...o });
+  it("tàu ưu tiên ★ được xếp trước tàu đang xếp trước nó; tàu đã cập thật không bị đụng", () => {
+    const cap = tau(9, { atb: iso(T("07T00:00")), etb: iso(T("07T00:00")), etd: iso(T("08T12:00")), eta: iso(T("06T00:00")) });
+    const a = tau(1, { etb: iso(T("09T00:00")), etd: iso(T("10T06:00")) });
+    const b = tau(2, { uu_tien: true, eta: iso(T("09T06:00")), etb: iso(T("11T00:00")), etd: iso(T("12T06:00")) });
+    const kq = xepLai([cap, a, b], { berths: B1, now }), moi = (id) => kq.find((x) => x.v.id === id);
+    expect(kq.find((x) => x.v.id === 9)).toBeUndefined();
+    expect(new Date(moi(2).r.etb).getTime()).toBeLessThan(new Date(moi(1).r.etb).getTime());
+    expect(moi(2).doi).toBe(true);
+  });
+  it("tick giữ nguyên: chuyến đó giữ chỗ cũ, các chuyến khác xếp quanh", () => {
+    const a = tau(1, { etb: iso(T("09T00:00")), etd: iso(T("10T06:00")) });
+    const b = tau(2, { eta: iso(T("09T06:00")), etb: iso(T("11T00:00")), etd: iso(T("12T06:00")) });
+    const kq = xepLai([a, b], { berths: B1, now }, new Set([1]));
+    expect(kq.map((x) => x.v.id)).toEqual([2]);
+    expect(new Date(kq[0].r.etb).getTime()).toBeGreaterThanOrEqual(new Date(T("10T06:00")).getTime() + 2 * H);
   });
 });

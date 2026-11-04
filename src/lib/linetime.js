@@ -1,6 +1,6 @@
 // Linetime chuyến tàu: 7 mốc thực tế, trạng thái, các chỉ số tự tính.
 import { ms, HOUR } from "./format";
-import { mocDuKien, thoiGianOBen, CACH_TAU_TRUOC, xepBenTuDong } from "./xepBen";
+import { mocDuKien, thoiGianOBen, uocThongSo, CACH_TAU_TRUOC } from "./xepBen";
 
 // Các mốc thực tế theo thứ tự. Mốc 1 là ETA báo về.
 export const MOC = [
@@ -199,6 +199,8 @@ export function etbGoiY(v, { voyages = [], stopsOf = () => [], now = Date.now(),
   const ben = new Set([v.ben_ma, v.ben_phu].filter(Boolean));
   if (!ben.size) return eta;
   const dai = thoiGianO(v, ctx), khac = [];
+  // Có ctx.etbSom (capBen.etbSomNhatMet): chia sẻ bến theo số mét; không thì coi bến là một chỗ
+  if (ctx.etbSom) return ctx.etbSom({ ...v, loa: +v.loa > 0 ? v.loa : uocThongSo(v).loa }, v.ben_ma, eta, dai, { voyages, stopsOf, now, cach, ...ctx });
   for (const o of voyages) {
     if (o.id === v.id || o.huy || o.atd) continue;
     for (const d of doanBen(o, stopsOf(o.id) || [], now)) if ((d.ben && ben.has(d.ben)) || (d.phu && ben.has(d.phu))) khac.push([d.a, d.b]);
@@ -222,33 +224,5 @@ export function rangBuocEtb(v, patch = {}, ctx = {}) {
   const moi = etbGoiY(m, ctx), out = { ...patch, etb: isoGio(moi) };
   if (etd != null && etb != null) out.etd = isoGio(moi + Math.max(etd - etb, HOUR));
   else if (etd == null || etd <= moi) out.etd = isoGio(moi + thoiGianO({ ...m, etb: null, etd: null }, ctx));
-  return out;
-}
-
-// Tự xếp bến cho chuyến chưa có bến (xem xepBenTuDong trong xepBen.js). ctx: { berths, voyages, stopsOf, now, cranes, dinhMuc }
-export const tuXepBen = (v, ctx) => xepBenTuDong(v, { ...ctx, doanBen });
-// Chuyến cần web tự xếp bến: chưa cập thật, chưa có bến (có ETB / ETD thì giữ nếu bến trống đúng giờ đó)
-export const canXepBen = (v) => !v.huy && !v.atb && !v.ben_ma;
-export const canTuXep = (v) => canXepBen(v) && !v.etb && !v.etd;
-// Như tuXepBen nhưng giữ ETB / ETD người dùng đã nhập khi bến chọn được trống đúng giờ ETB đó; bến bận thì dời theo nguyên tắc
-export function tuXepBenGiuMoc(v, ctx) {
-  const eta = ms(v.eta), etb = ms(v.etb), tu = etb != null && (eta == null || etb >= eta) ? v.etb : v.eta;
-  const r = tuXepBen({ ...v, eta: tu, etb: null, etd: null }, ctx);
-  if (!r) return null;
-  if (etb != null && ms(r.etb) === ms(tu)) return { ...r, etb: v.etb, etd: ms(v.etd) > etb ? v.etd : r.etd };
-  return r;
-}
-
-// Thứ tự ưu tiên khi xếp nhiều chuyến cùng lúc: tàu ưu tiên (★) trước; rồi tàu đã chờ lâu hơn (từ NOR, chưa có NOR thì từ ETA, tính đến hôm nay); rồi ETA sớm hơn.
-// Chuyến xếp trước tính là đã chiếm bến cho chuyến sau (ETA đến sau thì xếp lót sau). Trả [{ v, r }] (r = null: không bến nào hợp).
-export const doCho = (v, now) => { const t = ms(v.nor) ?? ms(v.eta); return t == null ? 0 : Math.max(0, now - t); };
-export function xepNhieu(ds, ctx) {
-  const now = ctx.now ?? Date.now(), daXep = [], out = [];
-  const thuTu = [...ds].sort((a, b) => (b.uu_tien ? 1 : 0) - (a.uu_tien ? 1 : 0) || doCho(b, now) - doCho(a, now) || (ms(a.eta) ?? 0) - (ms(b.eta) ?? 0));
-  for (const v of thuTu) {
-    const r = tuXepBenGiuMoc(v, { ...ctx, voyages: [...ctx.voyages.filter((o) => !daXep.some((x) => x.id === o.id)), ...daXep] });
-    if (r) daXep.push({ ...v, ben_ma: r.ben_ma, etb: r.etb, etd: r.etd, id: v.id ?? `moi${out.length}` });
-    out.push({ v, r });
-  }
   return out;
 }
