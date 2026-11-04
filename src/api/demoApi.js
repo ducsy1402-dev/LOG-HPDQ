@@ -25,6 +25,8 @@ export function makeDemoApi() {
   db.traHang = db.traHang || [];
   db.nextId.t = db.nextId.t || 0;
   db.tonPhanLoai = db.tonPhanLoai || [];
+  db.dmBang = db.dmBang || [];
+  db.nextId.dm = db.dmBang.length;
   db.nextId.pl = db.tonPhanLoai.length;
   const role = DEMO_ROLE;
   const can = (r) => { if (BAC[role] < BAC[r]) throw new Error(`Chế độ demo đang thử vai trò "${role}": không đủ quyền thao tác này`); };
@@ -53,7 +55,7 @@ export function makeDemoApi() {
       return clone({
         berths: db.berths, vessels: db.vessels, agents: db.agents, khoBai: db.khoBai,
         voyages: db.voyages, stops: db.stops, tien: [],
-        plans: [], khoTon: tonKho(db.giaoDich), khoLo: db.khoLo, giaoDich: db.giaoDich, dmCot: db.dmCot, coSql19: true, coSql24: true, coSql25: true, coSql26: true, coSql28: true, traHang: db.traHang, mucTieu: db.mucTieu, khoKeHoach: db.khoKeHoach,
+        plans: [], khoTon: tonKho(db.giaoDich), khoLo: db.khoLo, giaoDich: db.giaoDich, dmCot: db.dmCot, coSql19: true, coSql24: true, coSql25: true, coSql26: true, coSql28: true, traHang: db.traHang, mucTieu: db.mucTieu, khoKeHoach: db.khoKeHoach, dmBang: db.dmBang,
       });
     },
     // Kho
@@ -140,6 +142,15 @@ export function makeDemoApi() {
       for (const r of them) db.khoKeHoach.push({ ...clone(r), id: ++db.nextId.k, created_at: new Date().toISOString() });
       db.khoKeHoach.sort((a, b) => a.thang.localeCompare(b.thang) || a.id - b.id);
     },
+    // Danh mục phụ (SQL 08)
+    async saveDmBang(bang, rows) {
+      can("quan_tri"); await wait();
+      for (const { id, ...data } of rows) {
+        const cu = id != null && db.dmBang.find((x) => x.id === id);
+        if (cu) cu.data = clone(data); else db.dmBang.push({ id: ++db.nextId.dm, bang, data: clone(data), thu_tu: 100000 + db.nextId.dm });
+      }
+    },
+    async deleteDmBang(ids) { can("quan_tri"); await wait(); const bo = new Set(ids); db.dmBang = db.dmBang.filter((x) => !bo.has(x.id)); },
     // Phân loại tồn kho (SQL 07): dữ liệu mẫu trong bộ nhớ
     async loadTonPhanLoai() { await wait(60); return clone(db.tonPhanLoai); },
     async addTonPhanLoai(rows) { can("nhap"); await wait(); for (const r of rows) db.tonPhanLoai.push({ ...clone(r), id: ++db.nextId.pl, created_at: new Date().toISOString() }); },

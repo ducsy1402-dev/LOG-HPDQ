@@ -13,8 +13,8 @@ export const CANG = [
   { ma: "cth", ten: "Cảng Tổng hợp Hòa Phát", tenNgan: "CTH", tieuDe: "KẾ HOẠCH ĐIỀU ĐỘNG TÀU CẬP, RỜI CẢNG", congTy: ["CÔNG TY CỔ PHẦN", "CẢNG TỔNG HỢP HÒA PHÁT"], logo: true, ngayDuoiTieuDe: true, ky: "cth" },
 ];
 export const cangCuaBen = (ma) => (!ma ? null : /^HH/i.test(ma) ? "hh" : /CTH$/i.test(ma) ? "cth" : "hpdq");
-// Nhãn bến như trên phiếu: bến 1A là bến tàu lai (TL); bến 6CTH, 7CTH ghi 6, 7
-export const nhanBenIn = (ma, cang) => (!ma ? "" : ma === "1A" ? "TL" : cang === "cth" ? String(ma).replace(/CTH$/i, "") : String(ma));
+// Nhãn bến như trên phiếu: bến tàu lai ghi TL; B01…B11 ghi 1…11; bến 6CTH, 7CTH ghi 6, 7
+export const nhanBenIn = (ma, cang) => (!ma ? "" : ma === "1A" ? "TL" : /^B\d+$/i.test(ma) ? String(+String(ma).slice(1)) : cang === "cth" ? String(ma).replace(/CTH$/i, "") : String(ma));
 // Tàu cập hai bến (bến phụ) ghi như mẫu: 7/8, 3/5, HH2/3
 const nhanIn = (ma, phu, cang) => (!ma ? "" : noiHaiBen(ma, phu, (x) => nhanBenIn(x, cang)));
 

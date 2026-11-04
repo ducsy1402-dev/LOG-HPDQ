@@ -1,0 +1,469 @@
+{
+ "tb_gan": {
+  "ten": "Thiết bị gắn",
+  "nhom": "thiet_bi",
+  "sheet": "danh sách thiết bị gắn",
+  "cot": [
+   [
+    "ten",
+    "Tên",
+    "text"
+   ],
+   [
+    "ma",
+    "Mã",
+    "text"
+   ],
+   [
+    "trong_luong",
+    "Trọng lượng (tấn)",
+    "so"
+   ],
+   [
+    "kich_thuoc",
+    "Kích thước (mm)",
+    "text"
+   ],
+   [
+    "dung_cho",
+    "Dùng cho",
+    "text"
+   ],
+   [
+    "thong_so",
+    "Thông số (Thể tích; Sức hút; Lực đập)",
+    "so"
+   ],
+   [
+    "don_vi",
+    "Đơn vị",
+    "text"
+   ],
+   [
+    "tinh_trang",
+    "Tình trạng",
+    "text"
+   ],
+   [
+    "ghi_chu",
+    "Ghi chú",
+    "text"
+   ]
+  ]
+ },
+ "cau_ts": {
+  "ten": "Thông số cẩu cảng",
+  "nhom": "thiet_bi",
+  "sheet": "thông số cẩu cảng",
+  "cot": [
+   [
+    "loai",
+    "Loại",
+    "text"
+   ],
+   [
+    "tai_trong",
+    "Tải trọng (tấn)",
+    "so"
+   ],
+   [
+    "tam_voi",
+    "Tầm với (mét)",
+    "so"
+   ],
+   [
+    "thoi_gian_1_chu_ky_lam_viec",
+    "Thời gian 1 chu kỳ làm việc (giây)",
+    "so"
+   ]
+  ]
+ },
+ "cau_dm": {
+  "ten": "Định mức cẩu cảng",
+  "nhom": "thiet_bi",
+  "sheet": "định mức cẩu cảng",
+  "cot": [
+   [
+    "loai",
+    "Loại",
+    "text"
+   ],
+   [
+    "hang_hoa",
+    "Hàng hóa",
+    "text"
+   ],
+   [
+    "tan_gio",
+    "Tấn/ giờ",
+    "so"
+   ]
+  ]
+ },
+ "ts_xuc_dao": {
+  "ten": "Xe xúc đào",
+  "nhom": "ts_xe",
+  "sheet": "thông số xe xúc đào",
+  "cot": [
+   [
+    "model",
+    "Model",
+    "text"
+   ],
+   [
+    "loai_xe",
+    "Loại xe",
+    "text"
+   ],
+   [
+    "the_tich_gau",
+    "Thể tích gầu",
+    "text"
+   ],
+   [
+    "toc_do_quay_toa",
+    "Tốc độ quay toa",
+    "text"
+   ],
+   [
+    "thoi_gian_1_chu_ky_lam_viec",
+    "Thời gian 1 chu kỳ làm việc",
+    "text"
+   ],
+   [
+    "chieu_do_hang",
+    "Chiều đổ hàng",
+    "text"
+   ],
+   [
+    "chieu_cao_dao",
+    "Chiều cao đào",
+    "text"
+   ],
+   [
+    "chieu_sau_dao",
+    "Chiều sâu đào",
+    "text"
+   ],
+   [
+    "kich_thuoc_tong_the",
+    "Kích thước tổng thể",
+    "text"
+   ],
+   [
+    "trong_luong_xe",
+    "Trọng lượng xe",
+    "text"
+   ],
+   [
+    "pham_vi_lam_viec",
+    "Phạm vi làm việc",
+    "text"
+   ]
+  ]
+ },
+ "ts_xuc_lat": {
+  "ten": "Xe xúc lật",
+  "nhom": "ts_xe",
+  "sheet": "thông số xe xúc lật",
+  "cot": [
+   [
+    "model",
+    "Model",
+    "text"
+   ],
+   [
+    "loai_xe",
+    "Loại xe",
+    "text"
+   ],
+   [
+    "the_tich_gau",
+    "Thể tích gầu",
+    "text"
+   ],
+   [
+    "luc_day",
+    "Lực đẩy",
+    "text"
+   ],
+   [
+    "suc_nang",
+    "Sức nâng",
+    "text"
+   ],
+   [
+    "chieu_do_hang",
+    "Chiều đổ hàng",
+    "text"
+   ],
+   [
+    "kich_thuoc_tong_the",
+    "Kích thước tổng thể",
+    "text"
+   ],
+   [
+    "trong_luong_xe",
+    "Trọng lượng xe",
+    "text"
+   ],
+   [
+    "pham_vi_lam_viec",
+    "Phạm vi làm việc",
+    "text"
+   ],
+   [
+    "thoi_gian_1_chu_ky_lam_viec",
+    "Thời gian 1 chu kỳ làm việc",
+    "text"
+   ]
+  ]
+ },
+ "ts_xe_nang": {
+  "ten": "Xe nâng",
+  "nhom": "ts_xe",
+  "sheet": "thông số xe nâng",
+  "cot": [
+   [
+    "model",
+    "Model",
+    "text"
+   ],
+   [
+    "loai_xe",
+    "Loại xe",
+    "text"
+   ],
+   [
+    "suc_nang",
+    "Sức nâng",
+    "text"
+   ],
+   [
+    "chieu_cao_nang",
+    "Chiều cao nâng",
+    "text"
+   ],
+   [
+    "kich_thuoc_tong_the",
+    "Kích thước tổng thể",
+    "text"
+   ],
+   [
+    "trong_luong_xe",
+    "Trọng lượng xe",
+    "text"
+   ],
+   [
+    "chieu_dai_cang_nang",
+    "Chiều dài Càng nâng",
+    "text"
+   ],
+   [
+    "chieu_rong_cang_nang",
+    "Chiều rộng Càng nâng",
+    "text"
+   ],
+   [
+    "pham_vi_lam_viec",
+    "Phạm vi làm việc",
+    "text"
+   ],
+   [
+    "thoi_gian_1_chu_ky_lam_viec",
+    "Thời gian 1 chu kỳ làm việc",
+    "text"
+   ]
+  ]
+ },
+ "ts_xe_ben": {
+  "ten": "Xe ben",
+  "nhom": "ts_xe",
+  "sheet": "thông số xe ben",
+  "cot": [
+   [
+    "model",
+    "Model",
+    "text"
+   ],
+   [
+    "the_tich_thung_hang",
+    "Thể tích thùng hàng",
+    "text"
+   ],
+   [
+    "tai_trong_cho_hang",
+    "Tải trọng chở hàng",
+    "text"
+   ],
+   [
+    "kich_thuoc_tong_the",
+    "Kích thước tổng thể",
+    "text"
+   ],
+   [
+    "trong_luong_xe",
+    "Trọng lượng xe",
+    "text"
+   ],
+   [
+    "pham_vi_lam_viec",
+    "Phạm vi làm việc",
+    "text"
+   ]
+  ]
+ },
+ "ts_dau_keo": {
+  "ten": "Xe đầu kéo",
+  "nhom": "ts_xe",
+  "sheet": "thông số xe đầu kéo",
+  "cot": [
+   [
+    "model",
+    "Model",
+    "text"
+   ],
+   [
+    "tai_trong_cho_hang",
+    "Tải trọng chở hàng",
+    "text"
+   ],
+   [
+    "kich_thuoc_tong_the",
+    "Kích thước tổng thể",
+    "text"
+   ],
+   [
+    "trong_luong_xe",
+    "Trọng lượng xe",
+    "text"
+   ],
+   [
+    "pham_vi_lam_viec",
+    "Phạm vi làm việc",
+    "text"
+   ]
+  ]
+ },
+ "ts_xe_bon": {
+  "ten": "Xe bồn bụi + bồn nước",
+  "nhom": "ts_xe",
+  "sheet": "thông số xe bồn bụi + bồn nước",
+  "cot": [
+   [
+    "model",
+    "Model",
+    "text"
+   ],
+   [
+    "the_tich_bon_chua",
+    "Thể tích bồn chứa",
+    "text"
+   ],
+   [
+    "tai_trong_cho_hang",
+    "Tải trọng chở hàng",
+    "text"
+   ],
+   [
+    "toc_do_hut",
+    "Tốc độ hút",
+    "text"
+   ],
+   [
+    "toc_do_day",
+    "Tốc độ đẩy",
+    "text"
+   ],
+   [
+    "kich_thuoc_tong_the",
+    "Kích thước tổng thể",
+    "text"
+   ],
+   [
+    "trong_luong_xe",
+    "Trọng lượng xe",
+    "text"
+   ],
+   [
+    "pham_vi_lam_viec",
+    "Phạm vi làm việc",
+    "text"
+   ]
+  ]
+ },
+ "ts_hooklift": {
+  "ten": "Xe hooklift",
+  "nhom": "ts_xe",
+  "sheet": "Thông số xe hooklift",
+  "cot": [
+   [
+    "model",
+    "Model",
+    "text"
+   ],
+   [
+    "the_tich_thung_hang",
+    "Thể tích thùng hàng",
+    "text"
+   ],
+   [
+    "tai_trong_cho_hang",
+    "Tải trọng chở hàng",
+    "text"
+   ],
+   [
+    "suc_nang",
+    "Sức nâng",
+    "text"
+   ],
+   [
+    "thoi_gian_1_chu_ky_nang_ha",
+    "Thời gian 1 chu kỳ nâng hạ (giây)",
+    "text"
+   ],
+   [
+    "kich_thuoc_tong_the",
+    "Kích thước tổng thể",
+    "text"
+   ],
+   [
+    "trong_luong_xe",
+    "Trọng lượng xe",
+    "text"
+   ],
+   [
+    "pham_vi_lam_viec",
+    "Phạm vi làm việc",
+    "text"
+   ]
+  ]
+ },
+ "bai_lon": {
+  "ten": "Khai báo kho / bãi",
+  "nhom": "kho",
+  "sheet": "khai báo thông tin kho-bãi",
+  "cot": [
+   [
+    "ten_kho_bai",
+    "Tên kho/bãi",
+    "text"
+   ],
+   [
+    "dien_tich",
+    "Diện tích (m2)",
+    "so"
+   ],
+   [
+    "pham_vi_khu_vuc",
+    "Phạm vi/Khu vực",
+    "text"
+   ],
+   [
+    "loai_kho_bai",
+    "Loại kho/bãi",
+    "text"
+   ]
+  ]
+ }
+}

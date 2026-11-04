@@ -15,12 +15,14 @@ const loadXLSX = () => import("xlsx");
 // Mỗi cột: khóa trong CSDL, các tên tiêu đề chấp nhận (không dấu, không phân biệt hoa thường)
 export const VEHICLE_COLS = [
   { key: "ma", label: "Mã xe", alias: ["ma", "ma xe", "ma_xe", "bien so", "so hieu"], required: true },
-  { key: "doi", label: "Đội xe", alias: ["doi", "doi xe", "dong xe", "loai xe"] },
+  { key: "doi", label: "Đội xe", alias: ["doi", "doi xe", "dong xe", "loai xe", "ten xe"] },
   { key: "model", label: "Model", alias: ["model", "mau xe", "kieu xe"] },
   { key: "to_xe", label: "Tổ", alias: ["to", "to xe", "to_xe", "khu vuc"] },
   { key: "che_do", label: "Chế độ", alias: ["che do", "che_do", "ca", "che do lam viec"] },
   { key: "tai_trong", label: "Tải trọng", alias: ["tai trong", "tai_trong", "suc nang"] },
   { key: "thiet_bi_gan", label: "Thiết bị gắn", alias: ["thiet bi gan", "thiet_bi_gan", "tb gan", "thiet bi"] },
+  { key: "xuong", label: "Xưởng", alias: ["xuong", "xuong quan ly"] },
+  { key: "he_so", label: "Hệ số làm việc", alias: ["he so", "he so lam viec", "he_so"] },
   { key: "ghi_chu", label: "Ghi chú", alias: ["ghi chu", "ghi_chu"] },
 ];
 export const STAFF_COLS = [
@@ -68,6 +70,7 @@ export function prepareVehicles(table, D) {
   if (missing.length) throw new Error("Thiếu cột bắt buộc: " + missing.join(", "));
   const tienTo = D.meta.tienTo?.XN ? D.meta.tienTo : DEFAULT_TIEN_TO;
   const rows = [], errors = [], seen = new Set();
+  const coXuong = D.vehicles.some((v) => "xuong" in v);
   table.body.forEach((r, i) => {
     const line = r.line || i + 2;
     const get = (k) => (idx[k] == null ? null : clean(r[idx[k]]));
@@ -84,6 +87,8 @@ export function prepareVehicles(table, D) {
     if (!che_do) return errors.push(`Dòng ${line}: chế độ "${get("che_do")}" không hợp lệ (Đi ca / HC)`);
     const rec = { ma, doi, che_do };
     for (const k of ["model", "to_xe", "ghi_chu"]) rec[k] = idx[k] == null ? (old?.[k] ?? null) : get(k);
+    // Xưởng, hệ số làm việc (SQL 08): chỉ ghi khi CSDL đã có cột
+    if (coXuong) { rec.xuong = idx.xuong == null ? (old?.xuong ?? null) : get("xuong"); const hs = idx.he_so == null ? old?.he_so : Number(String(get("he_so") ?? "").replace(",", ".")); rec.he_so = Number.isFinite(hs) && get("he_so") !== "" ? hs : old?.he_so ?? null; }
     // Tải trọng: chỉ xe nâng; lấy từ cột tai_trong, nếu trống thì lấy khi tên model GHI RÕ (VD "Xe nâng 5T")
     if (doi === "Xe nâng") {
       let tt = (get("tai_trong") || "").toUpperCase().replace(/\s+/g, "").replace(/TẤN$/, "T") || old?.tai_trong || taiTrongTuModel(rec.model);
@@ -101,7 +106,7 @@ export function prepareVehicles(table, D) {
     } else rec.thiet_bi_gan = null;
     rows.push(rec);
   });
-  return withDiff(rows, errors, D.vmap, ["doi", "model", "to_xe", "che_do", "tai_trong", "thiet_bi_gan", "ghi_chu"]);
+  return withDiff(rows, errors, D.vmap, ["doi", "model", "to_xe", "che_do", "tai_trong", "thiet_bi_gan", "xuong", "he_so", "ghi_chu"]);
 }
 
 export function prepareStaff(table, D) {
@@ -147,7 +152,7 @@ export async function downloadTemplate(kind, D) {
   const XLSX = await loadXLSX();
   const wb = XLSX.utils.book_new();
   if (kind === "vehicles") {
-    const rows = D.vehicles.length ? D.vehicles.map((v) => ({ ma: v.ma, doi: v.doi, model: v.model, to_xe: v.to_xe, che_do: v.che_do, tai_trong: v.tai_trong || "", ghi_chu: v.ghi_chu || "" }))
+    const rows = D.vehicles.length ? D.vehicles.map((v) => ({ ma: v.ma, doi: v.doi, model: v.model, to_xe: v.to_xe, che_do: v.che_do, tai_trong: v.tai_trong || "", xuong: v.xuong || "", he_so: v.he_so ?? "", ghi_chu: v.ghi_chu || "" }))
       : [{ ma: "XL-VT01", doi: "Xúc lật", model: "Xe xúc lật LiuGong ZL50CN", to_xe: "Tổ PVC", che_do: "Đi ca", ghi_chu: "" }];
     XLSX.utils.book_append_sheet(wb, sheet(XLSX, rows, [12, 12, 34, 18, 9, 10, 24]), "Danh muc xe");
   } else {

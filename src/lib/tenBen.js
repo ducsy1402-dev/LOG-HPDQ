@@ -1,5 +1,5 @@
-// Tên bến hiển thị như màn hình phần mềm tàu: B01…B11, BTL (bến 1A Tàu Lai), HH2, HH3, 6CTH, 7CTH
-export const tenBen = (ma) => (ma == null ? "" : /^\d+$/.test(ma) ? "B" + String(ma).padStart(2, "0") : ma === "1A" ? "BTL" : ma);
+// Tên bến hiển thị: đúng mã bến (TL, B01…B11, HH2, HH3, 6CTH, 7CTH); mã cũ 1…11, 1A (trước SQL 08) đổi sang B01…, TL
+export const tenBen = (ma) => (ma == null ? "" : /^\d+$/.test(ma) ? "B" + String(ma).padStart(2, "0") : ma === "1A" ? "TL" : ma);
 
 // Thứ tự bến dọc tuyến (Danh mục › Cầu bến, cột thứ tự): để ghi tàu cập hai bến theo đúng chiều tuyến, VD "B07/08" chứ không "B08/07".
 // store gọi datThuTuBen mỗi lần tải danh mục bến.

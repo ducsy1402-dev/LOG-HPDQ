@@ -72,7 +72,7 @@ export function makeSupabaseApi() {
         return { ...c, plans, coSql19, coSql24, coSql25, coSql26, coSql28 };
       }
       const tuNgay = new Date(Date.now() - 35 * 864e5).toISOString().slice(0, 10);
-      const [[berths, vessels, agents, khoBai], c, plans, khoTon, khoLo, giaoDich, dmCot, mucTieu, khoKeHoach, [coSql19, coSql24, coSql25, coSql26, coSql28]] = await Promise.all([
+      const [[berths, vessels, agents, khoBai], c, plans, khoTon, khoLo, giaoDich, dmCot, mucTieu, khoKeHoach, dmBang, [coSql19, coSql24, coSql25, coSql26, coSql28]] = await Promise.all([
         Promise.all([
           sb.from("berths").select("*").order("thu_tu").then(ok),
           fetchAll(() => sb.from("vessels").select("*").order("ten")),
@@ -89,9 +89,11 @@ export function makeSupabaseApi() {
         thu(sb.from("muc_tieu_san_luong").select("*").order("thang").range(0, 9999)),
         // Kế hoạch xuất / nhập tồn kho theo tháng và bãi nhỏ (SQL 27). Chưa chạy SQL 27 thì null: tab Kế hoạch báo cần chạy SQL.
         thu(sb.from("kho_ke_hoach").select("*").order("thang").order("id").range(0, 9999)),
+        // Danh mục phụ: thiết bị gắn, thông số / định mức cẩu, thông số xe, khai báo kho / bãi (SQL 08). Chưa chạy SQL 08 thì null.
+        thu(sb.from("danh_muc_bang").select("*").order("bang").order("thu_tu").order("id").range(0, 9999)),
         coP,
       ]);
-      return { berths, vessels, agents, khoBai, ...c, plans, khoTon, khoLo, giaoDich, dmCot, coSql19, coSql24, coSql25, coSql26, coSql28, mucTieu, khoKeHoach };
+      return { berths, vessels, agents, khoBai, ...c, plans, khoTon, khoLo, giaoDich, dmCot, coSql19, coSql24, coSql25, coSql26, coSql28, mucTieu, khoKeHoach, dmBang };
     },
     loadEvents: async (voyageId) => ok(await sb.from("voyage_events").select("*").eq("voyage_id", voyageId).order("thoi_diem")),
     loadEventsMany: async (ids) => theoVoyage(sb, "voyage_events", ids),
@@ -147,6 +149,13 @@ export function makeSupabaseApi() {
       for (const c of chunk(them, 300)) ok(await sb.from("kho_ke_hoach").insert(c));
       for (const { id, ...r } of sua) ok(await sb.from("kho_ke_hoach").update({ ...r, updated_at: now() }).eq("id", id));
     },
+    // Danh mục phụ (SQL 08): mỗi dòng { id, bang, data, thu_tu }. rows: [{ id?, ...giá trị cột }]
+    async saveDmBang(bang, rows) {
+      const cu = rows.filter((r) => r.id != null), moi = rows.filter((r) => r.id == null);
+      for (const { id, ...data } of cu) ok(await sb.from("danh_muc_bang").update({ data, updated_at: now() }).eq("id", id));
+      if (moi.length) ok(await sb.from("danh_muc_bang").insert(moi.map(({ id, ...data }, i) => ({ bang, data, thu_tu: 100000 + i }))));
+    },
+    deleteDmBang: async (ids) => ok(await sb.from("danh_muc_bang").delete().in("id", ids)),
     // Phân loại tồn kho: cần giải phóng / đầu cơ (SQL 07). null = chưa chạy SQL 07
     async loadTonPhanLoai() { const r = await sb.from("kho_ton_phan_loai").select("*").order("ngay").order("id").range(0, 9999); return r.error ? null : r.data; },
     async addTonPhanLoai(rows) { ok(await sb.from("kho_ton_phan_loai").insert(rows)); },

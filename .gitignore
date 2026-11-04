@@ -9,5 +9,6 @@ Thumbs.db
 .DS_Store
 *.log
 .vscode/
-# File dữ liệu nguồn của anh Sỹ (sinh ra src/data/danhMuc.json và sql/02 bằng npm run danh-muc)
+# File dữ liệu nguồn của anh Sỹ (sinh ra src/data/danhMuc.json, dmBang.json và sql/08 bằng npm run danh-muc)
 Danh mục.xlsx
+Danh_muc_tong_hop.xlsx

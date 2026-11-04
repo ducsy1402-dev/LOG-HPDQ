@@ -113,11 +113,13 @@ export function VehicleForm({ v, onClose }) {
   const isNew = !v;
   const [f, setF] = useState(() => v ? { ...v, tai_trong: v.tai_trong || "", thiet_bi_gan: v.thiet_bi_gan || "" } : { ma: "", doi: D.doiList[0], model: "", to_xe: "", che_do: "Đi ca", tai_trong: "", thiet_bi_gan: "", ghi_chu: "" });
   const laXeNang = f.doi === "Xe nâng";
+  const coXuong = D.vehicles.some((x) => "xuong" in x); // SQL 08: xưởng, hệ số làm việc
   const laXucDao = f.doi === "Xúc đào";
   const set = (k) => (x) => setF((o) => ({ ...o, [k]: x?.target ? x.target.value : x }));
   const models = [...new Set([...D.vehicles.map((x) => x.model), ...D.specs.map((s) => s.model)].filter(Boolean))].sort();
   const save = async () => {
     const rec = { ma: f.ma.trim().toUpperCase(), doi: f.doi, model: f.model?.trim() || null, to_xe: f.to_xe?.replace(/\s+/g, " ").trim() || null, che_do: f.che_do, tai_trong: laXeNang ? f.tai_trong || null : null, thiet_bi_gan: laXucDao ? f.thiet_bi_gan || null : null, ghi_chu: f.ghi_chu?.trim() || null };
+    if (coXuong) { rec.xuong = String(f.xuong ?? "").trim() || null; const hs = Number(String(f.he_so ?? "").replace(",", ".")); rec.he_so = String(f.he_so ?? "").trim() !== "" && Number.isFinite(hs) ? hs : null; }
     if (laXeNang && !rec.tai_trong) return alert("Xe nâng phải chọn tải trọng");
     if (!/^[A-ZĐ0-9][A-ZĐ0-9\-_.]*$/.test(rec.ma)) return alert("Mã xe chỉ gồm chữ, số, dấu gạch");
     if (isNew && D.vmap[rec.ma]) return alert(`Mã ${rec.ma} đã có trong danh mục`);
@@ -134,6 +136,8 @@ export function VehicleForm({ v, onClose }) {
           <datalist id="dl-to">{D.toList.map((x) => <option key={x} value={x} />)}</datalist>
         </Field>
         <Field label="Chế độ"><Select value={f.che_do} onChange={set("che_do")} options={D.meta.cheDo || ["Đi ca", "HC"]} /></Field>
+        {coXuong && <Field label="Xưởng"><input className="inp" value={f.xuong || ""} onChange={set("xuong")} /></Field>}
+        {coXuong && <Field label="Hệ số làm việc"><input className="inp num" inputMode="decimal" value={f.he_so ?? ""} onChange={set("he_so")} /></Field>}
         {laXeNang && <Field label="Tải trọng *"><Select value={f.tai_trong} onChange={set("tai_trong")} options={D.taiTrongList} blank="— chọn —" /></Field>}
         {laXucDao && <Field label="Thiết bị gắn"><Select value={f.thiet_bi_gan} onChange={set("thiet_bi_gan")} options={[...new Set([...D.thietBiGanList, f.thiet_bi_gan].filter(Boolean))]} blank="— chưa khai báo —" /></Field>}
         <Field label="Model" className="wide">

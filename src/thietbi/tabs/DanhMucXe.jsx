@@ -26,6 +26,7 @@ export default function DanhMucXe() {
   const coXeNang = has(doi, "Xe nâng") && D.vehicles.some((v) => v.doi === "Xe nâng");
   const coXucDao = has(doi, "Xúc đào") && D.vehicles.some((v) => v.doi === "Xúc đào");
   const c = useChonNhieu();
+  const coXuong = D.vehicles.some((v) => "xuong" in v); // SQL 08: xưởng, hệ số làm việc
   const keys = dm.map((v) => v.ma);
   return (
     <>
@@ -43,12 +44,12 @@ export default function DanhMucXe() {
           {isAdmin && <ThanhChon c={c} keys={keys} onXoa={(mas) => run(() => api.deleteVehicles(mas), `Đã xóa ${mas.length} xe`)} />}
           <div className="tw short">
             <table className="t">
-              <thead><tr>{isAdmin && <OTickTieuDe c={c} keys={keys} />}<th>Mã xe</th><th>Đội</th><th>Model</th><th>Tải trọng · TB gắn</th><th>Tổ</th><th>Chế độ</th><th>Tình trạng</th>{isAdmin && <th className="act"></th>}</tr></thead>
+              <thead><tr>{isAdmin && <OTickTieuDe c={c} keys={keys} />}<th>Mã xe</th><th>Đội</th><th>Model</th><th>Tải trọng · TB gắn</th><th>Tổ</th><th>Chế độ</th>{coXuong && <><th>Xưởng</th><th className="n">Hệ số</th></>}<th>Tình trạng</th>{isAdmin && <th className="act"></th>}</tr></thead>
               <tbody>{dm.map((v) => (
                 <tr key={v.ma}>
                   {isAdmin && <OTick c={c} k={v.ma} />}
                   <td><button className="ma" onClick={() => openVehicle(v.ma)}>{v.ma}</button></td>
-                  <td>{v.doi}</td><td>{v.model}</td><td>{D.taiTrongOf(v) ? <Badge tone={v.tai_trong ? "info" : "warn"} plain>{D.taiTrongOf(v)}</Badge> : D.thietBiGanOf(v) ? <Badge tone={v.thiet_bi_gan ? "accent" : ""} plain>{D.thietBiGanOf(v)}</Badge> : ""}</td><td>{shortTo(v.to_xe)}</td><td>{v.che_do}</td><td><StateBadge s={D.stateOf(v.ma)} /></td>
+                  <td>{v.doi}</td><td>{v.model}</td><td>{D.taiTrongOf(v) ? <Badge tone={v.tai_trong ? "info" : "warn"} plain>{D.taiTrongOf(v)}</Badge> : D.thietBiGanOf(v) ? <Badge tone={v.thiet_bi_gan ? "accent" : ""} plain>{D.thietBiGanOf(v)}</Badge> : ""}</td><td>{shortTo(v.to_xe)}</td><td>{v.che_do}</td>{coXuong && <><td>{v.xuong}</td><td className="n">{v.he_so ?? ""}</td></>}<td><StateBadge s={D.stateOf(v.ma)} /></td>
                   {isAdmin && <td className="act"><div className="row" style={{ gap: 4, flexWrap: "nowrap" }}>
                     <button className="btn sm" onClick={() => setSua(v)}><Pencil size={13} />Sửa</button>
                     <ConfirmButton onConfirm={() => run(() => api.deleteVehicle(v.ma), `Đã xóa ${v.ma}`)} title={`Xóa ${v.ma} khỏi danh mục`} />

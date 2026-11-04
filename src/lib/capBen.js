@@ -10,6 +10,7 @@
 import { doanBen } from "./linetime";
 import { plain } from "./format";
 import { noiHaiBen } from "./tenBen";
+import { VI_TRI_MAC_DINH } from "../data/danhMucGoc";
 
 // Cột theo chiều dài tàu: >300 | 201–300 | 151–200 | 100–150 | <100
 const cot = (L) => (L > 300 ? 0 : L > 200 ? 1 : L > 150 ? 2 : L >= 100 ? 3 : 4);
@@ -45,18 +46,8 @@ export function soMetCan(dsL, hinh = "thang", hinh2 = hinh) {
 }
 
 // ---------- Tuyến bến ----------
-// Bố trí mặc định: [tuyến, từ mét, đến mét, đầu góc vuông ("dau" = phía mét nhỏ, "cuoi" = phía mét lớn)]
-//   1A, 1, 2: ba bến song song, mỗi bến một tuyến 0–140 m. Mặt tây cầu cảng: 3 (0–200), 5 (200–500), 10 (500–910).
-//   Mặt đông: 4 (0–200, đầu mét 0 góc vuông với tuyến bến 7), 6 (200–500), 11 (500–910).
-//   Tuyến 7-8-9: 7 (0–180, đầu tây góc vuông với mặt đông), 8 (180–306,5), 9 (306,5–433). Hào Hưng: HH2 (0–242), HH3 (242–432).
-//   Cảng Tổng hợp: 6CTH (0–250), 7CTH (250–500).
-export const VI_TRI_MAC_DINH = {
-  "1A": ["1A", 0, 140], 1: ["1", 0, 140], 2: ["2", 0, 140],
-  3: ["3-5-10", 0, 200], 5: ["3-5-10", 200, 500], 10: ["3-5-10", 500, 910],
-  4: ["4-6-11", 0, 200, "dau"], 6: ["4-6-11", 200, 500], 11: ["4-6-11", 500, 910],
-  7: ["7-8-9", 0, 180, "dau"], 8: ["7-8-9", 180, 306.5], 9: ["7-8-9", 306.5, 433],
-  HH2: ["HH2-HH3", 0, 242], HH3: ["HH2-HH3", 242, 432], "6CTH": ["6CTH-7CTH", 0, 250], "7CTH": ["6CTH-7CTH", 250, 500],
-};
+// Bố trí mặc định (tuyến, mét từng bến, góc vuông): VI_TRI_MAC_DINH trong src/data/danhMucGoc.js
+export { VI_TRI_MAC_DINH };
 const gocCua = (x) => { const p = plain(x || ""); return p.startsWith("dau") ? "dau" : p.startsWith("cuoi") ? "cuoi" : null; };
 // Vị trí một bến: { tuyen, tu, den, goc } — theo Danh mục (cột tuyen, met_tu, met_den, goc_vuong), không có thì mặc định, không có nữa thì bến là một tuyến riêng 0 → chiều dài bến
 export function viTriBen(b) {

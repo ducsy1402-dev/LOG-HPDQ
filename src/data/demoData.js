@@ -26,34 +26,34 @@ export function demoData() {
 
   const voyages = [
     // Phiếu mẫu: tàu mới cập, chưa làm hàng; ETD 25/10 02:00 không khả thi với cam kết 15.000 t/ngày
-    V({ ma_chuyen: ma("MARINE HONESTY", 1), ten_tau: "MARINE HONESTY", dai_ly: "VOSA Quảng Ngãi", loai_hang: "Quặng", ten_hang: "Quặng sắt Úc", khoi_luong: 110680, da_lam: 0, ben_ma: "10", draft: 14.6, loa: 229, dwt: 81500, cam_ket: 15000,
+    V({ ma_chuyen: ma("MARINE HONESTY", 1), ten_tau: "MARINE HONESTY", dai_ly: "VOSA Quảng Ngãi", loai_hang: "Quặng", ten_hang: "Quặng sắt Úc", khoi_luong: 110680, da_lam: 0, ben_ma: "B10", draft: 14.6, loa: 229, dwt: 81500, cam_ket: 15000,
       eta: "19/10 16:00", nor: "19/10 19:36", atb: "22/10 09:15", etd: "25/10 02:00", cau: ["QC06", "QC07", "QC08"], bai_hang: "NL-A",
       xe_van_chuyen: [{ loai: "Xe ben", so: 10, don_vi: "hoa_phat" }, { loai: "Xe ben", so: 6, don_vi: "nha_thau" }], hot_vet: [{ loai: "Xúc đào", so: 2, don_vi: "hoa_phat" }], vun_hang: [{ loai: "Xúc lật", so: 2, don_vi: "hoa_phat" }] }),
     // Tiến độ vượt kế hoạch 101,35%
-    V({ ma_chuyen: ma("VIỆT THUẬN 1501", 3), ten_tau: "VIỆT THUẬN 1501", dai_ly: "Sao Biển", huong: "xuat", loai_hang: "Xỉ hạt", ten_hang: "Xỉ hạt lò cao", khoi_luong: 3000, da_lam: 3040.5, ben_ma: "4", draft: 5.6, loa: 79.8, dwt: 3150, cam_ket: 3000,
+    V({ ma_chuyen: ma("VIỆT THUẬN 1501", 3), ten_tau: "VIỆT THUẬN 1501", dai_ly: "Sao Biển", huong: "xuat", loai_hang: "Xỉ hạt", ten_hang: "Xỉ hạt lò cao", khoi_luong: 3000, da_lam: 3040.5, ben_ma: "B04", draft: 5.6, loa: 79.8, dwt: 3150, cam_ket: 3000,
       eta: "21/10 06:00", nor: "21/10 07:00", atb: "21/10 08:10", bd_lam_hang: "21/10 09:00", etd: "22/10 20:00", cau: ["SLD bến 4"] }),
-    V({ ma_chuyen: ma("PACIFIC GLORY", 1), ten_tau: "PACIFIC GLORY", dai_ly: "Inlaco Sài Gòn", loai_hang: "Than", ten_hang: "Than cốc", khoi_luong: 75000, da_lam: 31200, ben_ma: "5", draft: 13.8, loa: 225, dwt: 76000, cam_ket: 20000,
+    V({ ma_chuyen: ma("PACIFIC GLORY", 1), ten_tau: "PACIFIC GLORY", dai_ly: "Inlaco Sài Gòn", loai_hang: "Than", ten_hang: "Than cốc", khoi_luong: 75000, da_lam: 31200, ben_ma: "B05", draft: 13.8, loa: 225, dwt: 76000, cam_ket: 20000,
       eta: "19/10 12:00", nor: "19/10 15:20", atb: "20/10 06:00", bd_lam_hang: "20/10 08:00", etd: "24/10 18:00", cau: ["SC02", "QC10"], bai_hang: "NL-B",
       xe_van_chuyen: [{ loai: "Xe ben", so: 12, don_vi: "hoa_phat" }], hot_vet: [{ loai: "Xúc đào", so: 1, don_vi: "hoa_phat" }, { loai: "Xúc lật", so: 1, don_vi: "nha_thau" }], vun_hang: [{ loai: "Xúc lật", so: 2, don_vi: "hoa_phat" }] }),
     // Năng suất thấp hơn cam kết
-    V({ moc_tinh_tp: "nor_24h", ma_chuyen: ma("ORIENT STAR", 2), ten_tau: "ORIENT STAR", dai_ly: "VOSA Quảng Ngãi", loai_hang: "Quặng", ten_hang: "Quặng Brazil", khoi_luong: 95000, da_lam: 54000, ben_ma: "6", draft: 14.2, loa: 235, dwt: 96000, cam_ket: 18000,
+    V({ moc_tinh_tp: "nor_24h", ma_chuyen: ma("ORIENT STAR", 2), ten_tau: "ORIENT STAR", dai_ly: "VOSA Quảng Ngãi", loai_hang: "Quặng", ten_hang: "Quặng Brazil", khoi_luong: 95000, da_lam: 54000, ben_ma: "B06", draft: 14.2, loa: 235, dwt: 96000, cam_ket: 18000,
       eta: "17/10 20:00", nor: "18/10 01:00", atb: "18/10 10:00", bd_lam_hang: "18/10 12:00", etd: "23/10 12:00", cau: ["SC05", "SC06"], bai_hang: "NL-A",
       xe_van_chuyen: [{ loai: "Xe ben", so: 14, don_vi: "hoa_phat" }], vun_hang: [{ loai: "Xúc lật", so: 3, don_vi: "hoa_phat" }] }),
-    V({ moc_tinh_tp: "nor_8h", ma_chuyen: ma("GREAT HARMONY", 1), ten_tau: "GREAT HARMONY", dai_ly: "Gemadept Shipping", huong: "xuat", loai_hang: "HRC", ten_hang: "Thép cuộn cán nóng HRC", khoi_luong: 30000, da_lam: 0, ben_ma: "11", draft: 10.4, loa: 190, dwt: 52000, cam_ket: 10000,
+    V({ moc_tinh_tp: "nor_8h", ma_chuyen: ma("GREAT HARMONY", 1), ten_tau: "GREAT HARMONY", dai_ly: "Gemadept Shipping", huong: "xuat", loai_hang: "HRC", ten_hang: "Thép cuộn cán nóng HRC", khoi_luong: 30000, da_lam: 0, ben_ma: "B11", draft: 10.4, loa: 190, dwt: 52000, cam_ket: 10000,
       eta: "21/10 18:00", nor: "21/10 20:30", atb: "22/10 06:00", etd: "25/10 18:00", cau: ["QC01", "QC02"], bai_hang: "TP-A",
       xe_van_chuyen: [{ loai: "Xe đầu kéo", so: 6, don_vi: "hoa_phat" }], vun_hang: [{ loai: "Xe nâng", so: 2, don_vi: "hoa_phat" }] }),
     // Chờ neo lâu và mớn vượt giới hạn cứng của bến 10
-    V({ uu_tien: true, so_mang: null, vet_ham: true, ma_chuyen: ma("CAPE AURORA", 1), ten_tau: "CAPE AURORA", dai_ly: "Inlaco Sài Gòn", loai_hang: "Quặng", ten_hang: "Quặng sắt", khoi_luong: 165000, ben_ma: "10", draft: 18.9, loa: 292, dwt: 180000, cam_ket: 25000, cam_ket_ghi_chu: null,
+    V({ uu_tien: true, so_mang: null, vet_ham: true, ma_chuyen: ma("CAPE AURORA", 1), ten_tau: "CAPE AURORA", dai_ly: "Inlaco Sài Gòn", loai_hang: "Quặng", ten_hang: "Quặng sắt", khoi_luong: 165000, ben_ma: "B10", draft: 18.9, loa: 292, dwt: 180000, cam_ket: 25000, cam_ket_ghi_chu: null,
       eta: "18/10 10:00", nor: "18/10 18:00", etb: "25/10 06:00", etd: "01/11 12:00" }),
-    V({ ma_chuyen: ma("HẢI PHÒNG 68", 2), ten_tau: "HẢI PHÒNG 68", dai_ly: "Sao Biển", loai_hang: "Đá", ten_hang: "Đá vôi", khoi_luong: 12000, da_lam: 12000, ben_ma: "7", draft: 7.8, loa: 132, dwt: 13000, cam_ket: 6000,
+    V({ ma_chuyen: ma("HẢI PHÒNG 68", 2), ten_tau: "HẢI PHÒNG 68", dai_ly: "Sao Biển", loai_hang: "Đá", ten_hang: "Đá vôi", khoi_luong: 12000, da_lam: 12000, ben_ma: "B07", draft: 7.8, loa: 132, dwt: 13000, cam_ket: 6000,
       eta: "20/10 06:00", nor: "20/10 07:00", atb: "20/10 10:00", bd_lam_hang: "20/10 11:00", kt_lam_hang: "22/10 05:00", etd: "22/10 14:00", cau: ["SC11", "SC12"] }),
     // Hai tàu trùng bến 1A
     V({ ma_chuyen: ma("THÀNH ĐẠT 09", 5), ten_tau: "THÀNH ĐẠT 09", dai_ly: "Sao Biển", huong: "xuat", loai_hang: "Thép thành phẩm", ten_hang: "Thép thanh vằn; Thép cuộn", khoi_luong: 4500,
-      hang_ds: [{ ten_hang: "Thép thanh vằn", loai_hang: "Thép thành phẩm", khoi_luong: 3000 }, { ten_hang: "Thép cuộn", loai_hang: "Thép thành phẩm", khoi_luong: 1500 }], ben_ma: "1A", draft: 6.2, loa: 96, dwt: 5200, cam_ket: 2500,
+      hang_ds: [{ ten_hang: "Thép thanh vằn", loai_hang: "Thép thành phẩm", khoi_luong: 3000 }, { ten_hang: "Thép cuộn", loai_hang: "Thép thành phẩm", khoi_luong: 1500 }], ben_ma: "TL", draft: 6.2, loa: 96, dwt: 5200, cam_ket: 2500,
       eta: "23/10 06:00", etb: "23/10 08:00", etd: "25/10 08:00", cau: ["OHC 40T"] }),
-    V({ ma_chuyen: ma("PHÚ AN 36", 2), ten_tau: "PHÚ AN 36", dai_ly: "Sao Biển", huong: "xuat", loai_hang: "HRC", ten_hang: "HRC nội địa", khoi_luong: 5000, ben_ma: "1A", draft: 6.5, loa: 99, dwt: 6800, cam_ket: 2500,
+    V({ ma_chuyen: ma("PHÚ AN 36", 2), ten_tau: "PHÚ AN 36", dai_ly: "Sao Biển", huong: "xuat", loai_hang: "HRC", ten_hang: "HRC nội địa", khoi_luong: 5000, ben_ma: "TL", draft: 6.5, loa: 99, dwt: 6800, cam_ket: 2500,
       eta: "24/10 10:00", etb: "24/10 12:00", etd: "26/10 18:00" }),
-    V({ ma_chuyen: ma("TBA", 1), ten_tau: "TBA", huong: "xuat", loai_hang: "HRC", ten_hang: "HRC xuất khẩu", khoi_luong: 20000, ben_ma: "3", cam_ket_ghi_chu: "CQD", eta: "05/11 06:00", etb: "05/11 10:00" }),
+    V({ ma_chuyen: ma("TBA", 1), ten_tau: "TBA", huong: "xuat", loai_hang: "HRC", ten_hang: "HRC xuất khẩu", khoi_luong: 20000, ben_ma: "B03", cam_ket_ghi_chu: "CQD", eta: "05/11 06:00", etb: "05/11 10:00" }),
     V({ ma_chuyen: ma("SEA DRAGON", 1), ten_tau: "SEA DRAGON", dai_ly: "Gemadept Shipping", loai_hang: "Phôi", ten_hang: "Phôi vuông", khoi_luong: 15000, ben_ma: "HH2", draft: 9.5, loa: 160, dwt: 28000, cam_ket: 7000,
       eta: "26/10 06:00", etb: "26/10 10:00", etd: "29/10 06:00" }),
     V({ ma_chuyen: ma("HEAVY LIFT 2", 1), ten_tau: "HEAVY LIFT 2", dai_ly: "VOSA Quảng Ngãi", loai_hang: "Thiết bị", ten_hang: "Thiết bị siêu trường siêu trọng", khoi_luong: 3200, ben_ma: "HH3", draft: 7.4, loa: 138, dwt: 12500, cam_ket: 1500,
@@ -63,32 +63,32 @@ export function demoData() {
       xe_van_chuyen: [{ loai: "Xe ben", so: 8, don_vi: "hoa_phat" }], hot_vet: [{ loai: "Xúc đào", so: 1, don_vi: "nha_thau" }], vun_hang: [{ loai: "Xúc lật", so: 1, don_vi: "hoa_phat" }] }),
     V({ ma_chuyen: ma("ASIA PEARL", 1), ten_tau: "ASIA PEARL", dai_ly: "Gemadept Shipping", huong: "xuat", loai_hang: "Slab", ten_hang: "Slab", khoi_luong: 28000, ben_ma: "7CTH", draft: 10.8, loa: 186, dwt: 45000, cam_ket: 9000,
       eta: "27/10 06:00", etb: "27/10 12:00", etd: "31/10 00:00" }),
-    V({ ma_chuyen: ma("NAM KHÁNH 18", 4), ten_tau: "NAM KHÁNH 18", dai_ly: "Sao Biển", loai_hang: "Đá", ten_hang: "Đá vôi", khoi_luong: 8000, ben_ma: "8", draft: 6.9, loa: 118, dwt: 9500, cam_ket: 4000,
+    V({ ma_chuyen: ma("NAM KHÁNH 18", 4), ten_tau: "NAM KHÁNH 18", dai_ly: "Sao Biển", loai_hang: "Đá", ten_hang: "Đá vôi", khoi_luong: 8000, ben_ma: "B08", draft: 6.9, loa: 118, dwt: 9500, cam_ket: 4000,
       eta: "23/10 18:00", etb: "24/10 06:00", etd: "26/10 06:00" }),
-    V({ kieu_tp: "cqd", cqd_nguong_gio: 6, cam_ket_ghi_chu: "CQD", ma_chuyen: ma("NAM KHÁNH 26", 2), ten_tau: "NAM KHÁNH 26", dai_ly: "Sao Biển", loai_hang: "Quặng hồi", ten_hang: "Quặng hồi", khoi_luong: 7000, da_lam: 2600, ben_ma: "9", draft: 6.8, loa: 112, dwt: 9000, cam_ket: 4000,
+    V({ kieu_tp: "cqd", cqd_nguong_gio: 6, cam_ket_ghi_chu: "CQD", ma_chuyen: ma("NAM KHÁNH 26", 2), ten_tau: "NAM KHÁNH 26", dai_ly: "Sao Biển", loai_hang: "Quặng hồi", ten_hang: "Quặng hồi", khoi_luong: 7000, da_lam: 2600, ben_ma: "B09", draft: 6.8, loa: 112, dwt: 9000, cam_ket: 4000,
       eta: "21/10 12:00", nor: "21/10 13:00", atb: "21/10 18:00", bd_lam_hang: "21/10 19:00", etd: "23/10 18:00", cau: ["SC09"] }),
-    V({ ma_chuyen: ma("HƯNG THỊNH 05", 6), ten_tau: "HƯNG THỊNH 05", dai_ly: "Sao Biển", huong: "xuat", loai_hang: "Xỉ", ten_hang: "Xỉ thép", khoi_luong: 6000, ben_ma: "2", draft: 6.5, loa: 102, dwt: 7200, cam_ket: 3000,
+    V({ ma_chuyen: ma("HƯNG THỊNH 05", 6), ten_tau: "HƯNG THỊNH 05", dai_ly: "Sao Biển", huong: "xuat", loai_hang: "Xỉ", ten_hang: "Xỉ thép", khoi_luong: 6000, ben_ma: "B02", draft: 6.5, loa: 102, dwt: 7200, cam_ket: 3000,
       eta: "25/10 06:00", etb: "25/10 08:00", etd: "27/10 08:00", cau: ["SLD bến 2"] }),
     // Đã rời trong tháng: thưởng (xong sớm) và phạt (xong muộn)
-    V({ ma_chuyen: ma("OCEAN CROWN", 1), ten_tau: "OCEAN CROWN", dai_ly: "VOSA Quảng Ngãi", loai_hang: "Than", ten_hang: "Than nhiệt", khoi_luong: 88000, da_lam: 88000, ben_ma: "5", draft: 14.1, loa: 229, dwt: 82000, cam_ket: 18000,
+    V({ ma_chuyen: ma("OCEAN CROWN", 1), ten_tau: "OCEAN CROWN", dai_ly: "VOSA Quảng Ngãi", loai_hang: "Than", ten_hang: "Than nhiệt", khoi_luong: 88000, da_lam: 88000, ben_ma: "B05", draft: 14.1, loa: 229, dwt: 82000, cam_ket: 18000,
       eta: "08/10 06:00", nor: "08/10 09:00", atb: "09/10 06:00", bd_lam_hang: "09/10 08:00", kt_lam_hang: "12/10 20:00", hoan_tat_tt: "13/10 02:00", atd: "13/10 05:00", cau: ["SC02", "QC10", "QC11"] }),
-    V({ ma_chuyen: ma("STAR LUMINOUS", 2), ten_tau: "STAR LUMINOUS", dai_ly: "Inlaco Sài Gòn", loai_hang: "Quặng", ten_hang: "Quặng sắt", khoi_luong: 102000, da_lam: 102000, ben_ma: "10", draft: 15.2, loa: 250, dwt: 106000, cam_ket: 15000,
+    V({ ma_chuyen: ma("STAR LUMINOUS", 2), ten_tau: "STAR LUMINOUS", dai_ly: "Inlaco Sài Gòn", loai_hang: "Quặng", ten_hang: "Quặng sắt", khoi_luong: 102000, da_lam: 102000, ben_ma: "B10", draft: 15.2, loa: 250, dwt: 106000, cam_ket: 15000,
       eta: "05/10 12:00", nor: "05/10 16:00", atb: "07/10 08:00", bd_lam_hang: "07/10 10:00", kt_lam_hang: "14/10 06:00", hoan_tat_tt: "14/10 12:00", atd: "14/10 16:00", cau: ["QC06", "QC07"] }),
-    V({ ma_chuyen: ma("VIỆT THUẬN 1501", 2), ten_tau: "VIỆT THUẬN 1501", dai_ly: "Sao Biển", huong: "xuat", loai_hang: "Xỉ hạt", ten_hang: "Xỉ hạt lò cao", khoi_luong: 3000, da_lam: 3000, ben_ma: "4", draft: 5.6, loa: 79.8, dwt: 3150, cam_ket: 3000,
+    V({ ma_chuyen: ma("VIỆT THUẬN 1501", 2), ten_tau: "VIỆT THUẬN 1501", dai_ly: "Sao Biển", huong: "xuat", loai_hang: "Xỉ hạt", ten_hang: "Xỉ hạt lò cao", khoi_luong: 3000, da_lam: 3000, ben_ma: "B04", draft: 5.6, loa: 79.8, dwt: 3150, cam_ket: 3000,
       eta: "10/10 06:00", nor: "10/10 07:00", atb: "10/10 08:00", bd_lam_hang: "10/10 09:00", kt_lam_hang: "11/10 05:00", atd: "11/10 09:00", cau: ["SLD bến 4"] }),
-    V({ ma_chuyen: ma("GREAT HARMONY", 2), ten_tau: "GREAT HARMONY", dai_ly: "Gemadept Shipping", huong: "xuat", loai_hang: "HRC", ten_hang: "Thép cuộn cán nóng HRC", khoi_luong: 26000, da_lam: 26000, ben_ma: "11", draft: 10.2, loa: 190, dwt: 52000, cam_ket: 10000,
+    V({ ma_chuyen: ma("GREAT HARMONY", 2), ten_tau: "GREAT HARMONY", dai_ly: "Gemadept Shipping", huong: "xuat", loai_hang: "HRC", ten_hang: "Thép cuộn cán nóng HRC", khoi_luong: 26000, da_lam: 26000, ben_ma: "B11", draft: 10.2, loa: 190, dwt: 52000, cam_ket: 10000,
       eta: "02/10 06:00", nor: "02/10 08:00", atb: "02/10 14:00", bd_lam_hang: "02/10 16:00", kt_lam_hang: "05/10 02:00", atd: "05/10 08:00" }),
-    V({ ma_chuyen: ma("PACIFIC GLORY", 2), ten_tau: "PACIFIC GLORY", dai_ly: "Inlaco Sài Gòn", loai_hang: "Than", ten_hang: "Than cốc", khoi_luong: 70000, da_lam: 70000, ben_ma: "6", draft: 13.5, loa: 225, dwt: 76000, cam_ket: 20000,
+    V({ ma_chuyen: ma("PACIFIC GLORY", 2), ten_tau: "PACIFIC GLORY", dai_ly: "Inlaco Sài Gòn", loai_hang: "Than", ten_hang: "Than cốc", khoi_luong: 70000, da_lam: 70000, ben_ma: "B06", draft: 13.5, loa: 225, dwt: 76000, cam_ket: 20000,
       eta: "14/09 06:00", nor: "14/09 08:00", atb: "15/09 06:00", bd_lam_hang: "15/09 08:00", kt_lam_hang: "19/09 14:00", atd: "19/09 20:00" }),
-    V({ ma_chuyen: ma("CAPE AURORA", 2), ten_tau: "CAPE AURORA", dai_ly: "Inlaco Sài Gòn", loai_hang: "Quặng", ten_hang: "Quặng sắt", khoi_luong: 160000, da_lam: 160000, ben_ma: "11", draft: 17.8, loa: 292, dwt: 180000, cam_ket: 25000,
+    V({ ma_chuyen: ma("CAPE AURORA", 2), ten_tau: "CAPE AURORA", dai_ly: "Inlaco Sài Gòn", loai_hang: "Quặng", ten_hang: "Quặng sắt", khoi_luong: 160000, da_lam: 160000, ben_ma: "B11", draft: 17.8, loa: 292, dwt: 180000, cam_ket: 25000,
       eta: "03/09 06:00", nor: "03/09 09:00", atb: "04/09 10:00", bd_lam_hang: "04/09 12:00", kt_lam_hang: "10/09 16:00", atd: "10/09 22:00" }),
-    V({ ma_chuyen: ma("HẢI PHÒNG 68", 1), ten_tau: "HẢI PHÒNG 68", dai_ly: "Sao Biển", loai_hang: "Đá", ten_hang: "Đá vôi", khoi_luong: 11000, da_lam: 11000, ben_ma: "7", draft: 7.6, loa: 132, dwt: 13000, cam_ket: 6000,
+    V({ ma_chuyen: ma("HẢI PHÒNG 68", 1), ten_tau: "HẢI PHÒNG 68", dai_ly: "Sao Biển", loai_hang: "Đá", ten_hang: "Đá vôi", khoi_luong: 11000, da_lam: 11000, ben_ma: "B07", draft: 7.6, loa: 132, dwt: 13000, cam_ket: 6000,
       eta: "20/09 06:00", nor: "20/09 07:00", atb: "20/09 09:00", bd_lam_hang: "20/09 10:00", kt_lam_hang: "21/09 18:00", atd: "22/09 02:00" }),
-    V({ ma_chuyen: ma("SEA FORTUNE", 1), ten_tau: "SEA FORTUNE", dai_ly: "VOSA Quảng Ngãi", huong: "xuat", loai_hang: "HRC", ten_hang: "HRC xuất khẩu", khoi_luong: 18000, ben_ma: "3", huy: true, ghi_chu: "Chủ hàng hủy chuyến",
+    V({ ma_chuyen: ma("SEA FORTUNE", 1), ten_tau: "SEA FORTUNE", dai_ly: "VOSA Quảng Ngãi", huong: "xuat", loai_hang: "HRC", ten_hang: "HRC xuất khẩu", khoi_luong: 18000, ben_ma: "B03", huy: true, ghi_chu: "Chủ hàng hủy chuyến",
       eta: "15/10 06:00", etb: "15/10 10:00", etd: "17/10 10:00" }),
   ];
   // Tàu cập hai bến liền nhau (bến phụ, SQL 28) mẫu: 7/8 và 3/5
-  for (const [m, ben_ma, ben_phu, loa] of [[ma("NAM KHÁNH 18", 4), "7", "8", null], [ma("TBA", 1), "3", "5", 190]]) {
+  for (const [m, ben_ma, ben_phu, loa] of [[ma("NAM KHÁNH 18", 4), "B07", "B08", null], [ma("TBA", 1), "B03", "B05", 190]]) {
     const v = voyages.find((x) => x.ma_chuyen === m);
     if (v) Object.assign(v, { ben_ma, ben_phu }, loa ? { loa } : {});
   }
@@ -128,7 +128,7 @@ export function demoData() {
   const agents = [...new Set(voyages.map((v) => v.dai_ly).filter(Boolean))].map((ten) => ({ ten, lien_he: null, ghi_chu: null }));
   const vessels = [...new Map(voyages.filter((v) => v.ten_tau !== "TBA").map((v) => [v.ten_tau, { ten: v.ten_tau, dwt: v.dwt, loa: v.loa, draft: v.draft, dai_ly: v.dai_ly, ghi_chu: null }])).values()];
   // Bãi của các chuyến demo theo danh mục kho bãi thật
-  const BAI = { "MARINE HONESTY": "Bãi Duafat", "PACIFIC GLORY": "Bãi C2 CTH", "ORIENT STAR": "Bãi đuôi kho 3", "GOLDEN BRIDGE": "Bãi CTH", "GREAT HARMONY": "Bãi TP-A", "CAPE AURORA": "Bãi Duafat", "OCEAN CROWN": "Bãi C2 CTH" };
+  const BAI = { "MARINE HONESTY": "Bãi Duafat", "PACIFIC GLORY": "Bãi C2 CTH", "ORIENT STAR": "Bãi đuôi kho 3", "GOLDEN BRIDGE": "Bãi A CTH", "GREAT HARMONY": "Kho nóng HRC1", "CAPE AURORA": "Bãi Duafat", "OCEAN CROWN": "Bãi C2 CTH" };
   for (const v of voyages) if (BAI[v.ten_tau]) v.bai_hang = BAI[v.ten_tau];
   const kho = khoDemo(voyages, vid, ma);
   const plans = [
@@ -142,8 +142,8 @@ export function demoData() {
     { id: 3, voyage_id: vid(ma("CAPE AURORA", 1)), ten: "A", trang_thai: "trinh", cau: ["QC06", "QC07", "QC08"], gio_lam_ngay: 22, he_so: 0.3, toc_do: null, khoi_dong: true, bat_dau: null, gio_dung_tt: 6, gio_dung_khac: 2, bai_hang: "Bãi Duafat",
       xe: [{ loai: "Xe ben", tai_trong: 30, chuyen_ca: 14, so_xe: null, don_vi: "hoa_phat" }], ghi_chu: "Nhập rời: đầu tàu nhanh, cuối tàu vét hầm chậm",
       giai_doan: [{ hang: "Quặng sắt", ten: "Đầu tàu", ty_le: 30, he_so: 120 }, { hang: "Quặng sắt", ten: "Giữa tàu", ty_le: 50, he_so: 100 }, { hang: "Quặng sắt", ten: "Cuối tàu – vét hầm", ty_le: 20, he_so: 60 }] },
-    { id: 4, voyage_id: vid(ma("THÀNH ĐẠT 09", 5)), ten: "A", trang_thai: "nhap", cau: ["OHC 40T"], gio_lam_ngay: 22, he_so: 0.6, toc_do: 3000, khoi_dong: false, bat_dau: null, gio_dung_tt: 0, gio_dung_khac: 1, bai_hang: "Bãi TP-A",
-      diem: [{ bai: "Bãi TP-A", khoi_luong: 4500, tb: [{ loai: "Xe nâng", so: 2, don_vi: "hoa_phat" }] }],
+    { id: 4, voyage_id: vid(ma("THÀNH ĐẠT 09", 5)), ten: "A", trang_thai: "nhap", cau: ["OHC 40T"], gio_lam_ngay: 22, he_so: 0.6, toc_do: 3000, khoi_dong: false, bat_dau: null, gio_dung_tt: 0, gio_dung_khac: 1, bai_hang: "Kho nóng HRC1",
+      diem: [{ bai: "Kho nóng HRC1", khoi_luong: 4500, tb: [{ loai: "Xe nâng", so: 2, don_vi: "hoa_phat" }] }],
       xe: [{ loai: "Xe đầu kéo", tai_trong: 30, chuyen_ca: 5, so_xe: null, don_vi: "hoa_phat" }], ghi_chu: "Xuất 2 loại thép: thanh vằn trước, cuộn sau; đầu tàu be hầm, cuối tàu lashing",
       giai_doan: [{ hang: "Thép thanh vằn", ten: "Đầu tàu – be hầm", ty_le: 20, he_so: 70 }, { hang: "Thép thanh vằn", ten: "Giữa tàu", ty_le: 60, he_so: 115 }, { hang: "Thép thanh vằn", ten: "Cuối tàu – lashing", ty_le: 20, he_so: 75 },
         { hang: "Thép cuộn", ten: "Đầu tàu – be hầm", ty_le: 20, he_so: 70 }, { hang: "Thép cuộn", ten: "Giữa tàu", ty_le: 60, he_so: 115 }, { hang: "Thép cuộn", ten: "Cuối tàu – lashing", ty_le: 20, he_so: 75 }] },
@@ -178,12 +178,15 @@ export function demoData() {
   }
   // Phân loại tồn mẫu (SQL 07): cần giải phóng / đầu cơ, khai báo từ vài tuần trước, có đợt tăng thêm
   const ngayLui = (lui) => { const d = new Date(Date.now() - lui * 864e5); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+  const tpPL = kho.khoBai.filter((k) => k.loai_kho === "thanh_pham" && k.hang), nlPL = kho.khoBai.filter((k) => k.loai_kho === "nguyen_lieu" && k.hang && /^(Phế|Quặng)/.test(k.hang));
+  const pl = (k) => [k.ten_bai, k.hang];
   const tonPhanLoai = [
-    [25, "Bãi TP-B", "Thép thanh vằn", "can_giai_phong", 3000], [9, "Bãi TP-B", "Thép thanh vằn", "can_giai_phong", 5000],
-    [20, "Bãi TP-A", "Thép cuộn HRC", "dau_co", 6000], [6, "Bãi TP-A", "Thép cuộn HRC", "dau_co", 9000],
-    [22, "Bãi CTH", "Phế", "dau_co", 7000], [14, "Bãi đuôi kho 3", "Quặng cỡ Pilbara-Úc", "can_giai_phong", 4000],
+    ...[[1, 25, 3000], [1, 9, 5000]].map(([j, lui, tan]) => [lui, ...pl(tpPL[j]), "can_giai_phong", tan]),
+    ...[[0, 20, 6000], [0, 6, 9000]].map(([j, lui, tan]) => [lui, ...pl(tpPL[j]), "dau_co", tan]),
+    [22, ...pl(nlPL[0]), "dau_co", 7000], [14, ...pl(nlPL[1]), "can_giai_phong", 4000],
   ].map(([lui, ten_bai, hang, loai, tan], i) => ({ id: i + 1, ngay: ngayLui(lui), ten_bai, hang, loai, tan, ghi_chu: null, created_at: ngayLui(lui) + "T08:00:00.000Z" }));
-  return { tonPhanLoai, mucTieu, mucTieuVanTai, sanLuongCang, sanLuongVanTai, khoKeHoach, dmCot, berths: DM.berths.map((b) => ({ ...b, bang_tai: bangTaiBen(b.ma) })), khoBai: kho.khoBai, giaoDich: kho.giaoDich, khoLo: kho.khoLo, plans, voyages, stops, events, tien, agents, vessels, nextId: { v: id, s: sid, e: eid, p: plans.length, g: kho.giaoDich.length, k: khoKeHoach.length } };
+  const dmBang = Object.entries(DM.bang || {}).flatMap(([bang, rows]) => rows.map((data, i) => ({ bang, data, thu_tu: i + 1 }))).map((r, i) => ({ id: i + 1, ...r }));
+  return { dmBang, tonPhanLoai, mucTieu, mucTieuVanTai, sanLuongCang, sanLuongVanTai, khoKeHoach, dmCot, berths: DM.berths.map((b) => ({ ...b, bang_tai: bangTaiBen(b.ma) })), khoBai: kho.khoBai, giaoDich: kho.giaoDich, khoLo: kho.khoLo, plans, voyages, stops, events, tien, agents, vessels, nextId: { v: id, s: sid, e: eid, p: plans.length, g: kho.giaoDich.length, k: khoKeHoach.length } };
 }
 
 // ---------- Kho demo: chiều cao chất đống, tồn đầu kỳ, nhập từ tàu / sản xuất, xuất cấp sản xuất / theo tàu, lô thành phẩm ----------
@@ -193,18 +196,10 @@ function khoDemo(voyages, vid, ma) {
   const d0 = new Date(); const homNay = new Date(d0.getFullYear(), d0.getMonth(), d0.getDate());
   const ngay = (lui) => { const d = new Date(homNay.getTime() - lui * 864e5); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
   const tiTrong = (hang) => ttKho(hang, DM.hanghoa) || 1.5;
-  // Bãi nguyên liệu: cao 5 m; thêm 3 bãi thành phẩm (sức chứa nhập tay)
-  // Mỗi dòng là một bãi nhỏ; minh họa: khu quặng cố định nhóm ở Bãi đuôi kho 3, khu tự do ở Bãi Duafat
-  const khoBai = DM.khoBai.map((k) => ({ ...k, chieu_cao: 5, suc_chua_tay: k.dien_tich ? null : 3000, loai_kho: null, tieu_thu_ngay: null, ten_khu: null, kieu_bai: null, nhom_bai: null,
-    ...(k.ten_bai === "Bãi đuôi kho 3" && k.hang === "Quặng cỡ Kumba" ? { ten_khu: "Khu quặng (Kumba, Khumani…)", kieu_bai: "co_dinh_nhom", nhom_bai: "Quặng" } : {}) }));
-  const TP = [
-    { ten_bai: "Bãi TP-A", dien_tich: 12000, hang: "Thép cuộn HRC", thiet_bi: "2 cầu trục 32T", suc_chua_tay: 72000 },
-    { ten_bai: "Bãi TP-B", dien_tich: 8000, hang: "Thép thanh vằn", thiet_bi: "Xe nâng 10T", suc_chua_tay: 48000 },
-    { ten_bai: "Kho TP-C", dien_tich: 6000, hang: "Phôi vuông", thiet_bi: "Cổng trục 20T", suc_chua_tay: 30000 },
-  ];
-  let kid = Math.max(...khoBai.map((k) => k.id));
-  for (const t of TP) khoBai.push({ id: ++kid, chieu_cao: null, loai_kho: "thanh_pham", tieu_thu_ngay: null, ten_khu: null, kieu_bai: null, nhom_bai: null, ghi_chu: "Minh họa", ...t });
-  khoBai.push({ id: ++kid, ten_bai: "Bãi Duafat", ten_khu: "Khu tự do", kieu_bai: "tu_do", nhom_bai: null, hang: null, dien_tich: 4000, chieu_cao: 5, suc_chua_tay: null, loai_kho: "nguyen_lieu", tieu_thu_ngay: null, thiet_bi: null, ghi_chu: "Minh họa: nhận mọi hàng" });
+  // Kho bãi theo danh mục tổng hợp: mỗi dòng một gian / lô (thành phẩm, nguyên liệu), sức chứa khả dụng ghi ở suc_chua_tay
+  const khoBai = DM.khoBai.map((k) => ({ ...k, tieu_thu_ngay: null, nhom_bai: null, thiet_bi: k.thiet_bi || null }));
+  const TP = khoBai.filter((k) => k.loai_kho === "thanh_pham" && k.hang && k.suc_chua_tay);
+  const dongNL = (re) => khoBai.find((k) => k.loai_kho === "nguyen_lieu" && re.test(k.hang || "")) || khoBai.find((k) => k.loai_kho === "nguyen_lieu");
   const sc = (k) => k.suc_chua_tay || (k.dien_tich || 0) * (k.chieu_cao || 0) * tiTrong(k.hang);
   const gd = [], lo = [], dauKy = new Map();
   const G = (o) => gd.push({ ca: "CA 1", so_lo: null, nguon: null, voyage_id: null, den_bai: null, chung_tu: null, do_thuc_te: null, so_sach: null, ghi_chu: null, ...o });
@@ -223,21 +218,21 @@ function khoDemo(voyages, vid, ma) {
   for (let i = 19; i >= 0; i -= 2) G({ ngay: ngay(i), ca: "CA 2", loai: "xuat", nguon: "cap_sx", ten_bai: "Bãi Duafat", hang: i > 6 ? "Quặng Hemantit Lào" : "Than PCI HWW", so_luong: 450, chung_tu: `PX-TD-${i}` });
   // Nhập từ tàu đang / đã làm hàng về bãi nhận
   const nhapTau = (ten, n, bai, hang, lui) => { const v = voyages.find((x) => x.ma_chuyen === ma(ten, n)); if (!v) return; const ds = Array.isArray(lui) ? lui : [lui]; for (const [i, sl] of ds) G({ ngay: ngay(i), ca: "CA 2", loai: "nhap", nguon: "tau", voyage_id: v.id, ten_bai: bai, hang, so_luong: sl, chung_tu: `Tàu ${ten}` }); };
-  nhapTau("PACIFIC GLORY", 1, "Bãi C2 CTH", "Than cốc 10-80mm", [[2, 3000], [1, 4000], [0, 3500]]);
-  nhapTau("OCEAN CROWN", 1, "Bãi C2 CTH", "Than cốc 10-80mm", [[13, 6000], [12, 5000]]);
-  nhapTau("ORIENT STAR", 2, "Bãi đuôi kho 3", "Quặng cỡ Pilbara-Úc", [[4, 4000], [3, 5000], [2, 5000], [1, 4000], [0, 4000]]);
-  nhapTau("GOLDEN BRIDGE", 3, "Bãi CTH", "Phế", [[2, 8000], [1, 9000], [0, 8500]]);
+  nhapTau("PACIFIC GLORY", 1, dongNL(/^Than cốc/).ten_bai, dongNL(/^Than cốc/).hang, [[2, 3000], [1, 4000], [0, 3500]]);
+  nhapTau("OCEAN CROWN", 1, dongNL(/^Than cốc/).ten_bai, dongNL(/^Than cốc/).hang, [[13, 6000], [12, 5000]]);
+  nhapTau("ORIENT STAR", 2, dongNL(/^Quặng cỡ/).ten_bai, dongNL(/^Quặng cỡ/).hang, [[4, 4000], [3, 5000], [2, 5000], [1, 4000], [0, 4000]]);
+  nhapTau("GOLDEN BRIDGE", 3, dongNL(/^Phế/).ten_bai, dongNL(/^Phế/).hang, [[2, 8000], [1, 9000], [0, 8500]]);
   // Thành phẩm: nhập từ sản xuất theo lô, xuất theo tàu
   const TT = ["san_sang", "san_sang", "san_sang", "cho_kiem", "giu_lai"];
   let nlo = 0;
-  for (const t of TP) for (let i = 0; i < 6; i++) {
-    const lui = i === 0 ? 72 : Math.floor(rnd() * 25), so = `LO-${t.ten_bai.slice(-1)}${String(++nlo).padStart(3, "0")}`;
+  for (const [ti, t] of TP.entries()) for (let i = 0; i < 4; i++) {
+    const lui = i === 0 ? 72 : Math.floor(rnd() * 25), so = `LO-${String.fromCharCode(65 + (ti % 26))}${String(++nlo).padStart(3, "0")}`;
     const sl = Math.round(t.suc_chua_tay * (0.05 + rnd() * 0.08));
     G({ ngay: ngay(lui), loai: "nhap", nguon: "san_xuat", ten_bai: t.ten_bai, hang: t.hang, so_luong: sl, so_lo: so, chung_tu: `PN-SX-${nlo}` });
     lo.push({ so_lo: so, hang: t.hang, ngay_nhap: ngay(lui), trang_thai: i === 0 ? "giu_lai" : TT[Math.floor(rnd() * TT.length)], ghi_chu: i === 0 ? "Chờ khách xác nhận" : null });
   }
   const gh = voyages.find((x) => x.ma_chuyen === ma("GREAT HARMONY", 2));
-  if (gh) G({ ngay: ngay(18), loai: "xuat", nguon: "tau", voyage_id: gh.id, ten_bai: "Bãi TP-A", hang: "Thép cuộn HRC", so_luong: 2500, so_lo: "LO-A002", chung_tu: "Tàu GREAT HARMONY" });
+  if (gh && TP[0]) G({ ngay: ngay(18), loai: "xuat", nguon: "tau", voyage_id: gh.id, ten_bai: TP[0].ten_bai, hang: TP[0].hang, so_luong: 2500, so_lo: "LO-A002", chung_tu: "Tàu GREAT HARMONY" });
   // Kiểm kê: một bãi lệch 3%
   const kk = khoBai.find((k) => k.ten_bai === "Bãi KTX");
   if (kk && dauKy.get(kk.id)) {

@@ -21,7 +21,7 @@ describe("Kế hoạch điều động tàu cập / rời cảng", () => {
   const du = duLieuKeHoachCang({ voyages: vs, stopsOf, tu: TU, den: DEN });
   it("chia theo cảng của bến", () => {
     expect(cangCuaBen("2")).toBe("hpdq"); expect(cangCuaBen("1A")).toBe("hpdq"); expect(cangCuaBen("HH3")).toBe("hh"); expect(cangCuaBen("7CTH")).toBe("cth"); expect(cangCuaBen(null)).toBe(null);
-    expect(nhanBenIn("1A", "hpdq")).toBe("TL"); expect(nhanBenIn("6CTH", "cth")).toBe("6"); expect(nhanBenIn("HH2", "hh")).toBe("HH2");
+    expect(nhanBenIn("TL", "hpdq")).toBe("TL"); expect(nhanBenIn("1A", "hpdq")).toBe("TL"); expect(nhanBenIn("B03", "hpdq")).toBe("3"); expect(nhanBenIn("6CTH", "cth")).toBe("6"); expect(nhanBenIn("HH2", "hh")).toBe("HH2");
   });
   it("tàu rời, tàu cập, shifting trong khoảng 17h – 17h", () => {
     const h = du.theoCang.hpdq;

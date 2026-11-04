@@ -123,7 +123,7 @@ export default function Kho({ loai }) {
 
   return (
     <>
-      <PageHead title={TEN_LOAI[loai]} desc={`Tồn luôn tính từ sổ nhập – xuất. Sức chứa = diện tích × chiều cao chất đống × tỉ trọng hàng (sửa ở Danh mục › Kho bãi). Vàng từ ${pct(NGUONG_KHO.vang)}, đỏ từ ${pct(NGUONG_KHO.do)} lấp đầy.`}>
+      <PageHead title={TEN_LOAI[loai]} desc={`Tồn luôn tính từ sổ nhập – xuất. Sức chứa = sức chứa khả dụng của gian / lô ở Danh mục › Kho bãi; để trống thì tính diện tích × chiều cao × tỷ khối hàng. Vàng từ ${pct(NGUONG_KHO.vang)}, đỏ từ ${pct(NGUONG_KHO.do)} lấp đầy.`}>
         {nhap && <>
           <Button size="sm" onClick={() => setForm({ loai: "nhap" })}><Plus />Nhập</Button>
           <Button size="sm" variant="outline" onClick={() => setForm({ loai: "xuat" })}><Minus />Xuất</Button>

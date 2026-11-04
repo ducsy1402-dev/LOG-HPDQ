@@ -30,6 +30,7 @@ Chạy lần lượt trong Supabase › SQL Editor, trên project mới còn tr�
 5. `05_lich_chay_nen.sql` – tùy chọn, cần bật tiện ích pg_cron (dọn kế hoạch ngắn hạn cũ mỗi ngày).
 6. `06_san_luong_thuc_te.sql` – bảng mục tiêu / sản lượng thực tế theo ca, ngày (hai tab Mục tiêu sản lượng). Chạy sau 01…04.
 7. `07_phan_loai_ton.sql` – bảng `kho_ton_phan_loai` (khai báo tồn cần giải phóng / đầu cơ; tab Kho › Phân loại tồn). Chạy được nhiều lần.
+8. `08_danh_muc_tong_hop.sql` – **thay toàn bộ danh mục** theo `Danh_muc_tong_hop.xlsx` (do `npm run danh-muc` sinh; không sửa tay): đổi mã bến 1A → TL, 1…11 → B01…B11 (chuyến tàu đổi theo), nạp xe + cẩu, hàng rời + thành phẩm, kho (gian / lô), bảng `danh_muc_bang` (thiết bị gắn, thông số / định mức cẩu, thông số xe, khai báo kho / bãi); thêm cột xưởng, hệ số làm việc, loại hàng, đơn trọng, số lớp, sức chứa danh nghĩa. Thay dữ liệu của 02, 03.
 Thay đổi CSDL về sau: viết file SQL mới đánh số tiếp (07, 08…), báo anh Sỹ chạy trong Supabase **trước** khi đẩy code.
 
 ## Cách làm việc (đã chốt)
@@ -72,3 +73,9 @@ Thay đổi CSDL về sau: viết file SQL mới đánh số tiếp (07, 08…),
 - Khối sản lượng: Sản lượng cảng và Sản lượng vận tải (cột thực tế theo hướng, mục tiêu từng điểm, lũy kế; nút Tổng / theo hướng); Cảng theo loại hàng (nút Tổng / Nhập / Xuất); Vận tải phục vụ cảng / phục vụ sản xuất theo đơn vị thực hiện (lọc đội xe).
 - Khối kho (`src/lib/bieuDoKho.js`): Kho thành phẩm, Kho nguyên liệu (kế hoạch – lũy kế nhập / xuất / tồn, lọc theo nhóm hàng); Cơ cấu tồn (cần giải phóng + đầu cơ, % tổng tồn; lưu động = tồn − hai loại); Tuổi tồn (lô theo ngày nhập, hàng khác theo lần xuất gần nhất; 0–30 / 31–60 / 61–90 / >90 ngày); Hàng cần xử lý top 10 (đã khai báo + gợi ý hàng trên 60 ngày chưa phân loại).
 - Mọi khung dùng `khungBD.jsx`: nút **Phóng to** (phủ màn hình, biểu đồ cao lên qua `PhongToCtx` của `EChart`) và **Chi tiết** mở hộp bảng số liệu của chính biểu đồ (`BangChiTiet`), không chuyển trang. Linetime, Kho bãi, Thiết bị vẫn mở hộp cũ (`HopTau`, `HopKho`, `HopThietBi`).
+
+## Danh mục tổng hợp (04/11/2026)
+- Nguồn: `Danh_muc_tong_hop.xlsx` ở gốc kho (không đưa lên GitHub). `npm run danh-muc` (`scripts/danh-muc.mjs`) sinh `src/data/danhMuc.json` (demo), `src/data/dmBang.json` (cột các bảng phụ, theo dòng tiêu đề sheet) và `sql/08_danh_muc_tong_hop.sql`; script in ra các chỗ lệch (bãi chưa khai báo, hàng chưa có trong danh mục).
+- **Mã bến mới**: TL, B01…B11, HH2, HH3, 6CTH, 7CTH; mã cũ nằm ở Tên khác. Bố trí tuyến / mét mặc định: `VI_TRI_MAC_DINH` trong `src/data/danhMucGoc.js` (tuyến B03-B05-B10, B04-B06-B11, B07-B08-B09…). Phiếu in kế hoạch cảng vẫn ghi TL, 1…11.
+- Trang Danh mục (`src/pages/DanhMuc.jsx`): 4 tab chính, mỗi tab có tab nhỏ: **Thiết bị cơ giới** (Danh sách xe, Cẩu cảng, Thiết bị gắn, Thông số cẩu cảng, Định mức cẩu cảng, Thông số xe 7 loại, Nhân sự, Nhà thầu) · **Hàng hóa** (Hàng rời, Hàng thành phẩm) · **Kho bãi** (Khai báo kho / bãi, Kho thành phẩm, Kho nguyên liệu) · **Cầu bến** (Danh sách bến, Bố trí tuyến bến, Tàu).
+- Cẩu: tải trọng, tầm với theo Thông số cẩu cảng; năng suất = định mức cao nhất của loại cẩu. Cột Tình trạng của xe / cẩu trong file không nạp (tình trạng tính theo sự kiện). Kho: sức chứa khả dụng của file ghi vào `suc_chua_tay`; kiểu bãi theo Loại kho / bãi (Cố định → cố định 1 hàng, Tự do → tự do).

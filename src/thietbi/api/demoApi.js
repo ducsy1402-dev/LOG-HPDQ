@@ -40,10 +40,11 @@ export async function demoApi() {
   const q = new URLSearchParams(location.search).get("demo");
   const role = q === "quan_ly" ? "nhap" : ["xem", "nhap", "quan_tri"].includes(q) ? q : "quan_tri";
   const db = clone(seed);
-  // Danh mục dùng chung từ file "Danh mục.xlsx" (logistics/src/data/danhMuc.json): cẩu là đội "Cẩu", hàng hóa thay hẳn
+  // Danh mục dùng chung từ file "Danh_muc_tong_hop.xlsx" (src/data/danhMuc.json): xe, cẩu (đội "Cẩu"), hàng hóa thay hẳn
   const DM = (await import("../../data/danhMuc.json")).default;
-  db.vehicles.push(...DM.cranes.map(({ thu_tu, ...c }) => clone(c)));
-  if (!db.meta.doi.includes("Cẩu")) db.meta.doi.push("Cẩu");
+  db.vehicles = [...clone(DM.xe), ...DM.cranes.map(({ thu_tu, ...c }) => clone(c))];
+  db.meta.doi = [...new Set([...DM.xe.map((v) => v.doi), "Cẩu"])];
+  db.meta.to = [...new Set(DM.xe.map((v) => v.to_xe).filter(Boolean))];
   db.hanghoa = clone(DM.hanghoa);
   let s = 7;
   const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
