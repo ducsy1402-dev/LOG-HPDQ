@@ -13,9 +13,9 @@ import { HopThietBi } from "./tongquan/ThietBiTQ";
 import { HopTau } from "./tongquan/TauTQ";
 import { HopKho } from "./tongquan/KhoTQ";
 import { HopKhoiLuong } from "./tongquan/KhoiLuongTQ";
-import BangDieuKhien from "./tongquan/BangDieuKhien";
+import TongQuanMoi from "./tongquan/TongQuanMoi";
 
-// Tổng quan điều hành dạng bảng điều khiển (BangDieuKhien): biểu đồ đường sản lượng, thiết bị, kho bãi quanh lịch cầu bến theo mét.
+// Tổng quan điều hành (TongQuanMoi, thiết kế lại 10/11/2026): chọn kỳ, đồng hồ sức khỏe, vấn đề cần xử lý, bốn mảng sản lượng / cầu bến / kho bãi / thiết bị.
 // "Chi tiết" ở mỗi khung mở hộp biểu đồ / bảng chi tiết; trong hộp có nút mở trang đầy đủ.
 export default function TongQuan({ go }) {
   const { D, quyen, reload, busy } = useApp();
@@ -31,14 +31,14 @@ export default function TongQuan({ go }) {
     quyen.coCang && ["khoi-luong", HopKhoiLuong],
   ].filter(Boolean);
   const Hop = HOP.find((t) => t[0] === mo)?.[1];
+  const canhBao = useCanhBao();
 
   return (
     <>
       <PageHead title="Tổng quan điều hành" desc={<NhanCapNhat />}>
         <Button size="sm" variant="outline" onClick={lamMoi} disabled={busy} title="Tải lại dữ liệu ngay"><RefreshCw className={busy ? "animate-spin" : ""} />Tải lại</Button>
       </PageHead>
-      <DaiCanhBao onMo={() => setMo("canh-bao")} />
-      {HOP.length ? <BangDieuKhien onMo={setMo} go={go} /> : <Empty>Tài khoản chưa được cấp quyền xem phần nào.</Empty>}
+      {HOP.length ? <TongQuanMoi onMo={setMo} go={go} tongCanhBao={canhBao.tong} /> : <Empty>Tài khoản chưa được cấp quyền xem phần nào.</Empty>}
       {Hop && <Hop onClose={dong} go={go} />}
       {mo === "canh-bao" && <HopCanhBao onClose={dong} />}
     </>

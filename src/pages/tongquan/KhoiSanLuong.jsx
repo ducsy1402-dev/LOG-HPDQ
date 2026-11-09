@@ -14,21 +14,22 @@ import { Khung, ChuaCo, Chon, ChonDs, BangChiTiet, nghin } from "./khungBD";
 //  4. Vận tải phục vụ cảng theo đơn vị thực hiện          5. Vận tải phục vụ sản xuất theo đơn vị thực hiện (4, 5 lọc theo đội xe)
 // Số liệu từ bảng nhập thực tế theo ca / ngày (SQL 06); mục tiêu tháng chia đều theo ngày.
 
-const MAU_HUONG = { nhap: MAU.info, xuat: MAU.tim, phuc_vu_cang: MAU.info, phuc_vu_san_xuat: MAU.warn };
+const MAU_HUONG = { nhap: MAU.info, xuat: MAU.tim, phuc_vu_cang: MAU.info, phuc_vu_san_xuat: "#ec4899" };
 
 // Mục tiêu + sản lượng thực tế của các tháng trong kỳ; null = chưa chạy SQL 06
-function useSanLuongKy(nhom, thangs, kyKhoa) {
+export function useSanLuongKy(nhom, thangs, kyKhoa, tat = false) {
   const { api, D } = useApp();
   const [kq, setKq] = useState(undefined);
   const khoa = thangs.join(",");
   useEffect(() => {
+    if (tat) return undefined;
     let huy = false;
     // Quý / năm có mục tiêu riêng (SQL 10) thì dùng; chưa chạy SQL 10 hoặc chưa nhập thì cộng các tháng như trước
     Promise.all([Promise.all(khoa.split(",").map((t) => api.docSanLuongThang(nhom, t))), kyKhoa ? api.docMucTieuKy(nhom, kyKhoa).catch(() => null) : null])
       .then(([rs, rieng]) => { if (!huy) setKq(rs.some((r) => !r) ? null : { mucTieuKy: rieng || [], mucTieu: rs.flatMap((r, i) => r.mucTieu.map((x) => ({ ...x, thang: x.thang || khoa.split(",")[i] }))), thucTe: rs.flatMap((r) => r.thucTe) }); })
       .catch(() => { if (!huy) setKq(null); });
     return () => { huy = true; };
-  }, [api, nhom, khoa, kyKhoa, D]); // D đổi (có người sửa) thì tải lại
+  }, [api, nhom, khoa, kyKhoa, D, tat]); // D đổi (có người sửa) thì tải lại
   return kq;
 }
 
@@ -91,11 +92,16 @@ function SoLon({ tt, mt }) {
   );
 }
 
-export default function KhoiSanLuong({ kyInfo }) {
+// Khóa kỳ có mục tiêu riêng (SQL 10): quý "2026-Q4", năm "2026"; tuần / tháng không có
+export const khoaKyRieng = (kyInfo) => (kyInfo.ky === "quy" ? khoaKy("quy", new Date(kyInfo.ngays[0] + "T00:00:00").getTime()) : kyInfo.ky === "nam" ? kyInfo.ngays[0].slice(0, 4) : null);
+
+// du: { cang, vt } đã tải sẵn ở trang cha (Tổng quan mới) thì dùng luôn, không tải lại
+export default function KhoiSanLuong({ kyInfo, du }) {
   const [huongC, setHuongC] = useState(""), [huongV, setHuongV] = useState(""), [huongH, setHuongH] = useState("");
   const [doiC, setDoiC] = useState(""), [doiS, setDoiS] = useState("");
-  const kyKhoa = kyInfo.ky === "quy" ? khoaKy("quy", new Date(kyInfo.ngays[0] + "T00:00:00").getTime()) : kyInfo.ky === "nam" ? kyInfo.ngays[0].slice(0, 4) : null;
-  const cang = useSanLuongKy("cang", kyInfo.thangs, kyKhoa), vt = useSanLuongKy("van_tai", kyInfo.thangs, kyKhoa);
+  const kyKhoa = khoaKyRieng(kyInfo);
+  const cang0 = useSanLuongKy("cang", kyInfo.thangs, kyKhoa, !!du), vt0 = useSanLuongKy("van_tai", kyInfo.thangs, kyKhoa, !!du);
+  const cang = du ? du.cang : cang0, vt = du ? du.vt : vt0;
   const loadHuong = (nhom) => NHOM[nhom].huong.map(([k]) => k);
 
   const c1 = useMemo(() => (cang ? chuoiKy(kyInfo, cang, "cang", { loc: (x) => !huongC || x.huong === huongC, chia: (x) => x.huong }) : null), [kyInfo, cang, huongC]);
@@ -132,16 +138,6 @@ export default function KhoiSanLuong({ kyInfo }) {
       {chuaSql ? <ChuaCo>Chưa có bảng sản lượng thực tế (chạy sql/06).</ChuaCo>
         : tai ? <ChuaCo>Đang tải sản lượng…</ChuaCo>
         : <>
-          <div className="grid gap-2.5 lg:grid-cols-2">
-            <Khung ten="Sản lượng cảng" phu={`${kyInfo.nhan} · mục tiêu – thực tế – lũy kế`} chiTiet={ctKy(c1, huongList("cang", huongC, c1), "cang", kyInfo)} bo={boHuong("cang", huongC, setHuongC)}>
-              <SoLon tt={c1.tongTt} mt={c1.tongMt} />
-              <EChart height={210} option={optKy(c1, huongList("cang", huongC, c1), "cang")} />
-            </Khung>
-            <Khung ten="Sản lượng vận tải" phu={`${kyInfo.nhan} · mục tiêu – thực tế – lũy kế`} chiTiet={ctKy(c3, huongList("van_tai", huongV, c3), "van_tai", kyInfo)} bo={boHuong("van_tai", huongV, setHuongV)}>
-              <SoLon tt={c3.tongTt} mt={c3.tongMt} />
-              <EChart height={210} option={optKy(c3, huongList("van_tai", huongV, c3), "van_tai")} />
-            </Khung>
-          </div>
           <div className="grid gap-2.5 lg:grid-cols-3">
             <Khung ten="Cảng theo loại hàng" phu={`${kyInfo.nhan} · mục tiêu – lũy kế`} chiTiet={ctNhom(nhomHang, "Hướng · loại hàng")} bo={boHuong("cang", huongH, setHuongH)}>
               {nhomHang.length ? <>

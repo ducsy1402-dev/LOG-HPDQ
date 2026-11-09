@@ -35,7 +35,7 @@ export default function EChart({ option, height = 260, onClick }) {
       legend: { textStyle: { color: chu }, top: 0 },
       grid: { left: 14, right: 14, top: 34, bottom: 4, containLabel: true },
       ...option,
-      legend: { textStyle: { color: chu }, top: 0, ...option.legend },
+      legend: { top: 0, ...option.legend, textStyle: { color: chu, ...option.legend?.textStyle } }, // chữ chú thích luôn sáng theo giao diện, không mất màu khi biểu đồ chỉ đặt cỡ chữ
       tooltip: { trigger: "axis", backgroundColor: dark ? "#111c31" : "#fff", borderColor: luoi, textStyle: { color: chu }, valueFormatter: (v) => (typeof v === "number" ? so(v) : v), ...option.tooltip },
       xAxis: truc(option.xAxis),
       yAxis: truc(option.yAxis),

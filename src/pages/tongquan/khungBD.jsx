@@ -19,7 +19,7 @@ export function Khung({ ten, phu, bo, chiTiet, onChiTiet, className, children })
       <div className="mb-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
         <span className="text-[10px] text-primary">◆</span>
         <h3 className={cn("truncate font-semibold uppercase tracking-wider text-muted-foreground", to ? "text-sm" : "text-[11px]")}>{ten}</h3>
-        {phu && <span className="truncate text-[10px] text-muted-foreground/80">· {phu}</span>}
+        {phu && <span className="truncate text-[10px] text-muted-foreground">· {phu}</span>}
         <div className="ml-auto flex items-center gap-1.5">
           {bo}
           {coCT && <button type="button" onClick={() => (chiTiet ? setMo(true) : onChiTiet())} className="inline-flex shrink-0 items-center text-[11px] text-primary hover:underline">Chi tiết<ChevronRight className="h-3 w-3" /></button>}

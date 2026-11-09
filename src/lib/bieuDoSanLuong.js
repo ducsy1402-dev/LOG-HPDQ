@@ -8,9 +8,10 @@ export const KY = [["tuan", "Tuần"], ["thang", "Tháng"], ["quy", "Quý"], ["n
 const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const ddmm = (s) => `${s.slice(8, 10)}/${s.slice(5, 7)}`;
 
-// Kỳ chứa ngày homNay (YYYY-MM-DD): danh sách ngày, các tháng liên quan, bước gộp điểm trên biểu đồ, nhãn kỳ
-export function khoangKy(ky, homNay) {
-  const [y, m, d] = homNay.split("-").map(Number);
+// Kỳ chứa ngày ngayTC (YYYY-MM-DD; mặc định hôm nay): danh sách ngày, các tháng liên quan, bước gộp điểm trên biểu đồ, nhãn kỳ.
+// homNay (mặc định = ngayTC) là "hôm nay" thật để biết điểm nào chưa tới; tu / den (ms, giờ máy) là khoảng [đầu kỳ, hết kỳ).
+export function khoangKy(ky, ngayTC, homNay = ngayTC) {
+  const [y, m, d] = ngayTC.split("-").map(Number);
   let tu, den, nhan;
   if (ky === "tuan") { const lui = (new Date(y, m - 1, d).getDay() + 6) % 7; tu = new Date(y, m - 1, d - lui); den = new Date(y, m - 1, d - lui + 6); nhan = `Tuần ${ddmm(ymd(tu))} – ${ddmm(ymd(den))}`; }
   else if (ky === "thang") { tu = new Date(y, m - 1, 1); den = new Date(y, m, 0); nhan = `Tháng ${m}/${y}`; }
@@ -18,8 +19,13 @@ export function khoangKy(ky, homNay) {
   else { tu = new Date(y, 0, 1); den = new Date(y, 12, 0); nhan = `Năm ${y}`; }
   const ngays = [];
   for (const t = new Date(tu); t <= den; t.setDate(t.getDate() + 1)) ngays.push(ymd(t));
-  return { ky, ngays, thangs: [...new Set(ngays.map((s) => s.slice(0, 7)))], buoc: ky === "quy" ? "tuan" : ky === "nam" ? "thang" : "ngay", nhan, homNay };
+  const t0 = new Date(tu.getFullYear(), tu.getMonth(), tu.getDate()), t1 = new Date(den.getFullYear(), den.getMonth(), den.getDate() + 1);
+  return { ky, ngays, thangs: [...new Set(ngays.map((s) => s.slice(0, 7)))], buoc: ky === "quy" ? "tuan" : ky === "nam" ? "thang" : "ngay", nhan, homNay, tu: t0.getTime(), den: t1.getTime(), ngayTC };
 }
+// Kỳ liền trước / liền sau cùng loại (hôm nay thật giữ nguyên)
+const lechNgay = (s, n) => { const [y, m, d] = s.split("-").map(Number); return ymd(new Date(y, m - 1, d + n)); };
+export const kyTruoc = (k) => khoangKy(k.ky, lechNgay(k.ngays[0], -1), k.homNay);
+export const kySau = (k) => khoangKy(k.ky, lechNgay(k.ngays[k.ngays.length - 1], 1), k.homNay);
 
 // Khóa nhóm điểm: theo ngày, theo tuần (thứ Hai đầu tuần) hoặc theo tháng
 export function khoaDiem(buoc, s) {

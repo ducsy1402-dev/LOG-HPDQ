@@ -66,6 +66,8 @@
 @layer components {
   .num { @apply tabular-nums text-right; }
   .tbl { @apply w-full text-sm border-collapse; }
+  /* Tổng quan: chữ chú thích sáng hơn ở giao diện tối */
+  [data-theme="dark"] .tq-sang { --muted-foreground: 215 26% 80%; }
   .tbl th { @apply sticky top-0 z-10 bg-card text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground px-2.5 py-2 border-b whitespace-nowrap; }
   .tbl td { @apply px-2.5 py-2 border-b align-middle; }
   .tbl tbody tr:hover { @apply bg-accent/40; }
