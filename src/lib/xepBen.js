@@ -129,11 +129,13 @@ export function xepBenTuDong(v, ctx) {
   const ts = uocThongSo(v), t = { ...v, ...ts };
   const eta = ms(v.eta) ?? now;
   const tu = Math.max(eta, Math.ceil(now / HOUR) * HOUR);
-  const hop = berths.filter((b) => !khongHop(t, b).length);
+  // Chuyến ĐÃ khai báo bến: giữ đúng bến đó (không chọn lại bến), chỉ tính ETB / ETD; chưa khai báo thì chọn bến phù hợp
+  const daKhai = v.ben_ma ? berths.find((b) => b.ma === v.ben_ma) : null;
+  const hop = daKhai ? [daKhai] : berths.filter((b) => !khongHop(t, b).length);
   if (!hop.length) return null;
   let ds = hop.map((b) => ({ b, iHang: viTriHang(v, b) }));
   const coHang = ds.some((x) => x.iHang >= 0);
-  if (coHang) ds = ds.filter((x) => x.iHang >= 0);
+  if (coHang && !daKhai) ds = ds.filter((x) => x.iHang >= 0);
   for (const x of ds) {
     x.dai = thoiGianOBen(t, x.b.ma, ctx);
     x.etb = ctx.etbSom ? ctx.etbSom(t, x.b.ma, tu, x.dai, ctx) : etbSomNhat(x.b.ma, tu, x.dai, { ...ctx, boQua: v.id ?? null });
@@ -144,6 +146,6 @@ export function xepBenTuDong(v, ctx) {
   const iso = (ms0) => new Date(ms0).toISOString();
   return {
     ben_ma: x.b.ma, etb: iso(x.etb), etd: iso(x.etb + x.dai), uoc: [...ts.uoc], hangKhop: coHang,
-    ly: `Bến ${x.b.ma}: hợp ${["DWT", "mớn", "chiều dài"].join(", ")}${coHang ? `, loại hàng thứ ${x.iHang + 1} trong danh sách của bến` : " (chưa bến nào có loại hàng này)"}; cập sớm nhất ${ds.length > 1 ? `trong ${ds.length} bến phù hợp` : ""}`.trim(),
+    ly: daKhai ? `Giữ bến ${x.b.ma} đã khai báo` : `Bến ${x.b.ma}: hợp ${["DWT", "mớn", "chiều dài"].join(", ")}${coHang ? `, loại hàng thứ ${x.iHang + 1} trong danh sách của bến` : " (chưa bến nào có loại hàng này)"}; cập sớm nhất ${ds.length > 1 ? `trong ${ds.length} bến phù hợp` : ""}`.trim(),
   };
 }

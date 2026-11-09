@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useApp } from "@/store";
 import EChart from "@/components/EChart";
-import { so, pct, DAY } from "@/lib/format";
+import { so, pct, r2, DAY } from "@/lib/format";
 import { chuoiKho, chuoiPhanLoai, tuoiTon, tonTheoTuoi, hangCanXuLy, dsNhomKho, NHOM_TUOI, nhomTuoi } from "@/lib/bieuDoKho";
 import { useKho } from "../kho/useKho";
 import { MAU } from "./khung";
@@ -57,9 +57,9 @@ function KhungKho({ ten, loai, kho, kyInfo, gd, keHoach, now }) {
     ...base, tooltip: { valueFormatter: (v) => (v == null ? "—" : `${so(v)} t`) },
     xAxis: { type: "category", data: c.diem.map((o) => o.nhan), axisLabel: { fontSize: 10, hideOverlap: true } }, yAxis: truc,
     series: [
-      duong("Nhập thực tế", c.diem.map((o) => o.lkNhapTT), MAU.info), duong("Nhập kế hoạch", c.diem.map((o) => Math.round(o.lkNhapKH)), MAU.info, { net: true }),
-      duong("Xuất thực tế", c.diem.map((o) => o.lkXuatTT), MAU.tim), duong("Xuất kế hoạch", c.diem.map((o) => Math.round(o.lkXuatKH)), MAU.tim, { net: true }),
-      duong("Tồn thực tế", c.diem.map((o) => o.tonCuoi), MAU.ok, { vung: true }), duong("Tồn kế hoạch", c.diem.map((o) => Math.round(o.tonKH)), MAU.ok, { net: true }),
+      duong("Nhập thực tế", c.diem.map((o) => o.lkNhapTT), MAU.info), duong("Nhập kế hoạch", c.diem.map((o) => r2(o.lkNhapKH)), MAU.info, { net: true }),
+      duong("Xuất thực tế", c.diem.map((o) => o.lkXuatTT), MAU.tim), duong("Xuất kế hoạch", c.diem.map((o) => r2(o.lkXuatKH)), MAU.tim, { net: true }),
+      duong("Tồn thực tế", c.diem.map((o) => o.tonCuoi), MAU.ok, { vung: true }), duong("Tồn kế hoạch", c.diem.map((o) => r2(o.tonKH)), MAU.ok, { net: true }),
     ],
   };
   const chiTiet = {
@@ -83,7 +83,7 @@ const TEN_PL = { can_giai_phong: "Cần giải phóng", dau_co: "Đầu cơ", go
 // Cơ cấu tồn theo thời gian: cột chồng cần giải phóng / đầu cơ (tấn, trục trái) và tỉ trọng của hai loại này trên tổng tồn (trục phải); lưu động ở tooltip
 function KhungCoCau({ p, kyInfo }) {
   const h = p.hien, chet = h ? h.cgp + h.dc : null;
-  const cot = (name, khoa, color) => ({ name, type: "bar", stack: "ton", barMaxWidth: 16, itemStyle: { color, opacity: 0.85 }, data: p.diem.map((o) => (o[khoa] == null ? null : Math.round(o[khoa]))) });
+  const cot = (name, khoa, color) => ({ name, type: "bar", stack: "ton", barMaxWidth: 16, itemStyle: { color, opacity: 0.85 }, data: p.diem.map((o) => (o[khoa] == null ? null : r2(o[khoa]))) });
   const opt = {
     ...base,
     tooltip: { formatter: (ds) => { const o = p.diem[ds[0].dataIndex]; return o.tong == null ? `${o.nhan}<br/>Chưa tới` : `${o.nhan}<br/>Cần giải phóng: <b>${so(o.cgp)} t</b><br/>Đầu cơ: <b>${so(o.dc)} t</b><br/>Lưu động: ${so(o.ld)} t<br/>Giải phóng + đầu cơ: <b>${pct((o.cgp + o.dc) / (o.tong || 1), 1)}</b> tổng tồn`; } },
@@ -137,7 +137,7 @@ function KhungTop({ ds, tatCa }) {
     grid: { left: 4, right: 58, top: 4, bottom: 0, containLabel: true },
     tooltip: { trigger: "item", formatter: (x) => { const r = ds[x.dataIndex]; return `${r.hang} · ${r.ten_bai}<br/>${TEN_PL[r.kieu]}: <b>${so(r.tan)} t</b><br/>Tuổi tồn ${so(r.tuoi)} ngày`; } },
     xAxis: truc, yAxis: { type: "category", inverse: true, data: ds.map((r) => `${r.hang} · ${r.ten_bai}`), axisLabel: { fontSize: 10, width: 130, overflow: "truncate" } },
-    series: [{ type: "bar", barMaxWidth: 12, data: ds.map((r) => ({ value: Math.round(r.tan), itemStyle: { color: MAU_PL[r.kieu], opacity: r.kieu === "goi_y" ? 0.6 : 1 } })),
+    series: [{ type: "bar", barMaxWidth: 12, data: ds.map((r) => ({ value: r2(r.tan), itemStyle: { color: MAU_PL[r.kieu], opacity: r.kieu === "goi_y" ? 0.6 : 1 } })),
       label: { show: true, position: "right", fontSize: 10, formatter: (x) => `${so(ds[x.dataIndex].tuoi)} ngày` } }],
   };
   return (

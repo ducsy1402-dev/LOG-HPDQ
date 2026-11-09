@@ -156,7 +156,7 @@ describe("Kiểm tra tàu - bến", () => {
 describe("Dán nhanh", () => {
   it("đọc số kiểu Việt Nam", () => {
     expect(docSo("110.680")).toBe(110680);
-    expect(docSo("110,680")).toBe(110680);
+    expect(docSo("110,680")).toBe(110.68); expect(docSo("667,756 tấn")).toBe(667.756); expect(docSo("1,234,567")).toBe(1234567); expect(docSo("12.5")).toBe(12.5);
     expect(docSo("7,2")).toBe(7.2);
     expect(docSo("1.234,5")).toBe(1234.5);
     expect(docSo("15.000 t/ngày")).toBe(15000);

@@ -63,7 +63,7 @@ export default function Linetime() {
   return (
     <>
       <PageHead title="Linetime tàu cập bến" desc="Lịch cầu bến, tiến độ theo bến và danh sách chuyến. Bấm vào tàu để mở phiếu chuyến (7 mốc giờ, nhật ký, khoảng dừng, laytime).">
-        {quyen.nhap && <>{soChuaBen > 0 && <Button variant="outline" onClick={() => setXep(true)}><Anchor />Tự xếp bến ({soChuaBen})</Button>}<Button variant="outline" onClick={() => setXepLai(true)} title="Xếp lại mọi chuyến chưa cập thật theo nguyên tắc, có xem trước"><Anchor />Xếp lại toàn bộ</Button><Button variant="outline" onClick={() => setDan(true)}><ClipboardPaste />Dán nhanh</Button><Button onClick={() => setThem(true)}><Plus />Thêm chuyến</Button></>}
+        {quyen.nhap && <>{soChuaBen > 0 && <Button variant="outline" onClick={() => setXep(true)}><Anchor />Tự xếp bến ({soChuaBen})</Button>}<Button variant="outline" onClick={() => setXepLai(true)} title="Xếp lại giờ cập mọi chuyến chưa cập thật (giữ nguyên bến đã khai báo), có xem trước"><Anchor />Xếp lại toàn bộ</Button><Button variant="outline" onClick={() => setDan(true)}><ClipboardPaste />Dán nhanh</Button><Button onClick={() => setThem(true)}><Plus />Thêm chuyến</Button></>}
       </PageHead>
       <Card className="mb-3">
         <CardContent className="flex flex-wrap items-center gap-2 pt-4">

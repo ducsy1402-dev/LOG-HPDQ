@@ -6,10 +6,30 @@ export const pad = (n) => String(n).padStart(2, "0");
 export const ms = (v) => (v == null || v === "" ? null : typeof v === "number" ? v : new Date(v).getTime());
 export const iso = (t) => (t == null || Number.isNaN(t) ? null : new Date(t).toISOString());
 
-const nf = (d) => new Intl.NumberFormat("vi-VN", { maximumFractionDigits: d, minimumFractionDigits: 0 });
-const NF = [nf(0), nf(1), nf(2), nf(3)];
-export const so = (v, d = 0) => (v == null || v === "" || Number.isNaN(+v) ? "" : NF[d].format(+v));
-export const pct = (v, d = 0) => (v == null || !Number.isFinite(v) ? "" : NF[d].format(v * 100) + "%");
+// Số kiểu Việt Nam (1.234,56): mọi số đo (tấn, mét, mớn…) làm tròn đúng 2 chữ số thập phân; so(v, 0) cho số đếm nguyên (xe, tàu, chuyến…).
+// pct / thời lượng: tối đa 2 chữ số, bỏ số 0 thừa. Anh Sỹ chốt 09/11/2026.
+const nf = (min, max) => new Intl.NumberFormat("vi-VN", { minimumFractionDigits: min, maximumFractionDigits: max });
+const N0 = nf(0, 0), N2 = nf(2, 2), NF = [nf(0, 0), nf(0, 1), nf(0, 2), nf(0, 2)];
+export const so = (v, d) => (v == null || v === "" || Number.isNaN(+v) ? "" : (d === 0 ? N0 : N2).format(+v));
+export const pct = (v, d = 2) => (v == null || !Number.isFinite(v) ? "" : NF[Math.min(d, 2)].format(v * 100) + "%");
+// Làm tròn 2 chữ số (dữ liệu biểu đồ)
+export const soGon = (v) => (v == null || v === "" || Number.isNaN(+v) ? "" : NF[2].format(+v)); // tối đa 2 số lẻ, bỏ số 0 thừa (nhãn trục biểu đồ)
+export const met = (v) => (v == null || v === "" || Number.isNaN(+v) ? "" : NF[2].format(+v)); // số mét cầu bến / vị trí / LOA: nguyên văn, tối đa 2 số lẻ, không ép đủ 2 số
+export const r2 = (x) => (x == null || !Number.isFinite(+x) ? x : Math.round(+x * 100) / 100);
+// Đọc số người nhập theo cách phổ thông nhất ở Việt Nam: dấu phẩy là thập phân ("667,756" = 667,756), dấu chấm ngăn nghìn ("1.234,5", "110.680");
+// vẫn nhận "12.5" (chấm thập phân) và "1,234,567" / "1,234.5" (kiểu Anh). Có đơn vị cuối ("15.000 t/ngày", "50 tấn") thì bỏ đơn vị. Không phải số -> null.
+export function docSo(s) {
+  if (s == null) return null;
+  if (typeof s === "number") return s;
+  let t = String(s).trim().toLowerCase().replace(/\s/g, "").replace(/(t\/ngày|t\/ngay|tấn|tan|dwt|t|m|%)$/, "");
+  if (!/^-?[\d.,]*\d[\d.,]*$/.test(t)) return null; // còn chữ (CQD, 10tr…) thì không phải số
+  const phay = t.split(",").length - 1, cham = t.split(".").length - 1;
+  if (phay && cham) t = t.lastIndexOf(",") > t.lastIndexOf(".") ? t.replace(/\./g, "").replace(",", ".") : t.replace(/,/g, "");
+  else if (phay) t = phay > 1 ? t.replace(/,/g, "") : t.replace(",", ".");
+  else if (cham) t = cham > 1 || /^-?[1-9]\d{0,2}\.\d{3}$/.test(t) ? t.replace(/\./g, "") : t;
+  const n = Number(t);
+  return Number.isFinite(n) ? n : null;
+}
 // Tiền theo đơn vị của chuyến: 12.500 USD / 12.345.678 ₫
 export const tien = (v, dv = "USD") => (v == null || !Number.isFinite(v) ? "" : dv === "VND" ? NF[0].format(Math.round(v)) + " ₫" : NF[0].format(Math.round(v)) + " USD");
 // Tiền rút gọn cho thẻ số: 1,25 tỷ ₫ / 340 tr ₫ / 125.000 USD

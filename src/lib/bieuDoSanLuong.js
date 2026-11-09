@@ -1,7 +1,7 @@
 // Gộp mục tiêu tháng + sản lượng thực tế theo ca / ngày (SQL 06) thành số liệu theo kỳ (tuần / tháng / quý / năm) cho biểu đồ Tổng quan.
 // Mục tiêu tháng được chia đều theo ngày của tháng đó, nên cộng lại cho bất kỳ kỳ nào (kể cả tuần nằm giữa hai tháng).
 import { pad } from "./format";
-import { ngayCuaThang, tuDb } from "./sanLuongTT";
+import { ngayCuaThang, tuDb, khoaCua } from "./sanLuongTT";
 
 export const KY = [["tuan", "Tuần"], ["thang", "Tháng"], ["quy", "Quý"], ["nam", "Năm"]];
 
@@ -30,13 +30,21 @@ export function khoaDiem(buoc, s) {
 }
 export const nhanDiem = (buoc, ngayDau) => (buoc === "thang" ? `T${+ngayDau.slice(5, 7)}` : ddmm(ngayDau));
 
-// Mục tiêu theo ngày (Map ngày -> tấn) của các dòng thỏa loc
-function mucTieuNgay(nhom, mucTieu, loc) {
-  const mm = new Map();
+// Dòng (hướng | loại | đơn vị | hàng) đã có mục tiêu RIÊNG của kỳ (quý / năm, SQL 10): dòng đó dùng mục tiêu của kỳ, không cộng các tháng
+const khoaRieng = (nhom, ghiDe) => new Set((ghiDe || []).map((r) => khoaCua(tuDb(nhom, r))));
+// Mục tiêu theo ngày (Map ngày -> tấn) của các dòng thỏa loc. Mục tiêu tháng chia đều theo ngày của tháng; mục tiêu riêng của kỳ (ghiDe) chia đều theo ngày của kỳ
+function mucTieuNgay(nhom, mucTieu, loc, ghiDe, ngays) {
+  const mm = new Map(), rieng = khoaRieng(nhom, ghiDe);
   for (const r of mucTieu || []) {
-    if (!loc(tuDb(nhom, r))) continue;
+    const x = tuDb(nhom, r);
+    if (!loc(x) || rieng.has(khoaCua(x))) continue;
     const nd = ngayCuaThang(r.thang), moi = (+r.tan || 0) / nd.length;
     for (const d of nd) mm.set(d, (mm.get(d) || 0) + moi);
+  }
+  for (const r of ghiDe || []) {
+    if (!loc(tuDb(nhom, r)) || !ngays.length) continue;
+    const moi = (+r.tan || 0) / ngays.length;
+    for (const d of ngays) mm.set(d, (mm.get(d) || 0) + moi);
   }
   return mm;
 }
@@ -44,7 +52,7 @@ function mucTieuNgay(nhom, mucTieu, loc) {
 // Chuỗi theo điểm của kỳ: mục tiêu, thực tế (tách theo `chia(dòng)` nếu có), lũy kế mục tiêu và lũy kế thực tế (null với điểm chưa tới)
 export function chuoiKy(kyInfo, du, nhom, { loc = () => true, chia = () => "" } = {}) {
   const { ngays, buoc, homNay } = kyInfo;
-  const mt = mucTieuNgay(nhom, du?.mucTieu, loc);
+  const mt = mucTieuNgay(nhom, du?.mucTieu, loc, du?.mucTieuKy, ngays);
   const diem = new Map(), tt = [], tap = new Set(ngays);
   for (const d of ngays) {
     const k = khoaDiem(buoc, d);
@@ -69,12 +77,14 @@ export function chuoiKy(kyInfo, du, nhom, { loc = () => true, chia = () => "" } 
 export function tongTheoNhom(kyInfo, du, nhom, khoa, loc = () => true) {
   const { ngays } = kyInfo, tap = new Set(ngays), kq = new Map();
   const lay = (k) => { if (!kq.has(k)) kq.set(k, { mt: 0, tt: 0 }); return kq.get(k); };
+  const rieng = khoaRieng(nhom, du?.mucTieuKy);
   for (const r of du?.mucTieu || []) {
     const x = tuDb(nhom, r);
-    if (!loc(x)) continue;
+    if (!loc(x) || rieng.has(khoaCua(x))) continue;
     const nd = ngayCuaThang(r.thang), moi = (+r.tan || 0) / nd.length, n = nd.filter((d) => tap.has(d)).length;
     if (n) lay(khoa(x)).mt += moi * n;
   }
+  for (const r of du?.mucTieuKy || []) { const x = tuDb(nhom, r); if (loc(x)) lay(khoa(x)).mt += +r.tan || 0; }
   for (const r of du?.thucTe || []) {
     const x = tuDb(nhom, r), d = String(r.ngay).slice(0, 10);
     if (loc(x) && tap.has(d)) lay(khoa(x)).tt += +r.tan || 0;

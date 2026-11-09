@@ -136,6 +136,18 @@ export function makeSupabaseApi() {
       const ghi = rows.filter((x) => x.tan != null).map((r) => ({ thang: r.thang, huong: r.huong, ...(nhom === "van_tai" ? { loai_xe: r.loai, don_vi: r.donVi, loai_hang: r.hang || "" } : { loai_hang: r.loai }), tan: r.tan, ghi_chu: r.ghi_chu || null, updated_at: now() }));
       if (ghi.length) ok(await sb.from(c.bangMT).upsert(ghi, { onConflict: nhom === "van_tai" ? "thang,huong,loai_xe,don_vi,loai_hang" : "thang,huong,loai_hang" }));
     },
+    // Mục tiêu theo quý / năm (SQL 10): ky = "2026-Q4" | "2026". Trả các dòng cùng dạng dòng mục tiêu tháng (thang = ky); null = chưa chạy SQL 10
+    async docMucTieuKy(nhom, ky) {
+      const r = await sb.from("muc_tieu_ky").select("*").eq("nhom", nhom).eq("ky", ky).range(0, 9999);
+      if (r.error) return null;
+      return r.data.map((x) => ({ thang: x.ky, huong: x.huong, ...(nhom === "van_tai" ? { loai_xe: x.loai, don_vi: x.don_vi, loai_hang: x.loai_hang } : { loai_hang: x.loai }), tan: x.tan, ghi_chu: x.ghi_chu }));
+    },
+    // rows: [{ thang (= ky), huong, loai, donVi, hang, tan, ghi_chu }]; tan = null thì xóa dòng đó
+    async saveMucTieuKy(nhom, rows) {
+      for (const r of rows.filter((x) => x.tan == null)) ok(await sb.from("muc_tieu_ky").delete().eq("nhom", nhom).eq("ky", r.thang).eq("huong", r.huong).eq("loai", r.loai).eq("don_vi", r.donVi || "").eq("loai_hang", r.hang || ""));
+      const ghi = rows.filter((x) => x.tan != null).map((r) => ({ nhom, ky: r.thang, huong: r.huong, loai: r.loai, don_vi: r.donVi || "", loai_hang: r.hang || "", tan: r.tan, ghi_chu: r.ghi_chu || null, updated_at: now() }));
+      if (ghi.length) ok(await sb.from("muc_tieu_ky").upsert(ghi, { onConflict: "nhom,ky,huong,loai,don_vi,loai_hang" }));
+    },
     // rows: [{ ngay, ca, huong, loai, donVi, tan }]; tan = null thì xóa số của ô đó
     async saveThucTe(nhom, rows) {
       const c = NHOM[nhom], lien = (q, r) => (nhom === "van_tai" ? q.eq("loai_xe", r.loai).eq("don_vi", r.donVi).eq("loai_hang", r.hang || "") : q.eq("loai_hang", r.loai));

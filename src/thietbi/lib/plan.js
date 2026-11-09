@@ -1,5 +1,6 @@
 // Logic Giai đoạn 2 – Kế hoạch & phân bổ xe (chuyển từ demo_tien_do.html đã duyệt)
 import { pad, plain } from "./utils";
+import { docSo } from "@/lib/format";
 
 export const MIN = 60000;
 export const HOUR = 3600e3;
@@ -60,7 +61,7 @@ export function parseDT(v) {
 export function parseKL(v) {
   const s = String(v ?? "").trim(); const m = s.match(/^([\d.,]+)\s*(.*)$/);
   if (!m) return { kl: null, dvt: s || "" };
-  const n = Number(m[1].replace(/\./g, "").replace(",", "."));
+  const n = docSo(m[1]) ?? NaN;
   const u = m[2].trim();
   return { kl: Number.isFinite(n) ? n : null, dvt: u ? u[0].toUpperCase() + u.slice(1).toLowerCase() : "" };
 }
@@ -497,7 +498,7 @@ const oHtml = (v, i, cot) => {
   const k = KIEU_O.get(cot);
   const cls = k.trai.includes(i) ? ' class="l"' : k.nw.includes(i) ? ' class="nw"' : i === k.sdt ? ' class="sdt"' : "";
   if (i === k.sdt) v = String(v ?? "").replace(/\s*[,;/]\s*|\s+/g, " ").trim(); // tách các số bằng khoảng trắng để xuống hàng giữa các số
-  return `<td${cls}>${esc(typeof v === "number" && i === k.kl ? v.toLocaleString("vi-VN") : v)}</td>`;
+  return `<td${cls}>${esc(typeof v === "number" && i === k.kl ? v.toLocaleString("vi-VN", { maximumFractionDigits: 2 }) : v)}</td>`;
 };
 const thHtml = (cot) => cot.map((c) => `<th>${esc(c).replace(/^(T\.gian|Loại|Đơn vị|Số) /, "$1<br>")}</th>`).join("");
 

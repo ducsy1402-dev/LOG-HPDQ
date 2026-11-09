@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Boxes, Plus, Minus, ArrowLeftRight, ClipboardCheck, ClipboardPaste, Trash2, Bell, Package, Network, List, LineChart, CalendarRange, ChevronRight, Layers } from "lucide-react";
+import { Boxes, PenLine, Pencil, ClipboardCheck, ClipboardPaste, Trash2, Bell, Package, Network, List, LineChart, CalendarRange, ChevronRight, Layers } from "lucide-react";
 import { useApp } from "@/store";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,13 +9,13 @@ import { Dialog } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageHead, Empty, MucIcon, ConfirmButton } from "@/components/common";
 import EChart from "@/components/EChart";
-import { so, pct, ngayNam, matchQ, plain } from "@/lib/format";
+import { so, pct, r2, ngayNam, matchQ, plain } from "@/lib/format";
 import { LOAI_GD, TRANG_THAI_LO, NGUONG_KHO, tonTheoNgay } from "@/lib/kho";
 import { cn } from "@/lib/utils";
 import { mauDay, KIEU_TONE, KIEU_NGAN, Chi, Thanh, NgayDay, ThongQua, LuuBai, T_NGAY_DAY, T_LUU_BAI, T_THONG_QUA, T_NHAP_XUAT } from "./khoUi";
 import SoDoTuDuy from "./SoDoTuDuy";
 import { useKho } from "./useKho";
-import GiaoDichForm, { KiemKeForm } from "./GiaoDichForm";
+import GiaoDichForm, { KiemKeForm, SuaKiemKe } from "./GiaoDichForm";
 import DanNhanhKho from "./DanNhanhKho";
 import KeHoachKho from "./KeHoachKho";
 import PhanLoaiTon from "./PhanLoaiTon";
@@ -116,8 +116,8 @@ export default function Kho({ loai }) {
     xAxis: { type: "category", data: chuoi.map(([t]) => ngayNam(t).slice(0, 5)) },
     yAxis: { type: "value" },
     series: [
-      { name: "Tồn", type: "line", smooth: true, areaStyle: { opacity: 0.15 }, data: chuoi.map(([, v]) => Math.round(v)), itemStyle: { color: "#06b6d4" } },
-      ...(scBD ? [{ name: "Sức chứa", type: "line", data: chuoi.map(() => Math.round(scBD)), lineStyle: { type: "dashed" }, symbol: "none", itemStyle: { color: "#f43f5e" } }] : []),
+      { name: "Tồn", type: "line", smooth: true, areaStyle: { opacity: 0.15 }, data: chuoi.map(([, v]) => r2(v)), itemStyle: { color: "#06b6d4" } },
+      ...(scBD ? [{ name: "Sức chứa", type: "line", data: chuoi.map(() => r2(scBD)), lineStyle: { type: "dashed" }, symbol: "none", itemStyle: { color: "#f43f5e" } }] : []),
     ],
   };
 
@@ -125,9 +125,7 @@ export default function Kho({ loai }) {
     <>
       <PageHead title={TEN_LOAI[loai]} desc={`Tồn luôn tính từ sổ nhập – xuất. Sức chứa = sức chứa khả dụng của gian / lô ở Danh mục › Kho bãi; để trống thì tính diện tích × chiều cao × tỷ khối hàng. Vàng từ ${pct(NGUONG_KHO.vang)}, đỏ từ ${pct(NGUONG_KHO.do)} lấp đầy.`}>
         {nhap && <>
-          <Button size="sm" onClick={() => setForm({ loai: "nhap" })}><Plus />Nhập</Button>
-          <Button size="sm" variant="outline" onClick={() => setForm({ loai: "xuat" })}><Minus />Xuất</Button>
-          <Button size="sm" variant="outline" onClick={() => setForm({ loai: "dieu_chuyen" })}><ArrowLeftRight />Điều chuyển</Button>
+          <Button size="sm" onClick={() => setForm({ loai: "nhap" })}><PenLine />Nhập liệu</Button>
           <Button size="sm" variant="outline" onClick={() => setForm("kiem_ke")}><ClipboardCheck />Kiểm kê</Button>
           <Button size="sm" variant="outline" onClick={() => setForm("dan")}><ClipboardPaste />Dán nhanh / Excel</Button>
         </>}
@@ -201,7 +199,7 @@ export default function Kho({ loai }) {
             {gd.length ? (
               <div className="scroll-x max-h-[60vh]">
                 <table className="tbl">
-                  <thead><tr><th>Ngày</th><th>Ca</th><th>Loại</th><th>Bãi</th><th>Hàng</th><th className="num">Số lượng (t)</th>{tp && <th>Lô</th>}<th>Nguồn / chuyến</th><th>Chứng từ, ghi chú</th>{quyen.kho.quanLy && <th></th>}</tr></thead>
+                  <thead><tr><th>Ngày</th><th>Ca</th><th>Loại</th><th>Bãi</th><th>Hàng</th><th className="num">Số lượng (t)</th>{tp && <th>Lô</th>}<th>Nguồn / chuyến</th><th>Chứng từ, ghi chú</th>{nhap && <th></th>}</tr></thead>
                   <tbody>{gd.slice(0, 400).map((g) => (
                     <tr key={g.id}>
                       <td className="whitespace-nowrap tabular-nums">{ngayNam(g.ngay)}</td><td>{g.ca}</td>
@@ -211,7 +209,7 @@ export default function Kho({ loai }) {
                       {tp && <td className="font-mono text-xs">{g.so_lo}</td>}
                       <td className="text-xs">{g.voyage_id ? D.vmap.get(g.voyage_id)?.ten_tau || "Tàu" : ""}{g.nguon && !g.voyage_id ? g.nguon === "cap_sx" ? "Cấp sản xuất" : g.nguon === "san_xuat" ? "Từ sản xuất" : g.nguon === "don_hang" ? "Đơn hàng" : "" : ""}</td>
                       <td className="max-w-[260px] truncate text-xs text-muted-foreground" title={[g.chung_tu, g.ghi_chu].filter(Boolean).join(" · ")}>{[g.chung_tu, g.ghi_chu].filter(Boolean).join(" · ")}</td>
-                      {quyen.kho.quanLy && <td><ConfirmButton confirmText="Xóa?" onConfirm={() => run(() => api.deleteGiaoDich(g.id), "Đã xóa lượt")}><Trash2 /></ConfirmButton></td>}
+                      {nhap && <td className="whitespace-nowrap"><Button size="icon" variant="ghost" className="h-7 w-7" title="Sửa lượt này" aria-label="Sửa lượt này" onClick={() => setForm({ loai: g.loai, sua: g })}><Pencil /></Button>{quyen.kho.quanLy && <ConfirmButton confirmText="Xóa?" onConfirm={() => run(() => api.deleteGiaoDich(g.id), "Đã xóa lượt")}><Trash2 /></ConfirmButton>}</td>}
                     </tr>))}</tbody>
                 </table>
               </div>
@@ -236,7 +234,7 @@ export default function Kho({ loai }) {
         </TabsContent>
       </Tabs>
 
-      {form && typeof form === "object" && <GiaoDichForm loaiKho={loai} loaiGD={form.loai} kho={kho} onClose={() => setForm(null)} />}
+      {form && typeof form === "object" && (form.sua?.loai === "kiem_ke" ? <SuaKiemKe g={form.sua} onClose={() => setForm(null)} /> : <GiaoDichForm key={form.sua?.id ?? "moi"} loaiKho={loai} loaiGD={form.loai} sua={form.sua} kho={kho} onClose={() => setForm(null)} />)}
       {form === "kiem_ke" && <KiemKeForm loaiKho={loai} kho={kho} onClose={() => setForm(null)} />}
       {form === "dan" && <DanNhanhKho loaiKho={loai} kho={kho} onClose={() => setForm(null)} />}
       {moBai && kho.bai.some((b) => b.ten_bai === moBai) && <ChiTietBai b={kho.bai.find((b) => b.ten_bai === moBai)} kho={kho} onClose={() => setMoBai(null)} />}

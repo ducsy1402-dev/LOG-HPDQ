@@ -277,8 +277,8 @@
    "thu_tu": 15,
    "ghi_chu": null,
    "tuyen": "6CTH-7CTH",
-   "met_tu": 0,
-   "met_den": 250,
+   "met_tu": 250,
+   "met_den": 490,
    "goc_vuong": null,
    "bang_tai": null
   },
@@ -295,8 +295,8 @@
    "thu_tu": 16,
    "ghi_chu": null,
    "tuyen": "6CTH-7CTH",
-   "met_tu": 250,
-   "met_den": 500,
+   "met_tu": 0,
+   "met_den": 250,
    "goc_vuong": null,
    "bang_tai": null
   }

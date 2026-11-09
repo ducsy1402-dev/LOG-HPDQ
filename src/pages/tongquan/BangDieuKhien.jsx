@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "@/store";
 import { useThietBi } from "@/thietbi/Host";
 import EChart from "@/components/EChart";
-import { so, pct, thangCua, tenThang, DAY } from "@/lib/format";
+import { so, pct, r2, soGon, thangCua, tenThang, DAY } from "@/lib/format";
 import { trangThai, TRANG_THAI } from "@/lib/linetime";
 import { tonTheoNgay, NGUONG_KHO } from "@/lib/kho";
 import { ngayCuaThang } from "@/lib/sanLuongTT";
@@ -18,7 +18,7 @@ import { KY, khoangKy } from "@/lib/bieuDoSanLuong";
 // Tổng quan dạng bảng điều khiển: dải chỉ số trên cùng; khối trên 5 biểu đồ sản lượng (KhoiSanLuong); giữa là lịch cầu bến theo mét (Linetime);
 // khối dưới 5 biểu đồ kho (KhoiKho); cuối cùng lấp đầy kho bãi và thiết bị cơ giới. Mỗi khung có nút Phóng to và "Chi tiết" mở hộp dữ liệu của chính biểu đồ (không chuyển trang). Số sản lượng lấy từ bảng nhập thực tế theo ca / ngày (SQL 06).
 
-const nghin = (x) => (x == null ? "—" : Math.abs(x) >= 1000 ? so(x / 1000, Math.abs(x) >= 1e5 ? 0 : 1) + "k" : so(x));
+const nghin = (x) => (x == null ? "—" : Math.abs(x) >= 1000 ? soGon(x / 1000) + "k" : soGon(x));
 const ddmm = (d) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
 const ngayStr = (t) => { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
 
@@ -65,7 +65,7 @@ function luyKe(kq, thang, homNay, loc = () => true) {
   for (const r of (kq?.thucTe || []).filter(loc)) { const d = String(r.ngay).slice(0, 10); theoNgay.set(d, (theoNgay.get(d) || 0) + (+r.tan || 0)); }
   let cong = 0;
   const thuc = ngays.map((d) => { cong += theoNgay.get(d) || 0; return d <= homNay ? cong : null; });
-  return { ngays, mt, th: cong, thuc, ke: ngays.map((_, i) => (mt ? Math.round((mt * (i + 1)) / n) : null)), theoNgay };
+  return { ngays, mt, th: cong, thuc, ke: ngays.map((_, i) => (mt ? r2((mt * (i + 1)) / n) : null)), theoNgay };
 }
 
 export default function BangDieuKhien({ onMo }) {
@@ -143,7 +143,7 @@ export default function BangDieuKhien({ onMo }) {
       {/* Kỳ xem dùng chung cho khối biểu đồ sản lượng (trên) và khối kho (dưới) */}
       <div className="flex flex-wrap items-center gap-2">
         <Chon gt={ky} dat={setKy} ds={KY} />
-        <span className="text-[11px] text-muted-foreground">{kyInfo.nhan} · áp dụng cho các biểu đồ sản lượng và kho · mục tiêu / kế hoạch tháng chia đều theo ngày</span>
+        <span className="text-[11px] text-muted-foreground">{kyInfo.nhan} · áp dụng cho các biểu đồ sản lượng và kho · mục tiêu / kế hoạch tháng chia đều theo ngày (quý / năm có mục tiêu riêng thì dùng số đó)</span>
       </div>
 
       {/* Khối trên: 5 biểu đồ sản lượng cảng / vận tải */}

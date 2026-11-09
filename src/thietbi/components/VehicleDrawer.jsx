@@ -5,6 +5,7 @@ import { useApp } from "../store";
 import { Drawer, Modal, StateBadge, Badge, Field, Select, Empty } from "./ui";
 import EventForm from "./EventForm";
 import { vn, diffDays, fmt } from "../lib/utils";
+import { docSo } from "@/lib/format";
 
 export const SPEC_FIELDS = [
   ["trong_luong_kg", "Trọng lượng bản thân", "kg"],
@@ -122,7 +123,7 @@ export function VehicleForm({ v, onClose }) {
   const save = async () => {
     const rec = { ma: f.ma.trim().toUpperCase(), doi: f.doi, model: f.model?.trim() || null, to_xe: f.to_xe?.replace(/\s+/g, " ").trim() || null, che_do: f.che_do, tai_trong: laXeNang ? f.tai_trong || null : null, thiet_bi_gan: laXucDao ? f.thiet_bi_gan || null : null, ghi_chu: f.ghi_chu?.trim() || null };
     Object.assign(rec, ct.gom(f.them));
-    if (coXuong) { rec.xuong = String(f.xuong ?? "").trim() || null; const hs = Number(String(f.he_so ?? "").replace(",", ".")); rec.he_so = String(f.he_so ?? "").trim() !== "" && Number.isFinite(hs) ? hs : null; }
+    if (coXuong) { rec.xuong = String(f.xuong ?? "").trim() || null; const hs = docSo(f.he_so) ?? NaN; rec.he_so = String(f.he_so ?? "").trim() !== "" && Number.isFinite(hs) ? hs : null; }
     if (laXeNang && !rec.tai_trong) return alert("Xe nâng phải chọn tải trọng");
     if (!/^[A-ZĐ0-9][A-ZĐ0-9\-_.]*$/.test(rec.ma)) return alert("Mã xe chỉ gồm chữ, số, dấu gạch");
     if (isNew && D.vmap[rec.ma]) return alert(`Mã ${rec.ma} đã có trong danh mục`);

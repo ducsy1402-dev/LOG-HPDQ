@@ -8,7 +8,7 @@
 // Tuyến bến, mốc mét từng bến lấy ở Danh mục › Cầu bến (cột Tuyến, Từ mét, Đến mét, Đầu góc vuông); chưa có thì theo bố trí mặc định dưới đây.
 // Chiều dài tàu là LOA của chuyến.
 import { doanBen } from "./linetime";
-import { plain } from "./format";
+import { plain, ms, met } from "./format";
 import { noiHaiBen } from "./tenBen";
 import { VI_TRI_MAC_DINH } from "../data/danhMucGoc";
 import { uocThongSo, CACH_TAU_TRUOC } from "./xepBen";
@@ -196,13 +196,12 @@ export function phanTichCho(segs, berths = []) {
   return out;
 }
 
-const so = (x) => Math.round(x).toLocaleString("vi-VN");
 const gio = (t) => { const d = new Date(t), p = (n) => String(n).padStart(2, "0"); return `${p(d.getDate())}/${p(d.getMonth() + 1)} ${p(d.getHours())}:${p(d.getMinutes())}`; };
 // Câu nói chỗ vi phạm
 export function noiViPham(t) {
   const vp = t.viPham;
   if (!vp) return "";
-  const tau = t.tauVP ? `tàu ${t.tauVP.ten_tau}` : `tàu ${so(vp.L)} m`;
+  const tau = t.tauVP ? `tàu ${t.tauVP.ten_tau}` : `tàu ${met(vp.L)} m`;
   return {
     hai_vat: `hai tàu cùng vắt qua ranh giới bến ${vp.ben}`,
     khong_vat: `${tau} (bến ${vp.ben}) không nằm qua ranh giới hai bến`,
@@ -216,10 +215,10 @@ export function noiViPham(t) {
 export function nhanCho(t, v) {
   const khac = t.ds.filter((x) => x.id !== v?.id && x.ten_tau !== v?.ten_tau).map((x) => x.ten_tau);
   const khung = `${gio(t.a)} → ${gio(t.b)}`;
-  const ten = (x) => `${x.ten_tau} ${x.loa ? `${so(x.loa)} m` : "(chưa có LOA)"} (bến ${t.viTriTau?.get(x.id) || "?"})`;
+  const ten = (x) => `${x.ten_tau} ${x.loa ? `${met(x.loa)} m` : "(chưa có LOA)"} (bến ${t.viTriTau?.get(x.id) || "?"})`;
   if (t.thieu) return `Trùng bến ${t.ben} với ${khac.join(", ")} (${khung}); chưa đủ LOA tàu / mét bến để tính số mét`;
-  if (t.ds.length === 1) return `Bến ${t.ben}: ${noiViPham(t)}${t.thieuM ? `, thiếu ${so(t.thieuM)} m` : ""}`;
-  return `Bến ${t.ben} cùng lúc ${t.ds.map(ten).join(" + ")} (${khung}): ${noiViPham(t)}${t.thieuM ? `, thiếu ${so(t.thieuM)} m` : ""}`;
+  if (t.ds.length === 1) return `Bến ${t.ben}: ${noiViPham(t)}${t.thieuM ? `, thiếu ${met(t.thieuM)} m` : ""}`;
+  return `Bến ${t.ben} cùng lúc ${t.ds.map(ten).join(" + ")} (${khung}): ${noiViPham(t)}${t.thieuM ? `, thiếu ${met(t.thieuM)} m` : ""}`;
 }
 
 const segsCuaChuyen = (v, stopsOf, now) => doanBen(v, stopsOf(v.id), now).filter((d) => d.ben).map((d) => ({ v, a: d.a, b: d.b, ben: d.ben, phu: d.phu, viTri: d.viTri, nguon: d.nguon, cuoi: d.cuoi, dau: d.dau }));
@@ -235,6 +234,28 @@ export function etbSomNhatMet(v, benMa, tu, dai, { voyages = [], berths = [], st
     if (!phanTichCho([...khac, ung], berths).some((x) => x.ds.includes(v))) return t;
   }
   return moc[moc.length - 1] ?? tu;
+}
+
+// Hàng chờ ở bến: tàu o đứng TRƯỚC tàu v nếu o đang ở bến thật (có ATB), hoặc o ưu tiên ★ mà v không, hoặc cùng mức ưu tiên mà o đến trước
+// (NOR, chưa có NOR thì ETA, chưa có nữa thì ETB; hòa thì coi như o đã xếp trước).
+export function dungTruoc(o, v) {
+  if (o.atb) return true;
+  if (!!o.uu_tien !== !!v.uu_tien) return !!o.uu_tien;
+  const k = (x) => ms(x.nor) ?? ms(x.eta) ?? ms(x.etb) ?? Infinity;
+  if (k(o) !== k(v)) return k(o) < k(v);
+  const e = (x) => ms(x.eta) ?? Infinity;
+  return e(o) <= e(v);
+}
+// ETB sớm nhất có xếp hàng chờ (anh Sỹ chốt 09/11/2026): tàu đến sau xếp lót sau, không chen trước tàu đang ở bến, tàu ưu tiên ★ hay tàu đến trước ở CÙNG bến;
+// ETB không sớm hơn giờ cập của các tàu đó (vẫn cùng bến cùng lúc được nếu đủ số mét, xem etbSomNhatMet). Có chỗ trống trước tàu đến sau thì vẫn chen vào được.
+export function etbSomHangDoi(v, benMa, tu, dai, opts = {}) {
+  const { voyages = [], stopsOf = () => [], now = Date.now() } = opts;
+  let nen = tu;
+  for (const o of voyages) {
+    if (o.huy || o.atd || o.id === v.id || !dungTruoc(o, v)) continue;
+    for (const sg of segsCuaChuyen(o, stopsOf, now)) if (sg.ben === benMa || sg.phu === benMa) nen = Math.max(nen, sg.a);
+  }
+  return etbSomNhatMet(v, benMa, nen, dai, opts);
 }
 
 // Mọi chuyến không đủ chỗ ở bến: Map id chuyến -> [{ ...khoảng không đủ chỗ, cung: [tên tàu khác], ten_tau }]

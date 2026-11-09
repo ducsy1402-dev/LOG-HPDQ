@@ -3,12 +3,12 @@ import { ChevronRight } from "lucide-react";
 import { Dialog } from "@/components/ui/dialog";
 import { useToanManHinh, NutToanManHinh } from "@/components/ui/toanManHinh";
 import { PhongToCtx } from "@/components/EChart";
-import { so, pct } from "@/lib/format";
+import { so, pct, soGon } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 // Khung biểu đồ dùng chung của Tổng quan: tiêu đề nhỏ in hoa, bộ lọc (bo), nút Phóng to (khung phủ kín màn hình, biểu đồ cao lên)
 // và nút Chi tiết: chiTiet = { title, description, node } mở hộp dữ liệu chi tiết của chính biểu đồ; onChiTiet = tự mở hộp riêng.
-export const nghin = (x) => (x == null ? "—" : Math.abs(x) >= 1000 ? so(x / 1000, Math.abs(x) >= 1e5 ? 0 : 1) + "k" : so(x));
+export const nghin = (x) => (x == null ? "—" : Math.abs(x) >= 1000 ? soGon(x / 1000) + "k" : soGon(x));
 
 export function Khung({ ten, phu, bo, chiTiet, onChiTiet, className, children }) {
   const [to, doiTo] = useToanManHinh();

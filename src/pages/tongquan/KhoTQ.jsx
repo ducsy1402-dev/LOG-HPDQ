@@ -8,7 +8,7 @@ import { ChonGo } from "@/components/ui/combobox";
 import { NativeSelect } from "@/components/ui/input";
 import { Empty, MucIcon } from "@/components/common";
 import EChart from "@/components/EChart";
-import { so, pct, ngayNam, DAY } from "@/lib/format";
+import { so, pct, r2, ngayNam, DAY } from "@/lib/format";
 import { NGUONG_KHO, tonTheoNgay, ngayStr, khuVucKho, soSanhKhoTheoKhu } from "@/lib/kho";
 import { TEN_LOAI_KY, khoaKy, khoangKy, tenKy, dsKy } from "@/lib/ky";
 import { cn } from "@/lib/utils";
@@ -233,10 +233,10 @@ function TonDuBao({ kho }) {
       const seri = tonTheoNgay(x.ton, D.giaoDich || [], x.loc, 30, D.now);
       const cuoi = seri[seri.length - 1][1];
       sucMax = Math.max(sucMax, x.suc || 0);
-      series.push({ name: x.ten, type: "line", smooth: true, showSymbol: false, data: [...seri.map(([, v]) => Math.round(v)), ...Array(7).fill(null)], itemStyle: { color: x.mau }, areaStyle: { opacity: 0.08 },
-        markLine: x.suc > 0 ? { symbol: "none", silent: true, data: [{ yAxis: Math.round(x.suc), label: { formatter: `Sức chứa ${x.ten} ${so(x.suc)} t`, fontSize: 10, position: "insideStartTop", color: "inherit" }, lineStyle: { color: x.mau, type: "dotted" } }] } : undefined });
+      series.push({ name: x.ten, type: "line", smooth: true, showSymbol: false, data: [...seri.map(([, v]) => r2(v)), ...Array(7).fill(null)], itemStyle: { color: x.mau }, areaStyle: { opacity: 0.08 },
+        markLine: x.suc > 0 ? { symbol: "none", silent: true, data: [{ yAxis: r2(x.suc), label: { formatter: `Sức chứa ${x.ten} ${so(x.suc)} t`, fontSize: 10, position: "insideStartTop", color: "inherit" }, lineStyle: { color: x.mau, type: "dotted" } }] } : undefined });
       // Đường dự báo cùng tên với đường thực tế: chú giải gọn, bấm chú giải ẩn / hiện cả hai
-      series.push({ name: x.ten, type: "line", smooth: true, showSymbol: false, data: [...Array(29).fill(null), ...Array.from({ length: 8 }, (_, i) => Math.round(Math.max(0, cuoi + x.rong * i)))], itemStyle: { color: x.mau }, lineStyle: { type: "dashed" } });
+      series.push({ name: x.ten, type: "line", smooth: true, showSymbol: false, data: [...Array(29).fill(null), ...Array.from({ length: 8 }, (_, i) => r2(Math.max(0, cuoi + x.rong * i)))], itemStyle: { color: x.mau }, lineStyle: { type: "dashed" } });
     }
     return {
       legend: { data: dsVe.map((x) => x.ten), type: "scroll" },
@@ -307,8 +307,8 @@ function KeHoachThucTe({ kho }) {
     xAxis: { type: "value", axisLabel: { formatter: (v) => (v >= 1000 ? so(v / 1000) + "k" : v) } },
     yAxis: { type: "category", data: ds.map(ten) },
     series: [
-      { name: "Kế hoạch", type: "bar", data: ds.map((r) => Math.round(r[cot[0]])), itemStyle: { color: MAU.info, borderRadius: [0, 3, 3, 0] }, barMaxWidth: 14 },
-      { name: "Thực tế", type: "bar", data: ds.map((r) => Math.round(r[cot[1]])), itemStyle: { color: MAU.ok, borderRadius: [0, 3, 3, 0] }, barMaxWidth: 14 },
+      { name: "Kế hoạch", type: "bar", data: ds.map((r) => r2(r[cot[0]])), itemStyle: { color: MAU.info, borderRadius: [0, 3, 3, 0] }, barMaxWidth: 14 },
+      { name: "Thực tế", type: "bar", data: ds.map((r) => r2(r[cot[1]])), itemStyle: { color: MAU.ok, borderRadius: [0, 3, 3, 0] }, barMaxWidth: 14 },
     ],
   }), [ds, cot[0]]); // eslint-disable-line react-hooks/exhaustive-deps
   const doiLoai = (l) => { setLoai(l); setKhoa(khoaKy(l, D.now)); };

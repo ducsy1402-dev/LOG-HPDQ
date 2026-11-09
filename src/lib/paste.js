@@ -1,5 +1,5 @@
 // Dán nhanh bảng tàu từ phần mềm khác hoặc Excel: tách cột, đoán cột theo tiêu đề, đọc số và ngày giờ kiểu Việt Nam.
-import { plain, pad } from "./format";
+import { plain, pad, docSo } from "./format";
 
 // Các trường nhận được khi dán. ten: nhãn hiển thị, bi_danh: tiêu đề cột thường gặp (đã bỏ dấu)
 export const TRUONG_DAN = [
@@ -70,7 +70,7 @@ export function docDonGia(s) {
   const t = String(s).toLowerCase().normalize("NFC").replace(/(\d)\s*(đ|₫)/g, "$1 vnd "); // "600.000.000đ" -> "600.000.000 vnd"
   const m = /(\$\s*)?(\d[\d.,]*)\s*(tỷ|ty|tỉ|ti|triệu|trieu|tr|m|nghìn|nghin|ngàn|ngan|k)?(?![a-zà-ỹ])/i.exec(t.replace(/\$\s+/, "$"));
   if (!m) return null;
-  let n = docSo(m[2]);
+  let n = docSo(/^\d{1,3}(,\d{3})+$/.test(m[2]) ? m[2].replace(/,/g, "") : m[2]); // tiền: "25,000" là hai mươi lăm nghìn
   if (n == null || !(n > 0)) return null;
   const dv = m[3] || "";
   const coUsd = /usd|\$|đô/.test(t), coVnd = /vnd|vnđ|đồng|dong|₫|\dđ|\d đ\b/.test(t);
@@ -80,22 +80,8 @@ export function docDonGia(s) {
   return { don_gia: n, don_vi_tien: coUsd ? "USD" : coVnd ? "VND" : n >= 1e6 ? "VND" : "USD" };
 }
 
-// Số kiểu Việt Nam / Anh: "110.680" "110,680" "7,2" "1.234,5" "15.000 t/ngày". Không phải số -> null
-export function docSo(s) {
-  if (s == null) return null;
-  if (typeof s === "number") return s;
-  let t = String(s).trim().toLowerCase().replace(/\s/g, "").replace(/(t\/ngày|t\/ngay|tấn|tan|dwt|t|m|%)$/, "");
-  if (!/^-?[\d.,]*\d[\d.,]*$/.test(t)) return null; // còn chữ (CQD, 10tr…) thì không phải số
-  const coCham = t.includes("."), coPhay = t.includes(",");
-  if (coCham && coPhay) t = t.lastIndexOf(",") > t.lastIndexOf(".") ? t.replace(/\./g, "").replace(",", ".") : t.replace(/,/g, "");
-  else if (coCham || coPhay) {
-    const sep = coCham ? "." : ",", parts = t.split(sep);
-    const nghin = parts.length > 2 || (parts.length === 2 && parts[1].length === 3 && parts[0].replace("-", "").length <= 3 && parts[0] !== "0");
-    t = nghin ? parts.join("") : parts.join(".");
-  }
-  const n = Number(t);
-  return Number.isFinite(n) ? n : null;
-}
+// Đọc số: docSo ở format.js (dấu phẩy là thập phân, dấu chấm ngăn nghìn)
+export { docSo };
 
 // Ngày giờ: "22/10 09:15", "22/10/2026 9h15", "09:15 22/10", "2026-10-22 09:15", "22-10-26 09:15". Thiếu năm thì lấy năm gần "now" nhất.
 export function docNgayGio(s, now = Date.now()) {

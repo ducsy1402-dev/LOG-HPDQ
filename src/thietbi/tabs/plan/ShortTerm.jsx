@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Upload, Plus, FileText, Printer, ClipboardList, Filter, ListChecks, Clock, AlertTriangle, CheckCircle2, Truck, Link2, Info, Settings2, HardHat, Pin, PinOff, CopyPlus, FilePenLine, FileSpreadsheet, Phone, Maximize2, Minimize2, CarFront, ChevronsUp, ChevronsDown, X } from "lucide-react";
 import { useApp } from "../../store";
+import { docSo } from "@/lib/format";
 import { Card, Kpi, Badge, Select, Search, Modal, Field, Empty, ConfirmButton, Seg, MultiSelect } from "../../components/ui";
 import logo from "../../assets/logo_hpdq.png?inline";
 import { laNhuCauPA } from "@/lib/phuongAn";
@@ -411,8 +412,8 @@ function KlO({ a, d, upd, sua }) {
   const kl = klCua(a, d), rieng = a.khoi_luong != null;
   const goc = d.khoi_luong == null || d.khoi_luong === "" ? null : Number(d.khoi_luong);
   const luu = (val) => {
-    const t = val.trim().replace(",", ".");
-    let moi = t === "" ? null : Number(t);
+    const moiS = val.trim() === "" ? null : docSo(val) ?? NaN;
+    let moi = moiS;
     if (moi != null && (!Number.isFinite(moi) || moi < 0)) return;
     if (moi === goc) moi = null; // bằng KL nhu cầu thì quay về dùng KL nhu cầu
     if (moi !== (a.khoi_luong ?? null)) upd({ khoi_luong: moi }, moi == null ? "Đã trả khối lượng về theo nhu cầu" : "Đã lưu khối lượng của xe");

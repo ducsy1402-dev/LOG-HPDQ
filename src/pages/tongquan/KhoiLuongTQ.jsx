@@ -10,7 +10,7 @@ import EChart from "@/components/EChart";
 import { daLam } from "@/lib/linetime";
 import { tinhThang, tinhKy } from "@/lib/sanLuong";
 import { TEN_LOAI_KY, khoaKy, khoangKy, tenKy, tenNganKy, dsKy, congKy, thangDauKy } from "@/lib/ky";
-import { so, pct, thangCua, tenThang, congThang, plain } from "@/lib/format";
+import { so, pct, r2, thangCua, tenThang, congThang, plain } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { tenBenChuyen } from "../cang/BangTauBen";
 import { useNhomHang } from "../cang/useNhomHang";
@@ -149,10 +149,10 @@ function TheoKy({ loai, khoa }) {
       xAxis: { type: "category", data: ks.map((t) => tenNganKy(loai, t)) },
       yAxis: { type: "value", axisLabel: { formatter: nghin } },
       series: [
-        { name: "Nhập", type: "bar", stack: "th", barMaxWidth: 48, data: ks.map((t) => Math.round(m.get(t).nhap.th)), itemStyle: { color: MAU.info } },
-        { name: "Xuất", type: "bar", stack: "th", barMaxWidth: 48, data: ks.map((t) => Math.round(m.get(t).xuat.th)), itemStyle: { color: MAU.tim, borderRadius: [3, 3, 0, 0] } },
-        { name: "Mục tiêu", type: "line", symbol: "rect", symbolSize: 9, connectNulls: true, data: ks.map((t) => (m.get(t).mucTieu ? Math.round(m.get(t).mucTieu.tong) : null)), itemStyle: { color: MAU.ok }, lineStyle: { width: 2 } },
-        { name: `KL tàu trong ${tenK}`, type: "line", data: ks.map((t) => Math.round(m.get(t).klTau)), itemStyle: { color: MAU.xam }, lineStyle: { type: "dashed" } },
+        { name: "Nhập", type: "bar", stack: "th", barMaxWidth: 48, data: ks.map((t) => r2(m.get(t).nhap.th)), itemStyle: { color: MAU.info } },
+        { name: "Xuất", type: "bar", stack: "th", barMaxWidth: 48, data: ks.map((t) => r2(m.get(t).xuat.th)), itemStyle: { color: MAU.tim, borderRadius: [3, 3, 0, 0] } },
+        { name: "Mục tiêu", type: "line", symbol: "rect", symbolSize: 9, connectNulls: true, data: ks.map((t) => (m.get(t).mucTieu ? r2(m.get(t).mucTieu.tong) : null)), itemStyle: { color: MAU.ok }, lineStyle: { width: 2 } },
+        { name: `KL tàu trong ${tenK}`, type: "line", data: ks.map((t) => r2(m.get(t).klTau)), itemStyle: { color: MAU.xam }, lineStyle: { type: "dashed" } },
       ],
     };
   }, [D, loai, khoa, tuThang, nhomHang]);
@@ -171,9 +171,9 @@ function TheoNhom({ rows, trong }) {
       xAxis: { type: "value", axisLabel: { formatter: nghin } },
       yAxis: { type: "category", data: ds.map((r) => r.ten) },
       series: [
-        { name: "Đã làm", type: "bar", stack: "a", data: ds.map((r) => Math.round(r.lam)), itemStyle: { color: MAU.ok }, barMaxWidth: 18 },
-        { name: "Còn lại", type: "bar", stack: "a", data: ds.map((r) => Math.round(Math.max(0, r.kl - r.lam))), itemStyle: { color: MAU.xam, opacity: 0.45, borderRadius: [0, 3, 3, 0] }, barMaxWidth: 18 },
-        ...(coMT ? [{ name: "Mục tiêu", type: "line", symbol: "diamond", symbolSize: 13, lineStyle: { opacity: 0 }, z: 5, data: ds.map((r) => (r.mt != null ? Math.round(r.mt) : null)), itemStyle: { color: MAU.warn } }] : []),
+        { name: "Đã làm", type: "bar", stack: "a", data: ds.map((r) => r2(r.lam)), itemStyle: { color: MAU.ok }, barMaxWidth: 18 },
+        { name: "Còn lại", type: "bar", stack: "a", data: ds.map((r) => r2(Math.max(0, r.kl - r.lam))), itemStyle: { color: MAU.xam, opacity: 0.45, borderRadius: [0, 3, 3, 0] }, barMaxWidth: 18 },
+        ...(coMT ? [{ name: "Mục tiêu", type: "line", symbol: "diamond", symbolSize: 13, lineStyle: { opacity: 0 }, z: 5, data: ds.map((r) => (r.mt != null ? r2(r.mt) : null)), itemStyle: { color: MAU.warn } }] : []),
       ],
     };
   }, [rows, coMT]);

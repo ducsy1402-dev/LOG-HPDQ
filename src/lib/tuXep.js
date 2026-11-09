@@ -1,12 +1,13 @@
 // Tự xếp bến: một chuyến, nhiều chuyến (thứ tự ưu tiên) và xếp lại toàn bộ chuyến chưa cập (xem trước).
-// Bến chọn theo xepBen.js; chia sẻ bến theo số mét (capBen.etbSomNhatMet): hai tàu cùng bến cùng lúc nếu đủ số mét theo quy tắc cập cầu bến.
-import { ms } from "./format";
-import { xepBenTuDong } from "./xepBen";
-import { doanBen } from "./linetime";
-import { etbSomNhatMet } from "./capBen";
+// Bến chọn theo xepBen.js (CHỈ cho chuyến chưa khai báo bến; đã có bến thì giữ nguyên bến). Chia sẻ bến theo số mét (capBen.etbSomNhatMet): hai tàu cùng bến
+// cùng lúc nếu đủ số mét theo quy tắc cập cầu bến. Hàng chờ (capBen.etbSomHangDoi): tàu đến sau xếp lót sau tàu đang ở bến, tàu ưu tiên ★ và tàu đến trước ở cùng bến.
+import { ms, HOUR } from "./format";
+import { xepBenTuDong, uocThongSo } from "./xepBen";
+import { doanBen, khoangBen } from "./linetime";
+import { etbSomHangDoi, etbSomNhatMet, kiemTraXepBen } from "./capBen";
 
 // ctx: { berths, voyages, stopsOf, now, cranes, dinhMuc }
-export const tuXepBen = (v, ctx) => xepBenTuDong(v, { etbSom: etbSomNhatMet, ...ctx, doanBen });
+export const tuXepBen = (v, ctx) => xepBenTuDong(v, { etbSom: etbSomHangDoi, ...ctx, doanBen });
 // Chuyến cần web tự xếp bến: chưa cập thật, chưa có bến (có ETB / ETD thì giữ nếu bến trống đúng giờ đó)
 export const canXepBen = (v) => !v.huy && !v.atb && !v.ben_ma;
 export const canTuXep = (v) => canXepBen(v) && !v.etb && !v.etd;
@@ -34,7 +35,7 @@ export function xepNhieu(ds, ctx) {
 }
 
 // Xếp lại toàn bộ chuyến chưa cập thật (không hủy, chưa có ATB), trừ các chuyến trong giu (giữ nguyên chỗ). Chuyến đã cập thật là chỗ cố định.
-// Bỏ bến, vị trí, ETB, ETD cũ rồi xếp lần lượt theo thứ tự ưu tiên của xepNhieu. Chuyến không bến nào hợp thì giữ nguyên chỗ cũ (và vẫn chiếm chỗ cho chuyến sau).
+// Chuyến ĐÃ khai báo bến thì GIỮ NGUYÊN bến (bến phụ, vị trí), chỉ xếp lại ETB, ETD; chuyến chưa có bến thì web chọn bến. Bỏ ETB, ETD cũ rồi xếp lần lượt theo thứ tự ưu tiên của xepNhieu. Chuyến không bến nào hợp thì giữ nguyên chỗ cũ (và vẫn chiếm chỗ cho chuyến sau).
 // Trả [{ v (chuyến gốc), r (đề xuất | null), doi (khác chỗ / giờ cũ) }] theo thứ tự xếp.
 export function xepLai(voyages, ctx, giu = new Set()) {
   const dich = voyages.filter((v) => !v.huy && !v.atb && !giu.has(v.id));
@@ -44,12 +45,38 @@ export function xepLai(voyages, ctx, giu = new Set()) {
     const xep = dich.filter((v) => !khongHop.has(v.id));
     const ids = new Set(xep.map((v) => v.id));
     const coDinh = voyages.filter((v) => !ids.has(v.id));
-    kq = xepNhieu(xep.map((v) => ({ ...v, ben_ma: null, ben_phu: null, vi_tri: null, etb: null, etd: null })), { ...ctx, voyages: coDinh });
+    kq = xepNhieu(xep.map((v) => ({ ...v, ...(v.ben_ma ? {} : { ben_phu: null, vi_tri: null }), etb: null, etd: null })), { ...ctx, voyages: coDinh });
     const moi = new Set(kq.filter((x) => !x.r).map((x) => x.v.id));
     if ([...moi].every((id) => khongHop.has(id))) break;
     khongHop = new Set([...khongHop, ...moi]);
   }
-  const ra = kq.filter((x) => x.r).map(({ v, r }) => { const g = goc.get(v.id); return { v: g, r, doi: g.ben_ma !== r.ben_ma || ms(g.etb) !== ms(r.etb) || ms(g.etd) !== ms(r.etd) || !!g.ben_phu }; });
+  const ra = kq.filter((x) => x.r).map(({ v, r }) => { const g = goc.get(v.id); return { v: g, r, doi: g.ben_ma !== r.ben_ma || ms(g.etb) !== ms(r.etb) || ms(g.etd) !== ms(r.etd) || (!g.ben_ma && !!g.ben_phu) }; });
   for (const id of khongHop) ra.push({ v: goc.get(id), r: null, doi: false });
   return ra;
+}
+
+// Giải trùng bến (anh Sỹ chốt 10/11/2026): hai tàu cùng bến chỉ cùng lúc được khi đủ số mét theo quy tắc cập cầu bến; không đủ mét mà vẫn chồng giờ
+// (nhập tay ETB, kéo thả, dán nhanh, dữ liệu cũ…) thì tàu đứng SAU trong hàng chờ tự lùi tới sau khi tàu trước rời + 2 giờ. Tàu đã cập thật (có ATB), tàu đã rời, tàu hủy
+// và tàu có chuyển bến / ra neo không bị dời. Xếp theo thứ tự ưu tiên ★, đến trước (NOR, ETA); tàu xếp trước giữ chỗ, tàu sau lùi. Giữ nguyên bến, bến phụ, vị trí và thời gian ở bến.
+// Trả [{ v (chuyến gốc), etb, etd (ISO mới), cu: { etb, etd } }]; rỗng nghĩa là không có tàu nào trùng.
+const khoaHang = (x) => ms(x.nor) ?? ms(x.eta) ?? ms(x.etb) ?? Infinity;
+export function giaiTrung(voyages, ctx) {
+  const { berths = [], stopsOf = () => [], now = Date.now() } = ctx;
+  const song = voyages.filter((v) => !v.huy && !v.atd);
+  const duoc = (v) => !v.atb && v.ben_ma && !(stopsOf(v.id) || []).length;
+  const dich = song.filter(duoc).sort((a, b) => (b.uu_tien ? 1 : 0) - (a.uu_tien ? 1 : 0) || khoaHang(a) - khoaHang(b) || (ms(a.eta) ?? Infinity) - (ms(b.eta) ?? Infinity) || String(a.id).localeCompare(String(b.id)));
+  const placed = song.filter((v) => !duoc(v)), doi = [];
+  for (const v of dich) {
+    const k = khoangBen(v, now);
+    if (!k) { placed.push(v); continue; }
+    const vv = { ...v, loa: +v.loa > 0 ? v.loa : uocThongSo(v).loa };
+    const opt = { voyages: placed, berths, stopsOf, now };
+    if (!kiemTraXepBen(vv, v.ben_ma, k.a, k.b, opt).length) { placed.push(v); continue; }
+    const dai = Math.max(k.b - k.a, HOUR), tu = Math.max(k.a, Math.ceil(now / HOUR) * HOUR);
+    const etb = etbSomNhatMet(vv, v.ben_ma, tu, dai, opt);
+    const moi = { ...v, etb: new Date(etb).toISOString(), etd: new Date(etb + dai).toISOString() };
+    placed.push(moi);
+    doi.push({ v, etb: moi.etb, etd: moi.etd, cu: { etb: v.etb, etd: v.etd } });
+  }
+  return doi;
 }

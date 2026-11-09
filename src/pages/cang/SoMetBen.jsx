@@ -8,7 +8,7 @@ import { NgayGio } from "@/components/ui/ngaygio";
 import { Dialog } from "@/components/ui/dialog";
 import { Empty, MucIcon } from "@/components/common";
 import { useApp } from "@/store";
-import { so, toLocalInput, fromLocalInput, ms, ngayGio, HOUR } from "@/lib/format";
+import { met, toLocalInput, fromLocalInput, ms, ngayGio, HOUR } from "@/lib/format";
 import { trangThai, TRANG_THAI } from "@/lib/linetime";
 import { soDoCauBen, tenTuyen, benTheoViTri, kiemTraXepBen, nhanCho, noiViPham, TEN_HINH } from "@/lib/capBen";
 import { kiemTraBen } from "@/lib/checks";
@@ -56,7 +56,7 @@ export default function SoMetBen() {
     if (!keoDuoc) return;
     if (!k.item.seg.cuoi) return setXacNhan({ loi: "Đoạn này là bến cũ trước khi chuyển bến: sửa ở phiếu chuyến › Chuyển bến & trả hàng." });
     const { r2, x, ben } = viTriMoi(k);
-    if (!ben) return setXacNhan({ loi: `Mét ${so(x)}–${so(x + k.item.L)} ra ngoài tuyến ${tenTuyen(r2.tuyen, tenBen)} (mét ${so(r2.tuyen.tu)}–${so(r2.tuyen.den)}) hoặc chiếm hơn hai bến.` });
+    if (!ben) return setXacNhan({ loi: `Mét ${met(x)}–${met(x + k.item.L)} ra ngoài tuyến ${tenTuyen(r2.tuyen, tenBen)} (mét ${met(r2.tuyen.tu)}–${met(r2.tuyen.den)}) hoặc chiếm hơn hai bến.` });
     const v = k.item.v, vMoi = { ...v, ben_ma: ben.ben_ma, ben_phu: ben.ben_phu, vi_tri: x };
     const canh = kiemTraBen(vMoi, D.bmap[ben.ben_ma], ben.ben_phu ? D.bmap[ben.ben_phu] : null, D.berths).filter((c) => c.muc !== "info");
     for (const c of kiemTraXepBen(vMoi, ben.ben_ma, k.item.seg.a, k.item.seg.b, { voyages: D.voyages, berths: D.berths, stopsOf: D.stopsOf, now: D.now })) canh.push({ muc: "warn", nd: nhanCho(c, vMoi) });
@@ -96,19 +96,19 @@ export default function SoMetBen() {
             <div key={r.tuyen.ma} data-tuyen={r.tuyen.ma} className={cn("rounded-md border p-2", dangKeo?.r2.tuyen.ma === r.tuyen.ma && "border-primary bg-primary/5")}>
               <div className="mb-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
                 <b className="font-mono text-[13px]">{tenTuyen(r.tuyen, tenBen)}</b>
-                <span className="text-muted-foreground">{so(r.dai)} m</span>
+                <span className="text-muted-foreground">{met(r.dai)} m</span>
                 {r.tau.length > 0 && (r.thieu ? <Badge tone="warn">Thiếu LOA</Badge> : r.vua ? <Badge tone="ok">Vừa</Badge> : <Badge tone="bad">Không vừa</Badge>)}
-                {r.tau.length > 0 && !r.thieu && r.can != null && <span>cần <b>{so(r.can)}</b> m · còn trống <b className={cn(r.du < 0 && "text-bad")}>{so(r.du)}</b> m</span>}
-                {r.themTheoBen && <span className="text-muted-foreground">thêm tối đa: {r.themTheoBen.map((x) => `${tenBen(x.ma)} ${x.them ? so(x.them) + " m" : "không"}`).join(" · ")}</span>}
-                {!r.thieu && r.vua === false && <span className="font-medium text-bad">{noiViPham({ ...r, tauVP: r.tau[r.viPham?.i]?.v })}{r.thieuM ? `, thiếu ${so(r.thieuM)} m` : ""}</span>}
+                {r.tau.length > 0 && !r.thieu && r.can != null && <span>cần <b>{met(r.can)}</b> m · còn trống <b className={cn(r.du < 0 && "text-bad")}>{met(r.du)}</b> m</span>}
+                {r.themTheoBen && <span className="text-muted-foreground">thêm tối đa: {r.themTheoBen.map((x) => `${tenBen(x.ma)} ${x.them ? met(x.them) + " m" : "không"}`).join(" · ")}</span>}
+                {!r.thieu && r.vua === false && <span className="font-medium text-bad">{noiViPham({ ...r, tauVP: r.tau[r.viPham?.i]?.v })}{r.thieuM ? `, thiếu ${met(r.thieuM)} m` : ""}</span>}
               </div>
               <div className="relative h-[60px]" data-strip={r.tuyen.ma}>
                 {r.tuyen.bens.map((b) => (
                   <div key={b.ma} className={cn("absolute bottom-0 flex h-[20px] items-center justify-center border border-muted-foreground/40 bg-muted/60 text-[10px] font-semibold",
                     b.goc === "dau" && "border-l-4 border-l-warn", b.goc === "cuoi" && "border-r-4 border-r-warn")}
                     style={{ left: pct(b.tu - r.tuyen.tu, r), width: pct(b.den - b.tu, r) }}
-                    title={`Bến ${b.ma}: mét ${so(b.tu)}–${so(b.den)}${b.goc ? ` · ${TEN_HINH.vuong_goc} ở mét ${so(b.goc === "dau" ? b.tu : b.den)}` : ""}`}>
-                    <span className="truncate px-1">{tenBen(b.ma)} <span className="font-normal text-muted-foreground">{so(b.tu)}–{so(b.den)}</span></span>
+                    title={`Bến ${b.ma}: mét ${met(b.tu)}–${met(b.den)}${b.goc ? ` · ${TEN_HINH.vuong_goc} ở mét ${met(b.goc === "dau" ? b.tu : b.den)}` : ""}`}>
+                    <span className="truncate px-1">{tenBen(b.ma)} <span className="font-normal text-muted-foreground">{met(b.tu)}–{met(b.den)}</span></span>
                   </div>))}
                 {r.tau.map((item) => {
                   if (item.x == null || !(item.L > 0)) return null;
@@ -121,7 +121,7 @@ export default function SoMetBen() {
                         keoDuoc && item.seg.cuoi ? "cursor-grab" : "cursor-pointer", !item.coDinh && "border-2 border-dashed border-white/80 opacity-80",
                         loi && "outline outline-2 outline-offset-1 outline-bad", dangKeoTau && "z-30 cursor-grabbing ring-2 ring-white")}
                       style={{ left: pct(item.x - r.tuyen.tu, r), width: pct(item.L, r), background: mau, transform: dangKeoTau ? `translate(${keo.dx}px, ${keo.dy}px)` : undefined }}
-                      title={`${item.v.ten_tau} · ${so(item.L)} m · bến ${noiHaiBen(item.ben, item.phu)} ${viTriChu(item.x, item.L)}${item.coDinh ? "" : " (web tự xếp, chưa ghi vị trí)"}`}>
+                      title={`${item.v.ten_tau} · ${met(item.L)} m · bến ${noiHaiBen(item.ben, item.phu)} ${viTriChu(item.x, item.L)}${item.coDinh ? "" : " (web tự xếp, chưa ghi vị trí)"}`}>
                       <span className="truncate">{item.v.ten_tau} <span className="opacity-80">{viTriChu(item.x, item.L)}</span></span>
                     </div>);
                 })}
@@ -135,7 +135,7 @@ export default function SoMetBen() {
       ) : <Empty>Chưa có bến nào khai chiều dài.</Empty>}
       {dangKeo && (
         <div className="pointer-events-none fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-md border bg-popover px-3 py-1.5 text-sm shadow-lg">
-          {keo.item.v.ten_tau}: mét {so(dangKeo.x)}–{so(dangKeo.x + keo.item.L)} · {dangKeo.ben ? `bến ${noiHaiBen(dangKeo.ben.ben_ma, dangKeo.ben.ben_phu)}` : <span className="text-bad">ra ngoài tuyến / chiếm hơn hai bến</span>}
+          {keo.item.v.ten_tau}: mét {met(dangKeo.x)}–{met(dangKeo.x + keo.item.L)} · {dangKeo.ben ? `bến ${noiHaiBen(dangKeo.ben.ben_ma, dangKeo.ben.ben_phu)}` : <span className="text-bad">ra ngoài tuyến / chiếm hơn hai bến</span>}
         </div>)}
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
         <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-5 rounded-sm bg-slate-500" />Tàu đã ghi vị trí mét</span>
@@ -145,7 +145,7 @@ export default function SoMetBen() {
       </div>
       {xacNhan && (
         <Dialog onOpenChange={(o) => !o && setXacNhan(null)} title={xacNhan.loi ? "Không đặt được" : `Đặt ${xacNhan.v.ten_tau}?`}
-          description={xacNhan.loi ? null : `Bến ${noiHaiBen(xacNhan.ben.ben_ma, xacNhan.ben.ben_phu)} · mét ${so(xacNhan.x)}–${so(xacNhan.x + +xacNhan.v.loa)} · xem lúc ${ngayGio(t)}`}
+          description={xacNhan.loi ? null : `Bến ${noiHaiBen(xacNhan.ben.ben_ma, xacNhan.ben.ben_phu)} · mét ${met(xacNhan.x)}–${met(xacNhan.x + +xacNhan.v.loa)} · xem lúc ${ngayGio(t)}`}
           footer={xacNhan.loi ? <Button onClick={() => setXacNhan(null)}>Đóng</Button>
             : <><Button variant="outline" onClick={() => setXacNhan(null)}>Hủy</Button><Button variant={xacNhan.canh.length ? "destructive" : "default"} onClick={() => { xacNhan.luu(); setXacNhan(null); }}>{xacNhan.canh.length ? "Vẫn đặt" : "Đặt"}</Button></>}>
           {xacNhan.loi ? <div className="text-sm">{xacNhan.loi}</div>

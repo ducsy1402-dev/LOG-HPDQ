@@ -4,6 +4,7 @@ import { BarChart, LineChart, PieChart } from "echarts/charts";
 import { GridComponent, TooltipComponent, LegendComponent, MarkLineComponent } from "echarts/components";
 import { CanvasRenderer } from "echarts/renderers";
 import { useApp } from "@/store";
+import { so } from "@/lib/format";
 
 echarts.use([BarChart, LineChart, PieChart, GridComponent, TooltipComponent, LegendComponent, MarkLineComponent, CanvasRenderer]);
 
@@ -35,7 +36,7 @@ export default function EChart({ option, height = 260, onClick }) {
       grid: { left: 14, right: 14, top: 34, bottom: 4, containLabel: true },
       ...option,
       legend: { textStyle: { color: chu }, top: 0, ...option.legend },
-      tooltip: { trigger: "axis", backgroundColor: dark ? "#111c31" : "#fff", borderColor: luoi, textStyle: { color: chu }, ...option.tooltip },
+      tooltip: { trigger: "axis", backgroundColor: dark ? "#111c31" : "#fff", borderColor: luoi, textStyle: { color: chu }, valueFormatter: (v) => (typeof v === "number" ? so(v) : v), ...option.tooltip },
       xAxis: truc(option.xAxis),
       yAxis: truc(option.yAxis),
     }, true);

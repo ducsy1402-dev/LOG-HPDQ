@@ -4,7 +4,7 @@ import { khoangBen, doanBen, trangThai, laUoc, chiSo, TRANG_THAI, MAU_CHO } from
 import { choBatDau, kieuCho, PhanChoHang, ChuThichCho } from "./doanCho";
 import { kiemTraXepBen, nhanCho, laBenLienKe } from "@/lib/capBen";
 import { kiemTraBen } from "@/lib/checks";
-import { DAY, ngayGio, so, pad, iso, ms } from "@/lib/format";
+import { DAY, ngayGio, so, met, pad, iso, ms } from "@/lib/format";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { MucIcon } from "@/components/common";
@@ -150,9 +150,9 @@ export default function Gantt({ voyages, tu, soNgay, pxNgay, che = "ben", gon = 
             {hang.map((r) => (
               <div key={r.ma || "_"} className="absolute inset-x-0 border-b" style={{ top: r.y, height: r.h }}>
                 <div className="sticky left-0 z-20 flex h-full flex-col justify-center border-r bg-card px-2" style={{ width: LABEL }}
-                  title={r.b ? `Bến ${r.b.ma}: DWT ${so(r.b.dwt_max)} · mớn ${r.b.mon_cung ? "≤" : ""}${so(r.b.mon_max, 2)} m · dài ${so(r.b.loa_max, 1)} m\n${r.b.loai_hang || ""}` : "Chuyến chưa xếp bến"}>
+                  title={r.b ? `Bến ${r.b.ma}: DWT ${so(r.b.dwt_max)} · mớn ${r.b.mon_cung ? "≤" : ""}${so(r.b.mon_max, 2)} m · dài ${met(r.b.loa_max)} m\n${r.b.loai_hang || ""}` : "Chuyến chưa xếp bến"}>
                   <span className={cn("font-mono font-semibold", gon ? "text-[11px]" : "text-[13px]")}>{r.b ? tenBen(r.b.ma) : "Chưa xếp"}</span>
-                  {r.b && !gon && <span className="text-[10px] text-muted-foreground">{r.b.mon_cung ? "≤" : ""}{so(r.b.mon_max, 1)}m · {so(r.b.loa_max)}m</span>}
+                  {r.b && !gon && <span className="text-[10px] text-muted-foreground">{r.b.mon_cung ? "≤" : ""}{so(r.b.mon_max, 1)}m · {met(r.b.loa_max)}m</span>}
                 </div>
                 {r.ds.map((x) => {
                   const dangKeo = keo?.x.v.id === x.v.id && keo.moved && keo.coKeo;
@@ -206,7 +206,7 @@ export default function Gantt({ voyages, tu, soNgay, pxNgay, che = "ben", gon = 
       </div>
       {keo?.moved && keo.coKeo && (() => { const k = tinhKeo(keo); return (
         <div className="pointer-events-none fixed z-50 rounded-md border bg-popover px-2.5 py-1.5 text-xs shadow-lg" style={{ left: (keo.cx ?? 0) + 16, top: (keo.cy ?? 0) + 16 }}>
-          <div className="font-semibold">{keo.x.v.ten_tau}{keo.x.v.loa ? ` · ${so(keo.x.v.loa)} m` : ""}</div>
+          <div className="font-semibold">{keo.x.v.ten_tau}{keo.x.v.loa ? ` · ${met(keo.x.v.loa)} m` : ""}</div>
           <div>Bến <b>{k.benMoi ? noiHaiBen(k.benMoi, k.phuMoi) : "chưa xếp"}</b>{k.benMoi !== (keo.x.v.ben_ma || "") && keo.x.v.vi_tri != null ? <span className="text-muted-foreground"> · bỏ vị trí mét cũ</span> : keo.x.v.vi_tri != null ? <> · mét <b>{viTriChu(keo.x.v.vi_tri, keo.x.v.loa)}</b></> : null}</div>
           <div>Cập <b className="tabular-nums">{ngayGio(keo.x.a + k.lech)}</b> → rời <b className="tabular-nums">{ngayGio(keo.x.b + k.lech)}</b>{k.lech ? <span className="text-muted-foreground"> ({k.lech > 0 ? "+" : "−"}{so(Math.abs(k.lech) / 36e5, 1)} giờ)</span> : null}</div>
           <div className="text-muted-foreground">Chọn vị trí mét: chuyển sang chế độ Theo mét</div>

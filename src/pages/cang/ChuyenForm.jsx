@@ -13,11 +13,11 @@ import { uocThongSo } from "@/lib/xepBen";
 import { useCtxXep } from "./useXepBen";
 import { kiemTraXepBen, nhanCho, benLienKe, laBenLienKe, tuyenCuaBen, benTheoViTri, tenTuyen } from "@/lib/capBen";
 import { kiemTraBen } from "@/lib/checks";
-import { toLocalInput, fromLocalInput, ms, plain, so, ngayGio } from "@/lib/format";
+import { toLocalInput, fromLocalInput, ms, plain, so, met, ngayGio, docSo } from "@/lib/format";
 import { tenBen, noiHaiBen } from "./BangTauBen";
 import { useThietBi } from "@/thietbi/Host";
 
-const soHoacNull = (x) => (x === "" || x == null ? null : Number(String(x).replace(",", ".")));
+const soHoacNull = (x) => (x === "" || x == null ? null : docSo(x) ?? NaN);
 
 const SO = ["khoi_luong", "da_lam", "draft", "loa", "dwt", "cam_ket"];
 const NGAY = ["eta", "etb", "etd"];
@@ -118,9 +118,9 @@ export default function ChuyenForm({ v, onClose, onSaved }) {
     return { ...o, vi_tri: val, ...(b ? { ben_ma: b.ben_ma, ben_phu: b.ben_phu || "" } : {}) };
   });
   const xVT = soHoacNull(f.vi_tri), lVT = soHoacNull(f.loa);
-  const viTriGoiY = !tuyen ? null : xVT == null ? `Tuyến ${tenTuyen(tuyen, tenBen)}: mét ${so(tuyen.tu)}–${so(tuyen.den)}`
+  const viTriGoiY = !tuyen ? null : xVT == null ? `Tuyến ${tenTuyen(tuyen, tenBen)}: mét ${met(tuyen.tu)}–${met(tuyen.den)}`
     : !(lVT > 0) ? "Nhập LOA để biết tàu chiếm bến nào"
-    : benTheoViTri(D.berths, f.ben_ma, xVT, lVT) ? `Tàu nằm mét ${so(xVT)}–${so(xVT + lVT)}` : `Mét ${so(xVT)}–${so(xVT + lVT)} ra ngoài tuyến hoặc chiếm hơn hai bến (tuyến ${so(tuyen.tu)}–${so(tuyen.den)})`;
+    : benTheoViTri(D.berths, f.ben_ma, xVT, lVT) ? `Tàu nằm mét ${met(xVT)}–${met(xVT + lVT)}` : `Mét ${met(xVT)}–${met(xVT + lVT)} ra ngoài tuyến hoặc chiếm hơn hai bến (tuyến ${met(tuyen.tu)}–${met(tuyen.den)})`;
 
   return (
     <Dialog onOpenChange={(o) => !o && onClose()} className="max-w-3xl" title={v ? `Sửa thông tin chuyến ${v.ma_chuyen}` : "Thêm chuyến tàu"}

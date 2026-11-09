@@ -4,7 +4,7 @@
 //   từ ca thứ ba 100% (sửa được theo từng phương án; như tham số tab Dài hạn).
 //   Giờ hoàn tất = bắt đầu + thời gian làm phần còn lại (theo ca) + giờ dừng dự kiến (thời tiết + khác).
 //   Xe gợi ý mỗi ca = khối lượng một ca ÷ (tải trọng một xe × số chuyến một xe chạy được trong ca), làm tròn lên.
-import { ms, iso, plain, HOUR, DAY } from "./format";
+import { ms, iso, plain, HOUR, DAY, so as soVN } from "./format";
 import { chiSo, klCanLam } from "./linetime";
 import { duToan, laCQD } from "./laytime";
 import { docSo } from "./paste";
@@ -238,12 +238,12 @@ export function tinhPhuongAn(v, plan, ctx = {}) {
   // Khối lượng từng điểm; tàu nhập: so với chỗ trống của bãi
   const coKL = out.diem.filter((d) => +d.khoi_luong > 0), tongKL = coKL.reduce((s, d) => s + +d.khoi_luong, 0);
   if (out.diem.length > 1 && coKL.length && Math.abs(tongKL - (+v.khoi_luong || 0)) > Math.max(1, 0.005 * (+v.khoi_luong || 0)))
-    out.canh.push({ muc: "info", nd: `Tổng khối lượng các điểm ${Math.round(tongKL).toLocaleString("vi-VN")} t khác khối lượng tàu ${Math.round(+v.khoi_luong || 0).toLocaleString("vi-VN")} t` });
+    out.canh.push({ muc: "info", nd: `Tổng khối lượng các điểm ${soVN(tongKL)} t khác khối lượng tàu ${soVN(+v.khoi_luong || 0)} t` });
   if (v.huong !== "xuat" && conLai > 0) for (const d of out.diem) {
     if (!d.bai) continue;
     const can = +d.khoi_luong > 0 ? Math.min(+d.khoi_luong, conLai) : out.diem.length === 1 ? conLai : null;
     const trong = ctx.choTrong?.(d.bai);
-    if (can != null && trong != null && trong < can) out.canh.push({ muc: "bad", nd: `${d.bai} chỉ còn trống khoảng ${Math.round(trong).toLocaleString("vi-VN")} t, thiếu chỗ cho ${Math.round(can).toLocaleString("vi-VN")} t` });
+    if (can != null && trong != null && trong < can) out.canh.push({ muc: "bad", nd: `${d.bai} chỉ còn trống khoảng ${soVN(trong)} t, thiếu chỗ cho ${soVN(can)} t` });
   }
   return out;
 }

@@ -13,7 +13,7 @@ import { mocDuKien } from "@/lib/xepBen";
 import { useCtxXep } from "./useXepBen";
 import { duToan, laCQD, tenMoc } from "@/lib/laytime";
 import { canhBaoChuyen } from "@/lib/checks";
-import { so, ngayGio, ngayGioNam, thoiLuong, toLocalInput, fromLocalInput, tien, pct, ms } from "@/lib/format";
+import { so, met, ngayGio, ngayGioNam, thoiLuong, toLocalInput, fromLocalInput, tien, pct, ms, docSo } from "@/lib/format";
 import { LY_DO_DUNG, TRU_MAC_DINH, TRONG_MANG_MAC_DINH } from "@/data/danhMucGoc";
 import { cn } from "@/lib/utils";
 import ChuyenForm from "./ChuyenForm";
@@ -57,7 +57,7 @@ export function NoiDungPhieu({ v, onDaXoa }) {
   const canh = canhBaoChuyen(v, { berths: D.berths, trung: D.trung, stops, tien: t, nguong: D.nguong, now: D.now });
   const b = D.bmap[v.ben_ma], bPhu = v.ben_phu ? D.bmap[v.ben_phu] : null;
   const viTriBen = viTriChu(v.vi_tri, v.loa); // vị trí mét trên tuyến bến, VD (230–397)
-  const gioiHan = (x) => `${tenBen(x.ma)} ≤ ${so(x.dwt_max)} DWT, mớn ${x.mon_cung ? "≤" : ""}${so(x.mon_max, 2)} m, dài ${so(x.loa_max, 1)} m`;
+  const gioiHan = (x) => `${tenBen(x.ma)} ≤ ${so(x.dwt_max)} DWT, mớn ${x.mon_cung ? "≤" : ""}${so(x.mon_max, 2)} m, dài ${met(x.loa_max)} m`;
 
   return (
     <>
@@ -86,7 +86,7 @@ export function NoiDungPhieu({ v, onDaXoa }) {
 
         <TabsContent value="tong" className="grid gap-4">
           <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-4">
-            <O l="Tàu" v={v.ten_tau} /><O l="DWT / mớn / LOA" v={[so(v.dwt), v.draft != null && so(v.draft, 2) + " m", v.loa != null && so(v.loa, 1) + " m"].filter(Boolean).join(" · ")} />
+            <O l="Tàu" v={v.ten_tau} /><O l="DWT / mớn / LOA" v={[so(v.dwt), v.draft != null && so(v.draft, 2) + " m", v.loa != null && met(v.loa) + " m"].filter(Boolean).join(" · ")} />
             <O l="Bến" v={b ? `${tenBenChuyen(v)}${viTriBen ? ` ${viTriBen}` : ""} ${bPhu ? "(cập hai bến)" : `(≤ ${so(b.dwt_max)} DWT, mớn ${b.mon_cung ? "≤" : ""}${so(b.mon_max, 2)} m)`}` : "Chưa xếp"} sub={b && bPhu ? `${gioiHan(b)} · ${gioiHan(bPhu)}` : null} />
             <O l="Hàng" v={`${v.huong === "xuat" ? "Xuất" : "Nhập"} · ${v.loai_hang || ""}`}
               sub={(v.hang_ds || []).length > 1 ? v.hang_ds.map((h) => `${h.ten_hang || h.loai_hang || "?"}${h.khoi_luong != null ? ` ${so(h.khoi_luong)} t` : ""}`).join(" · ") : v.ten_hang} /><O l="Tổng khối lượng" v={`${so(v.khoi_luong)} t`} />
@@ -195,7 +195,7 @@ function LamHang({ v, cs }) {
   useEffect(() => { tai(); }, [v.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const them = async () => {
     if (!f.noi_dung.trim()) return;
-    const kl = f.kl_luy_ke === "" ? null : Number(String(f.kl_luy_ke).replace(",", "."));
+    const kl = f.kl_luy_ke === "" ? null : docSo(f.kl_luy_ke) ?? NaN;
     const r = await run(async () => {
       await api.addEvent({ voyage_id: v.id, thoi_diem: fromLocalInput(f.thoi_diem), noi_dung: f.noi_dung.trim(), kl_luy_ke: kl });
       if (kl != null && (v.da_lam == null || kl >= +v.da_lam)) await api.updateVoyage(v.id, { da_lam: kl }); // KL lũy kế mới nhất -> KL đã làm
@@ -206,7 +206,7 @@ function LamHang({ v, cs }) {
     <div className="grid gap-4">
       <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
         <Field label={`KL đã làm (tấn) · tổng ${so(v.khoi_luong)} t`}>
-          {quyen.nhap ? <Input key={v.da_lam ?? "x"} className="num w-48" inputMode="decimal" defaultValue={v.da_lam ?? ""} onBlur={(e) => { const n = e.target.value === "" ? null : Number(e.target.value.replace(",", ".")); if (n !== (v.da_lam ?? null) && (n == null || Number.isFinite(n))) run(() => api.updateVoyage(v.id, { da_lam: n }), "Đã cập nhật KL đã làm"); }} />
+          {quyen.nhap ? <Input key={v.da_lam ?? "x"} className="num w-48" inputMode="decimal" defaultValue={v.da_lam ?? ""} onBlur={(e) => { const n = e.target.value === "" ? null : docSo(e.target.value) ?? NaN; if (n !== (v.da_lam ?? null) && (n == null || Number.isFinite(n))) run(() => api.updateVoyage(v.id, { da_lam: n }), "Đã cập nhật KL đã làm"); }} />
             : <div className="font-semibold">{so(cs.daLam)} t</div>}
         </Field>
         <TienDo v={cs.hoanTat} className="w-64" />

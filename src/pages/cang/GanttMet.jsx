@@ -3,7 +3,7 @@ import { useApp } from "@/store";
 import { trangThai, laUoc, chiSo, TRANG_THAI } from "@/lib/linetime";
 import { cacTuyen, viTriTrenLich, benTheoViTri, kiemTraXepBen, nhanCho, tenTuyen } from "@/lib/capBen";
 import { kiemTraBen } from "@/lib/checks";
-import { DAY, ngayGio, so, pad, iso, ms, thoiLuong } from "@/lib/format";
+import { DAY, ngayGio, met, pad, iso, ms, thoiLuong } from "@/lib/format";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { MucIcon } from "@/components/common";
@@ -84,7 +84,7 @@ export default function GanttMet({ voyages, tu, soNgay, pxNgay, che = "ben", gon
     if (!doiMetDuoc(it) && !doiGioDuoc(it)) return toast(!quyen.nhap ? "Vai trò Xem không dời được lịch" : !D.coSql28 ? "Cần chạy SQL 28 để ghi vị trí mét" : "Đoạn này là bến cũ trước khi chuyển bến: sửa ở phiếu chuyến", "warn");
     const r = tinh(k);
     if (!r.lech && r.x === it.x && it.coDinh) return;
-    if (!r.ben) return setXacNhan({ loi: `Mét ${so(r.x)}–${so(r.x + it.L)} ra ngoài tuyến ${tenTuyen(r.d.t, tenBen)} (mét ${so(r.d.t.tu)}–${so(r.d.t.den)}) hoặc chiếm hơn hai bến.` });
+    if (!r.ben) return setXacNhan({ loi: `Mét ${met(r.x)}–${met(r.x + it.L)} ra ngoài tuyến ${tenTuyen(r.d.t, tenBen)} (mét ${met(r.d.t.tu)}–${met(r.d.t.den)}) hoặc chiếm hơn hai bến.` });
     const v = it.v, n = it.seg.nguon;
     const patch = { ...(doiMetDuoc(it) ? { ben_ma: r.ben.ben_ma, ben_phu: r.ben.ben_phu || null, vi_tri: r.x } : {}), ...(r.lech ? { etb: iso(r.a), etd: iso(r.b) } : {}) };
     const vMoi = { ...v, ...patch };
@@ -122,9 +122,9 @@ export default function GanttMet({ voyages, tu, soNgay, pxNgay, che = "ben", gon
                     {/* Nhãn bến dính bên trái khi cuộn ngang */}
                     <div className="pointer-events-none absolute inset-x-0" style={{ top: K.pad + (b.tu - d.t.tu) * K.mPx, height: (b.den - b.tu) * K.mPx }}>
                       <div className="pointer-events-auto sticky left-0 z-20 flex h-full flex-col justify-center border-r bg-card px-2" style={{ width: LABEL }}
-                        title={`Bến ${b.ma}: mét ${so(b.tu)}–${so(b.den)}${b.goc ? ` · đầu ${b.goc === "dau" ? "mét " + so(b.tu) : "mét " + so(b.den)} góc vuông` : ""}`}>
+                        title={`Bến ${b.ma}: mét ${met(b.tu)}–${met(b.den)}${b.goc ? ` · đầu ${b.goc === "dau" ? "mét " + met(b.tu) : "mét " + met(b.den)} góc vuông` : ""}`}>
                         <span className={cn("w-fit font-mono font-semibold", gon ? "text-[11px]" : "text-[13px]", b.goc === "dau" && "border-t-2 border-warn", b.goc === "cuoi" && "border-b-2 border-warn")}>{tenBen(b.ma)}</span>
-                        {(b.den - b.tu) * K.mPx > 26 && <span className="text-[10px] tabular-nums text-muted-foreground">{so(b.tu)}–{so(b.den)} m</span>}
+                        {(b.den - b.tu) * K.mPx > 26 && <span className="text-[10px] tabular-nums text-muted-foreground">{met(b.tu)}–{met(b.den)} m</span>}
                       </div>
                     </div>
                   </div>))}
@@ -163,7 +163,7 @@ export default function GanttMet({ voyages, tu, soNgay, pxNgay, che = "ben", gon
                   aria-label={`${it.v.ten_tau}: ${TRANG_THAI[it.st].ten}`}>
                   {cs && <div className="absolute inset-y-0 left-0 bg-black/25" style={{ width: `${Math.min(100, (cs.hoanTat || 0) * 100)}%` }} />}
                   <span className="relative truncate">{it.uocTT ? "≈ " : ""}{it.v.uu_tien ? "★ " : ""}{it.v.ten_tau}</span>
-                  {h >= 26 && <span className="relative truncate opacity-85">{it.v._loaUoc ? "≈" : ""}{so(it.L)} m · {noiHaiBen(it.seg.ben, it.seg.phu)} {viTriChu(it.x, it.L)}</span>}
+                  {h >= 26 && <span className="relative truncate opacity-85">{it.v._loaUoc ? "≈" : ""}{met(it.L)} m · {noiHaiBen(it.seg.ben, it.seg.phu)} {viTriChu(it.x, it.L)}</span>}
                 </div>
                 </Fragment>);
             })}
@@ -173,9 +173,9 @@ export default function GanttMet({ voyages, tu, soNgay, pxNgay, che = "ben", gon
       {/* Đang kéo: mét, bến, giờ cập – rời để căn chỉnh */}
       {dang && (
         <div className="pointer-events-none fixed z-50 rounded-md border bg-popover px-2.5 py-1.5 text-xs shadow-lg" style={{ left: (keo.cx ?? 0) + 16, top: (keo.cy ?? 0) + 16 }}>
-          <div className="font-semibold">{keo.it.v.ten_tau} · {so(keo.it.L)} m</div>
-          <div>Mét <b className="tabular-nums">{so(dang.x)} – {so(dang.x + keo.it.L)}</b> · {dang.ben ? <>bến <b>{noiHaiBen(dang.ben.ben_ma, dang.ben.ben_phu)}</b></> : <span className="text-bad">ra ngoài tuyến / chiếm hơn hai bến</span>}</div>
-          <div>Cập <b className="tabular-nums">{ngayGio(dang.a)}</b> → rời <b className="tabular-nums">{ngayGio(dang.b)}</b>{dang.lech ? <span className="text-muted-foreground"> ({dang.lech > 0 ? "+" : "−"}{so(Math.abs(dang.lech) / 36e5, 1)} giờ)</span> : null}</div>
+          <div className="font-semibold">{keo.it.v.ten_tau} · {met(keo.it.L)} m</div>
+          <div>Mét <b className="tabular-nums">{met(dang.x)} – {met(dang.x + keo.it.L)}</b> · {dang.ben ? <>bến <b>{noiHaiBen(dang.ben.ben_ma, dang.ben.ben_phu)}</b></> : <span className="text-bad">ra ngoài tuyến / chiếm hơn hai bến</span>}</div>
+          <div>Cập <b className="tabular-nums">{ngayGio(dang.a)}</b> → rời <b className="tabular-nums">{ngayGio(dang.b)}</b>{dang.lech ? <span className="text-muted-foreground"> ({dang.lech > 0 ? "+" : "−"}{met(Math.abs(dang.lech) / 36e5, 1)} giờ)</span> : null}</div>
           {!doiGioDuoc(keo.it) && <div className="text-muted-foreground">Tàu đã cập / có chuyển bến: chỉ đổi vị trí mét</div>}
           {!doiMetDuoc(keo.it) && <div className="text-muted-foreground">{D.coSql28 ? "Chỉ đổi giờ" : "Chạy SQL 28 để đổi vị trí mét"}</div>}
         </div>)}
@@ -191,7 +191,7 @@ export default function GanttMet({ voyages, tu, soNgay, pxNgay, che = "ben", gon
       {tro && !keo && <TheTau x={tro.x} cx={tro.cx} cy={tro.cy} />}
       {xacNhan && (
         <Dialog onOpenChange={(o) => !o && setXacNhan(null)} title={xacNhan.loi ? "Không dời được" : `Dời ${xacNhan.v.ten_tau}?`}
-          description={xacNhan.loi ? null : `Bến ${noiHaiBen(xacNhan.r.ben.ben_ma, xacNhan.r.ben.ben_phu)} · mét ${so(xacNhan.r.x)}–${so(xacNhan.r.x + xacNhan.it.L)} · cập ${ngayGio(xacNhan.r.a)} → rời ${ngayGio(xacNhan.r.b)}`}
+          description={xacNhan.loi ? null : `Bến ${noiHaiBen(xacNhan.r.ben.ben_ma, xacNhan.r.ben.ben_phu)} · mét ${met(xacNhan.r.x)}–${met(xacNhan.r.x + xacNhan.it.L)} · cập ${ngayGio(xacNhan.r.a)} → rời ${ngayGio(xacNhan.r.b)}`}
           footer={xacNhan.loi ? <Button onClick={() => setXacNhan(null)}>Đóng</Button>
             : <><Button variant="outline" onClick={() => setXacNhan(null)}>Hủy</Button><Button variant={xacNhan.canh.length ? "destructive" : "default"} onClick={() => { xacNhan.luu(); setXacNhan(null); }}>{xacNhan.canh.length ? "Vẫn dời" : "Dời"}</Button></>}>
           {xacNhan.loi ? <div className="text-sm">{xacNhan.loi}</div>

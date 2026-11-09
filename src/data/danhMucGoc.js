@@ -26,13 +26,13 @@ export const MA_BEN_CU = { "1A": "TL", 1: "B01", 2: "B02", 3: "B03", 4: "B04", 5
 //   TL, B01, B02: ba bến song song, mỗi bến một tuyến 0–140 m. Mặt tây cầu cảng: B03 (0–200), B05 (200–500), B10 (500–910).
 //   Mặt đông: B04 (0–200, đầu mét 0 góc vuông với tuyến bến B07), B06 (200–500), B11 (500–910).
 //   Tuyến B07-B08-B09: B07 (0–180, đầu tây góc vuông với mặt đông), B08 (180–306,5), B09 (306,5–433). Hào Hưng: HH2 (0–242), HH3 (242–432).
-//   Cảng Tổng hợp: 6CTH (0–250), 7CTH (250–500).
+//   Cảng Tổng hợp: 7CTH (0–250), 6CTH (250–490).
 export const VI_TRI_MAC_DINH = {
   TL: ["TL", 0, 140], B01: ["B01", 0, 140], B02: ["B02", 0, 140],
   B03: ["B03-B05-B10", 0, 200], B05: ["B03-B05-B10", 200, 500], B10: ["B03-B05-B10", 500, 910],
   B04: ["B04-B06-B11", 0, 200, "dau"], B06: ["B04-B06-B11", 200, 500], B11: ["B04-B06-B11", 500, 910],
   B07: ["B07-B08-B09", 0, 180, "dau"], B08: ["B07-B08-B09", 180, 306.5], B09: ["B07-B08-B09", 306.5, 433],
-  HH2: ["HH2-HH3", 0, 242], HH3: ["HH2-HH3", 242, 432], "6CTH": ["6CTH-7CTH", 0, 250], "7CTH": ["6CTH-7CTH", 250, 500],
+  HH2: ["HH2-HH3", 0, 242], HH3: ["HH2-HH3", 242, 432], "7CTH": ["6CTH-7CTH", 0, 250], "6CTH": ["6CTH-7CTH", 250, 490],
 };
 
 // Lý do dừng / đình trệ. Mặc định: thời tiết, hoa tiêu, lai dắt là thời gian đình trệ cho phép (trừ khỏi laytime);

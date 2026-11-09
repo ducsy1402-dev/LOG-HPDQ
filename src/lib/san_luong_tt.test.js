@@ -42,3 +42,26 @@ describe("Sản lượng thực tế theo ca / ngày", () => {
     expect(khopDoiXe(r, "Xe ben")).toBe(false);
   });
 });
+
+// ---------- Mục tiêu riêng của quý / năm (SQL 10) ----------
+import { chuoiKy, tongTheoNhom, khoangKy as khoangKyTQ } from "./bieuDoSanLuong";
+describe("Mục tiêu quý / năm", () => {
+  const thang = (m, huong, loai, tan) => ({ thang: `2026-${m}`, huong, loai_hang: loai, tan });
+  const du = {
+    mucTieu: [thang("10", "nhap", "Than", 3100), thang("11", "nhap", "Than", 3000), thang("12", "nhap", "Than", 3100), thang("11", "xuat", "HRC", 900)],
+    thucTe: [],
+    mucTieuKy: [{ thang: "2026-Q4", huong: "nhap", loai_hang: "Than", tan: 12000 }],
+  };
+  const ky = khoangKyTQ("quy", "2026-11-09");
+  it("dòng có mục tiêu riêng của quý dùng số của quý, không cộng các tháng; dòng khác vẫn cộng tháng", () => {
+    const m = tongTheoNhom(ky, du, "cang", (x) => `${x.huong}|${x.loai}`);
+    expect(m.get("nhap|Than").mt).toBe(12000);
+    expect(Math.round(m.get("xuat|HRC").mt)).toBe(900);
+    const c = chuoiKy(ky, du, "cang");
+    expect(Math.round(c.tongMt)).toBe(12900);
+  });
+  it("chưa nhập mục tiêu quý thì cộng các tháng như trước", () => {
+    const m = tongTheoNhom(ky, { ...du, mucTieuKy: [] }, "cang", (x) => `${x.huong}|${x.loai}`);
+    expect(Math.round(m.get("nhap|Than").mt)).toBe(9200);
+  });
+});

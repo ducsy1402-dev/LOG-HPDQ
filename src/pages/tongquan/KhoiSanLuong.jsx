@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useApp } from "@/store";
 import EChart from "@/components/EChart";
-import { so, pct } from "@/lib/format";
-import { NHOM, tenHuong, tenDonVi, DON_VI } from "@/lib/sanLuongTT";
+import { so, pct, r2 } from "@/lib/format";
+import { NHOM, tenHuong, tenDonVi, dsDonVi } from "@/lib/sanLuongTT";
 import { chuoiKy, tongTheoNhom } from "@/lib/bieuDoSanLuong";
+import { khoaKy } from "@/lib/ky";
 import { MAU } from "./khung";
 import { Khung, ChuaCo, Chon, ChonDs, BangChiTiet, nghin } from "./khungBD";
 
@@ -16,17 +17,18 @@ import { Khung, ChuaCo, Chon, ChonDs, BangChiTiet, nghin } from "./khungBD";
 const MAU_HUONG = { nhap: MAU.info, xuat: MAU.tim, phuc_vu_cang: MAU.info, phuc_vu_san_xuat: MAU.warn };
 
 // Mục tiêu + sản lượng thực tế của các tháng trong kỳ; null = chưa chạy SQL 06
-function useSanLuongKy(nhom, thangs) {
+function useSanLuongKy(nhom, thangs, kyKhoa) {
   const { api, D } = useApp();
   const [kq, setKq] = useState(undefined);
   const khoa = thangs.join(",");
   useEffect(() => {
     let huy = false;
-    Promise.all(khoa.split(",").map((t) => api.docSanLuongThang(nhom, t)))
-      .then((rs) => { if (!huy) setKq(rs.some((r) => !r) ? null : { mucTieu: rs.flatMap((r, i) => r.mucTieu.map((x) => ({ ...x, thang: x.thang || khoa.split(",")[i] }))), thucTe: rs.flatMap((r) => r.thucTe) }); })
+    // Quý / năm có mục tiêu riêng (SQL 10) thì dùng; chưa chạy SQL 10 hoặc chưa nhập thì cộng các tháng như trước
+    Promise.all([Promise.all(khoa.split(",").map((t) => api.docSanLuongThang(nhom, t))), kyKhoa ? api.docMucTieuKy(nhom, kyKhoa).catch(() => null) : null])
+      .then(([rs, rieng]) => { if (!huy) setKq(rs.some((r) => !r) ? null : { mucTieuKy: rieng || [], mucTieu: rs.flatMap((r, i) => r.mucTieu.map((x) => ({ ...x, thang: x.thang || khoa.split(",")[i] }))), thucTe: rs.flatMap((r) => r.thucTe) }); })
       .catch(() => { if (!huy) setKq(null); });
     return () => { huy = true; };
-  }, [api, nhom, khoa, D]); // D đổi (có người sửa) thì tải lại
+  }, [api, nhom, khoa, kyKhoa, D]); // D đổi (có người sửa) thì tải lại
   return kq;
 }
 
@@ -45,9 +47,9 @@ function optKy(c, huongs, nhomSL) {
     ],
     series: [
       ...cot,
-      { ...net("Mục tiêu từng điểm", c.diem.map((o) => Math.round(o.mt)), MAU.xam, 0), lineStyle: { width: 1.5, color: MAU.xam, type: "dotted" } },
+      { ...net("Mục tiêu từng điểm", c.diem.map((o) => r2(o.mt)), MAU.xam, 0), lineStyle: { width: 1.5, color: MAU.xam, type: "dotted" } },
       net("Lũy kế thực tế", c.diem.map((o) => o.lkTt), MAU.ok, 1),
-      net("Lũy kế mục tiêu", c.diem.map((o) => Math.round(o.lkMt)), MAU.warn, 1),
+      net("Lũy kế mục tiêu", c.diem.map((o) => r2(o.lkMt)), MAU.warn, 1),
     ],
   };
 }
@@ -61,8 +63,8 @@ function optNhom(ds) {
     xAxis: { type: "value", axisLabel: { fontSize: 10, formatter: nghin } },
     yAxis: { type: "category", inverse: true, data: ds.map((d) => d.ten), axisLabel: { fontSize: 10, width: 96, overflow: "truncate" } },
     series: [
-      { name: "Mục tiêu", type: "bar", barMaxWidth: 10, itemStyle: { color: MAU.xam, opacity: 0.55 }, data: ds.map((d) => Math.round(d.mt)) },
-      { name: "Lũy kế", type: "bar", barMaxWidth: 10, itemStyle: { color: MAU.primary }, label: { show: true, position: "right", fontSize: 10, formatter: (p) => (ds[p.dataIndex].mt ? pct(ds[p.dataIndex].tt / ds[p.dataIndex].mt) : "") }, data: ds.map((d) => Math.round(d.tt)) },
+      { name: "Mục tiêu", type: "bar", barMaxWidth: 10, itemStyle: { color: MAU.xam, opacity: 0.55 }, data: ds.map((d) => r2(d.mt)) },
+      { name: "Lũy kế", type: "bar", barMaxWidth: 10, itemStyle: { color: MAU.primary }, label: { show: true, position: "right", fontSize: 10, formatter: (p) => (ds[p.dataIndex].mt ? pct(ds[p.dataIndex].tt / ds[p.dataIndex].mt) : "") }, data: ds.map((d) => r2(d.tt)) },
     ],
   };
 }
@@ -92,7 +94,8 @@ function SoLon({ tt, mt }) {
 export default function KhoiSanLuong({ kyInfo }) {
   const [huongC, setHuongC] = useState(""), [huongV, setHuongV] = useState(""), [huongH, setHuongH] = useState("");
   const [doiC, setDoiC] = useState(""), [doiS, setDoiS] = useState("");
-  const cang = useSanLuongKy("cang", kyInfo.thangs), vt = useSanLuongKy("van_tai", kyInfo.thangs);
+  const kyKhoa = kyInfo.ky === "quy" ? khoaKy("quy", new Date(kyInfo.ngays[0] + "T00:00:00").getTime()) : kyInfo.ky === "nam" ? kyInfo.ngays[0].slice(0, 4) : null;
+  const cang = useSanLuongKy("cang", kyInfo.thangs, kyKhoa), vt = useSanLuongKy("van_tai", kyInfo.thangs, kyKhoa);
   const loadHuong = (nhom) => NHOM[nhom].huong.map(([k]) => k);
 
   const c1 = useMemo(() => (cang ? chuoiKy(kyInfo, cang, "cang", { loc: (x) => !huongC || x.huong === huongC, chia: (x) => x.huong }) : null), [kyInfo, cang, huongC]);
@@ -106,7 +109,8 @@ export default function KhoiSanLuong({ kyInfo }) {
   const theoDonVi = (huong, doi) => {
     if (!vt) return [];
     const m = tongTheoNhom(kyInfo, vt, "van_tai", (x) => x.donVi, (x) => x.huong === huong && (!doi || x.loai === doi));
-    return DON_VI.map(([k]) => ({ ...(m.get(k) || { mt: 0, tt: 0 }), ten: tenDonVi(k) }));
+    // Hòa Phát luôn hiện, rồi từng nhà thầu có mục tiêu / số liệu (Danh mục › Nhà thầu)
+    return dsDonVi([], [...m.keys()].sort((a, b) => tenDonVi(a).localeCompare(tenDonVi(b), "vi"))).map(([k]) => ({ ...(m.get(k) || { mt: 0, tt: 0 }), ten: tenDonVi(k) }));
   };
   const dvCang = useMemo(() => theoDonVi("phuc_vu_cang", doiC), [kyInfo, vt, doiC]); // eslint-disable-line react-hooks/exhaustive-deps
   const dvSX = useMemo(() => theoDonVi("phuc_vu_san_xuat", doiS), [kyInfo, vt, doiS]); // eslint-disable-line react-hooks/exhaustive-deps

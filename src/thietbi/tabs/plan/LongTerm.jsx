@@ -213,7 +213,7 @@ export default function LongTerm() {
   );
 }
 
-const kl = (x) => (x == null ? "" : Number(x).toLocaleString("vi-VN"));
+const kl = (x) => (x == null ? "" : Number(x).toLocaleString("vi-VN", { maximumFractionDigits: 2 }));
 
 // ---------- Phân bổ phương tiện cố định (theo đội đang chọn) ----------
 // Mỗi dòng: vị trí, loại xe + thiết bị gắn (xúc đào) hoặc ghi chú (đội khác), số xe. Lưu cùng tham số dài hạn (quản trị bấm "Lưu tham số").

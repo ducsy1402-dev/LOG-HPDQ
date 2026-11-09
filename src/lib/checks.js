@@ -1,6 +1,6 @@
 // Cảnh báo của phân hệ Cảng: tàu - bến, trùng bến, mốc giờ (không có cảnh báo năng suất).
 // Mức: "bad" (đỏ), "warn" (vàng), "info" (xanh, lưu ý).
-import { plain, so, thoiLuong, ms } from "./format";
+import { plain, so, met, thoiLuong, ms } from "./format";
 import { chiSo, mocSaiThuTu, trangThai } from "./linetime";
 import { choBenTheoChuyen, nhanCho, laBenLienKe } from "./capBen";
 import { khopLoaiHang } from "./xepBen";
@@ -28,8 +28,8 @@ export function kiemTraBen(v, b, bPhu = null, berths = null) {
   }
   if (bPhu) {
     const dai = +b.loa_max + +bPhu.loa_max;
-    if (+v.loa > 0 && +b.loa_max > 0 && +bPhu.loa_max > 0 && +v.loa > dai) out.push({ muc: "warn", ma: "loa", nd: `LOA ${so(v.loa, 1)} m dài hơn hai bến ${b.ma} + ${bPhu.ma} (${so(dai, 1)} m)` });
-  } else if (+v.loa > 0 && +b.loa_max > 0 && +v.loa > +b.loa_max) out.push({ muc: "warn", ma: "loa", nd: `LOA ${so(v.loa, 1)} m dài hơn bến ${b.ma} (${so(b.loa_max, 1)} m)` });
+    if (+v.loa > 0 && +b.loa_max > 0 && +bPhu.loa_max > 0 && +v.loa > dai) out.push({ muc: "warn", ma: "loa", nd: `LOA ${met(v.loa)} m dài hơn hai bến ${b.ma} + ${bPhu.ma} (${met(dai)} m)` });
+  } else if (+v.loa > 0 && +b.loa_max > 0 && +v.loa > +b.loa_max) out.push({ muc: "warn", ma: "loa", nd: `LOA ${met(v.loa)} m dài hơn bến ${b.ma} (${met(b.loa_max)} m)` });
   const hang = plain(v.loai_hang || v.ten_hang);
   if (hang && b.loai_hang) {
     const ds = plain(b.loai_hang).split(/[,;/]+/).map((s) => s.trim()).filter(Boolean);

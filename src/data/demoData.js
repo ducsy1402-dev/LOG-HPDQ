@@ -183,7 +183,7 @@ export function demoData() {
     [22, ...pl(nlPL[0]), "dau_co", 7000], [14, ...pl(nlPL[1]), "can_giai_phong", 4000],
   ].map(([lui, ten_bai, hang, loai, tan], i) => ({ id: i + 1, ngay: ngayLui(lui), ten_bai, hang, loai, tan, ghi_chu: null, created_at: ngayLui(lui) + "T08:00:00.000Z" }));
   const dmBang = Object.entries(DM.bang || {}).flatMap(([bang, rows]) => rows.map((data, i) => ({ bang, data, thu_tu: i + 1 }))).map((r, i) => ({ id: i + 1, ...r }));
-  return { dmBang, tonPhanLoai, mucTieu, mucTieuVanTai, sanLuongCang, sanLuongVanTai, khoKeHoach, dmCot, berths: DM.berths.map((b) => ({ ...b, bang_tai: bangTaiBen(b.ma) })), khoBai: kho.khoBai, giaoDich: kho.giaoDich, khoLo: kho.khoLo, plans, voyages, stops, events, tien, agents, vessels, nextId: { v: id, s: sid, e: eid, p: plans.length, g: kho.giaoDich.length, k: khoKeHoach.length } };
+  return { dmBang, tonPhanLoai, mucTieu, mucTieuVanTai, mucTieuKy: [], sanLuongCang, sanLuongVanTai, khoKeHoach, dmCot, berths: DM.berths.map((b) => ({ ...b, bang_tai: bangTaiBen(b.ma) })), khoBai: kho.khoBai, giaoDich: kho.giaoDich, khoLo: kho.khoLo, plans, voyages, stops, events, tien, agents, vessels, nextId: { v: id, s: sid, e: eid, p: plans.length, g: kho.giaoDich.length, k: khoKeHoach.length } };
 }
 
 // ---------- Kho demo: chiều cao chất đống, tồn đầu kỳ, nhập từ tàu / sản xuất, xuất cấp sản xuất / theo tàu, lô thành phẩm ----------

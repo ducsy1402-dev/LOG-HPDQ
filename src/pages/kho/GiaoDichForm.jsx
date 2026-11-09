@@ -32,20 +32,28 @@ const moDanhMucKho = (onClose) => { try { localStorage.setItem("lg-danh-muc-tab"
 
 // Một lượt nhập / xuất / điều chuyển. Nhập từ chuyến tàu tự lấy bãi nhận và hàng; thành phẩm ghi số lô.
 // Hàng chưa có bãi chứa (không bãi nhỏ nào nhận) thì không cho lưu: phải khai báo ở Danh mục › Kho bãi.
-export default function GiaoDichForm({ loaiKho, loaiGD, kho, onClose }) {
+export default function GiaoDichForm({ loaiKho, loaiGD: loaiDau, kho, sua, onClose }) {
   const { D, api, run, toast } = useApp();
   const tbD = useThietBi()?.D;
   const tp = loaiKho === "thanh_pham";
   const dongKho = kho.dong.filter((d) => d.loai === loaiKho && !d.saiBai);
   const capKho = kho.cap.filter((c) => c.loai === loaiKho);
   const baiDs = [...new Set(dongKho.map((d) => d.ten_bai))];
+  // Hộp Nhập liệu: chọn nghiệp vụ Nhập / Xuất / Điều chuyển ngay trong hộp (đổi nghiệp vụ giữ ngày, ca, bãi, số lượng, chứng từ, ghi chú)
+  const [loaiGD, setLoaiGD] = useState(loaiDau);
   const vao = loaiGD === "nhap" || loaiGD === "dau_ky";
   const dc = loaiGD === "dieu_chuyen";
-  const hangTai = (bai) => [...new Set(capKho.filter((c) => c.ten_bai === bai && (c.ton > 1e-6 || vao)).map((c) => c.hang))];
-  const [f, setF] = useState(() => {
-    const ca = caHienTai(), bai = baiDs[0] || "";
-    return { ngay: ca.ngay, ca: ca.so, ten_bai: bai, den_bai: "", hang: vao ? "" : hangTai(bai)[0] || "", so_luong: "", so_lo: "", nguon: NGUON_GD[loaiKho][loaiGD]?.[0]?.[0] || "khac", voyage_id: "", chung_tu: "", ghi_chu: "" };
-  });
+  // Sửa một lượt đã ghi: lượt đó đang tính trong tồn, nên khi kiểm tra tồn phải cộng lại số lượng cũ
+  const hangTai = (bai) => [...new Set([...capKho.filter((c) => c.ten_bai === bai && (c.ton > 1e-6 || vao)).map((c) => c.hang), ...(sua && sua.ten_bai === bai && !vao ? [sua.hang] : [])])];
+  const khoiTao = (lg, o = {}) => {
+    const ca = caHienTai(), bai = o.ten_bai ?? (baiDs[0] || ""), vaoMoi = lg === "nhap" || lg === "dau_ky";
+    return { ngay: o.ngay ?? ca.ngay, ca: o.ca ?? ca.so, ten_bai: bai, den_bai: "", hang: vaoMoi ? "" : hangTai(bai)[0] || "", so_luong: o.so_luong ?? "", so_lo: "", nguon: NGUON_GD[loaiKho][lg]?.[0]?.[0] || "khac", voyage_id: "", chung_tu: o.chung_tu ?? "", ghi_chu: o.ghi_chu ?? "" };
+  };
+  const [f, setF] = useState(() => sua ? {
+    ngay: String(sua.ngay).slice(0, 10), ca: (/^CA\s*(HC|\d+)/i.exec(sua.ca || "")?.[1] || "1").toUpperCase(), ten_bai: sua.ten_bai, den_bai: sua.den_bai || "", hang: sua.hang,
+    so_luong: String(sua.so_luong).replace(".", ","), so_lo: sua.so_lo || "", nguon: sua.nguon || "khac", voyage_id: sua.voyage_id ? String(sua.voyage_id) : "", chung_tu: sua.chung_tu || "", ghi_chu: sua.ghi_chu || "",
+  } : khoiTao(loaiDau));
+  const doiLoai = (lg) => { if (lg === loaiGD) return; setLoaiGD(lg); setF((o) => khoiTao(lg, o)); };
   const set = (k) => (e) => setF((o) => ({ ...o, [k]: e.target.value }));
   const caNgay = dsCa(tbD, f.ngay);
   const doiNgay = (ngay) => { if (!ngay) return; setF((o) => ({ ...o, ngay, ca: dsCa(tbD, ngay).some((c) => c[0] === o.ca) ? o.ca : dsCa(tbD, ngay)[0]?.[0] || o.ca })); };
@@ -54,7 +62,8 @@ export default function GiaoDichForm({ loaiKho, loaiGD, kho, onClose }) {
   const bai = coBai(f.ten_bai), denBai = coBai(f.den_bai);
   const hangCuaBai = bai ? hangTai(bai) : [];
   const hang = f.hang.trim();
-  const tonBH = capKho.find((c) => c.ten_bai === bai && plain(c.hang) === plain(hang))?.ton || 0;
+  const hoanLai = sua && !vao && sua.ten_bai === bai && plain(sua.hang) === plain(hang) ? +sua.so_luong || 0 : 0;
+  const tonBH = (capKho.find((c) => c.ten_bai === bai && plain(c.hang) === plain(hang))?.ton || 0) + hoanLai;
   // Nhập: bãi nhỏ sẽ nhận hàng ở bãi đã chọn; điều chuyển: bãi nhỏ nhận ở bãi đến. Gợi ý các bãi nhận được hàng này
   const baiNhan = vao ? bai : dc ? denBai : null;
   const khu = baiNhan && hang ? khuNhan(kho, baiNhan, hang) : null;
@@ -62,7 +71,7 @@ export default function GiaoDichForm({ loaiKho, loaiGD, kho, onClose }) {
   const dsHang = vao ? [...new Set([...hangCuaBai, ...(kho.hangHoa || []).map((h) => h.loai_hang)])].map((h) => [h, h, hangCuaBai.includes(h) ? "có ở bãi" : ""])
     : hangCuaBai.map((h) => [h, h, `tồn ${so(capKho.find((c) => c.ten_bai === bai && c.hang === h)?.ton || 0)} t`]);
   const loTon = kho.lo.filter((l) => l.ten_bai === bai && plain(l.hang) === plain(hang));
-  const tonLo = f.so_lo ? loTon.find((l) => l.so_lo === f.so_lo)?.ton || 0 : null;
+  const tonLo = f.so_lo ? (loTon.find((l) => l.so_lo === f.so_lo)?.ton || 0) + (hoanLai && sua.so_lo === f.so_lo ? hoanLai : 0) : null;
   // Lỗi chặn lưu về bãi / hàng (hiện ngay dưới ô, bấm Lưu cũng báo)
   const loiBai = !f.ten_bai.trim() ? "Chọn bãi"
     : !bai ? `Bãi "${f.ten_bai.trim()}" chưa có trong danh mục kho bãi ${tp ? "thành phẩm" : "nguyên liệu"}`
@@ -101,17 +110,22 @@ export default function GiaoDichForm({ loaiKho, loaiGD, kho, onClose }) {
     const rec = { ngay: f.ngay, ca: tenCa(tbD, f.ngay, f.ca), loai: loaiGD, ten_bai: bai, den_bai: dc ? denBai : null, hang: tenHang, so_luong: sl,
       so_lo: f.so_lo.trim() || null, nguon: f.nguon || null, voyage_id: f.voyage_id ? +f.voyage_id : null, chung_tu: f.chung_tu.trim() || null, ghi_chu: f.ghi_chu.trim() || null };
     const r = await run(async () => {
-      await api.addGiaoDich([rec]);
+      if (sua) await api.updateGiaoDich(sua.id, rec); else await api.addGiaoDich([rec]);
       if (tp && loaiGD === "nhap" && !(D.khoLo || []).some((l) => l.so_lo === rec.so_lo)) await api.saveLo([{ so_lo: rec.so_lo, hang: tenHang, ngay_nhap: rec.ngay, trang_thai: "san_sang" }]);
-    }, `Đã ghi ${TEN_GD[loaiGD].toLowerCase()} ${so(sl)} t ${tenHang} · ${bai}`);
+    }, `${sua ? "Đã sửa" : "Đã ghi"} ${TEN_GD[loaiGD].toLowerCase()} ${so(sl)} t ${tenHang} · ${bai}`);
     if (r) onClose();
   };
   const nguon = NGUON_GD[loaiKho][loaiGD];
   const chonGoiY = (g) => setF((o) => (dc ? { ...o, den_bai: g.ten_bai } : { ...o, ten_bai: g.ten_bai, hang: hang || o.hang }));
   return (
-    <Dialog onOpenChange={(o) => !o && onClose()} title={`${TEN_GD[loaiGD]} · ${tp ? "kho thành phẩm" : "kho nguyên liệu"}`} className="max-w-2xl"
+    <Dialog onOpenChange={(o) => !o && onClose()} title={`${sua ? `Sửa ${TEN_GD[loaiGD].toLowerCase()}` : "Nhập liệu"} · ${tp ? "kho thành phẩm" : "kho nguyên liệu"}`} className="max-w-2xl"
       footer={<><Button variant="outline" onClick={onClose}>Hủy</Button><Button onClick={luu}><Save />Lưu</Button></>}>
       <div className="grid gap-3 sm:grid-cols-3">
+        {!sua && <div className="flex gap-1 sm:col-span-3" role="tablist" aria-label="Nghiệp vụ">
+          {[["nhap", "Nhập"], ["xuat", "Xuất"], ["dieu_chuyen", "Điều chuyển"]].map(([k, ten]) => (
+            <button key={k} type="button" role="tab" aria-selected={loaiGD === k} onClick={() => doiLoai(k)}
+              className={cn("flex-1 rounded-md border px-3 py-1.5 text-sm font-medium transition-colors", loaiGD === k ? "border-primary bg-primary text-primary-foreground" : "hover:bg-accent")}>{ten}</button>))}
+        </div>}
         <Field label="Ngày"><NgayGio chiNgay required value={f.ngay} onChange={doiNgay} /></Field>
         <Field label="Ca"><NativeSelect value={f.ca} onChange={set("ca")} options={caNgay.map(([v, t, gio]) => [v, gio ? `${t} ${gio}` : t])} /></Field>
         {nguon && <Field label="Nguồn / mục đích"><NativeSelect value={f.nguon} onChange={set("nguon")} options={nguon} /></Field>}
@@ -141,7 +155,7 @@ export default function GiaoDichForm({ loaiKho, loaiGD, kho, onClose }) {
         <Field label="Số lượng (tấn)"><Input className="num" inputMode="decimal" value={f.so_luong} onChange={set("so_luong")} /></Field>
         {tp && (loaiGD === "nhap"
           ? <Field label="Số lô" hint="Lô mới tự thêm vào danh sách lô (sẵn sàng xuất)"><div className="flex gap-1"><Input value={f.so_lo} onChange={set("so_lo")} /><Button size="sm" variant="outline" onClick={() => setF({ ...f, so_lo: loMoi((D.khoLo || []).map((l) => l.so_lo)) })}>Tạo</Button></div></Field>
-          : <Field label="Lô" hint={tonLo != null ? `Tồn lô: ${so(tonLo)} t` : "Không chọn lô: trừ chung"}><NativeSelect value={f.so_lo} onChange={set("so_lo")} placeholder="—" options={loTon.map((l) => [l.so_lo, `${l.so_lo} · ${so(l.ton)} t`])} /></Field>)}
+          : <Field label="Lô" hint={tonLo != null ? `Tồn lô: ${so(tonLo)} t` : "Không chọn lô: trừ chung"}><NativeSelect value={f.so_lo} onChange={set("so_lo")} placeholder="—" options={[...(sua?.so_lo && !loTon.some((l) => l.so_lo === sua.so_lo) ? [[sua.so_lo, `${sua.so_lo} · đã xuất hết`]] : []), ...loTon.map((l) => [l.so_lo, `${l.so_lo} · ${so(l.ton)} t`])]} /></Field>)}
         <Field label="Chứng từ"><Input value={f.chung_tu} onChange={set("chung_tu")} placeholder="Số phiếu, biên bản…" /></Field>
         <Field label="Ghi chú" className="sm:col-span-3"><Input value={f.ghi_chu} onChange={set("ghi_chu")} /></Field>
       </div>
@@ -174,6 +188,33 @@ export function KiemKeForm({ loaiKho, kho, onClose }) {
         <Field label="Số đo thực tế (tấn)"><Input className="num" inputMode="decimal" value={doTT} onChange={(e) => setDoTT(e.target.value)} autoFocus /></Field>
         {chenh != null && <div className="text-sm">Chênh lệch: <b className={chenh < 0 ? "text-bad" : "text-ok"}>{chenh > 0 ? "+" : ""}{so(chenh, 2)} t</b>{d.ton > 0 && <span className="text-muted-foreground"> ({so((Math.abs(chenh) / d.ton) * 100, 1)}% so với sổ)</span>}</div>}
         <Field label="Ghi chú"><Input value={ghiChu} onChange={(e) => setGhiChu(e.target.value)} placeholder="Phương pháp đo, người kiểm…" /></Field>
+      </div>
+    </Dialog>
+  );
+}
+
+// Sửa một lượt kiểm kê đã ghi: ngày, ca, số đo thực tế (chênh lệch tính lại theo số sổ lúc kiểm), ghi chú
+export function SuaKiemKe({ g, onClose }) {
+  const { api, run, toast } = useApp();
+  const tbD = useThietBi()?.D;
+  const ghiChuGoc = String(g.ghi_chu || "").replace(/^Kiểm kê: đo [^,]*, sổ [^.]*?t\.?\s*/, "");
+  const [f, setF] = useState({ ngay: String(g.ngay).slice(0, 10), ca: (/^CA\s*(HC|\d+)/i.exec(g.ca || "")?.[1] || "1").toUpperCase(), doTT: String(g.do_thuc_te ?? "").replace(".", ","), ghi_chu: ghiChuGoc });
+  const doSo = docSo(f.doTT), sach = +g.so_sach || 0, chenh = doSo != null ? doSo - sach : null;
+  const luu = async () => {
+    if (doSo == null || doSo < 0) return toast("Nhập số đo thực tế", "bad");
+    const r = await run(() => api.updateGiaoDich(g.id, { ngay: f.ngay, ca: tenCa(tbD, f.ngay, f.ca), do_thuc_te: doSo, so_luong: chenh,
+      ghi_chu: [`Kiểm kê: đo ${so(doSo)} t, sổ ${so(sach)} t`, f.ghi_chu.trim()].filter(Boolean).join(". ") }), `Đã sửa kiểm kê ${g.ten_bai} – ${g.hang}: chênh ${so(chenh)} t`);
+    if (r) onClose();
+  };
+  return (
+    <Dialog onOpenChange={(o) => !o && onClose()} title={`Sửa kiểm kê · ${g.ten_bai} – ${g.hang}`} description={`Số sổ lúc kiểm: ${so(sach)} t. Chênh lệch tính lại theo số đo mới.`}
+      footer={<><Button variant="outline" onClick={onClose}>Hủy</Button><Button onClick={luu}><Save />Lưu</Button></>}>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label="Ngày"><NgayGio chiNgay required value={f.ngay} onChange={(ngay) => ngay && setF((o) => ({ ...o, ngay }))} /></Field>
+        <Field label="Ca"><NativeSelect value={f.ca} onChange={(e) => setF((o) => ({ ...o, ca: e.target.value }))} options={dsCa(tbD, f.ngay).map(([v, t, gio]) => [v, gio ? `${t} ${gio}` : t])} /></Field>
+        <Field label="Số đo thực tế (tấn)"><Input className="num" inputMode="decimal" value={f.doTT} onChange={(e) => setF((o) => ({ ...o, doTT: e.target.value }))} autoFocus /></Field>
+        <div className="self-end pb-2 text-sm">{chenh != null && <>Chênh lệch: <b className={chenh < 0 ? "text-bad" : "text-ok"}>{chenh > 0 ? "+" : ""}{so(chenh)} t</b></>}</div>
+        <Field label="Ghi chú" className="sm:col-span-2"><Input value={f.ghi_chu} onChange={(e) => setF((o) => ({ ...o, ghi_chu: e.target.value }))} /></Field>
       </div>
     </Dialog>
   );

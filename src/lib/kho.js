@@ -2,7 +2,7 @@
 //   Sức chứa (tấn) = diện tích (m²) × chiều cao chất đống (m) × tỉ trọng hàng (t/m³); có ô sức chứa nhập tay thì dùng ô đó.
 //   Lấp đầy = tồn ÷ sức chứa. Vàng từ 85%, đỏ từ 95%.
 //   Nguyên liệu: số ngày cấp còn lại = tồn ÷ tiêu thụ bình quân mỗi ngày (30 ngày gần nhất, hoặc nhập tay).
-import { plain, DAY } from "./format";
+import { plain, DAY, so } from "./format";
 import { thangTrongKy } from "./ky";
 import DM_BANG from "../data/dmBang.json";
 
@@ -138,7 +138,7 @@ export function tongHopKho({ khoBai = [], khoTon = [], khoLo = [], giaoDich = []
     if (!(sc.tan > 0) && kieu !== "co_dinh_hang" && +r.dien_tich > 0 && +r.chieu_cao > 0) {
       const co = chua.map((c) => ({ ton: Math.max(0, c.ton), tt: tiTrong(c.hang, hangHoa) })).filter((c) => c.ton > 0 && c.tt > 0);
       const w = co.reduce((s, c) => s + c.ton, 0);
-      if (w > 0) { const tt = co.reduce((s, c) => s + c.ton * c.tt, 0) / w; sc = { tan: +r.dien_tich * +r.chieu_cao * tt, cach: `${r.dien_tich} m² × ${r.chieu_cao} m × ${tt.toFixed(2)} t/m³ (bình quân hàng đang chứa)` }; }
+      if (w > 0) { const tt = co.reduce((s, c) => s + c.ton * c.tt, 0) / w; sc = { tan: +r.dien_tich * +r.chieu_cao * tt, cach: `${r.dien_tich} m² × ${r.chieu_cao} m × ${so(tt)} t/m³ (bình quân hàng đang chứa)` }; }
     }
     const loai = r.loai_kho || (r.hang ? loaiKhoTuHang(r.hang, hangHoa) : chua[0] ? loaiKhoTuHang(chua[0].hang, hangHoa) : "nguyen_lieu");
     const tieuThu = r.hang ? (+r.tieu_thu_ngay > 0 ? +r.tieu_thu_ngay : (xuat30.get(plain(r.hang)) || 0) / 30) : 0;
@@ -302,7 +302,7 @@ export function canhBaoKho(th, { voyages = [], giaoDich = [], nguong = NGUONG_KH
   for (const b of th.bai) {
     const l = ll.bai.get(b.ten_bai);
     if (b.lapDay != null && b.lapDay < nguong.vang && l?.ngayDay != null && l.ngayDay < nguong.ngayDayVang)
-      out.push({ muc: "warn", ma: "sap_day", bai: b.ten_bai, nd: `${b.ten_bai} dự kiến đầy sau ${l.ngayDay.toFixed(1)} ngày (nhập nhiều hơn xuất ${Math.round(l.rong).toLocaleString("vi-VN")} t/ngày)` });
+      out.push({ muc: "warn", ma: "sap_day", bai: b.ten_bai, nd: `${b.ten_bai} dự kiến đầy sau ${so(l.ngayDay)} ngày (nhập nhiều hơn xuất ${so(l.rong)} t/ngày)` });
   }
   const b1 = (ten) => th.bai.find((b) => b.ten_bai === ten);
   const daBao = new Set();
@@ -312,12 +312,12 @@ export function canhBaoKho(th, { voyages = [], giaoDich = [], nguong = NGUONG_KH
       // Bãi nhỏ đầy dù bãi lớn còn chỗ
       if (d.lapDay > 1.0001) out.push({ muc: "bad", ma: "vuot", bai: d.ten_bai, nd: `${d.ten_bai} › ${d.ten} vượt sức chứa (${Math.round(d.lapDay * 100)}%)` });
       else if (d.lapDay >= nguong.do) out.push({ muc: "warn", ma: "day", bai: d.ten_bai, nd: `${d.ten_bai} › ${d.ten} sắp đầy (${Math.round(d.lapDay * 100)}%)` });
-      else { const l = ll.khu.get(d.key); if (l?.ngayDay != null && l.ngayDay < nguong.ngayDayVang && d.lapDay < nguong.vang) out.push({ muc: "warn", ma: "sap_day", bai: d.ten_bai, nd: `${d.ten_bai} › ${d.ten} dự kiến đầy sau ${l.ngayDay.toFixed(1)} ngày` }); }
+      else { const l = ll.khu.get(d.key); if (l?.ngayDay != null && l.ngayDay < nguong.ngayDayVang && d.lapDay < nguong.vang) out.push({ muc: "warn", ma: "sap_day", bai: d.ten_bai, nd: `${d.ten_bai} › ${d.ten} dự kiến đầy sau ${so(l.ngayDay)} ngày` }); }
     }
     if (d.loai === "nguyen_lieu" && d.ngayCap != null && !daBao.has(plain(d.hang))) {
       daBao.add(plain(d.hang));
-      if (d.ngayCap < nguong.ngayCapDo) out.push({ muc: "bad", ma: "ton_thap", bai: d.ten_bai, nd: `${d.hang}: tồn chỉ đủ cấp ${d.ngayCap.toFixed(1)} ngày` });
-      else if (d.ngayCap < nguong.ngayCapVang) out.push({ muc: "warn", ma: "ton_thap", bai: d.ten_bai, nd: `${d.hang}: tồn đủ cấp ${d.ngayCap.toFixed(1)} ngày (dưới ${nguong.ngayCapVang} ngày)` });
+      if (d.ngayCap < nguong.ngayCapDo) out.push({ muc: "bad", ma: "ton_thap", bai: d.ten_bai, nd: `${d.hang}: tồn chỉ đủ cấp ${so(d.ngayCap)} ngày` });
+      else if (d.ngayCap < nguong.ngayCapVang) out.push({ muc: "warn", ma: "ton_thap", bai: d.ten_bai, nd: `${d.hang}: tồn đủ cấp ${so(d.ngayCap)} ngày (dưới ${nguong.ngayCapVang} ngày)` });
     }
   }
   for (const c of th.cap) if (c.ton < -1e-6) out.push({ muc: "bad", ma: "am", bai: c.ten_bai, nd: `${c.hang} ở ${c.ten_bai} tồn âm (${Math.round(c.ton)} t): kiểm tra sổ` });
@@ -327,8 +327,8 @@ export function canhBaoKho(th, { voyages = [], giaoDich = [], nguong = NGUONG_KH
   for (const g of giaoDich) if (g.loai === "kiem_ke" && +g.so_sach > 0) { const k = khoa(g.ten_bai, g.hang); if (!kk.has(k) || g.ngay > kk.get(k).ngay) kk.set(k, g); }
   for (const g of kk.values()) {
     const tl = Math.abs(+g.so_luong) / +g.so_sach;
-    if (tl >= nguong.kiemKeDo) out.push({ muc: "bad", ma: "kiem_ke", bai: g.ten_bai, nd: `Kiểm kê ${g.hang} ở ${g.ten_bai} lệch ${(tl * 100).toFixed(1)}% so với sổ` });
-    else if (tl >= nguong.kiemKeVang) out.push({ muc: "warn", ma: "kiem_ke", bai: g.ten_bai, nd: `Kiểm kê ${g.hang} ở ${g.ten_bai} lệch ${(tl * 100).toFixed(1)}% so với sổ` });
+    if (tl >= nguong.kiemKeDo) out.push({ muc: "bad", ma: "kiem_ke", bai: g.ten_bai, nd: `Kiểm kê ${g.hang} ở ${g.ten_bai} lệch ${so(tl * 100)}% so với sổ` });
+    else if (tl >= nguong.kiemKeVang) out.push({ muc: "warn", ma: "kiem_ke", bai: g.ten_bai, nd: `Kiểm kê ${g.hang} ở ${g.ten_bai} lệch ${so(tl * 100)}% so với sổ` });
   }
   // Tàu nhập sắp cập (7 ngày) mà bãi nhận thiếu chỗ
   for (const v of voyages) {
@@ -337,7 +337,7 @@ export function canhBaoKho(th, { voyages = [], giaoDich = [], nguong = NGUONG_KH
     if (!(t < now + 7 * DAY)) continue;
     const ds = String(v.bai_hang).split(";").map((x) => x.trim()).filter(Boolean), tr = ds.map((b) => choTrongBai(th, b));
     const trong = tr.some((x) => x == null) ? null : tr.reduce((s, x) => s + x, 0), con = Math.max(0, (+v.khoi_luong || 0) - (+v.da_lam || 0));
-    if (trong != null && con > trong) out.push({ muc: "bad", ma: "tau_thieu_cho", bai: v.bai_hang, voyageId: v.id, nd: `Tàu ${v.ten_tau} còn ${Math.round(con).toLocaleString("vi-VN")} t về ${v.bai_hang}, bãi chỉ còn trống ${Math.round(trong).toLocaleString("vi-VN")} t` });
+    if (trong != null && con > trong) out.push({ muc: "bad", ma: "tau_thieu_cho", bai: v.bai_hang, voyageId: v.id, nd: `Tàu ${v.ten_tau} còn ${so(con)} t về ${v.bai_hang}, bãi chỉ còn trống ${so(trong)} t` });
   }
   return out;
 }

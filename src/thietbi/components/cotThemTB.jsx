@@ -3,6 +3,7 @@ import { Columns3 } from "lucide-react";
 import { useApp as useAppChung } from "@/store";
 import CotThem from "@/components/CotThem";
 import { Field } from "./ui";
+import { docSo } from "@/lib/format";
 
 // Cột tự thêm cho danh sách xe ("xe") và nhân sự ("nhan_su"): định nghĩa ở bảng danh_muc_cot của web chung (SQL 18),
 // giá trị lưu trong cột them của từng dòng (vehicles.them có sẵn; staff.them thêm ở SQL 08).
@@ -26,7 +27,7 @@ export function useCotThem(bang, cotGoc, { can08 = false } = {}) {
         <Field key={c.ma} label={c.ten}>
           {c.loai === "bool" ? <input type="checkbox" style={{ width: 18, height: 18, marginTop: 6 }} checked={!!v} onChange={(e) => dat(e.target.checked)} />
             : <input className={"inp" + (c.loai === "so" ? " num" : "")} inputMode={c.loai === "so" ? "decimal" : undefined} value={v ?? ""}
-              onChange={(e) => dat(c.loai === "so" ? (e.target.value.trim() === "" ? null : Number(e.target.value.replace(",", ".")) || e.target.value) : e.target.value)} />}
+              onChange={(e) => dat(c.loai === "so" ? (e.target.value.trim() === "" ? null : docSo(e.target.value) ?? e.target.value) : e.target.value)} />}
         </Field>);
     }),
     // Giá trị them sạch để lưu (bỏ ô trống)

@@ -78,8 +78,8 @@ insert into public.berths (ma, ten_khac, dwt_max, mon_max, mon_cung, loa_max, lo
   ('B09', '{"9","B9"}', 10000, 7.2, false, 126.5, 'Đá, Xỉ thép, Quặng hồi, Bột đá', 12, null, '#101, #201', 'B07-B08-B09', 306.5, 433, null),
   ('HH2', '{"BHH2"}', 50000, 11.7, true, 242, 'HRC, Xỉ thép, Quặng hồi, Đá, Bột đá, HBI', 13, null, null, 'HH2-HH3', 0, 242, null),
   ('HH3', '{"BHH3"}', 30000, 10.8, true, 190, 'HRC, Xỉ thép, Quặng hồi, Đá, Bột đá, HBI', 14, null, null, 'HH2-HH3', 242, 432, null),
-  ('6CTH', '{"B6CTH"}', 70000, 12.2, false, 250, 'HRC, Phế, Thiết bị, Thép thành phẩm Phôi vuông, Slab, Than cốc', 15, null, null, '6CTH-7CTH', 0, 250, null),
-  ('7CTH', '{"B7CTH"}', 70000, 12.2, false, 250, 'HRC, Phế, Thiết bị, Thép thành phẩm Phôi vuông, Slab, Than cốc', 16, null, null, '6CTH-7CTH', 250, 500, null)
+  ('6CTH', '{"B6CTH"}', 70000, 12.2, false, 250, 'HRC, Phế, Thiết bị, Thép thành phẩm Phôi vuông, Slab, Than cốc', 15, null, null, '6CTH-7CTH', 250, 490, null),
+  ('7CTH', '{"B7CTH"}', 70000, 12.2, false, 250, 'HRC, Phế, Thiết bị, Thép thành phẩm Phôi vuông, Slab, Than cốc', 16, null, null, '6CTH-7CTH', 0, 250, null)
 on conflict (ma) do update set ten_khac = excluded.ten_khac, dwt_max = excluded.dwt_max, mon_max = excluded.mon_max, mon_cung = excluded.mon_cung, loa_max = excluded.loa_max, loai_hang = excluded.loai_hang, thu_tu = excluded.thu_tu, ghi_chu = excluded.ghi_chu, bang_tai = excluded.bang_tai, tuyen = excluded.tuyen, met_tu = excluded.met_tu, met_den = excluded.met_den, goc_vuong = excluded.goc_vuong, updated_at = now();
 delete from public.berths where ma not in ('TL', 'B01', 'B02', 'B03', 'B05', 'B10', 'B04', 'B06', 'B11', 'B07', 'B08', 'B09', 'HH2', 'HH3', '6CTH', '7CTH');
 

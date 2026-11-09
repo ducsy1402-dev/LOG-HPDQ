@@ -125,6 +125,16 @@ export function makeDemoApi() {
         if (r.tan != null) db[bang].push({ thang: r.thang, huong: r.huong, ...(nhom === "van_tai" ? { loai_xe: r.loai, don_vi: r.donVi, loai_hang: r.hang || "" } : { loai_hang: r.loai }), tan: r.tan, ghi_chu: r.ghi_chu || null, updated_at: new Date().toISOString() });
       }
     },
+    // Mục tiêu theo quý / năm (SQL 10), lưu trong bộ nhớ
+    async docMucTieuKy(nhom, ky) { await wait(60); return clone(db.mucTieuKy.filter((x) => x.nhom === nhom && x.thang === ky).map(({ nhom: _n, ...r }) => r)); },
+    async saveMucTieuKy(nhom, rows) {
+      can("quan_ly"); await wait();
+      const kho = (r) => khoaDong(r.huong, r.loai, r.donVi, r.hang);
+      for (const r of rows) {
+        db.mucTieuKy = db.mucTieuKy.filter((x) => !(x.nhom === nhom && x.thang === r.thang && kho(tuDb(nhom, x)) === kho(r)));
+        if (r.tan != null) db.mucTieuKy.push({ nhom, thang: r.thang, huong: r.huong, ...(nhom === "van_tai" ? { loai_xe: r.loai, don_vi: r.donVi, loai_hang: r.hang || "" } : { loai_hang: r.loai }), tan: r.tan, ghi_chu: r.ghi_chu || null });
+      }
+    },
     async saveThucTe(nhom, rows) {
       can("nhap"); await wait();
       const kho = (r) => khoaDong(r.huong, r.loai, r.donVi, r.hang);

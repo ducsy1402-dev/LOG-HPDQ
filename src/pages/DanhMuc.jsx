@@ -3,7 +3,7 @@ import { Truck, Users, Anchor, Package, Warehouse, HardHat, Plus, Save, Upload, 
 import { useApp } from "@/store";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageHead } from "@/components/common";
-import { plain, matchQ, so } from "@/lib/format";
+import { plain, matchQ, so, met } from "@/lib/format";
 import { docSo } from "@/lib/paste";
 import { useThietBi, TBCho, TB } from "@/thietbi/Host";
 import { Card as TCard, Search, Modal, Field, ConfirmButton as TConfirm, Empty as TEmpty, Select as TSelect } from "@/thietbi/components/ui";
@@ -270,7 +270,7 @@ function BangSua({ nguon, icon }) {
   };
   const daCo = (r) => (idKhoa ? r.id != null : goc.some((g) => g[cfg.khoa] === r[cfg.khoa]));
   const hien = goc.filter((r) => matchQ(q, ...cfg.cot.map(([k, , l]) => hienO(r[k], l))));
-  const o = (r, k, loai) => (loai === "bool" ? (r[k] ? "✓" : "") : loai === "so" ? so(r[k], 2) : hienO(r[k], loai));
+  const o = (r, k, loai) => (loai === "bool" ? (r[k] ? "✓" : "") : loai === "so" ? (["met_tu", "met_den", "loa_max"].includes(k) ? met(r[k]) : so(r[k], 2)) : hienO(r[k], loai));
   const [k0, , l0] = cfg.cot[0];
   // Tick chọn nhiều dòng rồi xóa một lần
   const c = useChonNhieu();

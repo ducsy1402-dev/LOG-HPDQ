@@ -35,7 +35,7 @@ describe("Tuyến bến và mốc mét", () => {
     expect(m.get("B03-B05-B10").bens.map((b) => [b.ma, b.tu, b.den])).toEqual([["B03", 0, 200], ["B05", 200, 500], ["B10", 500, 910]]);
     expect(m.get("B04-B06-B11")).toMatchObject({ dau: "vuong_goc", cuoi: "thang", den: 910 });
     expect(m.get("B07-B08-B09")).toMatchObject({ dau: "vuong_goc", cuoi: "thang", den: 433 });
-    expect(m.get("HH2-HH3").den).toBe(432); expect(m.get("6CTH-7CTH").den).toBe(500);
+    expect(m.get("HH2-HH3").den).toBe(432); expect(m.get("6CTH-7CTH").den).toBe(490); expect(m.get("6CTH-7CTH").bens.map((b) => [b.ma, b.tu, b.den])).toEqual([["7CTH", 0, 250], ["6CTH", 250, 490]]);
     expect(["TL", "B01", "B02"].map((x) => T(x).bens.length)).toEqual([1, 1, 1]); // ba bến song song, mỗi bến một tuyến
   });
   it("chỉ các cặp 3/5, 5/10, 4/6, 6/11, 7/8, 8/9, HH2/3, 6/7CTH cập được", () => {
@@ -109,7 +109,7 @@ describe("Cảnh báo theo chuyến, thử xếp, sơ đồ", () => {
   it("tàu 7/8 cùng lúc tàu bến 8 120 m: thiếu 8,5 m", () => {
     const m = choBenTheoChuyen([s, c], BEN, () => [], NOW);
     expect(m.size).toBe(2);
-    expect(nhanCho(m.get(11)[0], s)).toMatch(/S 118 m \(bến B07\/08\).*tàu C ra ngoài bến B08, thiếu 9 m/);
+    expect(nhanCho(m.get(11)[0], s)).toMatch(/S 118 m \(bến B07\/08\).*tàu C ra ngoài bến B08, thiếu 8,5 m/);
     expect(choBenTheoChuyen([s, { ...c, loa: 111 }], BEN, () => [], NOW).size).toBe(0);
   });
   it("tàu dài hơn bến không báo ở đây (đã có cảnh báo LOA); tàu một mình thiếu e đầu tuyến thì báo", () => {
