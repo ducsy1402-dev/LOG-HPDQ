@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useApp } from "@/store";
 import EChart from "@/components/EChart";
 import { so, pct, r2, DAY } from "@/lib/format";
-import { chuoiKho, chuoiPhanLoai, tuoiTon, tonTheoTuoi, hangCanXuLy, dsNhomKho, NHOM_TUOI, nhomTuoi } from "@/lib/bieuDoKho";
+import { chuoiKho, tonTheoTuoi, dsNhomKho, NHOM_TUOI, nhomTuoi } from "@/lib/bieuDoKho";
 import { useKho } from "../kho/useKho";
 import { MAU } from "./khung";
 import { Khung, ChuaCo, ChonDs, BangChiTiet, nghin } from "./khungBD";
@@ -36,7 +36,7 @@ function useGiaoDich(tu, den) {
   }, [api, tu, den, D]);
   return gd;
 }
-function useTonPhanLoai() {
+export function useTonPhanLoai() {
   const { api, D } = useApp();
   const [r, setR] = useState(undefined);
   useEffect(() => {
@@ -49,7 +49,7 @@ function useTonPhanLoai() {
 
 const tenBuoc = (k) => (k.buoc === "thang" ? "Tháng" : k.buoc === "tuan" ? "Tuần từ" : "Ngày");
 
-function KhungKho({ ten, loai, kho, kyInfo, gd, keHoach, now }) {
+export function KhungKho({ ten, loai, kho, kyInfo, gd, keHoach, now, cao }) {
   const [nhom, setNhom] = useState("");
   const nhoms = useMemo(() => dsNhomKho(kho, loai, keHoach), [kho, loai, keHoach]);
   const c = useMemo(() => chuoiKho(kyInfo, { kho, loai, nhom, keHoach, giaoDich: gd, now }), [kyInfo, kho, loai, nhom, keHoach, gd, now]);
@@ -69,7 +69,7 @@ function KhungKho({ ten, loai, kho, kyInfo, gd, keHoach, now }) {
       tong={["Cả kỳ", c.tongNhapKH, c.tongNhapTT, c.tongXuatKH, c.tongXuatTT, null, null, null, null, null, null]} />,
   };
   return (
-    <Khung ten={ten} phu={`${kyInfo.nhan} · kế hoạch – lũy kế nhập / xuất / tồn`} chiTiet={chiTiet} bo={<ChonDs gt={nhom} dat={setNhom} ds={nhoms} tatCa="Mọi loại hàng" />}>
+    <Khung cao={cao} ten={ten} phu={`${kyInfo.nhan} · kế hoạch – lũy kế nhập / xuất / tồn`} chiTiet={chiTiet} bo={<ChonDs gt={nhom} dat={setNhom} ds={nhoms} tatCa="Mọi loại hàng" />}>
       <SoLon v={nghin(c.tonHT)} sub={`t tồn · nhập ${nghin(c.tongNhapTT)}${c.coKeHoach ? ` / KH ${nghin(c.tongNhapKH)}` : ""} · xuất ${nghin(c.tongXuatTT)}${c.coKeHoach ? ` / KH ${nghin(c.tongXuatKH)}` : ""}`} />
       <EChart height={210} option={opt} />
       {!c.coKeHoach && <div className="mt-1 text-[10px] text-muted-foreground">Chưa có kế hoạch nhập / xuất của kỳ này (Kho › Kế hoạch Xuất/Nhập tồn).</div>}
@@ -81,7 +81,7 @@ const MAU_PL = { can_giai_phong: MAU.bad, dau_co: MAU.warn, goi_y: MAU.xam };
 const TEN_PL = { can_giai_phong: "Cần giải phóng", dau_co: "Đầu cơ", goi_y: "Gợi ý: lâu không xuất" };
 
 // Cơ cấu tồn theo thời gian: cột chồng cần giải phóng / đầu cơ (tấn, trục trái) và tỉ trọng của hai loại này trên tổng tồn (trục phải); lưu động ở tooltip
-function KhungCoCau({ p, kyInfo }) {
+export function KhungCoCau({ p, kyInfo, cao }) {
   const h = p.hien, chet = h ? h.cgp + h.dc : null;
   const cot = (name, khoa, color) => ({ name, type: "bar", stack: "ton", barMaxWidth: 16, itemStyle: { color, opacity: 0.85 }, data: p.diem.map((o) => (o[khoa] == null ? null : r2(o[khoa]))) });
   const opt = {
@@ -95,7 +95,7 @@ function KhungCoCau({ p, kyInfo }) {
     ],
   };
   return (
-    <Khung ten="Cơ cấu tồn kho" phu={`${kyInfo.nhan} · cần giải phóng + đầu cơ`} chiTiet={{
+    <Khung cao={cao} ten="Cơ cấu tồn kho" phu={`${kyInfo.nhan} · cần giải phóng + đầu cơ`} chiTiet={{
       node: <BangChiTiet cot={[[tenBuoc(kyInfo), ""], ["Cần giải phóng", "t"], ["Đầu cơ", "t"], ["Lưu động", "t"], ["Tổng tồn", "t"], ["% giải phóng + đầu cơ", "%"]]}
         dong={p.diem.filter((o) => o.tong != null).map((o) => [o.nhan, o.cgp, o.dc, o.ld, o.tong, o.tong ? (o.cgp + o.dc) / o.tong : null])} />,
     }}>
@@ -109,7 +109,7 @@ function KhungCoCau({ p, kyInfo }) {
 
 // 2. Tuổi tồn: cột ngang chồng theo nhóm tuổi cho kho thành phẩm và kho nguyên liệu
 const MAU_TUOI = [MAU.ok, MAU.info, MAU.warn, MAU.bad];
-function KhungTuoi({ tuoi }) {
+export function KhungTuoi({ tuoi, cao }) {
   const kq = tonTheoTuoi(tuoi), tong = tuoi.reduce((s, r) => s + r.ton, 0);
   const lau = tuoi.filter((r) => r.tuoi > 60).reduce((s, r) => s + r.ton, 0);
   const loai = ["thanh_pham", "nguyen_lieu"], tongLoai = loai.map((l) => kq[l].reduce((a, b) => a + b, 0));
@@ -120,7 +120,7 @@ function KhungTuoi({ tuoi }) {
     series: NHOM_TUOI.map(([, , ten], i) => ({ name: ten, type: "bar", stack: "tuoi", barMaxWidth: 26, itemStyle: { color: MAU_TUOI[i] }, data: loai.map((l, j) => (tongLoai[j] ? kq[l][i] / tongLoai[j] : 0)) })),
   };
   return (
-    <Khung ten="Tuổi tồn" phu="tỉ lệ theo nhóm ngày · lô theo ngày nhập, còn lại theo lần xuất gần nhất" chiTiet={{
+    <Khung cao={cao} ten="Tuổi tồn" phu="tỉ lệ theo nhóm ngày · lô theo ngày nhập, còn lại theo lần xuất gần nhất" chiTiet={{
       description: "Từng dòng tồn, cũ nhất ở trên. Lô thành phẩm tính từ ngày nhập lô; hàng khác tính từ lần xuất gần nhất của bãi + hàng.",
       node: <BangChiTiet cot={[["Hàng", ""], ["Bãi", ""], ["Lô", ""], ["Kho", ""], ["Tồn", "t"], ["Tuổi (ngày)", "n"], ["Nhóm tuổi", ""]]}
         dong={[...tuoi].sort((a, b) => b.tuoi - a.tuoi).map((r) => [r.hang, r.ten_bai, r.so_lo, r.loai === "thanh_pham" ? "Thành phẩm" : "Nguyên liệu", r.ton, r.tuoi, NHOM_TUOI[nhomTuoi(r.tuoi)][2]])} />,
@@ -128,56 +128,5 @@ function KhungTuoi({ tuoi }) {
       <SoLon v={nghin(lau)} tone={tong > 0 && lau / tong >= 0.2 ? "warn" : undefined} sub={`t tồn trên 60 ngày${tong > 0 ? ` · ${pct(lau / tong)} tổng tồn` : ""}`} />
       <EChart height={200} option={opt} />
     </Khung>
-  );
-}
-
-// 3. Top 10 hàng cần xử lý: đã khai báo cần giải phóng / đầu cơ và hàng gợi ý (trên 60 ngày chưa phân loại)
-function KhungTop({ ds, tatCa }) {
-  const opt = {
-    grid: { left: 4, right: 58, top: 4, bottom: 0, containLabel: true },
-    tooltip: { trigger: "item", formatter: (x) => { const r = ds[x.dataIndex]; return `${r.hang} · ${r.ten_bai}<br/>${TEN_PL[r.kieu]}: <b>${so(r.tan)} t</b><br/>Tuổi tồn ${so(r.tuoi)} ngày`; } },
-    xAxis: truc, yAxis: { type: "category", inverse: true, data: ds.map((r) => `${r.hang} · ${r.ten_bai}`), axisLabel: { fontSize: 10, width: 130, overflow: "truncate" } },
-    series: [{ type: "bar", barMaxWidth: 12, data: ds.map((r) => ({ value: r2(r.tan), itemStyle: { color: MAU_PL[r.kieu], opacity: r.kieu === "goi_y" ? 0.6 : 1 } })),
-      label: { show: true, position: "right", fontSize: 10, formatter: (x) => `${so(ds[x.dataIndex].tuoi)} ngày` } }],
-  };
-  return (
-    <Khung ten="Hàng cần xử lý" phu="top 10 theo số tấn" chiTiet={{
-      description: "Toàn bộ hàng đã khai báo cần giải phóng / đầu cơ đang hiệu lực, và hàng tồn trên 60 ngày chưa phân loại (gợi ý).",
-      node: <BangChiTiet cot={[["Hàng", ""], ["Bãi", ""], ["Loại", ""], ["Số tấn", "t"], ["Tuổi tồn (ngày)", "n"], ["Khai báo từ", ""]]}
-        dong={tatCa.map((r) => [r.hang, r.ten_bai, TEN_PL[r.kieu], r.tan, r.tuoi, r.tu ? r.tu.split("-").reverse().join("/") : ""])} />,
-    }}>
-      <div className="mb-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-muted-foreground">
-        {Object.entries(TEN_PL).map(([k, t]) => <span key={k} className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-sm" style={{ background: MAU_PL[k], opacity: k === "goi_y" ? 0.6 : 1 }} />{t}</span>)}
-      </div>
-      {ds.length ? <EChart height={Math.max(180, 20 + ds.length * 26)} option={opt} /> : <ChuaCo>Không có hàng tồn lâu hay đã phân loại cần xử lý.</ChuaCo>}
-    </Khung>
-  );
-}
-
-export default function KhoiKho({ kyInfo }) {
-  const { D } = useApp();
-  const kho = useKho();
-  const gd = useGiaoDich(kyInfo.ngays[0], kyInfo.homNay);
-  const gd120 = useGiaoDich(new Date(D.now - 120 * DAY).toISOString().slice(0, 10), kyInfo.homNay); // tuổi tồn: lần xuất gần nhất trong 120 ngày
-  const khaiBao = useTonPhanLoai();
-  const keHoach = useMemo(() => D.khoKeHoach || [], [D.khoKeHoach]);
-  const pl = useMemo(() => (kho && gd ? chuoiPhanLoai(kyInfo, { kho, declarations: khaiBao || [], giaoDich: gd, now: D.now }) : null), [kho, gd, kyInfo, khaiBao, D.now]);
-  const tuoi = useMemo(() => (kho && gd120 ? tuoiTon({ kho, khoTon: D.khoTon || [], giaoDich: gd120, now: D.now }) : null), [kho, gd120, D.khoTon, D.now]);
-  const canXuLy = useMemo(() => (tuoi ? hangCanXuLy({ tuoi, declarations: khaiBao || [], homNay: kyInfo.homNay, top: Infinity }) : []), [tuoi, khaiBao, kyInfo.homNay]);
-  if (!kho) return <ChuaCo>Phần kho bãi chưa sẵn sàng.</ChuaCo>;
-  if (!gd) return <ChuaCo>Đang tải số liệu kho…</ChuaCo>;
-  return (
-    <div className="grid gap-2.5">
-      <div className="grid gap-2.5 lg:grid-cols-2">
-        <KhungKho ten="Kho thành phẩm" loai="thanh_pham" kho={kho} kyInfo={kyInfo} gd={gd} keHoach={keHoach} now={D.now} />
-        <KhungKho ten="Kho nguyên liệu" loai="nguyen_lieu" kho={kho} kyInfo={kyInfo} gd={gd} keHoach={keHoach} now={D.now} />
-      </div>
-      <div className="grid gap-2.5 lg:grid-cols-3">
-        {khaiBao === null ? <Khung ten="Cơ cấu tồn kho"><ChuaCo>Chưa có bảng phân loại tồn (chạy sql/07).</ChuaCo></Khung>
-          : <KhungCoCau p={pl} kyInfo={kyInfo} />}
-        {tuoi ? <KhungTuoi tuoi={tuoi} /> : <Khung ten="Tuổi tồn"><ChuaCo>Đang tải…</ChuaCo></Khung>}
-        <KhungTop ds={canXuLy.slice(0, 10)} tatCa={canXuLy} />
-      </div>
-    </div>
   );
 }

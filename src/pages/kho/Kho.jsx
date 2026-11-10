@@ -24,7 +24,7 @@ const TEN_LOAI = { thanh_pham: "Kho thành phẩm", nguyen_lieu: "Kho nguyên li
 const TEN_GD = Object.fromEntries(LOAI_GD);
 
 // Chi tiết một bãi lớn: từng bãi nhỏ với kiểu, hàng đang chứa, tồn / sức chứa, lưu lượng, dự kiến đầy, lưu bãi, thông qua
-function ChiTietBai({ b, kho, onClose }) {
+export function ChiTietBai({ b, kho, onClose }) {
   const l = kho.luuLuong.bai.get(b.ten_bai);
   return (
     <Dialog onOpenChange={(o) => !o && onClose()} className="max-w-6xl" title={b.ten_bai}

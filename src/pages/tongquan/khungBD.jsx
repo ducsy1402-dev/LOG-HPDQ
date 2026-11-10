@@ -10,12 +10,13 @@ import { cn } from "@/lib/utils";
 // và nút Chi tiết: chiTiet = { title, description, node } mở hộp dữ liệu chi tiết của chính biểu đồ; onChiTiet = tự mở hộp riêng.
 export const nghin = (x) => (x == null ? "—" : Math.abs(x) >= 1000 ? soGon(x / 1000) + "k" : soGon(x));
 
-export function Khung({ ten, phu, bo, chiTiet, onChiTiet, className, children }) {
+// cao (px): khung CỐ ĐỊNH chiều cao, nội dung dài hơn thì cuộn trong khung (không đổi kích thước khung); phóng to thì bỏ giới hạn
+export function Khung({ ten, phu, bo, chiTiet, onChiTiet, className, cao, children }) {
   const [to, doiTo] = useToanManHinh();
   const [mo, setMo] = useState(false);
   const coCT = chiTiet || onChiTiet;
   return (
-    <section className={cn("flex min-w-0 flex-col rounded-md border border-border/70 bg-card/70 p-2.5", to && "fixed inset-0 z-40 overflow-auto rounded-none border-0 bg-card p-4", className)}>
+    <section style={!to && cao ? { height: cao } : undefined} className={cn("flex min-w-0 flex-col rounded-md border border-border/70 bg-card/70 p-2.5", to && "fixed inset-0 z-40 overflow-auto rounded-none border-0 bg-card p-4", className)}>
       <div className="mb-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
         <span className="text-[10px] text-primary">◆</span>
         <h3 className={cn("truncate font-semibold uppercase tracking-wider text-muted-foreground", to ? "text-sm" : "text-[11px]")}>{ten}</h3>
@@ -26,7 +27,7 @@ export function Khung({ ten, phu, bo, chiTiet, onChiTiet, className, children })
           <NutToanManHinh on={to} onClick={doiTo} className="h-6 w-6" />
         </div>
       </div>
-      <PhongToCtx.Provider value={to}>{children}</PhongToCtx.Provider>
+      <PhongToCtx.Provider value={to}>{cao && !to ? <div className="min-h-0 flex-1 overflow-auto pr-1 [scrollbar-width:thin]">{children}</div> : children}</PhongToCtx.Provider>
       {mo && chiTiet && (
         <Dialog onOpenChange={(o) => !o && setMo(false)} className="max-w-4xl" title={chiTiet.title || ten} description={chiTiet.description || phu}>
           {chiTiet.node}

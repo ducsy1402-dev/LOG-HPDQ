@@ -36,7 +36,7 @@ export default function EChart({ option, height = 260, onClick }) {
       grid: { left: 14, right: 14, top: 34, bottom: 4, containLabel: true },
       ...option,
       legend: { top: 0, ...option.legend, textStyle: { color: chu, ...option.legend?.textStyle } }, // chữ chú thích luôn sáng theo giao diện, không mất màu khi biểu đồ chỉ đặt cỡ chữ
-      tooltip: { trigger: "axis", backgroundColor: dark ? "#111c31" : "#fff", borderColor: luoi, textStyle: { color: chu }, valueFormatter: (v) => (typeof v === "number" ? so(v) : v), ...option.tooltip },
+      tooltip: { trigger: "axis", backgroundColor: dark ? "#111c31" : "#fff", borderColor: luoi, textStyle: { color: chu }, valueFormatter: (v) => (typeof v === "number" ? so(v) : v), appendToBody: true, ...option.tooltip }, // appendToBody: hộp chú thích nổi trên cùng, không bị khung cuộn / khung cố định cắt hay đè
       xAxis: truc(option.xAxis),
       yAxis: truc(option.yAxis),
     }, true);

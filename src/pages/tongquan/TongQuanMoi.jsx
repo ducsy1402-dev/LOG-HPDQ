@@ -15,8 +15,9 @@ import { tenBen } from "../cang/BangTauBen";
 import { useKho } from "../kho/useKho";
 import { MAU } from "./khung";
 import { Khung, ChuaCo, nghin } from "./khungBD";
-import KhoiSanLuong, { useSanLuongKy, khoaKyRieng } from "./KhoiSanLuong";
-import KhoiKho from "./KhoiKho";
+import { useSanLuongKy, khoaKyRieng } from "./KhoiSanLuong";
+import BieuDoSanLuongTQ, { CAO } from "./BieuDoSanLuongTQ";
+import BieuDoKhoTQ from "./BieuDoKhoTQ";
 import { IcTau, IcCau, IcKho, IcXe, IcSanLuong, SoDoBai, BangDoiXe } from "./hinhVe";
 import { TheChiSo, TheSucKhoe, ThanhKy, MangTQ, DaiVanDe } from "./TheChiSo";
 
@@ -54,42 +55,6 @@ function useGiaoDich(tu, den) {
 }
 
 // ---------- Biểu đồ ----------
-function optSanLuong(c, cT, huongs, nhomSL, td) {
-  const n = c.diem.length, qua = c.diem.filter((o) => o.lkTt != null).length, cuoi = qua ? c.diem[qua - 1].lkTt : 0;
-  // Dự báo: giữ nhịp trung bình từ đầu kỳ đến nay cho các điểm còn lại
-  const duBao = c.diem.map((o, i) => (qua > 0 && qua < n && i >= qua - 1 ? r2((cuoi / qua) * (i + 1)) : null));
-  const cot = huongs.map((h) => ({ name: NHOM[nhomSL].huong.find(([k]) => k === h)?.[1] || h, type: "bar", stack: "tt", barMaxWidth: 20, itemStyle: { color: MAU_HUONG[h] || MAU.primary, opacity: 0.85 }, data: c.diem.map((o) => r2(o.theo.get(h) ?? 0)) }));
-  const duong = (name, data, color, extra = {}) => ({ name, type: "line", yAxisIndex: 1, showSymbol: false, connectNulls: false, data, itemStyle: { color }, lineStyle: { width: 2, color, ...extra.line }, ...extra.s });
-  return {
-    ...base, grid: { ...base.grid, right: 6 }, tooltip: { valueFormatter: (v) => (v == null ? "—" : `${so(v)} t`) },
-    xAxis: { type: "category", data: c.diem.map((o) => o.nhan), axisLabel: { fontSize: 10, hideOverlap: true } }, yAxis: [truc, { ...truc, splitLine: { show: false } }],
-    series: [
-      ...cot,
-      { name: "Mục tiêu từng điểm", type: "line", showSymbol: false, data: c.diem.map((o) => r2(o.mt)), itemStyle: { color: MAU.xam }, lineStyle: { width: 1.5, type: "dotted", color: MAU.xam } },
-      duong("Lũy kế thực tế", c.diem.map((o) => (o.lkTt == null ? null : r2(o.lkTt))), MAU.primary, { line: { width: 3 }, s: { areaStyle: { color: MAU.primary, opacity: 0.08 } } }),
-      duong("Lũy kế mục tiêu", c.diem.map((o) => r2(o.lkMt)), MAU.warn, { line: { type: "dashed" } }),
-      ...(cT ? [duong("Lũy kế kỳ trước", c.diem.map((_, i) => (cT.diem[i]?.lkTt == null ? null : r2(cT.diem[i].lkTt))), "#94a3b8", { line: { type: "dotted", width: 1.5 } })] : []),
-      ...(td && td.con > 0 && td.qua > 0 ? [duong("Dự báo lũy kế cuối kỳ (theo nhịp đến nay)", duBao, "#34d399", { line: { type: "dashed", width: 2.5 } })] : []),
-    ],
-  };
-}
-const optMucDat = (ds) => ({
-  grid: { left: 4, right: 46, top: 6, bottom: 0, containLabel: true }, tooltip: { axisPointer: { type: "shadow" }, formatter: (p) => { const d = ds[p.dataIndex]; return `${d.ten}<br/>Thực hiện <b>${so(d.tt)} t</b> / mục tiêu ${so(d.mt)} t<br/>Đạt <b>${pct(d.dat, 1)}</b>`; } },
-  xAxis: { type: "value", max: (v) => Math.max(1.1, v.max), axisLabel: { fontSize: 10, formatter: (v) => pct(v) } },
-  yAxis: { type: "category", inverse: true, data: ds.map((d) => d.ten), axisLabel: { fontSize: 10, width: 110, overflow: "truncate" } },
-  series: [{ type: "bar", barMaxWidth: 14, data: ds.map((d) => ({ value: r2(d.dat), itemStyle: { color: MAU_T[toneDat(d.dat)] || MAU.xam } })), label: { show: true, position: "right", fontSize: 10, formatter: (p) => pct(ds[p.dataIndex].dat) },
-    markLine: { symbol: "none", silent: true, lineStyle: { type: "dashed", color: MAU.ok }, label: { fontSize: 9, formatter: "100%" }, data: [{ xAxis: 1 }] } }],
-});
-const mucDatTheo = (m, ten) => [...m].map(([k, v]) => ({ ...v, ten: ten(k), dat: v.mt > 0 ? v.tt / v.mt : null })).filter((d) => d.dat != null).sort((a, b) => a.dat - b.dat).slice(0, 12);
-const optCoCau = (m, ten) => {
-  const ds = [...m].map(([k, v]) => ({ name: ten(k), value: r2(v.tt) })).filter((d) => d.value > 0).sort((a, b) => b.value - a.value);
-  const top = ds.slice(0, 7), khac = ds.slice(7).reduce((s, d) => s + d.value, 0);
-  return {
-    tooltip: { trigger: "item", valueFormatter: (v) => `${so(v)} t` }, legend: { type: "scroll", bottom: 0, itemWidth: 10, itemHeight: 8, textStyle: { fontSize: 10 } },
-    series: [{ type: "pie", radius: ["46%", "72%"], center: ["50%", "44%"], avoidLabelOverlap: true, label: { show: false }, itemStyle: { borderRadius: 4, borderColor: "transparent", borderWidth: 2 }, data: [...top, ...(khac > 0 ? [{ name: "Khác", value: r2(khac) }] : [])] }],
-  };
-};
-
 // ---------- Trang ----------
 export default function TongQuanMoi({ onMo, go, tongCanhBao }) {
   const { D, quyen, setVoyageMo } = useApp();
@@ -105,20 +70,12 @@ export default function TongQuanMoi({ onMo, go, tongCanhBao }) {
   const doiKy = (k) => setKyLoai(k);
 
   // ===== Sản lượng =====
-  const kk = khoaKyRieng(kyInfo), kkT = khoaKyRieng(kyT);
+  const kk = khoaKyRieng(kyInfo);
   const cang = useSanLuongKy("cang", kyInfo.thangs, kk, !coCang), vt = useSanLuongKy("van_tai", kyInfo.thangs, kk, !coCang);
-  const cangT = useSanLuongKy("cang", kyT.thangs, kkT, !coCang), vtT = useSanLuongKy("van_tai", kyT.thangs, kkT, !coCang);
   const cC = useMemo(() => (cang ? chuoiKy(kyInfo, cang, "cang", { chia: (x) => x.huong }) : null), [kyInfo, cang]);
   const cV = useMemo(() => (vt ? chuoiKy(kyInfo, vt, "van_tai", { chia: (x) => x.huong }) : null), [kyInfo, vt]);
-  const cCT = useMemo(() => (cangT ? chuoiKy(kyT, cangT, "cang", { chia: (x) => x.huong }) : null), [kyT, cangT]);
-  const cVT = useMemo(() => (vtT ? chuoiKy(kyT, vtT, "van_tai", { chia: (x) => x.huong }) : null), [kyT, vtT]);
   const tdC = cC ? tienDoSanLuong(cC, kyInfo, ttKhepSo(cang, kyInfo)) : null, tdV = cV ? tienDoSanLuong(cV, kyInfo, ttKhepSo(vt, kyInfo)) : null;
-  const dC = cangT && tdC && qua > 0 ? doiSoVoi(tdC.ttq, ttNgayDau(cangT, kyT, qua)) : undefined;
-  const dV = vtT && tdV && qua > 0 ? doiSoVoi(tdV.ttq, ttNgayDau(vtT, kyT, qua)) : undefined;
-  const coSL = !!(cC && tdC);
-  const mCang = useMemo(() => (cang ? tongTheoNhom(kyInfo, cang, "cang", (x) => x.loai) : new Map()), [kyInfo, cang]);
-  const mDV = useMemo(() => (vt ? tongTheoNhom(kyInfo, vt, "van_tai", (x) => x.loai) : new Map()), [kyInfo, vt]);
-  const huongC = cC ? NHOM.cang.huong.map(([k]) => k).filter((h) => cC.nhomChia.includes(h)) : [], huongV = cV ? NHOM.van_tai.huong.map(([k]) => k).filter((h) => cV.nhomChia.includes(h)) : [];
+  const coSL = !!(cC && cV && tdC && tdV);
 
   // ===== Cầu bến =====
   const cb = useMemo(() => (coCang ? chiSoCauBen({ voyages: D.voyages, berths: D.berths, stopsOf: D.stopsOf, tu: kyInfo.tu, den: kyInfo.den, now: D.now }) : null), [coCang, D.voyages, D.berths, D.stopsOf, kyInfo, D.now]);
@@ -158,7 +115,6 @@ export default function TongQuanMoi({ onMo, go, tongCanhBao }) {
       ngayTon: xuatNgay > 0 ? ton / xuatNgay : null, vong: ton > 0 ? dauKy.xuat / ton : null, dauKy, tp: chuoi("thanh_pham"), nl: chuoi("nguyen_lieu"),
     };
   }, [kho, gd, kyInfo, kyT, qua, D.khoTon, D.giaoDich, D.now]);
-  const baiSap = useMemo(() => (kho ? [...kho.bai].sort((a, b) => (b.lapDay ?? -1) - (a.lapDay ?? -1)) : []), [kho]);
 
   // ===== Thiết bị =====
   const tbm = useMemo(() => {
@@ -237,44 +193,11 @@ export default function TongQuanMoi({ onMo, go, tongCanhBao }) {
         <DaiVanDe ds={vanDe} onMo={moVanDe} tongCanhBao={tongCanhBao} onXemCanhBao={() => onMo("canh-bao")} />
       </div>
 
-      {/* ===== SẢN LƯỢNG ===== */}
+      {/* ===== SẢN LƯỢNG: 6 biểu đồ, khung cố định có thanh cuộn ===== */}
       {coCang && (
-        <MangTQ id="mang-sl" icon={IcSanLuong} ten="Sản lượng" mota={`${kyInfo.nhan} · cảng và vận tải so với mục tiêu`} loai="sanluong" tone={toneSL} thu={thu["mang-sl"]} onThu={() => doiThu("mang-sl")}
-          kpi={!coSL ? <ChuaCo>{cang === null || vt === null ? "Chưa có bảng sản lượng thực tế (chạy sql/06)." : "Đang tải sản lượng…"}</ChuaCo> : <>
-            <TheChiSo icon={Anchor} ten="Sản lượng cảng" giaTri={nghin(tdC.tt)} donVi="t" tone={tdC.tone} doi={dC} spark={cC.diem.filter((o) => o.dau <= homNay).map((o) => o.tt)}
-              phu={tdC.mt ? `Mục tiêu ${nghin(tdC.mt)} t · đạt ${pct(tdC.dat, 1)}` : "Chưa đặt mục tiêu"} />
-            <TheChiSo icon={Truck} ten="Sản lượng vận tải" giaTri={nghin(tdV.tt)} donVi="t" tone={tdV.tone} doi={dV} spark={cV.diem.filter((o) => o.dau <= homNay).map((o) => o.tt)}
-              phu={tdV.mt ? `Mục tiêu ${nghin(tdV.mt)} t · đạt ${pct(tdV.dat, 1)}` : "Chưa đặt mục tiêu"} />
-            <TheChiSo icon={IcGauge} ten="Tiến độ cảng so kế hoạch" giaTri={tdC.mt ? `${tdC.lech >= 0 ? "+" : "−"}${nghin(Math.abs(tdC.lech))}` : "—"} donVi="t" tone={tdC.mt ? (tdC.tienDo >= 1 ? "ok" : tdC.tienDo >= 0.9 ? "warn" : "bad") : null}
-              phu={tdC.mt ? `Kế hoạch đến nay ${nghin(tdC.mtDen)} t · ${tdC.tienDo != null ? pct(tdC.tienDo, 1) : "—"}` : "Cần mục tiêu để so"} />
-            <TheChiSo icon={ClipboardList} ten="Cần đạt mỗi ngày (cảng)" giaTri={tdC.canMoiNgay != null ? nghin(tdC.canMoiNgay) : "—"} donVi="t/ngày"
-              tone={tdC.canMoiNgay != null && tdC.nangSuat ? (tdC.canMoiNgay <= tdC.nangSuat ? "ok" : tdC.canMoiNgay <= tdC.nangSuat * 1.15 ? "warn" : "bad") : null}
-              phu={tdC.nangSuat != null ? `Đang làm ${nghin(tdC.nangSuat)} t/ngày${tdC.con ? ` · còn ${tdC.con} ngày` : ""}` : "Kỳ chưa bắt đầu"} />
-            <TheChiSo icon={IcSanLuong} ten="Dự báo cuối kỳ" giaTri={tdC.duBao != null ? nghin(tdC.duBao) : "—"} donVi="t cảng" tone={tdC.mt && tdC.duBaoDat != null ? toneDat(tdC.duBaoDat) : null}
-              phu={tdC.duBaoDat != null ? `${pct(tdC.duBaoDat, 1)} mục tiêu · vận tải ${tdV.duBao != null ? nghin(tdV.duBao) + " t" : "—"}${tdV.duBaoDat != null ? ` (${pct(tdV.duBaoDat)})` : ""}` : "Chưa đủ số liệu"} />
-          </>}>
-          {coSL && <>
-            <div className="grid gap-2.5 xl:grid-cols-2">
-              <Khung ten="Sản lượng cảng" phu={`${kyInfo.nhan} · cột thực tế, lũy kế, dự báo, kỳ trước`} onChiTiet={() => onMo("khoi-luong")}>
-                <EChart height={250} option={optSanLuong(cC, cCT, huongC, "cang", tdC)} />
-              </Khung>
-              <Khung ten="Sản lượng vận tải" phu={`${kyInfo.nhan} · cột thực tế, lũy kế, dự báo, kỳ trước`}>
-                <EChart height={250} option={optSanLuong(cV, cVT, huongV, "van_tai", tdV)} />
-              </Khung>
-            </div>
-            <div className="grid gap-2.5 lg:grid-cols-3">
-              <Khung ten="Cơ cấu sản lượng cảng" phu="theo loại hàng">
-                {mCang.size ? <EChart height={230} option={optCoCau(mCang, (k) => k)} /> : <ChuaCo>Chưa có số liệu.</ChuaCo>}
-              </Khung>
-              <Khung ten="Mức đạt theo loại hàng" phu="thấp nhất ở trên · cảng">
-                {mucDatTheo(mCang, (k) => k).length ? <EChart height={Math.max(200, 40 + mucDatTheo(mCang, (k) => k).length * 28)} option={optMucDat(mucDatTheo(mCang, (k) => k))} /> : <ChuaCo>Chưa đặt mục tiêu theo loại hàng.</ChuaCo>}
-              </Khung>
-              <Khung ten="Mức đạt theo loại xe" phu="thấp nhất ở trên · vận tải">
-                {mucDatTheo(mDV, (k) => k).length ? <EChart height={Math.max(200, 40 + mucDatTheo(mDV, (k) => k).length * 28)} option={optMucDat(mucDatTheo(mDV, (k) => k))} /> : <ChuaCo>Chưa đặt mục tiêu vận tải.</ChuaCo>}
-              </Khung>
-            </div>
-            <ChiTiet id="sl" ten="Phân tích chi tiết sản lượng (theo loại hàng, đơn vị thực hiện, nhà thầu)"><KhoiSanLuong kyInfo={kyInfo} du={{ cang, vt }} /></ChiTiet>
-          </>}
+        <MangTQ id="mang-sl" icon={IcSanLuong} ten="Sản lượng" mota={`${kyInfo.nhan} · cơ cấu và lũy kế so với kế hoạch`} loai="sanluong" tone={toneSL} thu={thu["mang-sl"]} onThu={() => doiThu("mang-sl")}>
+          {coSL ? <BieuDoSanLuongTQ kyInfo={kyInfo} cang={cang} vt={vt} tdC={tdC} tdV={tdV} />
+            : <ChuaCo>{cang === null || vt === null ? "Chưa có bảng sản lượng thực tế (chạy sql/06)." : "Đang tải sản lượng…"}</ChuaCo>}
         </MangTQ>)}
 
       {/* ===== CẦU BẾN ===== */}
@@ -306,7 +229,7 @@ export default function TongQuanMoi({ onMo, go, tongCanhBao }) {
             <div ref={khungLich} className="min-w-0"><GanttMet voyages={tauLich} tu={tuLich} soNgay={soNgayLich} pxNgay={pxNgay} che={cheLich} gon maxH="520px" /></div>
           </Khung>
           <div className="grid gap-2.5 lg:grid-cols-2">
-            <Khung ten="Chiếm bến từng bến" phu="cao nhất ở trên · vạch vàng 85%">
+            <Khung cao={CAO} ten="Chiếm bến từng bến" phu="cao nhất ở trên · vạch vàng 85%">
               <EChart height={Math.max(220, 40 + cb.theoBen.length * 20)} option={{
                 grid: { left: 4, right: 40, top: 4, bottom: 0, containLabel: true }, tooltip: { axisPointer: { type: "shadow" }, valueFormatter: (v) => pct(v, 1) },
                 xAxis: { ...trucPct, max: (v) => Math.max(1, v.max) }, yAxis: { type: "category", inverse: true, data: [...cb.theoBen].sort((a, b) => (b.bor ?? b.borCaKy) - (a.bor ?? a.borCaKy)).map((b) => tenBen(b.ma)), axisLabel: { fontSize: 10 } },
@@ -314,7 +237,7 @@ export default function TongQuanMoi({ onMo, go, tongCanhBao }) {
                   label: { show: true, position: "right", fontSize: 10, formatter: (p) => pct(p.value) }, markLine: { symbol: "none", silent: true, lineStyle: { type: "dashed", color: MAU.warn }, label: { show: false }, data: [{ xAxis: NGUONG.borVang }] } }],
               }} />
             </Khung>
-            <Khung ten="Tàu ở bến và tàu chờ theo ngày" phu={kyInfo.nhan}>
+            <Khung cao={CAO} ten="Tàu ở bến và tàu chờ theo ngày" phu={kyInfo.nhan}>
               <EChart height={Math.max(220, 40 + cb.theoBen.length * 20)} option={{
                 ...base, tooltip: { trigger: "axis", valueFormatter: (v) => `${v} tàu` }, xAxis: { type: "category", data: tauNgay.map((x) => x.ngay.slice(8) + "/" + x.ngay.slice(5, 7)), axisLabel: { fontSize: 10, hideOverlap: true } }, yAxis: { type: "value", minInterval: 1, axisLabel: { fontSize: 10 } },
                 series: [{ name: "Tàu ở bến", type: "bar", stack: "t", barMaxWidth: 16, itemStyle: { color: MAU.ok, opacity: 0.85 }, data: tauNgay.map((x) => x.oBen) }, { name: "Tàu chờ bến", type: "bar", stack: "t", barMaxWidth: 16, itemStyle: { color: MAU.bad, opacity: 0.85 }, data: tauNgay.map((x) => x.cho) }],
@@ -323,44 +246,10 @@ export default function TongQuanMoi({ onMo, go, tongCanhBao }) {
           </div>
         </MangTQ>)}
 
-      {/* ===== KHO BÃI ===== */}
+      {/* ===== KHO BÃI: biểu đồ, khung cố định có thanh cuộn ===== */}
       {coKho && (
-        <MangTQ id="mang-kho" icon={IcKho} ten="Kho bãi" mota={`${kyInfo.nhan} · tồn, lấp đầy, nhập xuất, tồn lâu`} loai="kho" tone={toneKho} thu={thu["mang-kho"]} onThu={() => doiThu("mang-kho")}
-          kpi={!khoK ? <ChuaCo>Đang tải số liệu kho…</ChuaCo> : <>
-            <TheChiSo icon={IcKho} ten="Lấp đầy kho" giaTri={khoK.lap != null ? pct(khoK.lap, 1) : "—"} tone={tone(khoK.lap, NGUONG.khoVang, NGUONG.khoDo, false)} spark={khoK.tp.ds.length ? khoK.tp.ds.map(([, v]) => v) : undefined}
-              phu={`Tồn ${nghin(khoK.ton)} t / sức chứa ${nghin(khoK.suc)} t${khoK.baiVuot ? ` · ${khoK.baiVuot} bãi vượt` : ""}`} />
-            <TheChiSo icon={Package} ten="Nhập trong kỳ" giaTri={nghin(khoK.nhap)} donVi="t" doi={qua > 0 && khoK.truoc.nhap > 0 ? doiSoVoi(khoK.dauKy.nhap, khoK.truoc.nhap) : undefined} phu={`${qua} ngày đầu kỳ trước: ${nghin(khoK.truoc.nhap)} t (kỳ này ${nghin(khoK.dauKy.nhap)} t)`} />
-            <TheChiSo icon={Truck} ten="Xuất trong kỳ" giaTri={nghin(khoK.xuat)} donVi="t" doi={qua > 0 && khoK.truoc.xuat > 0 ? doiSoVoi(khoK.dauKy.xuat, khoK.truoc.xuat) : undefined} phu={`${qua} ngày đầu kỳ trước: ${nghin(khoK.truoc.xuat)} t (kỳ này ${nghin(khoK.dauKy.xuat)} t)`} />
-            <TheChiSo icon={Hourglass} ten="Ngày tồn kho" giaTri={khoK.ngayTon != null ? so(khoK.ngayTon, 0) : "—"} donVi="ngày" tone={khoK.ngayTon != null ? (khoK.ngayTon > 60 ? "bad" : khoK.ngayTon > 30 ? "warn" : "ok") : null}
-              phu={khoK.vong != null ? `Vòng quay tồn ${so(khoK.vong)} lần trong kỳ` : "Chưa có xuất trong kỳ"} />
-            <TheChiSo icon={Boxes} ten={`Tồn trên ${NGUONG.tonLauNgay} ngày`} giaTri={nghin(khoK.tonLau)} donVi="t" tone={khoK.ton > 0 && khoK.tonLau / khoK.ton >= 0.2 ? "bad" : khoK.tonLau > 0 ? "warn" : "ok"}
-              phu={khoK.ton > 0 ? `${pct(khoK.tonLau / khoK.ton, 1)} tổng tồn` : "—"} />
-            <TheChiSo icon={ClipboardList} ten="Nguyên liệu sắp hết" giaTri={`${khoK.ngayCapThap}`} donVi="nhóm hàng" tone={khoK.ngayCapDo ? "bad" : khoK.ngayCapThap ? "warn" : "ok"}
-              phu={`Tồn đủ cấp dưới ${NGUONG.ngayCapVang} ngày${khoK.ngayCapDo ? ` · ${khoK.ngayCapDo} dưới ${NGUONG.ngayCapDo} ngày` : ""}`} />
-          </>}>
-          {khoK && <>
-            <KhoiKho kyInfo={kyInfo} />
-            <div className="grid gap-2.5">
-              <Khung ten="Lấp đầy 30 ngày" phu="thành phẩm và nguyên liệu">
-                <EChart height={230} option={{
-                  ...base, tooltip: { trigger: "axis", valueFormatter: (v) => (v == null ? "—" : pct(v, 1)) }, xAxis: { type: "category", data: (khoK.nl.ds.length ? khoK.nl.ds : khoK.tp.ds).map(([t]) => ngayStr(t).slice(8) + "/" + ngayStr(t).slice(5, 7)), axisLabel: { fontSize: 10, hideOverlap: true } }, yAxis: trucPct,
-                  series: [{ name: "Thành phẩm", type: "line", smooth: true, showSymbol: false, data: khoK.tp.sc ? khoK.tp.ds.map(([, v]) => r2(v / khoK.tp.sc)) : [], itemStyle: { color: MAU.tim } },
-                    { name: "Nguyên liệu", type: "line", smooth: true, showSymbol: false, areaStyle: { opacity: 0.1 }, data: khoK.nl.sc ? khoK.nl.ds.map(([, v]) => r2(v / khoK.nl.sc)) : [], itemStyle: { color: MAU.primary },
-                      markLine: { symbol: "none", silent: true, lineStyle: { type: "dashed", color: MAU.warn }, label: { show: false }, data: [{ yAxis: NGUONG_KHO.vang }] } }],
-                }} />
-              </Khung>
-            </div>
-            <ChiTiet id="bai" ten="Sơ đồ bãi (mực hàng từng bãi, bấm bãi mở trang kho)">
-            <Khung ten="Sơ đồ bãi" phu="mực hàng theo tỉ lệ lấp đầy · bãi đầy nhất ở trước · bấm bãi mở trang kho" onChiTiet={() => onMo("kho")}>
-              <div className="text-primary/90"><SoDoBai bai={baiSap} tone={(b) => (b.lapDay == null ? null : tone(b.lapDay, NGUONG_KHO.vang, NGUONG_KHO.do, false))} nhan={(b) => `tồn ${nghin(b.ton)} t${b.sucChua > 0 ? ` / ${nghin(b.sucChua)} t` : ""}`} onBai={(b) => go(b.loai === "nguyen_lieu" ? "kho/nguyen-lieu" : "kho/thanh-pham")} /></div>
-              <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[10.5px] text-muted-foreground">
-                <span className="inline-flex items-center gap-1"><i className="h-2.5 w-2.5 rounded-sm" style={{ background: MAU.ok }} />Dưới {pct(NGUONG_KHO.vang)}</span>
-                <span className="inline-flex items-center gap-1"><i className="h-2.5 w-2.5 rounded-sm" style={{ background: MAU.warn }} />Từ {pct(NGUONG_KHO.vang)}</span>
-                <span className="inline-flex items-center gap-1"><i className="h-2.5 w-2.5 rounded-sm" style={{ background: MAU.bad }} />Từ {pct(NGUONG_KHO.do)} / vượt sức chứa</span>
-              </div>
-            </Khung>
-            </ChiTiet>
-          </>}
+        <MangTQ id="mang-kho" icon={IcKho} ten="Kho bãi" mota={`${kyInfo.nhan} · tồn, tuổi tồn, lấp đầy, xuất nhập tồn`} loai="kho" tone={toneKho} thu={thu["mang-kho"]} onThu={() => doiThu("mang-kho")}>
+          {khoK ? <BieuDoKhoTQ kyInfo={kyInfo} kho={kho} gd={gd} tuoi={khoK.tuoi} /> : <ChuaCo>Đang tải số liệu kho…</ChuaCo>}
         </MangTQ>)}
 
       {/* ===== THIẾT BỊ ===== */}
@@ -380,7 +269,7 @@ export default function TongQuanMoi({ onMo, go, tongCanhBao }) {
               phu={tbm.ca ? `${tbm.ca.ten} · đã nhập ${tbm.ca.nhap}/${tbm.ca.tong} đội` : "Chưa có lịch ca"} onClick={() => go("thiet-bi/nhan-su")} />
           </>}>
           <div className="grid gap-2.5 lg:grid-cols-3">
-            <Khung ten="Tỉ lệ sẵn sàng theo ngày" phu={`${kyInfo.nhan} · vạch vàng = ngưỡng ${pct(tbm.ss)}`}>
+            <Khung cao={CAO} ten="Tỉ lệ sẵn sàng theo ngày" phu={`${kyInfo.nhan} · vạch vàng = ngưỡng ${pct(tbm.ss)}`}>
               <EChart height={230} option={{
                 ...base, tooltip: { trigger: "axis", valueFormatter: (v) => (v == null ? "—" : pct(v, 1)) }, xAxis: { type: "category", data: tbm.xe.theoNgay.map((x) => x.d.slice(8) + "/" + x.d.slice(5, 7)), axisLabel: { fontSize: 10, hideOverlap: true } },
                 yAxis: { ...trucPct, min: (v) => Math.max(0, Math.floor(v.min * 10) / 10 - 0.05), max: 1 },
@@ -388,14 +277,14 @@ export default function TongQuanMoi({ onMo, go, tongCanhBao }) {
                   ...(tbm.cau ? [{ name: "Cẩu cảng", type: "line", smooth: true, showSymbol: false, data: tbm.cau.theoNgay.map((x) => r2(x.rate)), itemStyle: { color: MAU.info } }] : [])],
               }} />
             </Khung>
-            <Khung ten="Số lần hỏng theo đội" phu="trong kỳ">
+            <Khung cao={CAO} ten="Số lần hỏng theo đội" phu="trong kỳ">
               {Object.keys(tbm.hongTheoDoi).length ? (
                 <EChart height={230} option={{ grid: { left: 4, right: 30, top: 6, bottom: 0, containLabel: true }, tooltip: { axisPointer: { type: "shadow" } }, xAxis: { type: "value", minInterval: 1, axisLabel: { fontSize: 10 } },
                   yAxis: { type: "category", inverse: true, data: Object.entries(tbm.hongTheoDoi).sort((a, b) => b[1] - a[1]).map(([k]) => k), axisLabel: { fontSize: 10 } },
                   series: [{ type: "bar", barMaxWidth: 14, itemStyle: { color: MAU.bad, opacity: 0.85 }, label: { show: true, position: "right", fontSize: 10 }, data: Object.entries(tbm.hongTheoDoi).sort((a, b) => b[1] - a[1]).map(([, v]) => v) }] }} />
               ) : <ChuaCo>Không có lần hỏng nào trong kỳ.</ChuaCo>}
             </Khung>
-            <Khung ten="Hỏng lâu nhất" phu="đang chờ sửa" onChiTiet={() => go("thiet-bi/su-kien")}>
+            <Khung cao={CAO} ten="Hỏng lâu nhất" phu="đang chờ sửa" onChiTiet={() => go("thiet-bi/su-kien")}>
               {tbm.hongLau.length ? (
                 <ul className="grid gap-1 text-xs">
                   {tbm.hongLau.slice(0, 6).map((e, i) => (
