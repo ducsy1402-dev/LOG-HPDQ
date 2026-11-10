@@ -107,42 +107,6 @@ describe("Xếp nhiều chuyến: ưu tiên và giữ ETB", async () => {
   });
 });
 
-describe("Hàng chờ và giữ bến đã khai báo (09/11)", async () => {
-  const { tuXepBen: xep1, xepLai } = await import("./tuXep");
-  const iso = (t) => new Date(t).toISOString();
-  const B1 = [{ ma: "B10", dwt_max: 250000, mon_max: 18.5, loa_max: 410, loai_hang: "Than, Quặng", thu_tu: 1 }];
-  const now = T("08T00:00");
-  const tau = (id, o) => ({ id, loai_hang: "Than", khoi_luong: 20000, cam_ket: 20000, dwt: 60000, loa: 300, draft: 12, eta: iso(T("09T00:00")), ...o });
-  it("tàu đến sau xếp lót sau tàu đã xếp (có chỗ trống trước tàu đó cũng không chen)", () => {
-    const truoc = tau(2, { ben_ma: "B10", eta: iso(T("09T00:00")), etb: iso(T("12T00:00")), etd: iso(T("13T00:00")) }); // đến trước nhưng cập muộn
-    const sau = tau(1, { eta: iso(T("10T00:00")), khoi_luong: 5000, cam_ket: 20000 });
-    const r = xep1(sau, { berths: B1, voyages: [truoc], now });
-    expect(new Date(r.etb).getTime()).toBeGreaterThanOrEqual(T("12T00:00"));
-  });
-  it("tàu đến trước tàu đã xếp thì vẫn chen vào chỗ trống trước nó", () => {
-    const sau = tau(2, { ben_ma: "B10", eta: iso(T("12T00:00")), etb: iso(T("12T00:00")), etd: iso(T("13T00:00")) });
-    const truoc = tau(1, { eta: iso(T("09T00:00")), khoi_luong: 5000, cam_ket: 20000 });
-    const r = xep1(truoc, { berths: B1, voyages: [sau], now });
-    expect(new Date(r.etb).getTime()).toBe(T("09T00:00"));
-  });
-  it("tàu ưu tiên ★ đã xếp: tàu thường đến sau không cập trước nó", () => {
-    const uu = tau(2, { uu_tien: true, ben_ma: "B10", eta: iso(T("11T00:00")), etb: iso(T("11T00:00")), etd: iso(T("12T00:00")) });
-    const thuong = tau(1, { eta: iso(T("09T00:00")), khoi_luong: 5000 });
-    expect(new Date(xep1(thuong, { berths: B1, voyages: [uu], now }).etb).getTime()).toBeGreaterThanOrEqual(T("11T00:00"));
-  });
-  it("chuyến đã khai báo bến: giữ nguyên bến khi xếp lại, chỉ đổi giờ", () => {
-    const B2 = [...B1, { ma: "B05", dwt_max: 150000, mon_max: 14.7, loa_max: 300, loai_hang: "Than, Quặng", thu_tu: 2 }];
-    const a = tau(1, { ben_ma: "B10", etb: iso(T("09T00:00")), etd: iso(T("10T06:00")) });
-    const b = tau(2, { ben_ma: "B10", eta: iso(T("09T06:00")), etb: iso(T("11T00:00")), etd: iso(T("12T06:00")) });
-    const kq = xepLai([a, b], { berths: B2, now });
-    expect(kq.map((x) => x.r.ben_ma)).toEqual(["B10", "B10"]);
-  });
-  it("chuyến chưa có bến vẫn được chọn bến", () => {
-    const r = xep1(tau(1, {}), { berths: B1, voyages: [], now });
-    expect(r.ben_ma).toBe("B10");
-  });
-});
-
 describe("Dán nhanh: tàu không bến, không LOA, có cột Loại hàng (Nhóm hàng)", async () => {
   const { tachBang, nhanDienTieuDe, dongThanhChuyen } = await import("./paste");
   it("đọc đúng cột; ô bến / LOA trống thì bỏ qua (để web tự xếp và ước tính)", () => {
@@ -197,60 +161,71 @@ describe("Khớp loại hàng với danh sách của bến", () => {
   });
 });
 
-describe("Giải trùng bến (10/11): không đủ mét mà chồng giờ thì tàu sau tự lùi", async () => {
-  const { giaiTrung, xepNhieu } = await import("./tuXep");
+describe("Hàng chờ động (10/11): xếp lại giờ cập theo thứ tự ưu tiên, lấy chỗ trống sớm nhất", async () => {
+  const { hangChoLai, tuXepBen: xep1 } = await import("./tuXep");
   const { choBenTheoChuyen } = await import("./capBen");
   const iso = (t) => new Date(t).toISOString();
   const now = T("08T00:00");
+  const B1 = [{ ma: "B10", dwt_max: 250000, mon_max: 18.5, loa_max: 410, loai_hang: "Than, Quặng", thu_tu: 1 }];
   const B3 = [
     { ma: "B07", dwt_max: 20000, mon_max: 9, loa_max: 180, loai_hang: "Đá, Xỉ", thu_tu: 8 },
     { ma: "B08", dwt_max: 20000, mon_max: 9, loa_max: 126.5, loai_hang: "Đá, Xỉ", thu_tu: 9 },
     { ma: "B09", dwt_max: 20000, mon_max: 9, loa_max: 126.5, loai_hang: "Đá, Xỉ", thu_tu: 10 },
   ];
-  const tau = (id, o) => ({ id, ten_tau: "T" + id, loai_hang: "Đá", khoi_luong: 4000, cam_ket: 4000, dwt: 5000, loa: 110, draft: 6, eta: iso(T("09T00:00")), ben_ma: "B07", ...o });
-  const xung = (vs) => [...choBenTheoChuyen(vs, B3, () => [], now).keys()];
-  const ap = (vs, doi) => vs.map((v) => { const d = doi.find((x) => x.v.id === v.id); return d ? { ...v, etb: d.etb, etd: d.etd } : v; });
-  it("hai tàu 110 m cùng bến B07 (180 m) chồng giờ: tàu đến sau lùi tới sau tàu trước + 2 giờ", () => {
-    const a = tau(1, { etb: iso(T("09T00:00")), etd: iso(T("10T00:00")) });
-    const b = tau(2, { eta: iso(T("09T06:00")), etb: iso(T("09T12:00")), etd: iso(T("10T12:00")) });
-    expect(xung([a, b]).length).toBeGreaterThan(0);
-    const doi = giaiTrung([a, b], { berths: B3, now });
-    expect(doi.map((x) => x.v.id)).toEqual([2]);
-    expect(new Date(doi[0].etb).getTime()).toBeGreaterThanOrEqual(T("10T02:00"));
-    expect(new Date(doi[0].etd).getTime() - new Date(doi[0].etb).getTime()).toBe(T("10T12:00") - T("09T12:00")); // giữ thời gian ở bến
-    expect(xung(ap([a, b], doi))).toEqual([]);
+  const tau = (id, o) => ({ id, ten_tau: "T" + id, loai_hang: "Than", khoi_luong: 20000, cam_ket: 20000, dwt: 60000, loa: 300, draft: 12, eta: iso(T("09T00:00")), ben_ma: "B10", ...o });
+  const ap = (vs, doi) => vs.map((v) => { const d = doi.find((x) => x.v.id === v.id); return d ? { ...v, ...d.patch } : v; });
+  const etb = (vs, id) => new Date(vs.find((v) => v.id === id).etb).getTime();
+  it("tàu ETA sớm nhưng đang để ETB tít xa (bến còn trống) được kéo lên sớm", () => {
+    const a = tau(1, { eta: iso(T("10T00:00")), etb: iso(T("26T00:00")), etd: iso(T("27T00:00")) });
+    const b = tau(2, { eta: iso(T("12T00:00")), etb: iso(T("27T12:00")), etd: iso(T("28T12:00")) });
+    const doi = hangChoLai([a, b], { berths: B1, now }), moi = ap([a, b], doi);
+    expect(etb(moi, 1)).toBe(T("10T00:00"));
+    expect(etb(moi, 2)).toBeGreaterThan(etb(moi, 1)); expect(etb(moi, 2)).toBeLessThan(T("14T00:00"));
   });
-  it("tàu đã cập thật (ATB) không bị dời, dù đến sau: tàu kia lùi", () => {
-    const a = tau(1, { eta: iso(T("09T12:00")), atb: iso(T("09T12:00")), etb: iso(T("09T12:00")), etd: iso(T("10T12:00")) });
-    const b = tau(2, { eta: iso(T("09T00:00")), etb: iso(T("09T18:00")), etd: iso(T("10T18:00")) });
-    const doi = giaiTrung([a, b], { berths: B3, now });
-    expect(doi.map((x) => x.v.id)).toEqual([2]);
+  it("thêm tàu có ETA sớm hơn tàu đang ở cùng bến (chưa cập): tàu mới lên trước, tàu cũ lùi", () => {
+    const cu = tau(1, { eta: iso(T("12T00:00")), etb: iso(T("12T00:00")), etd: iso(T("13T06:00")) });
+    const moiTau = tau(2, { eta: iso(T("11T00:00")), etb: iso(T("13T08:00")), etd: iso(T("14T14:00")) }); // vừa thêm: bị xếp sau
+    const moi = ap([cu, moiTau], hangChoLai([cu, moiTau], { berths: B1, now }));
+    expect(etb(moi, 2)).toBe(T("11T00:00"));
+    expect(etb(moi, 1)).toBeGreaterThanOrEqual(T("11T00:00") + 26 * H); // sau khi tàu mới rời + 2 giờ
   });
-  it("đủ mét (hai tàu 60 m ở bến 180 m) thì không lùi", () => {
-    const a = tau(1, { loa: 60, etb: iso(T("09T00:00")), etd: iso(T("10T00:00")) });
-    const b = tau(2, { loa: 60, etb: iso(T("09T06:00")), etd: iso(T("10T06:00")) });
-    expect(xung([a, b])).toEqual([]);
-    expect(giaiTrung([a, b], { berths: B3, now })).toEqual([]);
+  it("tàu có ★ chen lên trước dù ETA muộn hơn", () => {
+    const a = tau(1, { eta: iso(T("10T00:00")), etb: iso(T("10T00:00")), etd: iso(T("11T06:00")) });
+    const uu = tau(2, { eta: iso(T("11T00:00")), uu_tien: true, etb: iso(T("13T00:00")), etd: iso(T("14T06:00")) });
+    const moi = ap([a, uu], hangChoLai([a, uu], { berths: B1, now }));
+    expect(etb(moi, 2)).toBe(T("11T00:00")); expect(etb(moi, 1)).toBeGreaterThan(etb(moi, 2));
   });
-  it("ngẫu nhiên: nhiều tàu nhập tay chồng giờ, sau giải trùng không còn tàu nào thiếu mét", () => {
+  it("không đụng tàu đã cập thật hay có giờ cập đã qua; tàu khác xếp sau chúng", () => {
+    const atb = tau(1, { eta: iso(T("06T00:00")), atb: iso(T("07T00:00")), etb: iso(T("07T00:00")), etd: iso(T("09T00:00")) });
+    const qua = tau(2, { eta: iso(T("05T00:00")), etb: iso(T("07T12:00")), etd: iso(T("10T00:00")) }); // ETB đã qua (07T12 < 08T00), chưa ATB
+    const x = tau(3, { eta: iso(T("08T00:00")), etb: iso(T("30T00:00")), etd: iso(T("31T00:00")) });
+    const doi = hangChoLai([atb, qua, x], { berths: B1, now });
+    expect(doi.map((d) => d.v.id)).toEqual([3]);
+    expect(new Date(doi[0].patch.etb).getTime()).toBeGreaterThanOrEqual(T("10T02:00"));
+  });
+  it("chạy lại không đổi nữa; chuyến chưa có bến được chọn bến; chuyến có bến giữ bến", () => {
+    const a = tau(1, { ben_ma: null, eta: iso(T("10T00:00")) });
+    const b = tau(2, { eta: iso(T("11T00:00")), etb: iso(T("20T00:00")), etd: iso(T("21T00:00")) });
+    const doi = hangChoLai([a, b], { berths: B1, now });
+    expect(doi.find((d) => d.v.id === 1).patch.ben_ma).toBe("B10");
+    expect(doi.find((d) => d.v.id === 2).patch.ben_ma).toBeUndefined();
+    expect(hangChoLai(ap([a, b], doi), { berths: B1, now })).toEqual([]);
+  });
+  it("tàu thêm đơn lẻ vẫn lấy chỗ trống sớm nhất, kể cả chen vào trước tàu đến sau", () => {
+    const sau = tau(2, { eta: iso(T("12T00:00")), etb: iso(T("12T00:00")), etd: iso(T("13T00:00")) });
+    const r = xep1(tau(1, { eta: iso(T("09T00:00")), khoi_luong: 5000, ben_ma: null }), { berths: B1, voyages: [sau], now });
+    expect(new Date(r.etb).getTime()).toBe(T("09T00:00"));
+  });
+  it("ngẫu nhiên: nhiều tàu nhập tay, sau khi xếp lại không còn tàu nào thiếu mét, ★ và ETA sớm đứng trước", () => {
     let seed = 7; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
     for (let lan = 0; lan < 25; lan++) {
       const vs = Array.from({ length: 12 }, (_, i) => {
-        const etb = T("09T00:00") + Math.floor(rnd() * 96) * H, loa = 50 + Math.floor(rnd() * 50);
-        return tau(i + 1, { ben_ma: ["B07", "B08", "B09"][Math.floor(rnd() * 3)], loa, eta: iso(etb - Math.floor(rnd() * 20) * H), uu_tien: rnd() < 0.15, etb: iso(etb), etd: iso(etb + (12 + Math.floor(rnd() * 40)) * H) });
+        const e = T("09T00:00") + Math.floor(rnd() * 96) * H, loa = 50 + Math.floor(rnd() * 50);
+        return tau(i + 1, { ben_ma: ["B07", "B08", "B09"][Math.floor(rnd() * 3)], loa, eta: iso(e - Math.floor(rnd() * 20) * H), uu_tien: rnd() < 0.15, etb: iso(e), etd: iso(e + (12 + Math.floor(rnd() * 40)) * H), khoi_luong: 4000, cam_ket: 4000, dwt: 5000, draft: 6, loai_hang: "Đá" });
       });
-      const doi = giaiTrung(vs, { berths: B3, now });
-      expect(xung(ap(vs, doi))).toEqual([]);
-      expect(giaiTrung(ap(vs, doi), { berths: B3, now })).toEqual([]); // chạy lại không đổi nữa
-    }
-  });
-  it("tự xếp nhiều chuyến chưa bến: kết quả không thiếu mét", () => {
-    let seed = 11; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
-    for (let lan = 0; lan < 15; lan++) {
-      const ds = Array.from({ length: 10 }, (_, i) => tau(i + 1, { ben_ma: null, loa: 50 + Math.floor(rnd() * 50), eta: iso(T("09T00:00") + Math.floor(rnd() * 72) * H), uu_tien: rnd() < 0.2 }));
-      const kq = xepNhieu(ds, { berths: B3, voyages: [], now });
-      const vs = kq.filter((x) => x.r).map(({ v, r }) => ({ ...v, ben_ma: r.ben_ma, etb: r.etb, etd: r.etd }));
-      expect(xung(vs)).toEqual([]);
+      const moi = ap(vs, hangChoLai(vs, { berths: B3, now }));
+      expect([...choBenTheoChuyen(moi, B3, () => [], now).keys()]).toEqual([]);
+      expect(hangChoLai(moi, { berths: B3, now })).toEqual([]); // ổn định
     }
   });
 });
