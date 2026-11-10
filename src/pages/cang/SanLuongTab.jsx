@@ -11,7 +11,7 @@ import { khoangKy, thangTrongKy, tenKy } from "@/lib/ky";
 import { docSo } from "@/lib/paste";
 import { cn } from "@/lib/utils";
 import { tinhThang, khoaLoai } from "@/lib/sanLuong";
-import { CA, DON_VI, NHOM, tenDonVi, dsDonVi, khoaDong, khoaCua, tuDb, ngayCuaThang, khoaO, tongTheoCot, khopDoiXe } from "@/lib/sanLuongTT";
+import { DON_VI, NHOM, tenDonVi, dsDonVi, khoaDong, khoaCua, tuDb, ngayCuaThang, tongTheoCot, khopDoiXe } from "@/lib/sanLuongTT";
 
 import { DEFAULT_NHA_THAU } from "@/thietbi/lib/plan";
 
@@ -220,7 +220,7 @@ function BangTheoThang({ nhom, kyLoai, ky, thangs, mucTieu, thucTe, loc }) {
     <div className="grid gap-3">
       <div className="flex flex-wrap items-center gap-2">
         <h2 className="text-sm font-semibold">Sản lượng thực tế {tenKyThuong(kyLoai, ky)} theo tháng (tấn)</h2>
-        <span className="text-xs text-muted-foreground">Cộng từ số nhập theo ca / ngày; muốn nhập hoặc sửa số, chọn chế độ Tháng.</span>
+        <span className="text-xs text-muted-foreground">Cộng từ số nhập theo ngày; muốn nhập hoặc sửa số, chọn chế độ Tháng.</span>
       </div>
       {cot.length ? (
         <div className="scroll-x rounded-md border">
@@ -252,14 +252,18 @@ function BangTheoThang({ nhom, kyLoai, ky, thangs, mucTieu, thucTe, loc }) {
   );
 }
 
-// ---------- Bảng nhập thực tế theo ca / ngày ----------
+// ---------- Bảng nhập thực tế theo NGÀY: mỗi ngày một dòng (anh Sỹ chốt 11/2026) ----------
+// Bảng CSDL vẫn có cột ca: số nhập theo ngày lưu ở dòng ca "CA 1" (không cần SQL mới). Số cũ nhập theo ca (CA 1 / CA 2) vẫn còn: ô của ngày hiện TỔNG các ca;
+// sửa ô thì ghi cả ngày vào một dòng "CA 1" và xóa dòng "CA 2" của ô đó.
+const CA_NGAY = "CA 1", CA_BO = "CA 2";
 function BangThucTe({ nhom, thang, mucTieu, thucTe, loc, onLuu }) {
   const { D, quyen, api, run, toast } = useApp();
   const c = NHOM[nhom], nhap = quyen.nhap;
   const ngays = useMemo(() => ngayCuaThang(thang), [thang]);
   const homNay = useMemo(() => { const d = new Date(D.now); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; }, [D.now]);
-  // Số đã lưu theo ô
-  const goc = useMemo(() => { const m = {}; for (const r of thucTe) { const x = tuDb(nhom, r); m[khoaO(String(r.ngay).slice(0, 10), r.ca, khoaCua(x))] = +r.tan; } return m; }, [thucTe, nhom]);
+  const kOu = (ngay, k) => `${ngay}|${k}`; // khóa ô: ngày | khóa cột
+  // Số đã lưu theo ô (tổng các dòng của ngày đó)
+  const goc = useMemo(() => { const m = {}; for (const r of thucTe) { const x = tuDb(nhom, r), key = kOu(String(r.ngay).slice(0, 10), khoaCua(x)); m[key] = (m[key] || 0) + (+r.tan || 0); } return m; }, [thucTe, nhom]);
   const [sua, setSua] = useState({}); // ô đã gõ: khóa ô -> chữ
   const [extra, setExtra] = useState([]); // cột người dùng vừa thêm (chưa có số)
   const [them, setThem] = useState({ huong: c.huong[0][0], loai: "", hang: "", donVi: DON_VI[0][0] });
@@ -281,32 +285,32 @@ function BangThucTe({ nhom, thang, mucTieu, thucTe, loc, onLuu }) {
   const hienThi = (key) => (key in sua ? sua[key] : key in goc ? fmt(goc[key]) : "");
   const kDirty = Object.keys(sua).filter((key) => (sua[key] || "").trim() !== (key in goc ? fmt(goc[key]) : ""));
   const cotCua = useMemo(() => new Map(cotTat.map((x) => [x.k, x])), [cotTat]);
-  const tongCot = (k, ca) => ngays.reduce((s, n) => s + (ca ? giaTri(khoaO(n, ca, k)) : CA.reduce((t, cc) => t + giaTri(khoaO(n, cc, k)), 0)), 0);
-  const tongDong = (n, ca) => cot.reduce((s, x) => s + (ca ? giaTri(khoaO(n, ca, x.k)) : CA.reduce((t, cc) => t + giaTri(khoaO(n, cc, x.k)), 0)), 0);
+  const tongCot = (k) => ngays.reduce((s, n) => s + giaTri(kOu(n, k)), 0);
+  const tongDong = (n) => cot.reduce((s, x) => s + giaTri(kOu(n, x.k)), 0);
   const nhomCot = c.huong.map(([h, ten]) => ({ h, ten, n: cot.filter((x) => x.huong === h).length })).filter((x) => x.n);
   const luu = async () => {
     const rows = [];
     for (const key of kDirty) {
-      const [ngay, ca, ...r] = key.split("|"), col = cotCua.get(r.join("|")), txt = (sua[key] || "").trim(), tan = txt ? docSo(txt) : null;
-      if (txt && !(tan >= 0)) return toast(`Ngày ${ngay.slice(8)}/${ngay.slice(5, 7)} ${ca} ${col.loai}: không phải số tấn`, "bad");
+      const ngay = key.slice(0, 10), col = cotCua.get(key.slice(11)), txt = (sua[key] || "").trim(), tan = txt ? docSo(txt) : null;
+      if (txt && !(tan >= 0)) return toast(`Ngày ${ngay.slice(8)}/${ngay.slice(5, 7)} ${col.loai}: không phải số tấn`, "bad");
       if (tan == null && !(key in goc)) continue;
-      rows.push({ ngay, ca, huong: col.huong, loai: col.loai, donVi: col.donVi, hang: col.hang, tan });
+      const r = { ngay, huong: col.huong, loai: col.loai, donVi: col.donVi, hang: col.hang };
+      rows.push({ ...r, ca: CA_NGAY, tan }, { ...r, ca: CA_BO, tan: null }); // cả ngày vào một dòng; dòng ca cũ còn lại bị xóa
     }
     if (!rows.length) { setSua({}); return; }
-    if (await run(() => api.saveThucTe(nhom, rows), `Đã lưu sản lượng thực tế (${rows.length} ô)`)) onLuu();
+    if (await run(() => api.saveThucTe(nhom, rows), `Đã lưu sản lượng thực tế (${rows.length / 2} ô)`)) onLuu();
   };
   const themCot = () => {
     const loai = them.loai.trim(); if (!loai) return;
     setExtra((o) => [...o, { huong: them.huong, loai, donVi: c.coDonVi ? them.donVi : "", hang: c.coLoaiHang ? them.hang.trim() : "" }]);
     setThem({ ...them, loai: "", hang: "" });
   };
-  const ngayHienTai = (n) => n === homNay;
   const stk = (left) => ({ position: "sticky", left, zIndex: 2 });
   return (
     <div className="grid gap-3">
       <div className="flex flex-wrap items-center gap-2">
-        <h2 className="text-sm font-semibold">Sản lượng thực tế {tenThang(thang).toLowerCase()} theo ca / ngày (tấn)</h2>
-        <span className="text-xs text-muted-foreground">CA 1: 08h–20h · CA 2: 20h–08h</span>
+        <h2 className="text-sm font-semibold">Sản lượng thực tế {tenKyThuong("thang", thang)} theo ngày (tấn)</h2>
+        <span className="text-xs text-muted-foreground">Mỗi ngày một dòng</span>
         <div className="ml-auto flex items-center gap-2">
           {kDirty.length > 0 && <Button size="sm" variant="outline" onClick={() => setSua({})}>Bỏ thay đổi</Button>}
           {nhap && <Button size="sm" disabled={!kDirty.length} onClick={luu}><Save />Lưu số liệu{kDirty.length ? ` (${kDirty.length} ô)` : ""}</Button>}
@@ -317,10 +321,9 @@ function BangThucTe({ nhom, thang, mucTieu, thucTe, loc, onLuu }) {
           <table className="tbl text-xs" style={{ borderCollapse: "separate", borderSpacing: 0 }}>
             <thead>
               <tr style={{ position: "sticky", top: 0, zIndex: 4 }} className="bg-card">
-                <th rowSpan={2} style={{ ...stk(0), minWidth: 64, zIndex: 5 }} className="bg-card">Ngày</th>
-                <th rowSpan={2} style={{ ...stk(64), minWidth: 56, zIndex: 5 }} className="bg-card">Ca</th>
+                <th rowSpan={2} style={{ ...stk(0), minWidth: 84, zIndex: 5 }} className="bg-card">Ngày</th>
                 {nhomCot.map((g) => <th key={g.h} colSpan={g.n} className="border-l bg-muted/40 text-center">{g.ten}</th>)}
-                <th rowSpan={2} className="num border-l bg-card">Tổng</th>
+                <th rowSpan={2} className="num border-l bg-card">Tổng ngày</th>
               </tr>
               <tr style={{ position: "sticky", top: 28, zIndex: 4 }} className="bg-card">
                 {cot.map((x, i) => (
@@ -334,36 +337,28 @@ function BangThucTe({ nhom, thang, mucTieu, thucTe, loc, onLuu }) {
             </thead>
             <tbody>
               {ngays.map((n) => {
-                const d = new Date(n + "T00:00:00"), cn0 = d.getDay() === 0, hn = ngayHienTai(n);
+                const d = new Date(n + "T00:00:00"), cn0 = d.getDay() === 0, hn = n === homNay;
                 const nen = hn ? "bg-primary/10" : cn0 ? "bg-muted/60" : "bg-card";
-                return [
-                  ...CA.map((ca, i) => (
-                    <tr key={n + ca}>
-                      {i === 0 && <td rowSpan={3} style={{ ...stk(0), verticalAlign: "top" }} className={cn("whitespace-nowrap border-t font-semibold tabular-nums", nen)}>{n.slice(8)}/{n.slice(5, 7)}<div className={cn("text-[10px] font-normal", cn0 ? "text-bad" : "text-muted-foreground")}>{THU[d.getDay()]}{hn ? " · nay" : ""}</div></td>}
-                      <td style={stk(64)} className={cn("whitespace-nowrap", i === 0 && "border-t", nen)}>{ca}</td>
-                      {cot.map((x, j) => {
-                        const key = khoaO(n, ca, x.k), co = key in sua && sua[key].trim() !== (key in goc ? fmt(goc[key]) : "");
-                        return (
-                          <td key={x.k} className={cn("num p-0.5", (j === 0 || cot[j - 1].huong !== x.huong) && "border-l", i === 0 && "border-t", co && "bg-warn/10")}>
-                            {nhap
-                              ? <input className="h-7 w-24 rounded border border-transparent bg-transparent px-1.5 text-right tabular-nums hover:border-input focus:border-ring focus:bg-background focus:outline-none" inputMode="decimal" value={hienThi(key)} onChange={(e) => setSua((o) => ({ ...o, [key]: e.target.value }))} aria-label={`${ca} ngày ${n.slice(8)} ${x.loai} ${x.hang}`} />
-                              : <span className="px-1.5">{hienThi(key)}</span>}
-                          </td>);
-                      })}
-                      <td className={cn("num border-l tabular-nums", i === 0 && "border-t")}>{so(tongDong(n, ca)) || ""}</td>
-                    </tr>)),
-                  <tr key={n + "sum"} className="font-semibold">
-                    <td style={stk(64)} className={cn("whitespace-nowrap", nen)}>Cộng ngày</td>
-                    {cot.map((x, j) => <td key={x.k} className={cn("num bg-muted/30 tabular-nums", (j === 0 || cot[j - 1].huong !== x.huong) && "border-l")}>{(() => { const v = CA.reduce((t, cc) => t + giaTri(khoaO(n, cc, x.k)), 0); return v ? so(v) : ""; })()}</td>)}
-                    <td className="num border-l bg-muted/30 tabular-nums">{so(tongDong(n, null)) || ""}</td>
-                  </tr>,
-                ];
+                return (
+                  <tr key={n}>
+                    <td style={stk(0)} className={cn("whitespace-nowrap border-t font-semibold tabular-nums", nen)}>{n.slice(8)}/{n.slice(5, 7)}<span className={cn("ml-1.5 text-[10px] font-normal", cn0 ? "text-bad" : "text-muted-foreground")}>{THU[d.getDay()]}{hn ? " · nay" : ""}</span></td>
+                    {cot.map((x, j) => {
+                      const key = kOu(n, x.k), co = key in sua && sua[key].trim() !== (key in goc ? fmt(goc[key]) : "");
+                      return (
+                        <td key={x.k} className={cn("num border-t p-0.5", (j === 0 || cot[j - 1].huong !== x.huong) && "border-l", co && "bg-warn/10", hn && !co && "bg-primary/5")}>
+                          {nhap
+                            ? <input className="h-7 w-24 rounded border border-transparent bg-transparent px-1.5 text-right tabular-nums hover:border-input focus:border-ring focus:bg-background focus:outline-none" inputMode="decimal" value={hienThi(key)} onChange={(e) => setSua((o) => ({ ...o, [key]: e.target.value }))} aria-label={`Ngày ${n.slice(8)} ${x.loai} ${x.hang}`} />
+                            : <span className="px-1.5">{hienThi(key)}</span>}
+                        </td>);
+                    })}
+                    <td className="num border-l border-t font-semibold tabular-nums">{tongDong(n) ? so(tongDong(n)) : ""}</td>
+                  </tr>);
               })}
             </tbody>
             <tfoot style={{ position: "sticky", bottom: 0, zIndex: 4 }}>
-              <tr className="bg-card font-semibold"><td colSpan={2} style={{ ...stk(0), zIndex: 5 }} className="border-t bg-card">Cộng tháng</td>{cot.map((x) => <td key={x.k} className="num border-t bg-card tabular-nums">{so(tongCot(x.k, null))}</td>)}<td className="num border-l border-t bg-card tabular-nums">{so(cot.reduce((s, x) => s + tongCot(x.k, null), 0))}</td></tr>
-              <tr className="bg-card"><td colSpan={2} style={{ ...stk(0), zIndex: 5 }} className="bg-card">Mục tiêu tháng</td>{cot.map((x) => <td key={x.k} className="num bg-card tabular-nums">{x.mt ? so(x.mt) : "—"}</td>)}<td className="num border-l bg-card tabular-nums">{so(cot.reduce((s, x) => s + x.mt, 0))}</td></tr>
-              <tr className="bg-card font-semibold"><td colSpan={2} style={{ ...stk(0), zIndex: 5 }} className="bg-card">Đạt</td>{cot.map((x) => { const t = tongCot(x.k, null); return <td key={x.k} className={cn("num bg-card tabular-nums", x.mt > 0 && t >= x.mt && "text-ok")}>{x.mt ? pct(t / x.mt) : ""}</td>; })}<td className="num border-l bg-card tabular-nums">{(() => { const m = cot.reduce((s, x) => s + x.mt, 0), t = cot.reduce((s, x) => s + tongCot(x.k, null), 0); return m ? pct(t / m) : ""; })()}</td></tr>
+              <tr className="bg-card font-semibold"><td style={{ ...stk(0), zIndex: 5 }} className="border-t bg-card">Cộng tháng</td>{cot.map((x) => <td key={x.k} className="num border-t bg-card tabular-nums">{so(tongCot(x.k))}</td>)}<td className="num border-l border-t bg-card tabular-nums">{so(cot.reduce((s, x) => s + tongCot(x.k), 0))}</td></tr>
+              <tr className="bg-card"><td style={{ ...stk(0), zIndex: 5 }} className="bg-card">Mục tiêu tháng</td>{cot.map((x) => <td key={x.k} className="num bg-card tabular-nums">{x.mt ? so(x.mt) : "—"}</td>)}<td className="num border-l bg-card tabular-nums">{so(cot.reduce((s, x) => s + x.mt, 0))}</td></tr>
+              <tr className="bg-card font-semibold"><td style={{ ...stk(0), zIndex: 5 }} className="bg-card">Đạt</td>{cot.map((x) => { const t = tongCot(x.k); return <td key={x.k} className={cn("num bg-card tabular-nums", x.mt > 0 && t >= x.mt && "text-ok")}>{x.mt ? pct(t / x.mt) : ""}</td>; })}<td className="num border-l bg-card tabular-nums">{(() => { const m = cot.reduce((s, x) => s + x.mt, 0), t = cot.reduce((s, x) => s + tongCot(x.k), 0); return m ? pct(t / m) : ""; })()}</td></tr>
             </tfoot>
           </table>
         </div>
@@ -377,7 +372,7 @@ function BangThucTe({ nhom, thang, mucTieu, thucTe, loc, onLuu }) {
           {c.coDonVi && <NativeSelect className="h-9 w-32" value={them.donVi} onChange={(e) => setThem({ ...them, donVi: e.target.value })} options={dsDV} aria-label="Đơn vị thực hiện" />}
           <Button size="sm" variant="outline" disabled={!them.loai.trim()} onClick={themCot}><Plus />Thêm</Button>
         </div>)}
-      <p className="text-[11px] text-muted-foreground">{nhap ? "Gõ số tấn vào ô của từng ca (vd 12.500), bấm Lưu số liệu. Xóa số trong ô là xóa số của ca đó. Cột có mục tiêu hiện sẵn; muốn nhập loại khác thì Thêm cột." : "Vai trò Xem chỉ xem số liệu."}</p>
+      <p className="text-[11px] text-muted-foreground">{nhap ? "Gõ số tấn của cả ngày vào ô (vd 12.500), bấm Lưu số liệu. Xóa số trong ô là xóa số của ngày đó. Cột có mục tiêu hiện sẵn; muốn nhập loại khác thì Thêm cột." : "Vai trò Xem chỉ xem số liệu."}</p>
     </div>
   );
 }

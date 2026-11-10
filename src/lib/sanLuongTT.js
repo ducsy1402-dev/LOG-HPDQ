@@ -1,4 +1,4 @@
-// Mục tiêu tháng và sản lượng thực tế theo ca / ngày của Khai thác Cảng › Mục tiêu sản lượng (SQL 06).
+// Mục tiêu tháng và sản lượng thực tế theo ngày (mỗi ngày một dòng) của Khai thác Cảng › Mục tiêu sản lượng (SQL 06).
 // Hai nhóm: "cang" (hướng nhập / xuất, loại hàng) và "van_tai" (hướng phục vụ cảng / sản xuất, loại xe = đội xe, đơn vị thực hiện, loại hàng).
 import { plain, pad } from "./format";
 

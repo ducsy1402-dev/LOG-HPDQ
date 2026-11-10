@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Boxes, PenLine, Pencil, ClipboardCheck, ClipboardPaste, Trash2, Bell, Package, Network, List, LineChart, CalendarRange, ChevronRight, Layers } from "lucide-react";
+import { Search, Boxes, PenLine, Pencil, ClipboardCheck, ClipboardPaste, Trash2, Bell, Package, Network, List, LineChart, CalendarRange, ChevronRight, Layers } from "lucide-react";
 import { useApp } from "@/store";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -91,6 +91,7 @@ export default function Kho({ loai }) {
   const { D, quyen, run, api } = useApp();
   const kho = useKho();
   const [q, setQ] = useState("");
+  const [qSo, setQSo] = useState(""); // tìm nhanh trong Sổ nhập – xuất
   const [form, setForm] = useState(null); // { loai } | "kiem_ke" | "dan"
   const [baiBD, setBaiBD] = useState("");
   const [moBai, setMoBai] = useState(null);
@@ -101,7 +102,9 @@ export default function Kho({ loai }) {
   const bai = kho.bai.filter((b) => tenBai.has(b.ten_bai));
   const lo = kho.lo.filter((l) => tenBai.has(l.ten_bai));
   const canh = kho.canh.filter((c) => tenBai.has(c.bai));
+  const TEN_NGUON = { tau: "Tàu", cap_sx: "Cấp sản xuất", san_xuat: "Từ sản xuất", don_hang: "Đơn hàng", khac: "Khác" };
   const gd = (D.giaoDich || []).filter((g) => tenBai.has(g.ten_bai) || tenBai.has(g.den_bai)).sort((a, b) => String(b.ngay).localeCompare(String(a.ngay)) || b.id - a.id);
+  const gdLoc = qSo.trim() ? gd.filter((g) => matchQ(qSo, ngayNam(g.ngay), g.ca, TEN_GD[g.loai], g.ten_bai, g.den_bai, g.hang, g.so_lo, g.chung_tu, g.ghi_chu, TEN_NGUON[g.nguon], g.voyage_id ? D.vmap.get(g.voyage_id)?.ten_tau : "")) : gd;
   const ton = dong.reduce((s, d) => s + d.ton, 0), suc = bai.reduce((s, b) => s + (b.sucChua || 0), 0);
   const nhap = quyen.kho.nhap;
 
@@ -195,12 +198,18 @@ export default function Kho({ loai }) {
 
         <TabsContent value="so">
           <Card><CardContent className="pt-4">
-            <div className="mb-2 text-xs text-muted-foreground">Các lượt trong 35 ngày gần nhất, mới nhất ở trên.</div>
-            {gd.length ? (
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              <div className="relative w-full max-w-sm">
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input className="pl-8" value={qSo} onChange={(e) => setQSo(e.target.value)} placeholder="Tìm nhanh: ngày, bãi, hàng, lô, tàu, chứng từ, ghi chú…" aria-label="Tìm nhanh trong sổ nhập – xuất" />
+              </div>
+              <span className="text-xs text-muted-foreground">{qSo.trim() ? `${gdLoc.length}/${gd.length} lượt` : "Các lượt trong 35 ngày gần nhất, mới nhất ở trên."}</span>
+            </div>
+            {gd.length && !gdLoc.length ? <Empty>Không có lượt nào khớp "{qSo}".</Empty> : gd.length ? (
               <div className="scroll-x max-h-[60vh]">
                 <table className="tbl">
                   <thead><tr><th>Ngày</th><th>Ca</th><th>Loại</th><th>Bãi</th><th>Hàng</th><th className="num">Số lượng (t)</th>{tp && <th>Lô</th>}<th>Nguồn / chuyến</th><th>Chứng từ, ghi chú</th>{nhap && <th></th>}</tr></thead>
-                  <tbody>{gd.slice(0, 400).map((g) => (
+                  <tbody>{gdLoc.slice(0, 400).map((g) => (
                     <tr key={g.id}>
                       <td className="whitespace-nowrap tabular-nums">{ngayNam(g.ngay)}</td><td>{g.ca}</td>
                       <td><Badge tone={g.loai === "nhap" || g.loai === "dau_ky" ? "ok" : g.loai === "xuat" ? "warn" : g.loai === "kiem_ke" ? "info" : "default"}>{TEN_GD[g.loai]}</Badge></td>

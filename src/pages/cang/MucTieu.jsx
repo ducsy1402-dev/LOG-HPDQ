@@ -10,9 +10,9 @@ import { cn } from "@/lib/utils";
 import SanLuongTab from "./SanLuongTab";
 
 // Khai thác Cảng › Mục tiêu sản lượng, hai tab:
-//   Mục tiêu khai thác cảng : mục tiêu theo hướng nhập / xuất và loại hàng + nhập thực tế theo ca / ngày.
-//   Mục tiêu khai thác vận tải: mục tiêu theo hướng (phục vụ cảng / sản xuất), loại xe, đơn vị thực hiện (Hòa Phát / nhà thầu) + nhập thực tế theo ca / ngày.
-// Kỳ: Tháng (bảng mục tiêu + nhập số theo ca / ngày), Quý hoặc Năm (mục tiêu nhập riêng cho kỳ, SQL 10; thực tế cộng từ các tháng).
+//   Mục tiêu khai thác cảng : mục tiêu theo hướng nhập / xuất và loại hàng + nhập thực tế theo ngày.
+//   Mục tiêu khai thác vận tải: mục tiêu theo hướng (phục vụ cảng / sản xuất), loại xe, đơn vị thực hiện (Hòa Phát / nhà thầu) + nhập thực tế theo ngày.
+// Kỳ: Tháng (bảng mục tiêu + nhập số theo ngày), Quý hoặc Năm (mục tiêu nhập riêng cho kỳ, SQL 10; thực tế cộng từ các tháng).
 // Kỳ đang chọn dùng chung cho cả hai tab. Tổng quan › Khối lượng xếp dỡ vẫn so khối lượng chuyến tàu với mục tiêu cảng của tháng.
 const luu = (k, v) => { try { localStorage.setItem(k, v); } catch { /* bỏ qua */ } };
 const doc = (k, mac) => { try { return localStorage.getItem(k) || mac; } catch { return mac; } };
@@ -32,7 +32,7 @@ export default function MucTieu() {
   const ky = chon[kyLoai];
   return (
     <>
-      <PageHead title="Mục tiêu sản lượng" desc="Mục tiêu tháng, quý, năm và số liệu thực tế theo ca, theo ngày của khai thác cảng và khai thác vận tải.">
+      <PageHead title="Mục tiêu sản lượng" desc="Mục tiêu tháng, quý, năm và số liệu thực tế theo ngày của khai thác cảng và khai thác vận tải.">
         <div className="inline-flex overflow-hidden rounded-md border" role="tablist" aria-label="Kỳ mục tiêu">
           {KY.map(([k, ten]) => (
             <button key={k} type="button" role="tab" aria-selected={kyLoai === k} onClick={() => { setKyLoai(k); luu("lg-mt-ky", k); }}
