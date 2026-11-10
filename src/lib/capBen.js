@@ -215,23 +215,27 @@ export function noiViPham(t) {
 export function nhanCho(t, v) {
   const khac = t.ds.filter((x) => x.id !== v?.id && x.ten_tau !== v?.ten_tau).map((x) => x.ten_tau);
   const khung = `${gio(t.a)} → ${gio(t.b)}`;
-  const ten = (x) => `${x.ten_tau} ${x.loa ? `${met(x.loa)} m` : "(chưa có LOA)"} (bến ${t.viTriTau?.get(x.id) || "?"})`;
+  const ten = (x) => `${x.ten_tau} ${x.loa ? `${x._loaUoc ? "≈" : ""}${met(x.loa)} m` : "(chưa có LOA)"} (bến ${t.viTriTau?.get(x.id) || "?"})`;
   if (t.thieu) return `Trùng bến ${t.ben} với ${khac.join(", ")} (${khung}); chưa đủ LOA tàu / mét bến để tính số mét`;
   if (t.ds.length === 1) return `Bến ${t.ben}: ${noiViPham(t)}${t.thieuM ? `, thiếu ${met(t.thieuM)} m` : ""}`;
   return `Bến ${t.ben} cùng lúc ${t.ds.map(ten).join(" + ")} (${khung}): ${noiViPham(t)}${t.thieuM ? `, thiếu ${met(t.thieuM)} m` : ""}`;
 }
 
-const segsCuaChuyen = (v, stopsOf, now) => doanBen(v, stopsOf(v.id), now).filter((d) => d.ben).map((d) => ({ v, a: d.a, b: d.b, ben: d.ben, phu: d.phu, viTri: d.viTri, nguon: d.nguon, cuoi: d.cuoi, dau: d.dau }));
+// Tàu chưa có LOA (VD tàu TBA) tính theo LOA ước (từ DWT / khối lượng / mớn, không có gì thì 150 m), giống lịch theo mét; v._loaUoc = true.
+// Trước đây tàu thiếu LOA bị coi là chiếm cả bến, làm tàu khác cùng tuyến phải chờ vô lý (anh Sỹ báo 10/11/2026).
+export const loaUoc = (v) => (+v.loa > 0 ? v : { ...v, loa: uocThongSo(v).loa || 150, _loaUoc: true });
+const segsCuaChuyen = (v0, stopsOf, now) => { const v = loaUoc(v0); return doanBen(v, stopsOf(v.id), now).filter((d) => d.ben).map((d) => ({ v, a: d.a, b: d.b, ben: d.ben, phu: d.phu, viTri: d.viTri, nguon: d.nguon, cuoi: d.cuoi, dau: d.dau })); };
 
 // ETB sớm nhất (ms) của chuyến v ở bến benMa từ thời điểm tu, ở lại dai (ms): chia sẻ bến theo số mét (hai tàu cùng bến cùng lúc nếu đủ chỗ theo quy tắc
-// cập cầu bến, xem phanTichCho); không đủ chỗ thì chờ tàu trước rời + 2 giờ. Tàu chưa có LOA / bến chưa có mét coi như chiếm cả bến.
+// cập cầu bến, xem phanTichCho); không đủ chỗ thì chờ tàu trước rời + 2 giờ. Tàu chưa có LOA tính theo LOA ước; bến / tuyến chưa có mét thì coi như chiếm cả bến.
 // Mỗi tàu được tính thêm 2 giờ sau khi rời (cách tàu cập sau). v.loa nên là LOA đã có hoặc ước.
 export function etbSomNhatMet(v, benMa, tu, dai, { voyages = [], berths = [], stopsOf = () => [], now = Date.now(), cach = CACH_TAU_TRUOC } = {}) {
+  const vv = loaUoc(v);
   const khac = voyages.filter((o) => !o.huy && !o.atd && o.id !== v.id).flatMap((o) => segsCuaChuyen(o, stopsOf, now)).map((s) => ({ ...s, b: s.b + cach }));
   const moc = [...new Set([tu, ...khac.map((s) => s.b).filter((t) => t > tu)])].sort((x, y) => x - y);
   for (const t of moc) {
-    const ung = { v, a: t, b: t + dai + cach, ben: benMa, phu: v.ben_phu || "", viTri: v.vi_tri };
-    if (!phanTichCho([...khac, ung], berths).some((x) => x.ds.includes(v))) return t;
+    const ung = { v: vv, a: t, b: t + dai + cach, ben: benMa, phu: v.ben_phu || "", viTri: v.vi_tri };
+    if (!phanTichCho([...khac, ung], berths).some((x) => x.ds.includes(vv))) return t;
   }
   return moc[moc.length - 1] ?? tu;
 }
@@ -252,9 +256,9 @@ export function choBenTheoChuyen(voyages, berths = [], stopsOf = () => [], now =
 // Thử xếp chuyến v vào bến benMa (bến phụ v.ben_phu, vị trí v.vi_tri) trong [a, b] (ms) với các chuyến khác: các khoảng không đủ chỗ có liên quan tới v
 export function kiemTraXepBen(v, benMa, a, b, { voyages = [], berths = [], stopsOf = () => [], now = Date.now() } = {}) {
   if (!benMa || !(a < b)) return [];
-  const segs = [{ v, a, b, ben: benMa, phu: v.ben_phu || "", viTri: v.vi_tri }];
+  const vv = loaUoc(v), segs = [{ v: vv, a, b, ben: benMa, phu: v.ben_phu || "", viTri: v.vi_tri }];
   for (const o of voyages) if (!o.huy && o.id !== v.id) segs.push(...segsCuaChuyen(o, stopsOf, now));
-  return phanTichCho(segs, berths).filter((t) => t.ds.some((x) => x === v));
+  return phanTichCho(segs, berths).filter((t) => t.ds.some((x) => x === vv));
 }
 
 // Sơ đồ cầu bến tại thời điểm t (ms): mỗi tuyến một dòng, tàu đang cập kèm mét đầu (cố định hoặc web tự xếp), số mét cần, còn trống,

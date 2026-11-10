@@ -216,6 +216,21 @@ describe("Hàng chờ động (10/11): xếp lại giờ cập theo thứ tự �
     const r = xep1(tau(1, { eta: iso(T("09T00:00")), khoi_luong: 5000, ben_ma: null }), { berths: B1, voyages: [sau], now });
     expect(new Date(r.etb).getTime()).toBe(T("09T00:00"));
   });
+  it("tàu chưa có LOA (TBA) ở bến cùng tuyến không chiếm cả tuyến: tàu khác nối đuôi tàu trước ở đúng bến, không bị đẩy tới sau cả nhóm TBA", () => {
+    const BT = [
+      { ma: "B03", dwt_max: 40000, mon_max: 12, loa_max: 200, loai_hang: "Than, Quặng", thu_tu: 4 },
+      { ma: "B05", dwt_max: 150000, mon_max: 14.7, loa_max: 300, loai_hang: "Than, Quặng", thu_tu: 6 },
+      { ma: "B10", dwt_max: 250000, mon_max: 18.5, loa_max: 410, loai_hang: "Than, Quặng", thu_tu: 11 },
+    ];
+    const jolly = tau(1, { ten_tau: "JOLLY", loa: 229, ben_ma: "B10", eta: iso(T("05T00:00")), atb: iso(T("05T00:00")), etb: iso(T("05T00:00")), etd: iso(T("20T03:00")) });
+    // hai tàu TBA đến sớm hơn ANGLO (có NOR), chưa có LOA / DWT / mớn, cùng tuyến B03-B05-B10, ở bến cả tháng (100.000 t ÷ 3.500 t/ngày); LOA ước theo DWT ≈ 170 m
+    const tba1 = { id: 2, ten_tau: "TBA", loai_hang: "Than", dwt: 25000, khoi_luong: 100000, cam_ket: 3500, ben_ma: "B05", eta: iso(T("10T00:00")), nor: iso(T("10T00:00")), etb: iso(T("11T00:00")), etd: iso(T("25T00:00")) };
+    const tba2 = { ...tba1, id: 3, ten_tau: "MT HÀ NỘI", ben_ma: "B03" };
+    const anglo = tau(4, { ten_tau: "ANGLO", loa: 255, ben_ma: "B10", eta: iso(T("12T18:00")), etb: iso(T("22T15:01")), etd: iso(T("30T06:31")), khoi_luong: 75000, cam_ket: 10000 });
+    const doi = hangChoLai([jolly, tba1, tba2, anglo], { berths: BT, now });
+    const a = doi.find((d) => d.v.id === 4);
+    expect(new Date(a.patch.etb).getTime()).toBe(T("20T05:00")); // = JOLLY rời 20/11 03:00 + 2 giờ
+  });
   it("ngẫu nhiên: nhiều tàu nhập tay, sau khi xếp lại không còn tàu nào thiếu mét, ★ và ETA sớm đứng trước", () => {
     let seed = 7; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
     for (let lan = 0; lan < 25; lan++) {
