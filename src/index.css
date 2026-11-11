@@ -61,7 +61,7 @@
   * { @apply border-border; }
   html { font-size: 15.2px; } /* thu nhỏ ~95% toàn web: mọi cỡ rem (chữ, biểu tượng, khoảng cách) co theo */
   body { @apply bg-background text-foreground font-sans antialiased; font-size: 0.9rem; }
-  .dark body { background-image: linear-gradient(rgba(56, 189, 248, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(56, 189, 248, 0.05) 1px, transparent 1px), linear-gradient(180deg, #03163a 0%, #062a5c 100%); background-size: 24px 24px, 24px 24px, auto; background-attachment: fixed; }
+  .dark body { background-image: linear-gradient(rgba(56, 189, 248, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(56, 189, 248, 0.05) 1px, transparent 1px), radial-gradient(ellipse 55% 45% at 12% 8%, rgba(37, 120, 255, 0.34), transparent 70%), radial-gradient(ellipse 45% 40% at 88% 62%, rgba(0, 200, 255, 0.2), transparent 70%), radial-gradient(ellipse 50% 40% at 40% 100%, rgba(80, 90, 255, 0.22), transparent 70%), linear-gradient(180deg, #03163a 0%, #062a5c 100%); background-size: 24px 24px, 24px 24px, auto, auto, auto, auto; background-attachment: fixed; }
   input[type="datetime-local"]::-webkit-calendar-picker-indicator { opacity: 0.6; cursor: pointer; }
   .dark input[type="datetime-local"]::-webkit-calendar-picker-indicator { filter: invert(1); }
 }
@@ -92,9 +92,15 @@
   /* Số trong bảng: chữ số đơn cách xanh lá như ô số liệu SCADA (class tiện ích như text-bad vẫn thắng) */
   :where(.dark) .tbl td.num { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 0.92em; color: hsl(var(--ok)); }
   /* Ô nhập liệu: ô tối viền xanh */
-  .dark :is(input, select, textarea):not([type="checkbox"]):not([type="radio"]):not([type="range"]) { background-color: #04162b; border-color: hsl(var(--input)); }
+  .dark :is(input, select, textarea):not([type="checkbox"]):not([type="radio"]):not([type="range"]) { background-color: rgba(130, 190, 255, 0.1); border-color: rgba(130, 190, 255, 0.32); transition: background-color 0.15s, border-color 0.15s; }
+  .dark :is(input, select, textarea):not([type="checkbox"]):not([type="radio"]):not([type="range"]):hover { background-color: rgba(130, 190, 255, 0.15); border-color: rgba(130, 190, 255, 0.5); }
+  .dark :is(input, select, textarea):not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus { background-color: rgba(130, 190, 255, 0.18); border-color: hsl(var(--primary) / 0.8); }
+  .dark option { background-color: #0a2c60; color: #eaf4ff; }
   /* Thẻ và hộp: viền xanh sáng, hơi phát sáng */
-  .dark .bg-card, .dark [class*="bg-card/"] { background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 45%); }
-  .dark .bg-card { box-shadow: 0 0 0 1px rgba(56, 130, 220, 0.25), 0 2px 14px rgba(2, 12, 40, 0.5); }
+  /* Khối nền xuyên thấu (kính mờ): thẻ, khung biểu đồ, ô chỉ số trong suốt để thấy nền xanh phía sau; ô sticky / hộp thoại / toàn màn hình giữ đặc cho dễ đọc */
+  .dark :is(.rounded-lg, .rounded-xl, .rounded-2xl, .rounded-md)[class*="bg-card"], .dark button[class*="bg-card"] { background-color: hsl(var(--card) / 0.38); background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.015) 42%); -webkit-backdrop-filter: blur(12px) saturate(1.25); backdrop-filter: blur(12px) saturate(1.25); border-color: rgba(130, 190, 255, 0.26); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 8px 26px rgba(2, 10, 35, 0.32); }
+  .dark .tbl tbody tr:hover { background-color: rgba(130, 190, 255, 0.1); }
+  .dark [role="dialog"], .dark [data-tmh], .dark .fixed[class*="bg-card"] { background-color: hsl(var(--popover) / 0.96) !important; -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); }
+  .dark [role="listbox"], .dark [role="menu"] { background-color: hsl(var(--popover) / 0.96); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
   .dark ::-webkit-scrollbar-thumb { background: #1e5a94; border-radius: 6px; }
 }
