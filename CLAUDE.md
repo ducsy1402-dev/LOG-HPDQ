@@ -64,8 +64,13 @@ Thay đổi CSDL về sau: viết file SQL mới đánh số tiếp (07, 08…),
 - Cột "Thực hiện" của bảng mục tiêu = tổng số đã nhập ở bảng thực tế (không còn lấy theo khối lượng chuyến tàu; vẫn ghi chú "tàu trong tháng X t" để đối chiếu). Quản lý trở lên đặt mục tiêu; nhập liệu trở lên nhập số thực tế (xóa số trong ô = xóa dòng).
 - Tổng quan › Khối lượng xếp dỡ **chưa đổi**: vẫn lấy khối lượng chuyến tàu so với mục tiêu cảng.
 
-## Kho › Sơ đồ bãi (02/11/2026)
-- Tab Sơ đồ bãi là **sơ đồ tư duy khổ ngang** (`src/pages/kho/SoDoTuDuy.jsx`): kho ở góc trên trái, một đường ngang chung nối xuống một hàng các bãi lớn, mỗi bãi lớn nối xuống các bãi nhỏ xếp dọc; màu nút / đường nối theo mức lấp đầy; bấm bãi lớn mở chi tiết, mũi tên thu gọn / mở bãi nhỏ; có nút thu phóng (35–130%) và "Vừa khung". Phần hiển thị dùng chung của trang Kho ở `khoUi.jsx`.
+## Kho › Sơ đồ bãi (11/11/2026, thay sơ đồ tư duy)
+- `src/pages/kho/SoDoKhoBai.jsx`: sơ đồ CÂY có biểu tượng, nền xanh đậm cố định (theo mẫu anh Sỹ): mỗi khu vực một phần → bãi lớn (biểu tượng lớn + cột chữ bên phải) → ngoặc nối → bãi nhỏ / gian (biểu tượng nhỏ + cột chữ bên phải). Bãi lớn chỉ có 1 bãi nhỏ vẽ khối gọn (4 khối một hàng); bãi lớn trên 6 bãi nhỏ chia 3 cột. Đầu trang chỉ có ô tìm (bãi, gian, hàng). Bấm bãi mở `ChiTietBai`.
+- Biểu tượng: **kho mái che** = mái vòm bán trụ khung sáng; **bãi lộ thiên** = đống vòm khung sáng (không vẽ nền bê tông), 1–2 đống theo tỉ lệ tồn của 2 hàng nhiều nhất. Mái che lấy cột "mái che" ở Khai báo kho / bãi nếu có; chưa có thì đoán theo tên (bắt đầu bằng "Kho", trừ "Kho hở").
+- Hiệu ứng **mực đầy**: khối màu mặt sóng dâng từ đáy tới đúng % lấp đầy (CSS animation, dâng lại khi % đổi); xanh < 85% ≤ vàng < 95% ≤ đỏ (nhấp nháy). Mức chung ở `mucDay` (`khoUi.jsx`).
+- Chỉ tiêu sức chứa: kho nguyên liệu hiện **thể tích tối đa** (chỉ số, m³) = diện tích × chiều cao chất đống (không có thì sức chứa ÷ tỉ trọng); kho thành phẩm hiện **diện tích (m²) · số lớp** khả dụng (`so_lop`). Bãi lớn: diện tích khai báo ưu tiên, không có thì cộng các bãi nhỏ.
+- **Bản đồ định vị** (`BanDoDinhVi.jsx`): khung nhỏ nổi góc phải dưới, mỗi khu vực một ghim (màu theo mức đầy); bấm ghim cuộn tới khu, hiện các bãi lớn của khu (chấm + danh sách) → bấm để cuộn tới bãi (khung vàng nhấp nháy). Chưa có toạ độ thật: ghim xếp đều theo thứ tự khu vực. Thu nhỏ được.
+- Đã bỏ sơ đồ tư duy cũ, các bản demo 3D / SCADA và dấu + thêm bãi trên sơ đồ (thêm bãi ở Danh mục › Kho bãi / Khai báo kho / bãi).
 - "Ngày cấp" (kho nguyên liệu) = tồn của hàng đó ở mọi bãi ÷ tiêu thụ bình quân mỗi ngày (ô "Tiêu thụ / ngày" ở Danh mục › Kho bãi; trống thì lấy tổng xuất 30 ngày ÷ 30). Dưới 7 ngày vàng, dưới 3 ngày đỏ.
 
 ## Tổng quan dạng bảng điều khiển (03/11/2026)
@@ -91,11 +96,6 @@ Thay đổi CSDL về sau: viết file SQL mới đánh số tiếp (07, 08…),
 - **Xếp lại toàn bộ** (nút ở Linetime, quản lý trở lên; `xepLai` + `XepLaiToanBo.jsx`): xếp lại mọi chuyến chưa có ATB (bỏ bến / vị trí / ETB / ETD cũ), xem trước cũ → mới từng chuyến, tick Giữ nguyên để chuyến đó giữ chỗ (chuyến khác xếp quanh), lưu một lần. Tàu đã cập thật không bị đụng. Tàu có bến rồi **không tự dời** khi không bấm nút; chỉ ETB tự dời sau ETA / tàu trước khi sửa ETA hoặc ETB.
 - **Tự xếp bến nền** (`src/pages/cang/TuXepTuDong.jsx`, gắn ở `App.jsx`): người có quyền nhập liệu phần Cảng mở web, chuyến chưa cập thật mà chưa có bến thì web tự xếp rồi lưu (thông báo "Web đã tự xếp bến cho n chuyến"). Chuyến không bến nào hợp thì để ở dòng "chưa xếp bến" và chỉ thử lại khi thông số của chuyến đổi. Nút **Xếp lại toàn bộ** hiện cho người có quyền nhập liệu trở lên.
 - **Khớp loại hàng với bến** (`khopLoaiHang` trong `src/lib/xepBen.js`, dùng cho tự xếp và cảnh báo "hàng không có trong danh mục của bến"): so cả cụm từ chứ không so từng từ lẻ ("Xỉ thép" không khớp "Thép thành phẩm"). Sửa chuyến chưa cập thật có nút **Tự xếp lại bến** (đổi hàng, khối lượng… thì bấm để web chọn lại bến, ETB, ETD); bến đã có không tự đổi khi sửa hàng.
-
-## Kho › Sơ đồ bãi: khu vực, diện tích, dấu + (04/11/2026)
-- Sơ đồ nay là kho → **khu vực** (cột Phạm vi / Khu vực ở Danh mục › Khai báo kho / bãi) → bãi lớn → bãi nhỏ; có ô **lọc khu vực** ở đầu sơ đồ (chọn một khu thì chỉ vẽ khu đó). Không có khu vực nào khai báo thì vẽ như cũ (không tầng khu vực).
-- Thẻ bãi lớn: **diện tích phân bổ** (tổng diện tích các bãi nhỏ) trên **diện tích bãi lớn** khai báo (`khaiBaoBai(...).dienTich`), thanh theo tỉ lệ diện tích; **vượt** thì viền / chữ đỏ kèm "Vượt n m²", đầu sơ đồ báo số bãi vượt. Tồn và % lấp đầy vẫn hiện nhỏ bên dưới.
-- Dấu **+** (quản trị kho, `ThemBai.jsx`): cuối mỗi bãi lớn "Thêm bãi nhỏ" (gian / lô vào bảng kho_bai), cuối mỗi khu vực "Thêm bãi lớn" (khai báo danh_muc_bang `bai_lon` + gian / lô đầu tiên). Hộp thêm cảnh báo khi diện tích phân bổ vượt tổng.
 
 ## Chốt 09/11/2026: xếp bến, nhập liệu kho, định dạng số
 - **Mét Cảng Tổng hợp**: 7CTH 0–250, 6CTH 250–490 (`VI_TRI_MAC_DINH`, demo, SQL 03 / 08; CSDL đang chạy cần `sql/09_sua_met_ben_cth.sql`).

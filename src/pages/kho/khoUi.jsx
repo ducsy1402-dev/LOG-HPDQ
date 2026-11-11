@@ -3,6 +3,8 @@ import { so, pct, ngayNam } from "@/lib/format";
 import { NGUONG_KHO } from "@/lib/kho";
 
 // Phần hiển thị dùng chung của trang Kho: màu lấp đầy, thanh lấp đầy, dự kiến đầy, thông qua, lưu bãi (Sơ đồ bãi, chi tiết bãi)
+// Mức lấp đầy: ok < 85% ≤ warn < 95% ≤ bad (vượt sức chứa cũng là bad); chưa có sức chứa = xam
+export const mucDay = (p) => (p == null ? "xam" : p > 1.0001 || p >= NGUONG_KHO.do ? "bad" : p >= NGUONG_KHO.vang ? "warn" : "ok");
 export const mauDay = (p) => (p == null ? "bg-muted-foreground/40" : p > 1.0001 || p >= NGUONG_KHO.do ? "bg-bad" : p >= NGUONG_KHO.vang ? "bg-warn" : "bg-ok");
 
 export const KIEU_TONE = { co_dinh_hang: "info", co_dinh_nhom: "primary", tu_do: "ok", hon_hop: "outline" };

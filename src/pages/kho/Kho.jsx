@@ -13,7 +13,7 @@ import { so, pct, r2, ngayNam, matchQ, plain } from "@/lib/format";
 import { LOAI_GD, TRANG_THAI_LO, NGUONG_KHO, tonTheoNgay } from "@/lib/kho";
 import { cn } from "@/lib/utils";
 import { mauDay, KIEU_TONE, KIEU_NGAN, Chi, Thanh, NgayDay, ThongQua, LuuBai, T_NGAY_DAY, T_LUU_BAI, T_THONG_QUA, T_NHAP_XUAT } from "./khoUi";
-import SoDoTuDuy from "./SoDoTuDuy";
+import SoDoKhoBai from "./SoDoKhoBai";
 import { useKho } from "./useKho";
 import GiaoDichForm, { KiemKeForm, SuaKiemKe } from "./GiaoDichForm";
 import DanNhanhKho from "./DanNhanhKho";
@@ -150,7 +150,7 @@ export default function Kho({ loai }) {
 
         <TabsContent value="so-do">
           {bai.length || quyen.kho.quanTri ? (
-            <SoDoTuDuy bai={bai} kho={kho} ten={TEN_LOAI[loai]} tp={tp} loai={loai} onMo={setMoBai} coSua={quyen.kho.quanTri} />
+            <SoDoKhoBai bai={bai} kho={kho} tp={tp} ten={TEN_LOAI[loai]} onMo={setMoBai} />
           ) : <Empty>Chưa có bãi {tp ? "thành phẩm" : "nguyên liệu"}. Thêm ở Danh mục › Kho bãi (loại kho tự theo nhóm hàng, sửa được).</Empty>}
         </TabsContent>
 
