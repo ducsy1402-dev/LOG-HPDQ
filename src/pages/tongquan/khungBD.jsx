@@ -27,7 +27,7 @@ export function Khung({ ten, phu, bo, chiTiet, onChiTiet, className, cao, childr
           <NutToanManHinh on={to} onClick={doiTo} className="h-6 w-6" />
         </div>
       </div>
-      <PhongToCtx.Provider value={to}>{cao && !to ? <div className="min-h-0 flex-1 overflow-auto pr-1 [scrollbar-width:thin]">{children}</div> : children}</PhongToCtx.Provider>
+      <PhongToCtx.Provider value={to}>{cao && !to ? <div className="flex min-h-0 flex-1 flex-col overflow-auto pr-1 [justify-content:safe_center] [scrollbar-width:thin]">{children}</div> : children}</PhongToCtx.Provider>
       {mo && chiTiet && (
         <Dialog onOpenChange={(o) => !o && setMo(false)} className="max-w-4xl" title={chiTiet.title || ten} description={chiTiet.description || phu}>
           {chiTiet.node}

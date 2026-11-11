@@ -14,7 +14,7 @@ import BanDoDinhVi from "./BanDoDinhVi";
 //   • Thể tích (m³): đang chứa = Σ tồn ÷ tỉ trọng hàng; tối đa = diện tích × chiều cao chất đống (không có thì sức chứa ÷ tỉ trọng). Bãi lớn = tổng các bãi nhỏ.
 // Kho / bãi có mái che: lấy cột "mái che" ở Danh mục › Khai báo kho / bãi nếu có; chưa có thì đoán theo tên (tên bắt đầu bằng "Kho", trừ "Kho hở" → có mái che).
 // BS / SM: tỉ lệ biểu tượng lớn / nhỏ; TX: cột chữ của bãi lớn; SX: trục ngoặc; XC: chỗ bắt đầu bãi nhỏ; SLOT: ô một bãi nhỏ
-const VB = 1560, PAD = 16, BGAP = 20, ROW = 72, SM = 0.52, BS = 0.72, BG_H = 96, TX = 150, SX = 296, XC = 316, SLOT = 256, BW = XC + SLOT, CW_GON = 292, GON_H = 104;
+const VB = 1480, PAD = 16, BGAP = 20, ROW = 72, SM = 0.52, BS = 0.72, BG_H = 96, TX = 150, SX = 296, XC = 316, SLOT = 256, BW = XC + SLOT, CW_GON = 292, GON_H = 104;
 const VIEN = { ok: "#9ad7ff", warn: "#fcd34d", bad: "#fb7185", xam: "#9ad7ff" };
 const CHU = { ok: "#86efac", warn: "#fcd34d", bad: "#fda4af", xam: "#9fb7d9" };
 const FILL = { ok: "#34d399", warn: "#fbbf24", bad: "#f43f5e", xam: "#64748b" };

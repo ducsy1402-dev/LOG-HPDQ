@@ -52,11 +52,11 @@ function BanhVong({ ds }) {
   const data = [...top, ...(khac > 0 ? [{ name: "Khác", value: r2(khac) }] : [])].map((d, i) => ({ ...d, itemStyle: { color: MAU_LAT[i % MAU_LAT.length] } }));
   return (
     <div className="relative">
-      <EChart height={270} option={{
+      <EChart height={268} option={{
         tooltip: { trigger: "item", formatter: (p) => `${p.marker}${p.name}: <b>${so(p.value)} t</b> (${pct(p.value / tong, 1)})` }, legend: { type: "scroll", bottom: 0, itemWidth: 10, itemHeight: 8, textStyle: { fontSize: 10 } },
-        series: [{ type: "pie", radius: ["46%", "70%"], center: ["50%", "42%"], label: { show: false }, itemStyle: { borderRadius: 4, borderColor: "transparent", borderWidth: 2 }, data }],
+        series: [{ type: "pie", radius: ["46%", "70%"], center: ["50%", "45%"], label: { show: false }, data }],
       }} />
-      <div className="pointer-events-none absolute left-1/2 top-[42%] -translate-x-1/2 -translate-y-1/2 text-center leading-tight"><div className="text-lg font-semibold tabular-nums">{nghin(tong)}</div><div className="text-[0.6875rem] text-muted-foreground">tấn</div></div>
+      <div className="pointer-events-none absolute left-1/2 top-[45%] -translate-x-1/2 -translate-y-1/2 text-center leading-tight"><div className="text-lg font-semibold tabular-nums">{nghin(tong)}</div><div className="text-[0.6875rem] text-muted-foreground">tấn</div></div>
     </div>
   );
 }

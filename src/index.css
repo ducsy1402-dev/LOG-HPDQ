@@ -59,7 +59,7 @@
     color-scheme: dark;
   }
   * { @apply border-border; }
-  html { font-size: 14.5px; } /* thu nhỏ ~90% toàn web: mọi cỡ rem (chữ, biểu tượng, khoảng cách) co theo */
+  html { font-size: 15.2px; } /* thu nhỏ ~95% toàn web: mọi cỡ rem (chữ, biểu tượng, khoảng cách) co theo */
   body { @apply bg-background text-foreground font-sans antialiased; font-size: 0.9rem; }
   .dark body { background-image: linear-gradient(rgba(56, 189, 248, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(56, 189, 248, 0.05) 1px, transparent 1px), linear-gradient(180deg, #03163a 0%, #062a5c 100%); background-size: 24px 24px, 24px 24px, auto; background-attachment: fixed; }
   input[type="datetime-local"]::-webkit-calendar-picker-indicator { opacity: 0.6; cursor: pointer; }
@@ -94,6 +94,7 @@
   /* Ô nhập liệu: ô tối viền xanh */
   .dark :is(input, select, textarea):not([type="checkbox"]):not([type="radio"]):not([type="range"]) { background-color: #04162b; border-color: hsl(var(--input)); }
   /* Thẻ và hộp: viền xanh sáng, hơi phát sáng */
+  .dark .bg-card, .dark [class*="bg-card/"] { background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 45%); }
   .dark .bg-card { box-shadow: 0 0 0 1px rgba(56, 130, 220, 0.25), 0 2px 14px rgba(2, 12, 40, 0.5); }
   .dark ::-webkit-scrollbar-thumb { background: #1e5a94; border-radius: 6px; }
 }

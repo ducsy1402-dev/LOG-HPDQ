@@ -29,7 +29,7 @@ export default function BanDoDinhVi({ nhom, ten, onKhu, onDi, onToanKho }) {
       <MapIcon className="h-4 w-4 text-primary" />Bản đồ
     </button>);
   return (
-    <div className="fixed bottom-5 right-5 z-30 w-[236px] overflow-hidden rounded-xl border bg-card/95 shadow-2xl backdrop-blur">
+    <div className="fixed bottom-5 right-5 z-30 w-[250px] overflow-hidden rounded-xl border bg-card/95 shadow-2xl backdrop-blur">
       <div className="flex items-center justify-between gap-2 border-b px-2.5 py-1.5 text-xs">
         <span className="inline-flex min-w-0 items-center gap-1 font-semibold"><MapIcon className="h-3.5 w-3.5 shrink-0 text-primary" /><span className="truncate">Bản đồ {ten.toLowerCase()}</span></span>
         <span className="flex shrink-0 items-center gap-1">

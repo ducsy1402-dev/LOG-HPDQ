@@ -65,7 +65,7 @@ Thay đổi CSDL về sau: viết file SQL mới đánh số tiếp (07, 08…),
 - Tổng quan › Khối lượng xếp dỡ **chưa đổi**: vẫn lấy khối lượng chuyến tàu so với mục tiêu cảng.
 
 ## Giao diện kiểu SCADA, chữ nhỏ gọn (12/11/2026, nhánh giao-dien-scada)
-- **Cỡ chữ / biểu tượng ~90%**: `html { font-size: 14.5px }` ở `src/index.css` (mọi cỡ rem co theo), body 0,9 rem. Chữ cố định `text-[Npx]` đã đổi sang rem (sàn 10 px); viết mới nên dùng rem. Sơ đồ bãi vẽ SVG khung 1560 nên cũng nhỏ lại.
+- **Cỡ chữ / biểu tượng ~95%** (anh Sỹ chốt 12/11): `html { font-size: 15.2px }` ở `src/index.css` (mọi cỡ rem co theo), body 0,9 rem. Chữ cố định `text-[Npx]` đã đổi sang rem (sàn 10 px); viết mới nên dùng rem. Sơ đồ bãi vẽ SVG khung 1480 nên cũng nhỏ lại. Khung biểu đồ cố định chiều cao (`Khung cao`) căn biểu đồ vào giữa (safe center). **Biểu đồ bóng** (`bong()` trong `EChart.jsx`): bảng màu mặc định dịu, cột / bánh tô chuyển sắc + bóng đổ, đường mượt có quầng sáng, vùng dưới đường mờ dần.
 - **Font**: Roboto Condensed (`@fontsource/roboto-condensed`, có tiếng Việt) làm font chữ thường, Be Vietnam Pro dự phòng, số liệu đơn cách JetBrains Mono. Biểu đồ ECharts dùng cùng font (`EChart.jsx`).
 - **Giao diện tối** (`.dark` trong `index.css`) theo màn hình điều khiển nhà máy: nền xanh đậm có lưới mờ; thẻ / khung viền xanh sáng; tab đang chọn và nút chính xanh bóng; tiêu đề cột bảng là ruy băng xanh; số trong bảng (`td.num`) chữ đơn cách xanh lá; ô nhập nền tối viền xanh; ok xanh lá `#4ade80`, cảnh báo vàng, lỗi đỏ hồng. Giao diện sáng giữ như cũ (chỉ đổi font, cỡ chữ).
 
