@@ -33,35 +33,35 @@
   }
   /* Giao diện tối kiểu SCADA (màn hình điều khiển nhà máy): nền xanh đậm, khung xanh sáng, số xanh lá, vàng cảnh báo */
   .dark {
-    --background: 210 82% 22%;
-    --foreground: 208 100% 97%;
-    --card: 208 80% 33%;
-    --card-foreground: 208 100% 97%;
-    --popover: 209 80% 27%;
-    --popover-foreground: 208 100% 97%;
-    --primary: 197 95% 64%;
-    --primary-foreground: 215 90% 10%;
-    --secondary: 208 72% 36%;
-    --secondary-foreground: 208 100% 94%;
-    --muted: 209 75% 28%;
-    --muted-foreground: 210 70% 84%;
-    --accent: 208 72% 38%;
-    --accent-foreground: 208 100% 97%;
-    --destructive: 355 90% 64%;
+    --background: 176 72% 20%;
+    --foreground: 170 100% 97%;
+    --card: 174 68% 31%;
+    --card-foreground: 170 100% 97%;
+    --popover: 175 70% 24%;
+    --popover-foreground: 170 100% 97%;
+    --primary: 166 86% 64%;
+    --primary-foreground: 178 90% 9%;
+    --secondary: 174 60% 33%;
+    --secondary-foreground: 170 100% 94%;
+    --muted: 175 62% 25%;
+    --muted-foreground: 170 52% 82%;
+    --accent: 173 60% 34%;
+    --accent-foreground: 170 100% 97%;
+    --destructive: 355 90% 66%;
     --destructive-foreground: 0 0% 100%;
-    --border: 207 70% 46%;
-    --input: 207 65% 52%;
-    --ring: 197 95% 64%;
-    --ok: 142 71% 60%;
-    --warn: 53 97% 66%;
-    --bad: 355 94% 72%;
-    --info: 205 92% 68%;
+    --border: 172 58% 42%;
+    --input: 172 52% 50%;
+    --ring: 166 86% 64%;
+    --ok: 138 76% 64%;
+    --warn: 50 97% 66%;
+    --bad: 355 94% 73%;
+    --info: 198 92% 68%;
     color-scheme: dark;
   }
   * { @apply border-border; }
   html { font-size: 15.2px; } /* thu nhỏ ~95% toàn web: mọi cỡ rem (chữ, biểu tượng, khoảng cách) co theo */
   body { @apply bg-background text-foreground font-sans antialiased; font-size: 0.9rem; }
-  .dark body { background-image: linear-gradient(rgba(120, 200, 255, 0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(120, 200, 255, 0.06) 1px, transparent 1px), radial-gradient(ellipse 60% 50% at 12% 6%, rgba(60, 150, 235, 0.38), transparent 70%), radial-gradient(ellipse 50% 45% at 88% 60%, rgba(40, 190, 255, 0.24), transparent 70%), radial-gradient(ellipse 55% 45% at 40% 100%, rgba(100, 120, 255, 0.24), transparent 70%), linear-gradient(180deg, #0c4478 0%, #0a3566 100%); background-size: 24px 24px, 24px 24px, auto, auto, auto, auto; background-attachment: fixed; }
+  .dark body { background-image: linear-gradient(rgba(150, 255, 230, 0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(150, 255, 230, 0.06) 1px, transparent 1px), radial-gradient(ellipse 60% 50% at 12% 6%, rgba(30, 215, 175, 0.36), transparent 70%), radial-gradient(ellipse 50% 45% at 88% 60%, rgba(40, 215, 235, 0.22), transparent 70%), radial-gradient(ellipse 55% 45% at 40% 100%, rgba(70, 230, 150, 0.22), transparent 70%), linear-gradient(180deg, #0c5d5a 0%, #0a4745 100%); background-size: 24px 24px, 24px 24px, auto, auto, auto, auto; background-attachment: fixed; }
   input[type="datetime-local"]::-webkit-calendar-picker-indicator { opacity: 0.6; cursor: pointer; }
   .dark input[type="datetime-local"]::-webkit-calendar-picker-indicator { filter: invert(1); }
 }
@@ -84,23 +84,23 @@
 /* ---- Giao diện tối kiểu SCADA ---- */
 @layer components {
   /* Tab đang chọn: xanh bóng có viền sáng như nhãn "Coking", "Sinter" trên màn hình điều khiển */
-  .dark [role="tab"][data-state="active"] { background-image: linear-gradient(180deg, #5fb4f2 0%, #2a78cf 55%, #174b94 100%); color: #fff; border: 1px solid #bfe8ff; text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35); box-shadow: 0 0 10px rgba(56, 189, 248, 0.4); }
+  .dark [role="tab"][data-state="active"] { background-image: linear-gradient(180deg, #5eead4 0%, #14b8a6 55%, #0f766e 100%); color: #fff; border: 1px solid #ccfbf1; text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35); box-shadow: 0 0 12px rgba(45, 212, 191, 0.5); }
   /* Nút chính: xanh bóng */
-  .dark .bg-primary { background-image: linear-gradient(180deg, #5fb4f2 0%, #2a78cf 55%, #174b94 100%); color: #fff; text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35); }
+  .dark .bg-primary { background-image: linear-gradient(180deg, #5eead4 0%, #14b8a6 55%, #0f766e 100%); color: #fff; text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35); }
   /* Tiêu đề cột bảng: ruy băng xanh */
-  .dark .tbl th { background-image: linear-gradient(180deg, #3b82c4 0%, #1e4e8c 100%); color: #fff; border-color: rgba(96, 165, 250, 0.5); }
+  .dark .tbl th { background-image: linear-gradient(180deg, #2fa595 0%, #136b63 100%); color: #fff; border-color: rgba(94, 234, 212, 0.5); }
   /* Số trong bảng: chữ số đơn cách xanh lá như ô số liệu SCADA (class tiện ích như text-bad vẫn thắng) */
   :where(.dark) .tbl td.num { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 0.92em; color: hsl(var(--ok)); }
   /* Ô nhập liệu: ô tối viền xanh */
-  .dark :is(input, select, textarea):not([type="checkbox"]):not([type="radio"]):not([type="range"]) { background-color: rgba(150, 205, 255, 0.13); border-color: rgba(150, 205, 255, 0.4); transition: background-color 0.15s, border-color 0.15s; }
-  .dark :is(input, select, textarea):not([type="checkbox"]):not([type="radio"]):not([type="range"]):hover { background-color: rgba(130, 190, 255, 0.15); border-color: rgba(130, 190, 255, 0.5); }
-  .dark :is(input, select, textarea):not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus { background-color: rgba(130, 190, 255, 0.18); border-color: hsl(var(--primary) / 0.8); }
-  .dark option { background-color: #0d4777; color: #eaf4ff; }
+  .dark :is(input, select, textarea):not([type="checkbox"]):not([type="radio"]):not([type="range"]) { background-color: rgba(160, 255, 235, 0.13); border-color: rgba(160, 255, 235, 0.4); transition: background-color 0.15s, border-color 0.15s; }
+  .dark :is(input, select, textarea):not([type="checkbox"]):not([type="radio"]):not([type="range"]):hover { background-color: rgba(130, 190, 255, 0.15); border-color: rgba(160, 255, 235, 0.55); }
+  .dark :is(input, select, textarea):not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus { background-color: rgba(160, 255, 235, 0.19); border-color: hsl(var(--primary) / 0.8); }
+  .dark option { background-color: #0b5550; color: #eaf4ff; }
   /* Thẻ và hộp: viền xanh sáng, hơi phát sáng */
   /* Khối nền xuyên thấu (kính mờ): thẻ, khung biểu đồ, ô chỉ số trong suốt để thấy nền xanh phía sau; ô sticky / hộp thoại / toàn màn hình giữ đặc cho dễ đọc */
-  .dark :is(.rounded-lg, .rounded-xl, .rounded-2xl, .rounded-md)[class*="bg-card"], .dark button[class*="bg-card"] { background-color: hsl(var(--card) / 0.3); background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.02) 42%); -webkit-backdrop-filter: blur(12px) saturate(1.25); backdrop-filter: blur(12px) saturate(1.25); border-color: rgba(140, 200, 255, 0.4); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 8px 26px rgba(3, 20, 55, 0.28); }
-  .dark .tbl tbody tr:hover { background-color: rgba(130, 190, 255, 0.1); }
+  .dark :is(.rounded-lg, .rounded-xl, .rounded-2xl, .rounded-md)[class*="bg-card"], .dark button[class*="bg-card"] { background-color: hsl(var(--card) / 0.3); background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.02) 42%); -webkit-backdrop-filter: blur(12px) saturate(1.25); backdrop-filter: blur(12px) saturate(1.25); border-color: rgba(150, 245, 225, 0.4); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 8px 26px rgba(2, 40, 40, 0.3); }
+  .dark .tbl tbody tr:hover { background-color: rgba(160, 255, 235, 0.1); }
   .dark [role="dialog"], .dark [data-tmh], .dark .fixed[class*="bg-card"] { background-color: hsl(var(--popover) / 0.96) !important; -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); }
   .dark [role="listbox"], .dark [role="menu"] { background-color: hsl(var(--popover) / 0.96); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
-  .dark ::-webkit-scrollbar-thumb { background: #1e5a94; border-radius: 6px; }
+  .dark ::-webkit-scrollbar-thumb { background: #2a8f84; border-radius: 6px; }
 }
