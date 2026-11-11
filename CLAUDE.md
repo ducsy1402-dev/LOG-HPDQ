@@ -69,6 +69,13 @@ Thay đổi CSDL về sau: viết file SQL mới đánh số tiếp (07, 08…),
 - **Font**: Roboto Condensed (`@fontsource/roboto-condensed`, có tiếng Việt) làm font chữ thường, Be Vietnam Pro dự phòng, số liệu đơn cách JetBrains Mono. Biểu đồ ECharts dùng cùng font (`EChart.jsx`).
 - **Giao diện tối** (`.dark` trong `index.css`) theo màn hình điều khiển nhà máy: nền xanh đậm có lưới mờ; thẻ / khung viền xanh sáng; tab đang chọn và nút chính xanh bóng; tiêu đề cột bảng là ruy băng xanh; số trong bảng (`td.num`) chữ đơn cách xanh lá; ô nhập nền tối viền xanh; ok xanh lá `#4ade80`, cảnh báo vàng, lỗi đỏ hồng. Giao diện sáng giữ như cũ (chỉ đổi font, cỡ chữ).
 
+## Chốt 12/11/2026: nhập liệu kho nhiều dòng, biểu đồ tồn, thu gọn bảng sản lượng
+- **Kho › Nhập liệu** (`GiaoDichForm.jsx`): một lần mở hộp ghi được NHIỀU lượt: chọn Nhập / Xuất / Điều chuyển, điền, bấm **Thêm dòng** (đưa vào danh sách chờ, bỏ được từng dòng), đổi nghiệp vụ điền tiếp; **Lưu n lượt** ghi cả danh sách (kèm dòng đang điền nếu đã có số lượng) bằng một lần `addGiaoDich`. Kiểm tra tồn cộng / trừ các dòng chờ (nhập rồi xuất cùng lúc được). Sửa một lượt vẫn như cũ.
+- **Kho › Biểu đồ tồn** (`BieuDoTon.jsx`, bỏ biểu đồ tồn 30 ngày): Tồn theo loại hàng (theo hàng / nhóm hàng); Tồn theo bãi nhỏ (thanh tồn màu theo mức đè lên thanh sức chứa, lọc bãi lớn); Dự báo tồn theo loại hàng 15–90 ngày (mỗi ngày tồn + nhập − xuất; nhập / xuất theo Kế hoạch Xuất/Nhập tồn của tháng nếu có, không thì bình quân 30 ngày theo sổ; ghi ngày dự kiến hết hàng).
+- **Mục tiêu sản lượng**: bảng Mục tiêu, từng bảng Hàng nhập / Hàng xuất (hướng), bảng Sản lượng thực tế bấm tiêu đề để **thu gọn / mở**, nhớ trên máy (localStorage `lg-sl-thu-*`).
+- **Linetime ở Tổng quan phóng to**: `GanttMet` đọc `PhongToCtx`, lịch cao hết màn hình.
+- **Thiết bị cơ giới** (`src/thietbi/styles.css`): bảng màu tối đổi sang SCADA như phần còn lại (nền xanh đậm, khung xanh sáng, tiêu đề bảng ruy băng, số xanh lá), font Roboto Condensed, cỡ chữ đổi sang rem (co theo cỡ gốc 95%).
+
 ## Kho › Sơ đồ bãi (11/11/2026, thay sơ đồ tư duy)
 - `src/pages/kho/SoDoKhoBai.jsx`: sơ đồ CÂY có biểu tượng, nền xanh đậm cố định (theo mẫu anh Sỹ): mỗi khu vực một phần → bãi lớn (biểu tượng lớn + cột chữ bên phải) → ngoặc nối → bãi nhỏ / gian (biểu tượng nhỏ + cột chữ bên phải). Bãi lớn chỉ có 1 bãi nhỏ vẽ khối gọn (4 khối một hàng); bãi lớn trên 6 bãi nhỏ chia 3 cột. Đầu trang chỉ có ô tìm (bãi, gian, hàng). Bấm bãi mở `ChiTietBai`.
 - Biểu tượng: **kho mái che** = mái vòm bán trụ khung sáng; **bãi lộ thiên** = đống vòm khung sáng (không vẽ nền bê tông), 1–2 đống theo tỉ lệ tồn của 2 hàng nhiều nhất. Mái che lấy cột "mái che" ở Khai báo kho / bãi nếu có; chưa có thì đoán theo tên (bắt đầu bằng "Kho", trừ "Kho hở").

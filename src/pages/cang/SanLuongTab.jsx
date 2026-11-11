@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Copy, Plus, Save, X, RefreshCw } from "lucide-react";
+import { Copy, Plus, Save, X, RefreshCw, ChevronDown, ChevronRight } from "lucide-react";
 import { useApp } from "@/store";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input, NativeSelect } from "@/components/ui/input";
@@ -87,7 +87,22 @@ function useLoaiGoiY(nhom, daCo) {
 }
 
 // ---------- Bảng mục tiêu tháng ----------
+// Thu gọn / mở một bảng (anh Sỹ chốt 12/11/2026), nhớ trạng thái trên máy này
+function useThu(khoa) {
+  const doc = (k) => { try { return localStorage.getItem(k) === "1"; } catch { return false; } };
+  const [thu, setThu] = useState(() => doc(khoa));
+  useEffect(() => { setThu(doc(khoa)); }, [khoa]);
+  const dao = () => setThu((v) => { const n = !v; try { localStorage.setItem(khoa, n ? "1" : "0"); } catch { /* bỏ qua */ } return n; });
+  return [thu, dao];
+}
+const TieuDeThu = ({ thu, dao, children }) => (
+  <h2 className="text-sm font-semibold"><button type="button" onClick={dao} aria-expanded={!thu} title={thu ? "Mở bảng" : "Thu gọn bảng"} className="inline-flex items-center gap-1 hover:text-primary">
+    {thu ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}{children}</button></h2>);
+
 function BangMucTieu({ nhom, thang, kyLoai = "thang", mucTieu, mucTieuThang = [], thucTe, loc, onLuu }) {
+  const [thuMT, daoMT] = useThu(`lg-sl-thu-mt-${nhom}`);
+  const [thuH, setThuH] = useState(() => { try { return JSON.parse(localStorage.getItem(`lg-sl-thu-huong-${nhom}`) || "{}"); } catch { return {}; } });
+  const daoH = (h) => setThuH((o) => { const n = { ...o, [h]: !o[h] }; try { localStorage.setItem(`lg-sl-thu-huong-${nhom}`, JSON.stringify(n)); } catch { /* bỏ qua */ } return n; });
   const { D, quyen, api, run, toast } = useApp();
   const c = NHOM[nhom], nhomHang = useNhomHang();
   const goc = useMemo(() => Object.fromEntries(mucTieu.map((m) => { const r = tuDb(nhom, m); return [khoaCua(r), { huong: r.huong, loai: r.loai, donVi: r.donVi, hang: r.hang, tan: soGon(r.tan), ghi_chu: r.ghi_chu || "" }]; })), [mucTieu, nhom]);
@@ -143,7 +158,7 @@ function BangMucTieu({ nhom, thang, kyLoai = "thang", mucTieu, mucTieuThang = []
   return (
     <div className="grid gap-3">
       <div className="flex flex-wrap items-center gap-2">
-        <h2 className="text-sm font-semibold">Mục tiêu {tenK}</h2>
+        <TieuDeThu thu={thuMT} dao={daoMT}>Mục tiêu {tenK}</TieuDeThu>
         {sua && kyMode && tongThang.size > 0 && <Button size="sm" variant="outline" onClick={chepTruoc} title="Điền tổng mục tiêu các tháng trong kỳ vào các dòng còn trống"><Copy />Lấy tổng mục tiêu các tháng</Button>}
         {sua && !kyMode && dsTruoc?.length > 0 && <Button size="sm" variant="outline" onClick={chepTruoc} title="Điền mục tiêu tháng trước vào các dòng còn trống"><Copy />Chép mục tiêu {tenThang(truoc).toLowerCase()}</Button>}
         <div className="ml-auto flex flex-wrap gap-x-5 gap-y-1 text-sm">
@@ -151,14 +166,17 @@ function BangMucTieu({ nhom, thang, kyLoai = "thang", mucTieu, mucTieuThang = []
           <span><span className="text-muted-foreground">cộng</span> <b className="tabular-nums text-primary">{so(tongAll(tongMT))} t</b></span>
         </div>
       </div>
-      <div className="grid gap-3 lg:grid-cols-2">
+      {!thuMT && <><div className="grid items-start gap-3 lg:grid-cols-2">
         {c.huong.map(([huong, ten]) => {
           const ds = Object.entries(dong).filter(([, r]) => r.huong === huong && loc(r)).sort((a, b) => (docSo(b[1].tan) || 0) - (docSo(a[1].tan) || 0) || a[1].loai.localeCompare(b[1].loai, "vi") || a[1].hang.localeCompare(b[1].hang, "vi"));
           const mtT = tongMT(huong), thT = tongTH(huong), t = them[huong] || {};
           return (
             <div key={huong} className="rounded-md border">
-              <div className="flex items-center gap-2 border-b bg-muted/30 px-3 py-2 text-sm font-semibold">{ten}<span className="ml-auto text-xs font-normal text-muted-foreground">{ds.length} dòng</span></div>
-              <div className="scroll-x max-h-[50vh]">
+              <button type="button" onClick={() => daoH(huong)} aria-expanded={!thuH[huong]} title={thuH[huong] ? `Mở bảng ${ten}` : `Thu gọn bảng ${ten}`}
+                className={cn("flex w-full items-center gap-2 bg-muted/30 px-3 py-2 text-left text-sm font-semibold hover:bg-accent", !thuH[huong] && "border-b")}>
+                {thuH[huong] ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}{ten}
+                <span className="ml-auto text-xs font-normal text-muted-foreground">{ds.length} dòng{thuH[huong] ? ` · mục tiêu ${so(mtT)} t · thực hiện ${so(thT)} t${mtT ? ` (${pct(thT / mtT)})` : ""}` : ""}</span></button>
+              {!thuH[huong] && <><div className="scroll-x max-h-[50vh]">
                 <table className="tbl text-xs">
                   <thead><tr><th>{c.nhanLoai}</th>{c.coDonVi && <th>Đơn vị</th>}{c.coLoaiHang && <th>Loại hàng</th>}<th className="num">Mục tiêu (t)</th>{kyMode && <th className="num">Σ các tháng</th>}<th className="num">Thực hiện</th><th className="num">Đạt</th><th>Ghi chú</th>{sua && <th className="w-8" />}</tr></thead>
                   <tbody>
@@ -188,14 +206,14 @@ function BangMucTieu({ nhom, thang, kyLoai = "thang", mucTieu, mucTieuThang = []
                   {c.coLoaiHang && <ChonGo className="min-w-[170px] flex-1" value={t.hang || ""} onChange={(x) => setThem({ ...them, [huong]: { ...t, hang: x } })} options={goiYHang} placeholder="Loại hàng (để trống = mọi hàng)" />}
                   {c.coDonVi && <NativeSelect className="h-9 w-32" value={t.donVi || DON_VI[0][0]} onChange={(e) => setThem({ ...them, [huong]: { ...t, donVi: e.target.value } })} options={dsDV} aria-label="Đơn vị thực hiện" />}
                   <Button size="sm" variant="outline" disabled={!(t.loai || "").trim()} onClick={() => themDong(huong)}><Plus />Thêm</Button>
-                </div>)}
+                </div>)}</>}
             </div>);
         })}
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <p className="flex-1 text-[0.6875rem] text-muted-foreground">{sua ? "Gõ số tấn (vd 400.000). Cột Thực hiện là tổng số đã nhập ở bảng thực tế bên dưới. Xóa số hoặc bấm x là bỏ mục tiêu dòng đó (bấm Lưu mới xóa hẳn). " : "Chỉ Quản lý / Quản trị đặt mục tiêu. Cột Thực hiện là tổng số đã nhập ở bảng thực tế bên dưới. "}{kyMode ? " Mục tiêu quý / năm nhập riêng; dòng nào chưa nhập thì Tổng quan cộng mục tiêu các tháng." : ""}</p>
         {sua && <Button size="sm" disabled={!doi.length} onClick={luu}><Save />Lưu mục tiêu{doi.length ? ` (${doi.length} dòng)` : ""}</Button>}
-      </div>
+      </div></>}
     </div>
   );
 }
@@ -203,6 +221,7 @@ function BangMucTieu({ nhom, thang, kyLoai = "thang", mucTieu, mucTieuThang = []
 // ---------- Quý / năm: sản lượng thực tế từng tháng trong kỳ (chỉ xem; nhập số ở chế độ Tháng) ----------
 function BangTheoThang({ nhom, kyLoai, ky, thangs, mucTieu, thucTe, loc }) {
   const c = NHOM[nhom];
+  const [thu, dao] = useThu(`lg-sl-thu-tt-${nhom}`);
   const cot = useMemo(() => {
     const m = new Map(), mt = new Map();
     for (const r of mucTieu) { const x = tuDb(nhom, r); m.set(khoaCua(x), { huong: x.huong, loai: x.loai, donVi: x.donVi, hang: x.hang }); mt.set(khoaCua(x), +x.tan || 0); }
@@ -219,10 +238,10 @@ function BangTheoThang({ nhom, kyLoai, ky, thangs, mucTieu, thucTe, loc }) {
   return (
     <div className="grid gap-3">
       <div className="flex flex-wrap items-center gap-2">
-        <h2 className="text-sm font-semibold">Sản lượng thực tế {tenKyThuong(kyLoai, ky)} theo tháng (tấn)</h2>
+        <TieuDeThu thu={thu} dao={dao}>Sản lượng thực tế {tenKyThuong(kyLoai, ky)} theo tháng (tấn)</TieuDeThu>
         <span className="text-xs text-muted-foreground">Cộng từ số nhập theo ngày; muốn nhập hoặc sửa số, chọn chế độ Tháng.</span>
       </div>
-      {cot.length ? (
+      {thu ? null : cot.length ? (
         <div className="scroll-x rounded-md border">
           <table className="tbl text-xs">
             <thead>
@@ -258,6 +277,7 @@ function BangTheoThang({ nhom, kyLoai, ky, thangs, mucTieu, thucTe, loc }) {
 const CA_NGAY = "CA 1", CA_BO = "CA 2";
 function BangThucTe({ nhom, thang, mucTieu, thucTe, loc, onLuu }) {
   const { D, quyen, api, run, toast } = useApp();
+  const [thu, dao] = useThu(`lg-sl-thu-tt-${nhom}`);
   const c = NHOM[nhom], nhap = quyen.nhap;
   const ngays = useMemo(() => ngayCuaThang(thang), [thang]);
   const homNay = useMemo(() => { const d = new Date(D.now); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; }, [D.now]);
@@ -309,14 +329,14 @@ function BangThucTe({ nhom, thang, mucTieu, thucTe, loc, onLuu }) {
   return (
     <div className="grid gap-3">
       <div className="flex flex-wrap items-center gap-2">
-        <h2 className="text-sm font-semibold">Sản lượng thực tế {tenKyThuong("thang", thang)} theo ngày (tấn)</h2>
+        <TieuDeThu thu={thu} dao={dao}>Sản lượng thực tế {tenKyThuong("thang", thang)} theo ngày (tấn)</TieuDeThu>
         <span className="text-xs text-muted-foreground">Mỗi ngày một dòng</span>
         <div className="ml-auto flex items-center gap-2">
           {kDirty.length > 0 && <Button size="sm" variant="outline" onClick={() => setSua({})}>Bỏ thay đổi</Button>}
           {nhap && <Button size="sm" disabled={!kDirty.length} onClick={luu}><Save />Lưu số liệu{kDirty.length ? ` (${kDirty.length} ô)` : ""}</Button>}
         </div>
       </div>
-      {cot.length ? (
+      {!thu && <>{cot.length ? (
         <div className="scroll-x max-h-[70vh] rounded-md border">
           <table className="tbl text-xs" style={{ borderCollapse: "separate", borderSpacing: 0 }}>
             <thead>
@@ -372,7 +392,7 @@ function BangThucTe({ nhom, thang, mucTieu, thucTe, loc, onLuu }) {
           {c.coDonVi && <NativeSelect className="h-9 w-32" value={them.donVi} onChange={(e) => setThem({ ...them, donVi: e.target.value })} options={dsDV} aria-label="Đơn vị thực hiện" />}
           <Button size="sm" variant="outline" disabled={!them.loai.trim()} onClick={themCot}><Plus />Thêm</Button>
         </div>)}
-      <p className="text-[0.6875rem] text-muted-foreground">{nhap ? "Gõ số tấn của cả ngày vào ô (vd 12.500), bấm Lưu số liệu. Xóa số trong ô là xóa số của ngày đó. Cột có mục tiêu hiện sẵn; muốn nhập loại khác thì Thêm cột." : "Vai trò Xem chỉ xem số liệu."}</p>
+      <p className="text-[0.6875rem] text-muted-foreground">{nhap ? "Gõ số tấn của cả ngày vào ô (vd 12.500), bấm Lưu số liệu. Xóa số trong ô là xóa số của ngày đó. Cột có mục tiêu hiện sẵn; muốn nhập loại khác thì Thêm cột." : "Vai trò Xem chỉ xem số liệu."}</p></>}
     </div>
   );
 }

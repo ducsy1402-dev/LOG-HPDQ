@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Save, Settings2 } from "lucide-react";
+import { Plus, Save, Settings2, X } from "lucide-react";
 import { useApp } from "@/store";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -30,7 +30,9 @@ const loMoi = (ds) => { const d = new Date(), p = `LO-${String(d.getFullYear()).
 // Mở Danh mục › Kho bãi để khai báo bãi chứa
 const moDanhMucKho = (onClose) => { try { localStorage.setItem("lg-danh-muc-tab", "kho"); } catch { /* bỏ qua */ } onClose(); location.hash = "#/danh-muc"; };
 
-// Một lượt nhập / xuất / điều chuyển. Nhập từ chuyến tàu tự lấy bãi nhận và hàng; thành phẩm ghi số lô.
+// Nhập liệu kho: một lần mở hộp ghi được NHIỀU lượt (vừa nhập vừa xuất, điều chuyển): chọn nghiệp vụ, điền, bấm "Thêm dòng" để đưa vào danh sách chờ,
+// đổi nghiệp vụ điền tiếp; bấm Lưu ghi cả danh sách (kèm dòng đang điền nếu đã có số lượng) một lần. Kiểm tra tồn có tính các dòng chờ (nhập trước rồi xuất cùng lúc được).
+// Nhập từ chuyến tàu tự lấy bãi nhận và hàng; thành phẩm ghi số lô.
 // Hàng chưa có bãi chứa (không bãi nhỏ nào nhận) thì không cho lưu: phải khai báo ở Danh mục › Kho bãi.
 export default function GiaoDichForm({ loaiKho, loaiGD: loaiDau, kho, sua, onClose }) {
   const { D, api, run, toast } = useApp();
@@ -43,8 +45,13 @@ export default function GiaoDichForm({ loaiKho, loaiGD: loaiDau, kho, sua, onClo
   const [loaiGD, setLoaiGD] = useState(loaiDau);
   const vao = loaiGD === "nhap" || loaiGD === "dau_ky";
   const dc = loaiGD === "dieu_chuyen";
+  const [ds, setDs] = useState([]); // các lượt chờ lưu: { rec, taoLo }
+  const laVao = (lg) => lg === "nhap" || lg === "dau_ky";
+  // Tồn thay đổi bởi các lượt chờ lưu (cộng nhập / điều chuyển đến, trừ xuất / điều chuyển đi)
+  const doiTon = (bai, hang) => ds.reduce((t, { rec: r }) => t + (plain(r.hang) !== plain(hang) ? 0 : (r.ten_bai === bai ? (laVao(r.loai) ? r.so_luong : -r.so_luong) : 0) + (r.den_bai === bai ? r.so_luong : 0)), 0);
   // Sửa một lượt đã ghi: lượt đó đang tính trong tồn, nên khi kiểm tra tồn phải cộng lại số lượng cũ
-  const hangTai = (bai) => [...new Set([...capKho.filter((c) => c.ten_bai === bai && (c.ton > 1e-6 || vao)).map((c) => c.hang), ...(sua && sua.ten_bai === bai && !vao ? [sua.hang] : [])])];
+  const hangTai = (bai) => [...new Set([...capKho.filter((c) => c.ten_bai === bai && (c.ton > 1e-6 || vao)).map((c) => c.hang), ...(sua && sua.ten_bai === bai && !vao ? [sua.hang] : []),
+    ...ds.filter(({ rec: r }) => (laVao(r.loai) && r.ten_bai === bai) || r.den_bai === bai).map(({ rec: r }) => r.hang)])];
   const khoiTao = (lg, o = {}) => {
     const ca = caHienTai(), bai = o.ten_bai ?? (baiDs[0] || ""), vaoMoi = lg === "nhap" || lg === "dau_ky";
     return { ngay: o.ngay ?? ca.ngay, ca: o.ca ?? ca.so, ten_bai: bai, den_bai: "", hang: vaoMoi ? "" : hangTai(bai)[0] || "", so_luong: o.so_luong ?? "", so_lo: "", nguon: NGUON_GD[loaiKho][lg]?.[0]?.[0] || "khac", voyage_id: "", chung_tu: o.chung_tu ?? "", ghi_chu: o.ghi_chu ?? "" };
@@ -63,7 +70,7 @@ export default function GiaoDichForm({ loaiKho, loaiGD: loaiDau, kho, sua, onClo
   const hangCuaBai = bai ? hangTai(bai) : [];
   const hang = f.hang.trim();
   const hoanLai = sua && !vao && sua.ten_bai === bai && plain(sua.hang) === plain(hang) ? +sua.so_luong || 0 : 0;
-  const tonBH = (capKho.find((c) => c.ten_bai === bai && plain(c.hang) === plain(hang))?.ton || 0) + hoanLai;
+  const tonBH = (capKho.find((c) => c.ten_bai === bai && plain(c.hang) === plain(hang))?.ton || 0) + hoanLai + (bai && hang ? doiTon(bai, hang) : 0);
   // Nhập: bãi nhỏ sẽ nhận hàng ở bãi đã chọn; điều chuyển: bãi nhỏ nhận ở bãi đến. Gợi ý các bãi nhận được hàng này
   const baiNhan = vao ? bai : dc ? denBai : null;
   const khu = baiNhan && hang ? khuNhan(kho, baiNhan, hang) : null;
@@ -100,32 +107,66 @@ export default function GiaoDichForm({ loaiKho, loaiGD: loaiDau, kho, sua, onClo
       return n;
     });
   };
-  const luu = async () => {
+  // Kiểm tra dòng đang điền, trả { rec, taoLo, nhan } hoặc null (đã báo lỗi)
+  const lapDong = () => {
     const sl = docSo(f.so_luong);
-    if (loiBai) return toast(canKhaiBao ? `${loiBai}. Khai báo bãi chứa ở Danh mục › Kho bãi trước khi lưu.` : loiBai, "bad");
-    if (!(sl > 0)) return toast("Số lượng phải lớn hơn 0", "bad");
-    if ((loaiGD === "xuat" || dc) && sl > (tonLo ?? tonBH) + 1e-6) return toast(`Vượt tồn: ${f.so_lo ? "lô" : "bãi"} chỉ còn ${so(tonLo ?? tonBH)} t`, "bad");
-    if (tp && loaiGD === "nhap" && !f.so_lo.trim()) return toast("Thành phẩm cần số lô", "bad");
+    if (loiBai) { toast(canKhaiBao ? `${loiBai}. Khai báo bãi chứa ở Danh mục › Kho bãi trước khi lưu.` : loiBai, "bad"); return null; }
+    if (!(sl > 0)) { toast("Số lượng phải lớn hơn 0", "bad"); return null; }
+    if ((loaiGD === "xuat" || dc) && sl > (tonLo ?? tonBH) + 1e-6) { toast(`Vượt tồn: ${f.so_lo ? "lô" : "bãi"} chỉ còn ${so(tonLo ?? tonBH)} t`, "bad"); return null; }
+    if (tp && loaiGD === "nhap" && !f.so_lo.trim()) { toast("Thành phẩm cần số lô", "bad"); return null; }
     const tenHang = (vao ? hangCuaBai.find((h) => plain(h) === plain(hang)) || (kho.hangHoa || []).find((h) => plain(h.loai_hang) === plain(hang))?.loai_hang : hangCuaBai.find((h) => plain(h) === plain(hang))) || hang;
     const rec = { ngay: f.ngay, ca: tenCa(tbD, f.ngay, f.ca), loai: loaiGD, ten_bai: bai, den_bai: dc ? denBai : null, hang: tenHang, so_luong: sl,
       so_lo: f.so_lo.trim() || null, nguon: f.nguon || null, voyage_id: f.voyage_id ? +f.voyage_id : null, chung_tu: f.chung_tu.trim() || null, ghi_chu: f.ghi_chu.trim() || null };
+    const taoLo = tp && loaiGD === "nhap" && !(D.khoLo || []).some((l) => l.so_lo === rec.so_lo) && !ds.some((x) => x.rec.so_lo === rec.so_lo);
+    return { rec, taoLo, nhan: `${TEN_GD[loaiGD].toLowerCase()} ${so(sl)} t ${tenHang} · ${bai}${dc ? ` → ${denBai}` : ""}` };
+  };
+  const dangDien = String(f.so_luong).trim() !== "";
+  const themDong = () => { const d = lapDong(); if (!d) return; setDs((o) => [...o, d]); setF((o) => ({ ...o, so_luong: "", so_lo: "" })); };
+  const luu = async () => {
+    if (sua) {
+      const d = lapDong(); if (!d) return;
+      const r = await run(async () => {
+        await api.updateGiaoDich(sua.id, d.rec);
+        if (d.taoLo) await api.saveLo([{ so_lo: d.rec.so_lo, hang: d.rec.hang, ngay_nhap: d.rec.ngay, trang_thai: "san_sang" }]);
+      }, `Đã sửa ${d.nhan}`);
+      if (r) onClose();
+      return;
+    }
+    let dong = ds;
+    if (dangDien || !ds.length) { const d = lapDong(); if (!d) return; dong = [...ds, d]; }
+    const dem = (lg) => dong.filter((x) => x.rec.loai === lg).length;
     const r = await run(async () => {
-      if (sua) await api.updateGiaoDich(sua.id, rec); else await api.addGiaoDich([rec]);
-      if (tp && loaiGD === "nhap" && !(D.khoLo || []).some((l) => l.so_lo === rec.so_lo)) await api.saveLo([{ so_lo: rec.so_lo, hang: tenHang, ngay_nhap: rec.ngay, trang_thai: "san_sang" }]);
-    }, `${sua ? "Đã sửa" : "Đã ghi"} ${TEN_GD[loaiGD].toLowerCase()} ${so(sl)} t ${tenHang} · ${bai}`);
+      await api.addGiaoDich(dong.map((x) => x.rec));
+      const lo = dong.filter((x) => x.taoLo).map((x) => ({ so_lo: x.rec.so_lo, hang: x.rec.hang, ngay_nhap: x.rec.ngay, trang_thai: "san_sang" }));
+      if (lo.length) await api.saveLo(lo);
+    }, dong.length === 1 ? `Đã ghi ${dong[0].nhan}` : `Đã ghi ${dong.length} lượt: ${[["nhap", "nhập"], ["xuat", "xuất"], ["dieu_chuyen", "điều chuyển"]].filter(([k]) => dem(k)).map(([k, t]) => `${dem(k)} ${t}`).join(", ")}`);
     if (r) onClose();
   };
   const nguon = NGUON_GD[loaiKho][loaiGD];
   const chonGoiY = (g) => setF((o) => (dc ? { ...o, den_bai: g.ten_bai } : { ...o, ten_bai: g.ten_bai, hang: hang || o.hang }));
   return (
     <Dialog onOpenChange={(o) => !o && onClose()} title={`${sua ? `Sửa ${TEN_GD[loaiGD].toLowerCase()}` : "Nhập liệu"} · ${tp ? "kho thành phẩm" : "kho nguyên liệu"}`} className="max-w-2xl"
-      footer={<><Button variant="outline" onClick={onClose}>Hủy</Button><Button onClick={luu}><Save />Lưu</Button></>}>
+      footer={<><Button variant="outline" onClick={onClose}>Hủy</Button>
+        {!sua && <Button variant="outline" onClick={themDong} title="Đưa dòng đang điền vào danh sách chờ, điền tiếp lượt khác (nhập / xuất / điều chuyển)"><Plus />Thêm dòng</Button>}
+        <Button onClick={luu}><Save />Lưu{ds.length ? ` ${ds.length + (dangDien ? 1 : 0)} lượt` : ""}</Button></>}>
       <div className="grid gap-3 sm:grid-cols-3">
+        {!sua && ds.length > 0 && (
+          <div className="grid gap-1 rounded-md border bg-muted/30 p-2 text-xs sm:col-span-3">
+            <div className="font-semibold">Danh sách chờ lưu ({ds.length}) <span className="font-normal text-muted-foreground">· bấm Lưu để ghi tất cả một lần</span></div>
+            {ds.map((x, i) => (
+              <div key={i} className="flex items-center gap-2 rounded px-1.5 py-1 hover:bg-accent">
+                <span className={cn("w-20 shrink-0 rounded px-1.5 py-0.5 text-center font-semibold", laVao(x.rec.loai) ? "bg-ok/15 text-ok" : x.rec.loai === "xuat" ? "bg-bad/15 text-bad" : "bg-info/15 text-info")}>{TEN_GD[x.rec.loai]}</span>
+                <span className="min-w-0 flex-1 truncate">{x.rec.ten_bai}{x.rec.den_bai ? ` → ${x.rec.den_bai}` : ""} · {x.rec.hang}{x.rec.so_lo ? ` · lô ${x.rec.so_lo}` : ""}<span className="text-muted-foreground"> · {x.rec.ngay.slice(8, 10)}/{x.rec.ngay.slice(5, 7)} {x.rec.ca}</span></span>
+                <b className="shrink-0 tabular-nums">{so(x.rec.so_luong)} t</b>
+                <button type="button" onClick={() => setDs((o) => o.filter((_, j) => j !== i))} className="shrink-0 rounded p-0.5 text-muted-foreground hover:text-bad" aria-label="Bỏ dòng này"><X className="h-3.5 w-3.5" /></button>
+              </div>))}
+          </div>)}
         {!sua && <div className="flex gap-1 sm:col-span-3" role="tablist" aria-label="Nghiệp vụ">
           {[["nhap", "Nhập"], ["xuat", "Xuất"], ["dieu_chuyen", "Điều chuyển"]].map(([k, ten]) => (
             <button key={k} type="button" role="tab" aria-selected={loaiGD === k} onClick={() => doiLoai(k)}
               className={cn("flex-1 rounded-md border px-3 py-1.5 text-sm font-medium transition-colors", loaiGD === k ? "border-primary bg-primary text-primary-foreground" : "hover:bg-accent")}>{ten}</button>))}
         </div>}
+        {!sua && !ds.length && <p className="-mt-1 text-[0.6875rem] text-muted-foreground sm:col-span-3">Muốn ghi nhiều lượt một lần (vừa nhập vừa xuất): điền lượt này, bấm <b>Thêm dòng</b>, đổi nghiệp vụ rồi điền tiếp; cuối cùng bấm Lưu.</p>}
         <Field label="Ngày"><NgayGio chiNgay required value={f.ngay} onChange={doiNgay} /></Field>
         <Field label="Ca"><NativeSelect value={f.ca} onChange={set("ca")} options={caNgay.map(([v, t, gio]) => [v, gio ? `${t} ${gio}` : t])} /></Field>
         {nguon && <Field label="Nguồn / mục đích"><NativeSelect value={f.nguon} onChange={set("nguon")} options={nguon} /></Field>}

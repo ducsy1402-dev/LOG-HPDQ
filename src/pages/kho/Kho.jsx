@@ -8,12 +8,12 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageHead, Empty, MucIcon, ConfirmButton } from "@/components/common";
-import EChart from "@/components/EChart";
-import { so, pct, r2, ngayNam, matchQ, plain } from "@/lib/format";
-import { LOAI_GD, TRANG_THAI_LO, NGUONG_KHO, tonTheoNgay } from "@/lib/kho";
+import { so, pct, ngayNam, matchQ, plain } from "@/lib/format";
+import { LOAI_GD, TRANG_THAI_LO, NGUONG_KHO } from "@/lib/kho";
 import { cn } from "@/lib/utils";
 import { mauDay, KIEU_TONE, KIEU_NGAN, Chi, Thanh, NgayDay, ThongQua, LuuBai, T_NGAY_DAY, T_LUU_BAI, T_THONG_QUA, T_NHAP_XUAT } from "./khoUi";
 import SoDoKhoBai from "./SoDoKhoBai";
+import BieuDoTon from "./BieuDoTon";
 import { useKho } from "./useKho";
 import GiaoDichForm, { KiemKeForm, SuaKiemKe } from "./GiaoDichForm";
 import DanNhanhKho from "./DanNhanhKho";
@@ -93,7 +93,6 @@ export default function Kho({ loai }) {
   const [q, setQ] = useState("");
   const [qSo, setQSo] = useState(""); // tìm nhanh trong Sổ nhập – xuất
   const [form, setForm] = useState(null); // { loai } | "kiem_ke" | "dan"
-  const [baiBD, setBaiBD] = useState("");
   const [moBai, setMoBai] = useState(null);
   if (!D.coSql15 || !kho) return <div className="rounded-md border border-warn/40 bg-warn/5 px-3 py-2 text-sm">Phần kho bãi chưa sẵn sàng: quản trị cần chạy <b>sql/15_phuong_an_va_kho_bai.sql</b> trong Supabase.</div>;
   const tp = loai === "thanh_pham";
@@ -105,24 +104,7 @@ export default function Kho({ loai }) {
   const TEN_NGUON = { tau: "Tàu", cap_sx: "Cấp sản xuất", san_xuat: "Từ sản xuất", don_hang: "Đơn hàng", khac: "Khác" };
   const gd = (D.giaoDich || []).filter((g) => tenBai.has(g.ten_bai) || tenBai.has(g.den_bai)).sort((a, b) => String(b.ngay).localeCompare(String(a.ngay)) || b.id - a.id);
   const gdLoc = qSo.trim() ? gd.filter((g) => matchQ(qSo, ngayNam(g.ngay), g.ca, TEN_GD[g.loai], g.ten_bai, g.den_bai, g.hang, g.so_lo, g.chung_tu, g.ghi_chu, TEN_NGUON[g.nguon], g.voyage_id ? D.vmap.get(g.voyage_id)?.ten_tau : "")) : gd;
-  const ton = dong.reduce((s, d) => s + d.ton, 0), suc = bai.reduce((s, b) => s + (b.sucChua || 0), 0);
   const nhap = quyen.kho.nhap;
-
-  // Biểu đồ tồn 30 ngày: toàn kho hoặc một bãi
-  const chon = baiBD && tenBai.has(baiBD) ? baiBD : "";
-  const tonHT = chon ? bai.find((b) => b.ten_bai === chon)?.ton || 0 : ton;
-  const chuoi = tonTheoNgay(tonHT, D.giaoDich || [], (b) => (chon ? b === chon : tenBai.has(b)), 30, D.now);
-  const scBD = chon ? bai.find((b) => b.ten_bai === chon)?.sucChua : suc;
-  const optBD = {
-    tooltip: { trigger: "axis", valueFormatter: (x) => `${so(x)} t` },
-    legend: { data: ["Tồn", ...(scBD ? ["Sức chứa"] : [])] },
-    xAxis: { type: "category", data: chuoi.map(([t]) => ngayNam(t).slice(0, 5)) },
-    yAxis: { type: "value" },
-    series: [
-      { name: "Tồn", type: "line", smooth: true, areaStyle: { opacity: 0.15 }, data: chuoi.map(([, v]) => r2(v)), itemStyle: { color: "#06b6d4" } },
-      ...(scBD ? [{ name: "Sức chứa", type: "line", data: chuoi.map(() => r2(scBD)), lineStyle: { type: "dashed" }, symbol: "none", itemStyle: { color: "#f43f5e" } }] : []),
-    ],
-  };
 
   return (
     <>
@@ -227,11 +209,7 @@ export default function Kho({ loai }) {
         </TabsContent>
 
         <TabsContent value="bd">
-          <Card>
-            <CardHeader><CardTitle><LineChart />Tồn 30 ngày</CardTitle>
-              <NativeSelect className="ml-auto h-8 w-56" value={chon} onChange={(e) => setBaiBD(e.target.value)} placeholder={`Toàn ${TEN_LOAI[loai].toLowerCase()}`} options={bai.map((b) => b.ten_bai)} /></CardHeader>
-            <CardContent><EChart option={optBD} height={300} /></CardContent>
-          </Card>
+          <BieuDoTon loai={loai} kho={kho} />
         </TabsContent>
 
         <TabsContent value="kh">

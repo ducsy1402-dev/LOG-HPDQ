@@ -1,4 +1,5 @@
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useContext, useMemo, useState } from "react";
+import { PhongToCtx } from "@/components/EChart";
 import { useApp } from "@/store";
 import { trangThai, laUoc, chiSo, TRANG_THAI } from "@/lib/linetime";
 import { cacTuyen, viTriTrenLich, benTheoViTri, kiemTraXepBen, nhanCho, tenTuyen } from "@/lib/capBen";
@@ -24,7 +25,8 @@ const CO = {
   gon: { mPx: 0.18, label: 80, head: 30, pad: 4, chu: "text-[0.6875rem]" },
 };
 
-export default function GanttMet({ voyages, tu, soNgay, pxNgay, che = "ben", gon = false, maxH = "70vh" }) {
+export default function GanttMet({ voyages, tu, soNgay, pxNgay, che = "ben", gon = false, maxH: maxHGoc = "70vh" }) {
+  const phongTo = useContext(PhongToCtx), maxH = phongTo ? "calc(100dvh - 150px)" : maxHGoc; // khung Tổng quan phóng to: lịch cao hết màn hình
   const K = gon ? CO.gon : CO.thuong, LABEL = K.label;
   const { D, quyen, run, api, setVoyageMo, toast } = useApp();
   const [keo, setKeo] = useState(null); // { it, x0, y0, dx, dy, moved }
