@@ -26,17 +26,17 @@ export default function EChart({ option, height = 260, onClick }) {
     return () => { ro.disconnect(); chart.current?.dispose(); };
   }, []);
   useEffect(() => {
-    const dark = theme === "dark", chu = dark ? "#b4c2d6" : "#334155", luoi = dark ? "rgba(148,170,210,.13)" : "rgba(15,23,42,.08)";
+    const dark = theme === "dark", chu = dark ? "#b9d3f5" : "#334155", luoi = dark ? "rgba(120,180,255,.16)" : "rgba(15,23,42,.08)";
     // Trục: một trục hoặc mảng nhiều trục (biểu đồ hai trục tung)
     const truc = (a) => { const goc = { axisLine: { lineStyle: { color: luoi } }, axisLabel: { color: chu }, splitLine: { lineStyle: { color: luoi } } }; const mot = (x) => ({ ...goc, ...x, axisLabel: { color: chu, ...x.axisLabel } }); return a && (Array.isArray(a) ? a.map(mot) : mot(a)); };
     chart.current?.setOption({
-      textStyle: { fontFamily: "Be Vietnam Pro, system-ui, sans-serif", color: chu },
-      tooltip: { trigger: "axis", backgroundColor: dark ? "#111c31" : "#fff", borderColor: luoi, textStyle: { color: chu } },
+      textStyle: { fontFamily: "Roboto Condensed, Be Vietnam Pro, system-ui, sans-serif", color: chu },
+      tooltip: { trigger: "axis", backgroundColor: dark ? "#06214a" : "#fff", borderColor: luoi, textStyle: { color: chu } },
       legend: { textStyle: { color: chu }, top: 0 },
       grid: { left: 14, right: 14, top: 34, bottom: 4, containLabel: true },
       ...option,
       legend: { top: 0, ...option.legend, textStyle: { color: chu, ...option.legend?.textStyle } }, // chữ chú thích luôn sáng theo giao diện, không mất màu khi biểu đồ chỉ đặt cỡ chữ
-      tooltip: { trigger: "axis", backgroundColor: dark ? "#111c31" : "#fff", borderColor: luoi, textStyle: { color: chu }, valueFormatter: (v) => (typeof v === "number" ? so(v) : v), appendToBody: true, ...option.tooltip }, // appendToBody: hộp chú thích nổi trên cùng, không bị khung cuộn / khung cố định cắt hay đè
+      tooltip: { trigger: "axis", backgroundColor: dark ? "#06214a" : "#fff", borderColor: luoi, textStyle: { color: chu }, valueFormatter: (v) => (typeof v === "number" ? so(v) : v), appendToBody: true, ...option.tooltip }, // appendToBody: hộp chú thích nổi trên cùng, không bị khung cuộn / khung cố định cắt hay đè
       xAxis: truc(option.xAxis),
       yAxis: truc(option.yAxis),
     }, true);

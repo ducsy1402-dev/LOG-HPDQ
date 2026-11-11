@@ -166,7 +166,7 @@ function BangMucTieu({ nhom, thang, kyLoai = "thang", mucTieu, mucTieuThang = []
                       const mt = docSo(r.tan) || 0, tt = th.get(k) || 0, tauT = tau?.theoLoai.get(khoaLoai(huong, r.loai))?.tau;
                       return (
                         <tr key={k} className={cn(doi.includes(k) && "bg-warn/5")}>
-                          <td className="whitespace-nowrap font-medium">{r.loai}{tauT > 0 && <div className="text-[11px] font-normal text-muted-foreground">tàu trong tháng {so(tauT)} t</div>}</td>
+                          <td className="whitespace-nowrap font-medium">{r.loai}{tauT > 0 && <div className="text-[0.6875rem] font-normal text-muted-foreground">tàu trong tháng {so(tauT)} t</div>}</td>
                           {c.coDonVi && <td className="whitespace-nowrap">{tenDonVi(r.donVi)}</td>}
                           {c.coLoaiHang && <td className="whitespace-nowrap">{r.hang || <span className="text-muted-foreground">Mọi hàng</span>}</td>}
                           <td className="num">{sua ? <Input className="ml-auto h-8 w-28 text-right tabular-nums" inputMode="decimal" value={r.tan} placeholder="—" onChange={(e) => dat1(k, "tan", e.target.value)} aria-label={`Mục tiêu ${r.loai} ${r.hang}`} /> : (r.tan || "—")}</td>
@@ -193,7 +193,7 @@ function BangMucTieu({ nhom, thang, kyLoai = "thang", mucTieu, mucTieuThang = []
         })}
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <p className="flex-1 text-[11px] text-muted-foreground">{sua ? "Gõ số tấn (vd 400.000). Cột Thực hiện là tổng số đã nhập ở bảng thực tế bên dưới. Xóa số hoặc bấm x là bỏ mục tiêu dòng đó (bấm Lưu mới xóa hẳn). " : "Chỉ Quản lý / Quản trị đặt mục tiêu. Cột Thực hiện là tổng số đã nhập ở bảng thực tế bên dưới. "}{kyMode ? " Mục tiêu quý / năm nhập riêng; dòng nào chưa nhập thì Tổng quan cộng mục tiêu các tháng." : ""}</p>
+        <p className="flex-1 text-[0.6875rem] text-muted-foreground">{sua ? "Gõ số tấn (vd 400.000). Cột Thực hiện là tổng số đã nhập ở bảng thực tế bên dưới. Xóa số hoặc bấm x là bỏ mục tiêu dòng đó (bấm Lưu mới xóa hẳn). " : "Chỉ Quản lý / Quản trị đặt mục tiêu. Cột Thực hiện là tổng số đã nhập ở bảng thực tế bên dưới. "}{kyMode ? " Mục tiêu quý / năm nhập riêng; dòng nào chưa nhập thì Tổng quan cộng mục tiêu các tháng." : ""}</p>
         {sua && <Button size="sm" disabled={!doi.length} onClick={luu}><Save />Lưu mục tiêu{doi.length ? ` (${doi.length} dòng)` : ""}</Button>}
       </div>
     </div>
@@ -230,8 +230,8 @@ function BangTheoThang({ nhom, kyLoai, ky, thangs, mucTieu, thucTe, loc }) {
               <tr>{cot.map((x, i) => (
                 <th key={x.k} className={cn("num min-w-[96px]", (i === 0 || cot[i - 1].huong !== x.huong) && "border-l")}>
                   {c.coLoaiHang ? (x.hang || "Mọi hàng") : x.loai}
-                  {c.coLoaiHang && <div className="text-[10px] font-normal text-muted-foreground">{x.loai}</div>}
-                  {c.coDonVi && <div className="text-[10px] font-normal text-muted-foreground">{tenDonVi(x.donVi)}</div>}
+                  {c.coLoaiHang && <div className="text-[0.6875rem] font-normal text-muted-foreground">{x.loai}</div>}
+                  {c.coDonVi && <div className="text-[0.6875rem] font-normal text-muted-foreground">{tenDonVi(x.donVi)}</div>}
                 </th>))}</tr>
             </thead>
             <tbody>
@@ -329,9 +329,9 @@ function BangThucTe({ nhom, thang, mucTieu, thucTe, loc, onLuu }) {
                 {cot.map((x, i) => (
                   <th key={x.k} className={cn("num min-w-[96px] bg-card", (i === 0 || cot[i - 1].huong !== x.huong) && "border-l")}>
                     {c.coLoaiHang ? (x.hang || "Mọi hàng") : x.loai}
-                    {c.coLoaiHang && <div className="text-[10px] font-normal text-muted-foreground">{x.loai}</div>}
-                    {c.coDonVi && <div className="text-[10px] font-normal text-muted-foreground">{tenDonVi(x.donVi)}</div>}
-                    {x.mt > 0 && <div className="text-[10px] font-normal text-muted-foreground">MT {so(x.mt)}</div>}
+                    {c.coLoaiHang && <div className="text-[0.6875rem] font-normal text-muted-foreground">{x.loai}</div>}
+                    {c.coDonVi && <div className="text-[0.6875rem] font-normal text-muted-foreground">{tenDonVi(x.donVi)}</div>}
+                    {x.mt > 0 && <div className="text-[0.6875rem] font-normal text-muted-foreground">MT {so(x.mt)}</div>}
                   </th>))}
               </tr>
             </thead>
@@ -341,7 +341,7 @@ function BangThucTe({ nhom, thang, mucTieu, thucTe, loc, onLuu }) {
                 const nen = hn ? "bg-primary/10" : cn0 ? "bg-muted/60" : "bg-card";
                 return (
                   <tr key={n}>
-                    <td style={stk(0)} className={cn("whitespace-nowrap border-t font-semibold tabular-nums", nen)}>{n.slice(8)}/{n.slice(5, 7)}<span className={cn("ml-1.5 text-[10px] font-normal", cn0 ? "text-bad" : "text-muted-foreground")}>{THU[d.getDay()]}{hn ? " · nay" : ""}</span></td>
+                    <td style={stk(0)} className={cn("whitespace-nowrap border-t font-semibold tabular-nums", nen)}>{n.slice(8)}/{n.slice(5, 7)}<span className={cn("ml-1.5 text-[0.6875rem] font-normal", cn0 ? "text-bad" : "text-muted-foreground")}>{THU[d.getDay()]}{hn ? " · nay" : ""}</span></td>
                     {cot.map((x, j) => {
                       const key = kOu(n, x.k), co = key in sua && sua[key].trim() !== (key in goc ? fmt(goc[key]) : "");
                       return (
@@ -372,7 +372,7 @@ function BangThucTe({ nhom, thang, mucTieu, thucTe, loc, onLuu }) {
           {c.coDonVi && <NativeSelect className="h-9 w-32" value={them.donVi} onChange={(e) => setThem({ ...them, donVi: e.target.value })} options={dsDV} aria-label="Đơn vị thực hiện" />}
           <Button size="sm" variant="outline" disabled={!them.loai.trim()} onClick={themCot}><Plus />Thêm</Button>
         </div>)}
-      <p className="text-[11px] text-muted-foreground">{nhap ? "Gõ số tấn của cả ngày vào ô (vd 12.500), bấm Lưu số liệu. Xóa số trong ô là xóa số của ngày đó. Cột có mục tiêu hiện sẵn; muốn nhập loại khác thì Thêm cột." : "Vai trò Xem chỉ xem số liệu."}</p>
+      <p className="text-[0.6875rem] text-muted-foreground">{nhap ? "Gõ số tấn của cả ngày vào ô (vd 12.500), bấm Lưu số liệu. Xóa số trong ô là xóa số của ngày đó. Cột có mục tiêu hiện sẵn; muốn nhập loại khác thì Thêm cột." : "Vai trò Xem chỉ xem số liệu."}</p>
     </div>
   );
 }

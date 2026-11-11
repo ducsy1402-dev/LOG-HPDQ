@@ -87,8 +87,8 @@ export function SoDoBai({ bai, tone, nhan, onBai }) {
               <text x="100" y="38" textAnchor="middle" fontSize="17" fontWeight="700" fill="currentColor">{p == null ? "—" : pct(b.lapDay)}</text>
               {b.lapDay > 1 && <text x="100" y="52" textAnchor="middle" fontSize="8" fontWeight="600" fill={MAU.bad}>VƯỢT SỨC CHỨA</text>}
             </svg>
-            <div className="mt-1 truncate text-[11px] font-semibold">{b.ten_bai}</div>
-            <div className="truncate text-[10px] text-muted-foreground">{nhan(b)}</div>
+            <div className="mt-1 truncate text-[0.6875rem] font-semibold">{b.ten_bai}</div>
+            <div className="truncate text-[0.6875rem] text-muted-foreground">{nhan(b)}</div>
           </button>);
       })}
     </div>
@@ -111,11 +111,11 @@ export function BangDoiXe({ nhom, onXe }) {
             <div className="flex flex-wrap gap-1">
               {g.xe.map((x) => (
                 <button key={x.ma} type="button" onClick={onXe ? () => onXe(x.ma) : undefined} title={`${x.ma} · ${TEN_XE[x.s]}`}
-                  className="h-[18px] min-w-[18px] rounded-[4px] px-0.5 text-[8px] font-bold leading-[18px] text-black/70 transition-transform hover:scale-125" style={{ background: MAU_XE[x.s] }}>{x.s === "ss" ? "" : x.s === "hong" ? "!" : x.s === "bdcl" ? "B" : "·"}</button>))}
+                  className="h-[18px] min-w-[18px] rounded-[4px] px-0.5 text-[0.6875rem] font-bold leading-[18px] text-black/70 transition-transform hover:scale-125" style={{ background: MAU_XE[x.s] }}>{x.s === "ss" ? "" : x.s === "hong" ? "!" : x.s === "bdcl" ? "B" : "·"}</button>))}
             </div>
           </div>);
       })}
-      <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10.5px] text-muted-foreground">{Object.entries(TEN_XE).map(([k, t]) => <span key={k} className="inline-flex items-center gap-1"><i className="h-2.5 w-2.5 rounded-sm" style={{ background: MAU_XE[k] }} />{t}</span>)}</div>
+      <div className="flex flex-wrap gap-x-3 gap-y-1 text-[0.6875rem] text-muted-foreground">{Object.entries(TEN_XE).map(([k, t]) => <span key={k} className="inline-flex items-center gap-1"><i className="h-2.5 w-2.5 rounded-sm" style={{ background: MAU_XE[k] }} />{t}</span>)}</div>
     </div>
   );
 }

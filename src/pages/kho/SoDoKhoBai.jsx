@@ -14,7 +14,7 @@ import BanDoDinhVi from "./BanDoDinhVi";
 //   • Thể tích (m³): đang chứa = Σ tồn ÷ tỉ trọng hàng; tối đa = diện tích × chiều cao chất đống (không có thì sức chứa ÷ tỉ trọng). Bãi lớn = tổng các bãi nhỏ.
 // Kho / bãi có mái che: lấy cột "mái che" ở Danh mục › Khai báo kho / bãi nếu có; chưa có thì đoán theo tên (tên bắt đầu bằng "Kho", trừ "Kho hở" → có mái che).
 // BS / SM: tỉ lệ biểu tượng lớn / nhỏ; TX: cột chữ của bãi lớn; SX: trục ngoặc; XC: chỗ bắt đầu bãi nhỏ; SLOT: ô một bãi nhỏ
-const VB = 1200, PAD = 16, BGAP = 20, ROW = 72, SM = 0.52, BS = 0.72, BG_H = 96, TX = 150, SX = 296, XC = 316, SLOT = 256, BW = XC + SLOT, CW_GON = 292, GON_H = 104;
+const VB = 1560, PAD = 16, BGAP = 20, ROW = 72, SM = 0.52, BS = 0.72, BG_H = 96, TX = 150, SX = 296, XC = 316, SLOT = 256, BW = XC + SLOT, CW_GON = 292, GON_H = 104;
 const VIEN = { ok: "#9ad7ff", warn: "#fcd34d", bad: "#fb7185", xam: "#9ad7ff" };
 const CHU = { ok: "#86efac", warn: "#fcd34d", bad: "#fda4af", xam: "#9fb7d9" };
 const FILL = { ok: "#34d399", warn: "#fbbf24", bad: "#f43f5e", xam: "#64748b" };
@@ -229,7 +229,7 @@ export default function SoDoKhoBai({ bai, kho, onMo, ten, tp }) {
       const cay = ds.filter((b) => b.dong.length > 1), gon = ds.filter((b) => b.dong.length <= 1), cot = [y, y], dat = [];
       for (const b of cay) {
         if (soCot(b) > 1) { const yy = Math.max(...cot); dat.push({ b, loai: "cay", x: PAD, y: yy }); cot[0] = cot[1] = yy + caoCay(b) + 22; continue; }
-        const c = cot[0] <= cot[1] ? 0 : 1; dat.push({ b, loai: "cay", x: PAD + c * (BW + BGAP), y: cot[c] }); cot[c] += caoCay(b) + 22;
+        const c = cot[0] <= cot[1] ? 0 : 1; dat.push({ b, loai: "cay", x: PAD + c * ((VB - 2 * PAD) / 2), y: cot[c] }); cot[c] += caoCay(b) + 22;
       }
       y = cay.length ? Math.max(...cot) : y;
       const moiHang = Math.max(1, Math.floor((VB - 2 * PAD) / CW_GON));
@@ -283,7 +283,7 @@ export default function SoDoKhoBai({ bai, kho, onMo, ten, tp }) {
           {!bd.phan.length && <text x={VB / 2} y="64" textAnchor="middle" fontSize="14" fill="#8fb4dc">Không có bãi nào khớp bộ lọc.</text>}
         </svg>
       </div>
-      <p className="text-[11px] text-muted-foreground">Mái vòm = kho có mái che · đống vòm = bãi lộ thiên. Khối màu có mặt sóng bên trong = mức lấp đầy: xanh bình thường, vàng từ {pct(NGUONG_KHO.vang)}, đỏ từ {pct(NGUONG_KHO.do)} (nhấp nháy).{tp ? " Diện tích (m²) và số lớp xếp khả dụng theo Danh mục › Kho bãi." : " Số m³ = thể tích tối đa (diện tích × chiều cao chất đống; không có thì sức chứa ÷ tỉ trọng hàng)."} Bấm một bãi để mở bảng chi tiết.{doan ? " Kho / bãi có mái che đang đoán theo tên (chưa có cột mái che ở Danh mục › Khai báo kho / bãi)." : ""}</p>
+      <p className="text-[0.6875rem] text-muted-foreground">Mái vòm = kho có mái che · đống vòm = bãi lộ thiên. Khối màu có mặt sóng bên trong = mức lấp đầy: xanh bình thường, vàng từ {pct(NGUONG_KHO.vang)}, đỏ từ {pct(NGUONG_KHO.do)} (nhấp nháy).{tp ? " Diện tích (m²) và số lớp xếp khả dụng theo Danh mục › Kho bãi." : " Số m³ = thể tích tối đa (diện tích × chiều cao chất đống; không có thì sức chứa ÷ tỉ trọng hàng)."} Bấm một bãi để mở bảng chi tiết.{doan ? " Kho / bãi có mái che đang đoán theo tên (chưa có cột mái che ở Danh mục › Khai báo kho / bãi)." : ""}</p>
       <BanDoDinhVi nhom={nhomMap} ten={ten} onDi={diToi} onToanKho={() => { dauRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); }}
         onKhu={(k) => { setQ(""); requestAnimationFrame(() => document.getElementById(`kb-khu-${khoaTenBai(k)}`)?.scrollIntoView({ behavior: "smooth", block: "start" })); }} />
     </div>

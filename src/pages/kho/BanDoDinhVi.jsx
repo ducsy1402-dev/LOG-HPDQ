@@ -29,11 +29,11 @@ export default function BanDoDinhVi({ nhom, ten, onKhu, onDi, onToanKho }) {
       <MapIcon className="h-4 w-4 text-primary" />Bản đồ
     </button>);
   return (
-    <div className="fixed bottom-5 right-5 z-30 w-[280px] overflow-hidden rounded-xl border bg-card/95 shadow-2xl backdrop-blur">
+    <div className="fixed bottom-5 right-5 z-30 w-[236px] overflow-hidden rounded-xl border bg-card/95 shadow-2xl backdrop-blur">
       <div className="flex items-center justify-between gap-2 border-b px-2.5 py-1.5 text-xs">
         <span className="inline-flex min-w-0 items-center gap-1 font-semibold"><MapIcon className="h-3.5 w-3.5 shrink-0 text-primary" /><span className="truncate">Bản đồ {ten.toLowerCase()}</span></span>
         <span className="flex shrink-0 items-center gap-1">
-          <button type="button" onClick={() => { setChon(null); onToanKho(); }} className="rounded px-1.5 py-0.5 text-[11px] text-primary hover:bg-primary/10">Toàn kho</button>
+          <button type="button" onClick={() => { setChon(null); onToanKho(); }} className="rounded px-1.5 py-0.5 text-[0.6875rem] text-primary hover:bg-primary/10">Toàn kho</button>
           <button type="button" onClick={() => setThu(true)} className="rounded p-0.5 text-muted-foreground hover:text-foreground" title="Thu nhỏ" aria-label="Thu nhỏ bản đồ"><Minus className="h-3.5 w-3.5" /></button>
         </span>
       </div>
@@ -65,10 +65,10 @@ export default function BanDoDinhVi({ nhom, ten, onKhu, onDi, onToanKho }) {
       </svg>
       {gc && (
         <div className="max-h-[132px] overflow-y-auto border-t p-1.5">
-          <div className="mb-1 px-1 text-[11px] font-semibold">{gc.k} · {gc.ds.length} bãi lớn</div>
+          <div className="mb-1 px-1 text-[0.6875rem] font-semibold">{gc.k} · {gc.ds.length} bãi lớn</div>
           <div className="flex flex-wrap gap-1">
             {gc.ds.map((b) => { const m = mucDay(b.lapDay); return (
-              <button key={b.ten_bai} type="button" onClick={() => onDi(b.ten_bai)} className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] hover:bg-accent" title={`Tới ${b.ten_bai}`}>
+              <button key={b.ten_bai} type="button" onClick={() => onDi(b.ten_bai)} className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[0.6875rem] hover:bg-accent" title={`Tới ${b.ten_bai}`}>
                 <i className="h-2 w-2 rounded-full" style={{ background: MAU[m] }} />{cat(b.ten_bai, 16)}<span className={cn("tabular-nums", m === "bad" ? "text-bad" : m === "warn" ? "text-warn" : "text-muted-foreground")}>{b.lapDay != null ? pct(b.lapDay) : ""}</span>
               </button>); })}
           </div>

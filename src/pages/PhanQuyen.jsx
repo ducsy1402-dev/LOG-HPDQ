@@ -38,7 +38,7 @@ export default function PhanQuyen() {
                 <thead><tr><th>Tài khoản</th><th>Web Thiết bị cơ giới</th>{PH.map(([k, t]) => <th key={k}>{t}</th>)}</tr></thead>
                 <tbody>{users.filter((u) => matchQ(q, u.email, u.ho_ten)).map((u) => (
                   <tr key={u.user_id}>
-                    <td><div className="font-medium">{u.ho_ten || "—"}</div><div className="text-[11px] text-muted-foreground">{u.email}</div></td>
+                    <td><div className="font-medium">{u.ho_ten || "—"}</div><div className="text-[0.6875rem] text-muted-foreground">{u.email}</div></td>
                     <td>{u.vai_tro_cu ? <Badge tone={u.vai_tro_cu === "quan_tri" ? "primary" : "default"}>{VAI_TRO[u.vai_tro_cu] || u.vai_tro_cu}</Badge> : <span className="text-xs text-muted-foreground">Chưa cấp</span>}</td>
                     {PH.map(([k]) => (
                       <td key={k}>

@@ -15,7 +15,7 @@ import { Khung, ChuaCo, ChonDs, BangChiTiet, nghin } from "./khungBD";
 const SoLon = ({ v, sub, tone }) => (
   <div className="flex items-baseline gap-2">
     <span className={`font-mono text-2xl font-semibold tabular-nums ${tone ? `text-${tone}` : ""}`}>{v}</span>
-    {sub && <span className="truncate text-[11px] text-muted-foreground">{sub}</span>}
+    {sub && <span className="truncate text-[0.6875rem] text-muted-foreground">{sub}</span>}
   </div>
 );
 const base = { grid: { left: 4, right: 8, top: 34, bottom: 0, containLabel: true }, legend: { top: 0, itemWidth: 12, itemHeight: 6, icon: "roundRect", textStyle: { fontSize: 10 } } };
@@ -72,7 +72,7 @@ export function KhungKho({ ten, loai, kho, kyInfo, gd, keHoach, now, cao }) {
     <Khung cao={cao} ten={ten} phu={`${kyInfo.nhan} · kế hoạch – lũy kế nhập / xuất / tồn`} chiTiet={chiTiet} bo={<ChonDs gt={nhom} dat={setNhom} ds={nhoms} tatCa="Mọi loại hàng" />}>
       <SoLon v={nghin(c.tonHT)} sub={`t tồn · nhập ${nghin(c.tongNhapTT)}${c.coKeHoach ? ` / KH ${nghin(c.tongNhapKH)}` : ""} · xuất ${nghin(c.tongXuatTT)}${c.coKeHoach ? ` / KH ${nghin(c.tongXuatKH)}` : ""}`} />
       <EChart height={210} option={opt} />
-      {!c.coKeHoach && <div className="mt-1 text-[10px] text-muted-foreground">Chưa có kế hoạch nhập / xuất của kỳ này (Kho › Kế hoạch Xuất/Nhập tồn).</div>}
+      {!c.coKeHoach && <div className="mt-1 text-[0.6875rem] text-muted-foreground">Chưa có kế hoạch nhập / xuất của kỳ này (Kho › Kế hoạch Xuất/Nhập tồn).</div>}
     </Khung>
   );
 }
@@ -102,7 +102,7 @@ export function KhungCoCau({ p, kyInfo, cao }) {
       <SoLon v={chet == null ? "—" : nghin(chet)} tone={h && h.tong > 0 && chet / h.tong >= 0.2 ? "warn" : undefined}
         sub={h && h.tong > 0 ? `t · ${pct(chet / h.tong, 1)} tồn · lưu động ${nghin(h.ld)} t${p.sucChua ? ` · còn trống ${nghin(Math.max(0, p.sucChua - h.tong))} t` : ""}` : "t"} />
       <EChart height={200} option={opt} />
-      {!p.coKhaiBao && <div className="mt-1 text-[10px] text-muted-foreground">Chưa khai báo phân loại: toàn bộ đang tính là lưu động (Kho › Phân loại tồn).</div>}
+      {!p.coKhaiBao && <div className="mt-1 text-[0.6875rem] text-muted-foreground">Chưa khai báo phân loại: toàn bộ đang tính là lưu động (Kho › Phân loại tồn).</div>}
     </Khung>
   );
 }

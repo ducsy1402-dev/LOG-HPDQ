@@ -184,7 +184,7 @@ export default function TongQuanMoi({ onMo, go, tongCanhBao }) {
       {/* Thanh chọn kỳ dùng chung */}
       <div className="sticky top-0 z-30 -mx-1 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl border border-border/60 bg-background/85 px-3 py-2 backdrop-blur">
         <ThanhKy ky={kyLoai} dat={doiKy} ds={KY} nhan={kyInfo.nhan} laNay={laNay} truoc={() => setNgayTC(kyT.ngays[0])} sau={() => setNgayTC(kySau(kyInfo).ngays[0])} veNay={() => setNgayTC(homNay)} />
-        <span className="text-[11px] text-muted-foreground">Mọi chỉ số so với {kyT.nhan.toLowerCase()}{laNay ? ` (cùng ${Math.max(1, qua)} ngày đầu)` : ""} · mục tiêu chia đều theo ngày, quý / năm có mục tiêu riêng thì dùng số đó</span>
+        <span className="text-[0.6875rem] text-muted-foreground">Mọi chỉ số so với {kyT.nhan.toLowerCase()}{laNay ? ` (cùng ${Math.max(1, qua)} ngày đầu)` : ""} · mục tiêu chia đều theo ngày, quý / năm có mục tiêu riêng thì dùng số đó</span>
       </div>
 
       {/* Bức tranh chung: bốn đồng hồ + vấn đề */}
@@ -219,10 +219,10 @@ export default function TongQuanMoi({ onMo, go, tongCanhBao }) {
           </>}>
           <Khung ten="Linetime tàu cập bến theo mét" phu={`${soNgayLich} ngày từ ${ngayGio(tuLich).slice(0, 5)} · ${cheLich === "toan" ? "toàn thời gian (gồm chờ bến)" : "chiếm bến"}`} onChiTiet={() => onMo("tau")}
             bo={<div className="flex flex-wrap items-center gap-1.5">
-              <div className="inline-flex overflow-hidden rounded border border-border/70 text-[10px]" role="group" aria-label="Chế độ xem">
+              <div className="inline-flex overflow-hidden rounded border border-border/70 text-[0.6875rem]" role="group" aria-label="Chế độ xem">
                 {[["ben", "Chiếm bến"], ["toan", "Toàn thời gian"]].map(([k, t]) => <button key={k} type="button" aria-pressed={cheLich === k} onClick={() => { setCheLich(k); luuLs("lg-tq-che", k); }} className={cn("px-1.5 py-0.5", cheLich === k ? "bg-primary/20 font-semibold text-primary" : "text-muted-foreground hover:bg-accent")}>{t}</button>)}
               </div>
-              <select value={soNgayLich} onChange={(e) => { setSoNgayLich(+e.target.value); luuLs("lg-tq-ngay", e.target.value); }} className="rounded border border-border/70 bg-transparent px-1 py-0.5 text-[10px] text-muted-foreground" aria-label="Số ngày hiển thị">
+              <select value={soNgayLich} onChange={(e) => { setSoNgayLich(+e.target.value); luuLs("lg-tq-ngay", e.target.value); }} className="rounded border border-border/70 bg-transparent px-1 py-0.5 text-[0.6875rem] text-muted-foreground" aria-label="Số ngày hiển thị">
                 {[5, 7, 10, 14, 21, 30].map((n) => <option key={n} value={n}>{n} ngày</option>)}
               </select>
             </div>}>
@@ -290,7 +290,7 @@ export default function TongQuanMoi({ onMo, go, tongCanhBao }) {
                   {tbm.hongLau.slice(0, 6).map((e, i) => (
                     <li key={i} className="flex items-center gap-2 rounded-lg border border-border/60 bg-card/40 px-2 py-1.5">
                       <span className="h-6 w-1.5 rounded-full" style={{ background: e.ngay > (tb.T?.lau ?? 7) ? MAU.bad : MAU.warn }} />
-                      <span className="min-w-0 flex-1"><b className="block truncate">{e.ma_xe}</b><span className="block truncate text-[10.5px] text-muted-foreground">{tb.vmap[e.ma_xe]?.doi || ""} · từ {ngayNam(e.ngay_vao)}{e.phu_tung === "Chờ phụ tùng" ? " · chờ phụ tùng" : ""}</span></span>
+                      <span className="min-w-0 flex-1"><b className="block truncate">{e.ma_xe}</b><span className="block truncate text-[0.6875rem] text-muted-foreground">{tb.vmap[e.ma_xe]?.doi || ""} · từ {ngayNam(e.ngay_vao)}{e.phu_tung === "Chờ phụ tùng" ? " · chờ phụ tùng" : ""}</span></span>
                       <b className="tabular-nums">{e.ngay} ngày</b>
                     </li>))}
                 </ul>) : <ChuaCo>Không có thiết bị đang hỏng.</ChuaCo>}

@@ -103,8 +103,8 @@ export default function DanNhanh({ onClose }) {
                   <td className="min-w-[180px] align-top">
                     {!kq ? <span className="text-muted-foreground">Dòng trống</span> : <>
                       <div className="flex flex-wrap items-center gap-1">{kq.goc ? <Badge tone="info">Cập nhật</Badge> : <Badge tone="ok">Thêm mới</Badge>}<b>{kq.v.ten_tau}</b></div>
-                      <div className="text-[11px] text-muted-foreground">{kq.goc?.ma_chuyen || kq.v.ma_chuyen}{kq.v.ben_ma ? ` · ${tenBenChuyen(kq.v)}` : ""}{kq.v.khoi_luong ? ` · ${so(kq.v.khoi_luong)} t` : ""}{kq.v.eta ? ` · ETA ${fmtNgayNhap(kq.v.eta)}` : ""}</div>
-                      {[...kq.loi.map((nd) => ({ muc: "bad", nd })), ...kq.canh].map((c, i) => <div key={i} className="flex gap-1 text-[11px]"><MucIcon muc={c.muc} className="h-3 w-3" />{c.nd}</div>)}
+                      <div className="text-[0.6875rem] text-muted-foreground">{kq.goc?.ma_chuyen || kq.v.ma_chuyen}{kq.v.ben_ma ? ` · ${tenBenChuyen(kq.v)}` : ""}{kq.v.khoi_luong ? ` · ${so(kq.v.khoi_luong)} t` : ""}{kq.v.eta ? ` · ETA ${fmtNgayNhap(kq.v.eta)}` : ""}</div>
+                      {[...kq.loi.map((nd) => ({ muc: "bad", nd })), ...kq.canh].map((c, i) => <div key={i} className="flex gap-1 text-[0.6875rem]"><MucIcon muc={c.muc} className="h-3 w-3" />{c.nd}</div>)}
                     </>}
                   </td>
                   {o.map((c, i) => (

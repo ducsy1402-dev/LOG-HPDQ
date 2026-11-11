@@ -56,7 +56,7 @@ function BanhVong({ ds }) {
         tooltip: { trigger: "item", formatter: (p) => `${p.marker}${p.name}: <b>${so(p.value)} t</b> (${pct(p.value / tong, 1)})` }, legend: { type: "scroll", bottom: 0, itemWidth: 10, itemHeight: 8, textStyle: { fontSize: 10 } },
         series: [{ type: "pie", radius: ["46%", "70%"], center: ["50%", "42%"], label: { show: false }, itemStyle: { borderRadius: 4, borderColor: "transparent", borderWidth: 2 }, data }],
       }} />
-      <div className="pointer-events-none absolute left-1/2 top-[42%] -translate-x-1/2 -translate-y-1/2 text-center leading-tight"><div className="text-lg font-semibold tabular-nums">{nghin(tong)}</div><div className="text-[10px] text-muted-foreground">tấn</div></div>
+      <div className="pointer-events-none absolute left-1/2 top-[42%] -translate-x-1/2 -translate-y-1/2 text-center leading-tight"><div className="text-lg font-semibold tabular-nums">{nghin(tong)}</div><div className="text-[0.6875rem] text-muted-foreground">tấn</div></div>
     </div>
   );
 }
@@ -89,11 +89,11 @@ export default function BieuDoSanLuongTQ({ kyInfo, cang, vt, tdC, tdV }) {
         {theoDoi.length ? <EChart height={chieuCao(theoDoi.length)} option={optNhom(theoDoi)} /> : <ChuaCo>Chưa có kế hoạch hay số thực tế vận tải.</ChuaCo>}
       </Khung>
       <Khung cao={CAO} ten="Lũy kế nhập / xuất cảng" phu={`${kyInfo.nhan} · thực tế – kế hoạch`}>
-        <div className="mb-1 text-[11px] text-muted-foreground">{tieuDe(tdC)}</div>
+        <div className="mb-1 text-[0.6875rem] text-muted-foreground">{tieuDe(tdC)}</div>
         <EChart height={280} option={optLuyKe(csC)} />
       </Khung>
       <Khung cao={CAO} ten="Lũy kế phục vụ cảng / phục vụ sản xuất" phu={`${kyInfo.nhan} · thực tế – kế hoạch`}>
-        <div className="mb-1 text-[11px] text-muted-foreground">{tieuDe(tdV)}</div>
+        <div className="mb-1 text-[0.6875rem] text-muted-foreground">{tieuDe(tdV)}</div>
         <EChart height={280} option={optLuyKe(csV)} />
       </Khung>
     </div>

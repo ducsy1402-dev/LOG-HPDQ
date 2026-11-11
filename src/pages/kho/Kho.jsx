@@ -60,7 +60,7 @@ export function ChiTietBai({ b, kho, onClose }) {
             })}</tbody>
           </table>
         </div>
-        <p className="text-[11px] text-muted-foreground">Bãi nhỏ, kiểu bãi (cố định 1 hàng / cố định nhóm / tự do), chiều cao chất đống sửa ở Danh mục › Kho bãi. Hàng nhập vào bãi lớn được xếp vào bãi nhỏ theo thứ tự: đúng hàng → khu cố định cùng nhóm → khu tự do; không khu nào nhận thì báo sai bãi. Rê chuột lên tiêu đề cột để xem cách tính.</p>
+        <p className="text-[0.6875rem] text-muted-foreground">Bãi nhỏ, kiểu bãi (cố định 1 hàng / cố định nhóm / tự do), chiều cao chất đống sửa ở Danh mục › Kho bãi. Hàng nhập vào bãi lớn được xếp vào bãi nhỏ theo thứ tự: đúng hàng → khu cố định cùng nhóm → khu tự do; không khu nào nhận thì báo sai bãi. Rê chuột lên tiêu đề cột để xem cách tính.</p>
       </div>
     </Dialog>
   );

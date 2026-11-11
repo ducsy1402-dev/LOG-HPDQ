@@ -64,7 +64,7 @@ function Brand({ nhan }) {
   return (
     <div className="flex min-w-0 items-center gap-2.5">
       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground"><Anchor className="h-[18px] w-[18px]" strokeWidth={2.4} /></div>
-      <div className={cn("min-w-0 leading-tight", nhan)}><div className="truncate text-[15px] font-semibold">{APP_NAME}</div><div className="text-[11px] text-muted-foreground">Thiết bị · Cảng · Kho bãi</div></div>
+      <div className={cn("min-w-0 leading-tight", nhan)}><div className="truncate text-[0.9375rem] font-semibold">{APP_NAME}</div><div className="text-[0.6875rem] text-muted-foreground">Thiết bị · Cảng · Kho bãi</div></div>
     </div>
   );
 }
@@ -182,7 +182,7 @@ function Main() {
         <div className="flex h-14 shrink-0 items-center justify-between border-b px-3"><Brand nhan={nhan} /><Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMoMenu(false)} aria-label="Đóng menu"><X /></Button></div>
         <nav className="flex-1 overflow-y-auto overflow-x-hidden p-2">
           {nav.map((n, i) => n.nhom
-            ? (rong ? <div key={i} className="whitespace-nowrap px-2.5 pb-1 pt-4 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{n.nhom}</div>
+            ? (rong ? <div key={i} className="whitespace-nowrap px-2.5 pb-1 pt-4 text-[0.6875rem] font-semibold uppercase tracking-wide text-muted-foreground">{n.nhom}</div>
               : <div key={i} className="mx-2.5 my-3 h-px bg-border" />)
             : (
               <div key={i} className="relative flex items-center">
@@ -208,7 +208,7 @@ function Main() {
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent side="right" align="end" className="w-64">
-              <DropdownMenuLabel>{role?.ho_ten || user?.email}<div className="text-[11px]">Thiết bị: {VAI_TRO[role?.thietBi] || "—"} · Cảng: {VAI_TRO[role?.cang] || "—"}</div></DropdownMenuLabel>
+              <DropdownMenuLabel>{role?.ho_ten || user?.email}<div className="text-[0.6875rem]">Thiết bị: {VAI_TRO[role?.thietBi] || "—"} · Cảng: {VAI_TRO[role?.cang] || "—"}</div></DropdownMenuLabel>
               {tb.D && <>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>Thiết bị cơ giới</DropdownMenuLabel>
@@ -223,7 +223,7 @@ function Main() {
               <DropdownMenuItem onSelect={signOut}><LogOut />Đăng xuất</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <div className={cn("px-2.5 pt-1 text-[11px] text-muted-foreground", nhan)}>Thiết bị · Cảng · Kho bãi{DEMO && " · Demo"}</div>
+          <div className={cn("px-2.5 pt-1 text-[0.6875rem] text-muted-foreground", nhan)}>Thiết bị · Cảng · Kho bãi{DEMO && " · Demo"}</div>
         </div>
       </aside>
       {moMenu && <div className="fixed inset-0 z-30 bg-black/50 lg:hidden" onClick={() => setMoMenu(false)} />}
@@ -259,7 +259,7 @@ function HuongDanCai({ onClose, daCai }) {
         <Muc ten="3 · Biểu tượng trên màn hình nền (Desktop)">Hộp cài đặt có ô <b>Tạo lối tắt trên màn hình nền</b> thì tick. Chưa có biểu tượng: Chrome mở <b>chrome://apps</b>, bấm chuột phải vào phần mềm › <b>Tạo lối tắt</b> › <b>Màn hình nền</b>. Edge: <b>edge://apps</b> › … › <b>Ghim vào thanh tác vụ / Tạo lối tắt trên màn hình</b>.</Muc>
         <Muc ten="Điện thoại Android · Chrome">Menu ⋮ › <b>Thêm vào màn hình chính</b> › <b>Cài đặt</b>.</Muc>
         <Muc ten="iPhone / iPad · Safari">Bấm nút <b>Chia sẻ</b> (ô vuông có mũi tên lên) › <b>Thêm vào MH chính</b>.</Muc>
-        <p className="text-[11px] text-muted-foreground">Tên phần mềm là "Quản trị Logistics". Bản cài cũ vẫn giữ tên cũ cho đến khi gỡ rồi cài lại.</p>
+        <p className="text-[0.6875rem] text-muted-foreground">Tên phần mềm là "Quản trị Logistics". Bản cài cũ vẫn giữ tên cũ cho đến khi gỡ rồi cài lại.</p>
       </div>
     </Dialog>
   );
@@ -276,7 +276,7 @@ function Chuong({ onMo, gon, onOpenChange }) {
       <PopoverTrigger asChild>
         <button className={cn("flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground", gon ? "absolute left-6 top-0.5 h-5" : "relative ml-1 h-9 w-9 shrink-0 hover:bg-accent")} aria-label={`Cảnh báo (${ds.length})`} title="Cảnh báo đang mở">
           {!gon && <Bell className="h-4 w-4" />}
-          {ds.length > 0 && <span className={cn("min-w-[16px] rounded-full px-1 text-[10px] font-bold leading-4 text-white", !gon && "absolute -right-0.5 top-0", khan ? "bg-bad" : "bg-warn")}>{ds.length}</span>}
+          {ds.length > 0 && <span className={cn("min-w-[16px] rounded-full px-1 text-[0.6875rem] font-bold leading-4 text-white", !gon && "absolute -right-0.5 top-0", khan ? "bg-bad" : "bg-warn")}>{ds.length}</span>}
         </button>
       </PopoverTrigger>
       <PopoverContent side="right" align="start" className="w-[min(420px,calc(100vw-24px))]">

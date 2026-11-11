@@ -20,8 +20,8 @@ import { MAU_CHO } from "@/lib/linetime";
 // tự theo phần tàu chiếm. Khi kéo hiện mét đầu – cuối tàu, bến và giờ cập – rời để căn chỉnh.
 // che = "toan": thêm đoạn chờ bến (đỏ) trước thanh tàu và vạch NOR / làm hàng, giống lịch theo bến. Khoảng chờ hàng / bãi (xanh lá) luôn hiện trên thanh tàu.
 const CO = {
-  thuong: { mPx: 0.3, label: 96, head: 38, pad: 6, chu: "text-[11px]" },
-  gon: { mPx: 0.18, label: 80, head: 30, pad: 4, chu: "text-[10px]" },
+  thuong: { mPx: 0.3, label: 96, head: 38, pad: 6, chu: "text-[0.6875rem]" },
+  gon: { mPx: 0.18, label: 80, head: 30, pad: 4, chu: "text-[0.6875rem]" },
 };
 
 export default function GanttMet({ voyages, tu, soNgay, pxNgay, che = "ben", gon = false, maxH = "70vh" }) {
@@ -123,8 +123,8 @@ export default function GanttMet({ voyages, tu, soNgay, pxNgay, che = "ben", gon
                     <div className="pointer-events-none absolute inset-x-0" style={{ top: K.pad + (b.tu - d.t.tu) * K.mPx, height: (b.den - b.tu) * K.mPx }}>
                       <div className="pointer-events-auto sticky left-0 z-20 flex h-full flex-col justify-center border-r bg-card px-2" style={{ width: LABEL }}
                         title={`Bến ${b.ma}: mét ${met(b.tu)}–${met(b.den)}${b.goc ? ` · đầu ${b.goc === "dau" ? "mét " + met(b.tu) : "mét " + met(b.den)} góc vuông` : ""}`}>
-                        <span className={cn("w-fit font-mono font-semibold", gon ? "text-[11px]" : "text-[13px]", b.goc === "dau" && "border-t-2 border-warn", b.goc === "cuoi" && "border-b-2 border-warn")}>{tenBen(b.ma)}</span>
-                        {(b.den - b.tu) * K.mPx > 26 && <span className="text-[10px] tabular-nums text-muted-foreground">{met(b.tu)}–{met(b.den)} m</span>}
+                        <span className={cn("w-fit font-mono font-semibold", gon ? "text-[0.6875rem]" : "text-[0.8125rem]", b.goc === "dau" && "border-t-2 border-warn", b.goc === "cuoi" && "border-b-2 border-warn")}>{tenBen(b.ma)}</span>
+                        {(b.den - b.tu) * K.mPx > 26 && <span className="text-[0.6875rem] tabular-nums text-muted-foreground">{met(b.tu)}–{met(b.den)} m</span>}
                       </div>
                     </div>
                   </div>))}
@@ -179,7 +179,7 @@ export default function GanttMet({ voyages, tu, soNgay, pxNgay, che = "ben", gon
           {!doiGioDuoc(keo.it) && <div className="text-muted-foreground">Tàu đã cập / có chuyển bến: chỉ đổi vị trí mét</div>}
           {!doiMetDuoc(keo.it) && <div className="text-muted-foreground">{D.coSql28 ? "Chỉ đổi giờ" : "Chạy SQL 28 để đổi vị trí mét"}</div>}
         </div>)}
-      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[0.6875rem] text-muted-foreground">
         {Object.entries(TRANG_THAI).filter(([k]) => k !== "huy").map(([k, t]) => <span key={k} className="flex items-center gap-1"><i className="inline-block h-2.5 w-4 rounded-sm" style={{ background: t.mau }} />{t.ten}</span>)}
         <ChuThichCho toan={che === "toan"} />
         {che === "toan" && <span className="flex items-center gap-1"><i className="inline-block h-3 w-0.5 bg-white" />Vạch NOR, bắt đầu / kết thúc làm hàng</span>}

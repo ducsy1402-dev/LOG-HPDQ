@@ -18,12 +18,12 @@ export function Khung({ ten, phu, bo, chiTiet, onChiTiet, className, cao, childr
   return (
     <section style={!to && cao ? { height: cao } : undefined} className={cn("flex min-w-0 flex-col rounded-md border border-border/70 bg-card/70 p-2.5", to && "fixed inset-0 z-40 overflow-auto rounded-none border-0 bg-card p-4", className)}>
       <div className="mb-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-        <span className="text-[10px] text-primary">◆</span>
-        <h3 className={cn("truncate font-semibold uppercase tracking-wider text-muted-foreground", to ? "text-sm" : "text-[11px]")}>{ten}</h3>
-        {phu && <span className="truncate text-[10px] text-muted-foreground">· {phu}</span>}
+        <span className="text-[0.6875rem] text-primary">◆</span>
+        <h3 className={cn("truncate font-semibold uppercase tracking-wider text-muted-foreground", to ? "text-sm" : "text-[0.6875rem]")}>{ten}</h3>
+        {phu && <span className="truncate text-[0.6875rem] text-muted-foreground">· {phu}</span>}
         <div className="ml-auto flex items-center gap-1.5">
           {bo}
-          {coCT && <button type="button" onClick={() => (chiTiet ? setMo(true) : onChiTiet())} className="inline-flex shrink-0 items-center text-[11px] text-primary hover:underline">Chi tiết<ChevronRight className="h-3 w-3" /></button>}
+          {coCT && <button type="button" onClick={() => (chiTiet ? setMo(true) : onChiTiet())} className="inline-flex shrink-0 items-center text-[0.6875rem] text-primary hover:underline">Chi tiết<ChevronRight className="h-3 w-3" /></button>}
           <NutToanManHinh on={to} onClick={doiTo} className="h-6 w-6" />
         </div>
       </div>
@@ -41,14 +41,14 @@ export const ChuaCo = ({ children }) => <div className="flex flex-1 items-center
 // Nhóm nút chọn
 export function Chon({ gt, dat, ds }) {
   return (
-    <div className="inline-flex overflow-hidden rounded border border-border/70 text-[10px]">
+    <div className="inline-flex overflow-hidden rounded border border-border/70 text-[0.6875rem]">
       {ds.map(([k, t]) => <button key={k} type="button" onClick={() => dat(k)} className={cn("px-1.5 py-0.5", gt === k ? "bg-primary/20 font-semibold text-primary" : "text-muted-foreground hover:bg-accent")}>{t}</button>)}
     </div>
   );
 }
 // Ô chọn thả xuống nhỏ; tatCa = nhãn dòng "tất cả" (giá trị "")
 export const ChonDs = ({ gt, dat, ds, tatCa }) => (
-  <select value={gt} onChange={(e) => dat(e.target.value)} className="max-w-[130px] rounded border border-border/70 bg-transparent px-1 py-0.5 text-[10px] text-muted-foreground">
+  <select value={gt} onChange={(e) => dat(e.target.value)} className="max-w-[130px] rounded border border-border/70 bg-transparent px-1 py-0.5 text-[0.6875rem] text-muted-foreground">
     <option value="">{tatCa}</option>
     {ds.map((d) => <option key={d} value={d}>{d}</option>)}
   </select>

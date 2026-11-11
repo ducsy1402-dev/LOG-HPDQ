@@ -62,11 +62,11 @@ export default function BieuDoKhoTQ({ kyInfo, kho, gd, tuoi }) {
             {nhomKhu.map((k) => (
               <div key={k.ten}>
                 {(nhomKhu.length > 1 || k.ten !== "Chưa phân khu") && (
-                  <div className="mb-1 flex items-center gap-2 rounded bg-primary/10 px-1.5 py-0.5 text-[11px]"><b className="uppercase tracking-wide text-primary">{k.ten}</b><span className="text-muted-foreground">{k.ds.length} bãi · tồn {nghin(k.ton)} t{k.lap != null ? ` · lấp đầy ${pct(k.lap, 1)}` : ""}</span></div>)}
+                  <div className="mb-1 flex items-center gap-2 rounded bg-primary/10 px-1.5 py-0.5 text-[0.6875rem]"><b className="uppercase tracking-wide text-primary">{k.ten}</b><span className="text-muted-foreground">{k.ds.length} bãi · tồn {nghin(k.ton)} t{k.lap != null ? ` · lấp đầy ${pct(k.lap, 1)}` : ""}</span></div>)}
                 <div className="grid gap-1">
                   {k.ds.map((b) => (
                     <button key={b.ten_bai} type="button" onClick={() => setMoBai(b.ten_bai)} title={`${b.ten_bai}: tồn ${so(b.ton)} t${b.sucChua > 0 ? ` / sức chứa ${so(b.sucChua)} t` : " (chưa khai báo sức chứa)"} · bấm xem các bãi nhỏ`}
-                      className="group grid grid-cols-[minmax(80px,28%)_1fr_44px] items-center gap-2 rounded px-1 py-0.5 text-left text-[11px] hover:bg-accent">
+                      className="group grid grid-cols-[minmax(80px,28%)_1fr_44px] items-center gap-2 rounded px-1 py-0.5 text-left text-[0.6875rem] hover:bg-accent">
                       <span className="truncate">{b.ten_bai}</span>
                       <span className="relative h-3 overflow-hidden rounded-sm bg-muted/60">
                         {b.lapDay != null && <span className="absolute inset-y-0 left-0 rounded-sm" style={{ width: `${Math.min(100, b.lapDay * 100)}%`, background: mauLap(b.lapDay) }} />}

@@ -22,6 +22,6 @@ export const CardHeader = ({ className, children, ...p }) => {
     </div>
   );
 };
-export const CardTitle = ({ className, ...p }) => <h3 className={cn("flex items-center gap-2 text-[15px] font-semibold leading-none tracking-tight [&_svg]:size-4 [&_svg]:text-primary", className)} {...p} />;
+export const CardTitle = ({ className, ...p }) => <h3 className={cn("flex items-center gap-2 text-[0.9375rem] font-semibold leading-none tracking-tight [&_svg]:size-4 [&_svg]:text-primary", className)} {...p} />;
 export const CardDescription = ({ className, ...p }) => <p className={cn("text-xs text-muted-foreground", className)} {...p} />;
 export const CardContent = ({ className, ...p }) => <div className={cn("px-4 pb-4", className)} {...p} />;

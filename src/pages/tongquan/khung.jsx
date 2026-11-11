@@ -23,16 +23,16 @@ export function TheTQ({ icon: Ic, ten, nhan, so, donVi, phu, tone, hinh, chiSo =
         {!khoa && <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />}
       </div>
       <div className="mt-2 flex items-baseline gap-1.5">
-        <span className={cn("text-[28px] font-semibold leading-none tabular-nums tracking-tight", CHU[tone])}>{so}</span>
+        <span className={cn("text-[1.75rem] font-semibold leading-none tabular-nums tracking-tight", CHU[tone])}>{so}</span>
         {donVi && <span className="text-xs text-muted-foreground">{donVi}</span>}
       </div>
-      {phu && <div className="mt-1 truncate text-[11px] text-muted-foreground">{phu}</div>}
+      {phu && <div className="mt-1 truncate text-[0.6875rem] text-muted-foreground">{phu}</div>}
       <div className="mt-2.5 min-h-[34px] flex-1">{hinh}</div>
       {chiSo.length > 0 && (
         <div className="mt-2.5 grid grid-cols-3 gap-2 border-t pt-2.5">
           {chiSo.map(([ten, gt, t], i) => (
             <div key={i} className="min-w-0">
-              <div className="truncate text-[10.5px] text-muted-foreground" title={ten}>{ten}</div>
+              <div className="truncate text-[0.6875rem] text-muted-foreground" title={ten}>{ten}</div>
               <div className={cn("truncate text-sm font-semibold tabular-nums", CHU[t])}>{gt}</div>
             </div>))}
         </div>)}
@@ -49,7 +49,7 @@ export function ThanhChong({ phan, chuThich = true, className }) {
         {tong > 0 && phan.map(([x, mau, ten], i) => x > 0 && <div key={i} title={`${ten}: ${x}`} style={{ width: `${(x / tong) * 100}%`, background: mau }} />)}
       </div>
       {chuThich && (
-        <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[10.5px] text-muted-foreground">
+        <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[0.6875rem] text-muted-foreground">
           {phan.map(([x, mau, ten], i) => <span key={i} className="inline-flex items-center gap-1"><i className="h-2 w-2 rounded-sm" style={{ background: mau }} />{ten} <b className="font-medium tabular-nums text-foreground">{x}</b></span>)}
         </div>)}
     </div>

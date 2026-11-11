@@ -64,6 +64,11 @@ Thay đổi CSDL về sau: viết file SQL mới đánh số tiếp (07, 08…),
 - Cột "Thực hiện" của bảng mục tiêu = tổng số đã nhập ở bảng thực tế (không còn lấy theo khối lượng chuyến tàu; vẫn ghi chú "tàu trong tháng X t" để đối chiếu). Quản lý trở lên đặt mục tiêu; nhập liệu trở lên nhập số thực tế (xóa số trong ô = xóa dòng).
 - Tổng quan › Khối lượng xếp dỡ **chưa đổi**: vẫn lấy khối lượng chuyến tàu so với mục tiêu cảng.
 
+## Giao diện kiểu SCADA, chữ nhỏ gọn (12/11/2026, nhánh giao-dien-scada)
+- **Cỡ chữ / biểu tượng ~90%**: `html { font-size: 14.5px }` ở `src/index.css` (mọi cỡ rem co theo), body 0,9 rem. Chữ cố định `text-[Npx]` đã đổi sang rem (sàn 10 px); viết mới nên dùng rem. Sơ đồ bãi vẽ SVG khung 1560 nên cũng nhỏ lại.
+- **Font**: Roboto Condensed (`@fontsource/roboto-condensed`, có tiếng Việt) làm font chữ thường, Be Vietnam Pro dự phòng, số liệu đơn cách JetBrains Mono. Biểu đồ ECharts dùng cùng font (`EChart.jsx`).
+- **Giao diện tối** (`.dark` trong `index.css`) theo màn hình điều khiển nhà máy: nền xanh đậm có lưới mờ; thẻ / khung viền xanh sáng; tab đang chọn và nút chính xanh bóng; tiêu đề cột bảng là ruy băng xanh; số trong bảng (`td.num`) chữ đơn cách xanh lá; ô nhập nền tối viền xanh; ok xanh lá `#4ade80`, cảnh báo vàng, lỗi đỏ hồng. Giao diện sáng giữ như cũ (chỉ đổi font, cỡ chữ).
+
 ## Kho › Sơ đồ bãi (11/11/2026, thay sơ đồ tư duy)
 - `src/pages/kho/SoDoKhoBai.jsx`: sơ đồ CÂY có biểu tượng, nền xanh đậm cố định (theo mẫu anh Sỹ): mỗi khu vực một phần → bãi lớn (biểu tượng lớn + cột chữ bên phải) → ngoặc nối → bãi nhỏ / gian (biểu tượng nhỏ + cột chữ bên phải). Bãi lớn chỉ có 1 bãi nhỏ vẽ khối gọn (4 khối một hàng); bãi lớn trên 6 bãi nhỏ chia 3 cột. Đầu trang chỉ có ô tìm (bãi, gian, hàng). Bấm bãi mở `ChiTietBai`.
 - Biểu tượng: **kho mái che** = mái vòm bán trụ khung sáng; **bãi lộ thiên** = đống vòm khung sáng (không vẽ nền bê tông), 1–2 đống theo tỉ lệ tồn của 2 hàng nhiều nhất. Mái che lấy cột "mái che" ở Khai báo kho / bãi nếu có; chưa có thì đoán theo tên (bắt đầu bằng "Kho", trừ "Kho hở").

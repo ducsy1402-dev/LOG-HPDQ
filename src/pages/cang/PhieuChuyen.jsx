@@ -147,8 +147,8 @@ export function NoiDungPhieu({ v, onDaXoa }) {
   );
 }
 
-const O = ({ l, v, sub }) => <div className="min-w-0"><div className="text-[11px] text-muted-foreground">{l}</div><div className="truncate font-medium" title={typeof v === "string" ? v : undefined}>{v || "—"}</div>{sub && <div className="truncate text-[11px] text-muted-foreground">{sub}</div>}</div>;
-const Chi = ({ l, v, sub, tone }) => <div className="rounded-md border bg-background/50 p-2"><div className="text-[11px] text-muted-foreground">{l}</div><div className={cn("text-[15px] font-semibold tabular-nums", tone)}>{v}</div>{sub && <div className="mt-0.5 text-[11px] text-muted-foreground">{sub}</div>}</div>;
+const O = ({ l, v, sub }) => <div className="min-w-0"><div className="text-[0.6875rem] text-muted-foreground">{l}</div><div className="truncate font-medium" title={typeof v === "string" ? v : undefined}>{v || "—"}</div>{sub && <div className="truncate text-[0.6875rem] text-muted-foreground">{sub}</div>}</div>;
+const Chi = ({ l, v, sub, tone }) => <div className="rounded-md border bg-background/50 p-2"><div className="text-[0.6875rem] text-muted-foreground">{l}</div><div className={cn("text-[0.9375rem] font-semibold tabular-nums", tone)}>{v}</div>{sub && <div className="mt-0.5 text-[0.6875rem] text-muted-foreground">{sub}</div>}</div>;
 
 // 7 mốc thực tế + giờ dự kiến + mốc bắt đầu tính thưởng phạt. Lưu ngay khi rời ô.
 function MocGio({ v, moDieuKhoan }) {
@@ -270,7 +270,7 @@ function KhoangDung({ v, stops }) {
               <td className="whitespace-nowrap tabular-nums">{ngayGio(s.tu)}</td>
               <td className="whitespace-nowrap tabular-nums">{s.den ? ngayGio(s.den) : quyen.nhap ? <Button size="xs" variant="outline" onClick={() => run(() => api.updateStop(s.id, { den: new Date().toISOString() }), "Đã kết thúc khoảng dừng")}>Kết thúc ngay</Button> : <Badge tone="warn">Đang dừng</Badge>}</td>
               <td className="num">{so(((ms(s.den) ?? Date.now()) - ms(s.tu)) / 36e5, 2)}</td>
-              <td>{s.ly_do}{s.ghi_chu && <div className="text-[11px] text-muted-foreground">{s.ghi_chu}</div>}</td>
+              <td>{s.ly_do}{s.ghi_chu && <div className="text-[0.6875rem] text-muted-foreground">{s.ghi_chu}</div>}</td>
               <td><Checkbox disabled={!quyen.nhap} checked={s.tru_tp} onChange={(e) => run(() => api.updateStop(s.id, { tru_tp: e.target.checked }), "Đã đổi")} aria-label="Trừ laytime" /></td>
               <td><Checkbox disabled={!quyen.nhap} checked={!!s.trong_mang} onChange={(e) => run(() => api.updateStop(s.id, { trong_mang: e.target.checked }), "Đã đổi")} aria-label="Trống máng" /></td>
               <td>{quyen.quanLy && <ConfirmButton confirmText="Xóa?" onConfirm={() => run(() => api.deleteStop(s.id), "Đã xóa khoảng dừng")}><Trash2 /></ConfirmButton>}</td>

@@ -25,10 +25,10 @@ export default function BangTauBen({ chiCoTau = false }) {
               <tr key={b.ma + (v?.id ?? "")} className={cn(v && "cursor-pointer")} onClick={() => v && setVoyageMo(v.id)}>
                 {dau && <td rowSpan={n} className="font-mono font-semibold">{tenBen(b.ma)}</td>}
                 {v ? <>
-                  <td className="font-medium">{v.ten_tau}<div className="text-[11px] text-muted-foreground">{v.huong === "xuat" ? "Xuất" : "Nhập"}{v.ben_phu ? ` · cập ${tenBenChuyen(v)}` : ""}</div></td>
+                  <td className="font-medium">{v.ten_tau}<div className="text-[0.6875rem] text-muted-foreground">{v.huong === "xuat" ? "Xuất" : "Nhập"}{v.ben_phu ? ` · cập ${tenBenChuyen(v)}` : ""}</div></td>
                   <td>{v.loai_hang}</td>
                   <td className="max-w-[220px]">{v.ten_hang}</td>
-                  <td className="num">{so(v.khoi_luong)}<div className="text-[11px] text-muted-foreground">đã làm {so(cs.daLam)}</div></td>
+                  <td className="num">{so(v.khoi_luong)}<div className="text-[0.6875rem] text-muted-foreground">đã làm {so(cs.daLam)}</div></td>
                   <td className="whitespace-nowrap tabular-nums">{ngayGio(v.atb)}</td>
                   <td className="whitespace-nowrap tabular-nums">{ngayGio(v.atd || v.etd)}</td>
                   <td><TrangThaiBadge st={cs.trangThai} /></td>

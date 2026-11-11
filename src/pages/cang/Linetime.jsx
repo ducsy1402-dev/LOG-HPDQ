@@ -137,9 +137,9 @@ export default function Linetime() {
                       const cs = chiSo(v, D.stopsOf(v.id), D.now), cb = canhCua.get(v.id) || [];
                       return (
                         <tr key={v.id} className="cursor-pointer" onClick={() => setVoyageMo(v.id)}>
-                          <td><div className="font-medium"><UuTien v={v} />{v.ten_tau}</div><div className="text-[11px] text-muted-foreground">{v.ma_chuyen}</div></td>
+                          <td><div className="font-medium"><UuTien v={v} />{v.ten_tau}</div><div className="text-[0.6875rem] text-muted-foreground">{v.ma_chuyen}</div></td>
                           <td className="font-mono">{tenBenChuyen(v) || "—"}</td>
-                          <td>{v.huong === "xuat" ? "Xuất" : "Nhập"} {v.loai_hang}<div className="max-w-[180px] truncate text-[11px] text-muted-foreground">{v.ten_hang}</div></td>
+                          <td>{v.huong === "xuat" ? "Xuất" : "Nhập"} {v.loai_hang}<div className="max-w-[180px] truncate text-[0.6875rem] text-muted-foreground">{v.ten_hang}</div></td>
                           <td className="num">{so(v.khoi_luong)}</td>
                           <td className="whitespace-nowrap tabular-nums">{ngayGio(v.eta)}</td>
                           <td className="whitespace-nowrap tabular-nums">{v.atb ? ngayGio(v.atb) : <span className="text-muted-foreground">{ngayGio(v.etb)}</span>}</td>

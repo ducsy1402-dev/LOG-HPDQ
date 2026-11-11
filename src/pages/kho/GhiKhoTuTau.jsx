@@ -88,7 +88,7 @@ function HopGhi({ v, kho, dx, ten, onClose }) {
               <tr key={i} className={cn("align-top", loi[i] && "bg-bad/5")}>
                 <td><ChonGo value={r.bai} onChange={(x) => sua(i, { bai: x })} options={baiDs} placeholder="Chọn bãi" /></td>
                 <td><ChonGo value={r.hang} onChange={(x) => sua(i, { hang: x, so_lo: "" })} options={hangDs(baiDs.find((b) => plain(b) === plain(r.bai)) || r.bai)} placeholder="Chọn hàng" />
-                  {loi[i] && <div className="mt-1 text-[11px] text-bad">{loi[i]}</div>}</td>
+                  {loi[i] && <div className="mt-1 text-[0.6875rem] text-bad">{loi[i]}</div>}</td>
                 <td>{coLo(r) ? (huong === "nhap"
                   ? <Input value={r.so_lo} onChange={(e) => sua(i, { so_lo: e.target.value })} placeholder="Số lô" />
                   : <NativeSelect value={r.so_lo} onChange={(e) => sua(i, { so_lo: e.target.value })} placeholder="Chọn lô" options={loXuat(r)} />) : <span className="text-muted-foreground">—</span>}</td>
@@ -100,7 +100,7 @@ function HopGhi({ v, kho, dx, ten, onClose }) {
           </table>
         </div>
         <div><Button size="sm" variant="outline" onClick={them}><Plus />Thêm dòng</Button></div>
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-[0.6875rem] text-muted-foreground">
           {huong === "nhap" ? "Mỗi dòng là một giao dịch nhập kho, nguồn Tàu, gắn với chuyến này. " : "Tàu xuất lấy thành phẩm theo lô cũ trước (ngày nhập sớm nhất), chỉ lô sẵn sàng xuất; đổi lô được nếu cần. "}
           Bãi chia theo khối lượng khai báo ở phiếu chuyến; chuyến nhiều dòng hàng chia theo tỉ lệ khối lượng từng hàng.
         </p>

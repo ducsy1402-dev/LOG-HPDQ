@@ -50,11 +50,11 @@ export function TheTau({ onMo }) {
               const o = (benCo.get(b.ma) || []).sort((x, y) => UU[y.st] - UU[x.st]);
               const st = o[0]?.st;
               return <span key={b.ma} title={`${tenBen(b.ma)}: ${o.length ? o.map((x) => `${x.v.ten_tau} (${TRANG_THAI[x.st].ten})`).join(", ") : "trống"}`}
-                className={cn("flex h-5 min-w-[26px] items-center justify-center rounded px-1 font-mono text-[9.5px] font-medium", st ? "text-white" : "bg-muted text-muted-foreground")}
+                className={cn("flex h-5 min-w-[26px] items-center justify-center rounded px-1 font-mono text-[0.6875rem] font-medium", st ? "text-white" : "bg-muted text-muted-foreground")}
                 style={st ? { background: TRANG_THAI[st].mau } : undefined}>{b.ma}</span>;
             })}
           </div>
-          <div className="mt-1.5 flex flex-wrap gap-x-3 text-[10.5px] text-muted-foreground">
+          <div className="mt-1.5 flex flex-wrap gap-x-3 text-[0.6875rem] text-muted-foreground">
             {["lam_hang", "cap_ben", "xong_hang"].map((k) => <span key={k} className="inline-flex items-center gap-1"><i className="h-2 w-2 rounded-sm" style={{ background: TRANG_THAI[k].mau }} />{TRANG_THAI[k].ten}</span>)}
             <span className="inline-flex items-center gap-1"><i className="h-2 w-2 rounded-sm bg-muted ring-1 ring-border" />Bến trống</span>
           </div>
@@ -107,7 +107,7 @@ function LichCauBen() {
         <span className="tabular-nums text-muted-foreground">{ngayGio(tu).slice(0, 5)} → {ngayGio(tu + (soNgay - 1) * DAY).slice(0, 5)}</span>
       </div>
       <div ref={khung} className="rounded-md border"><Gantt voyages={D.voyages.filter((v) => !v.huy)} tu={tu} soNgay={soNgay} pxNgay={pxNgay} gon /></div>
-      <p className="mt-1.5 text-[11px] text-muted-foreground">Kéo thả, lùi / tới ngày, xem toàn bộ thời gian chờ: mở trang Linetime.</p>
+      <p className="mt-1.5 text-[0.6875rem] text-muted-foreground">Kéo thả, lùi / tới ngày, xem toàn bộ thời gian chờ: mở trang Linetime.</p>
     </>
   );
 }
@@ -119,7 +119,7 @@ function TauTaiCang({ ds }) {
   const hang = ds.filter((x) => x.st in THU).map((x) => ({ ...x, cs: chiSo(x.v, D.stopsOf(x.v.id), D.now) }))
     .sort((a, b) => THU[a.st] - THU[b.st] || String(a.v.ben_ma || "").localeCompare(String(b.v.ben_ma || "")));
   if (!hang.length) return <Empty>Không có tàu ở cảng hoặc chờ neo.</Empty>;
-  const nho = "text-[11px] text-muted-foreground";
+  const nho = "text-[0.6875rem] text-muted-foreground";
   return (
     <div className="scroll-x max-h-[62vh] rounded-md border">
       <table className="tbl text-xs">

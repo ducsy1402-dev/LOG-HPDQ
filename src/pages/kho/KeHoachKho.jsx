@@ -111,7 +111,7 @@ export default function KeHoachKho({ loai, kho }) {
         </table>
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <p className="flex-1 text-[11px] text-muted-foreground">Kế hoạch nhập / xuất cả tháng của từng bãi nhỏ. Để trống Hàng hóa hoặc Nhóm hàng thì tự điền theo hàng chứa trong bãi nhỏ và cột Nhóm của Danh mục › Hàng hóa. Tổng quan › Quản lý kho bãi › Kế hoạch so thực tế chia kế hoạch tháng theo ngày / cộng theo quý để so với sổ kho.</p>
+        <p className="flex-1 text-[0.6875rem] text-muted-foreground">Kế hoạch nhập / xuất cả tháng của từng bãi nhỏ. Để trống Hàng hóa hoặc Nhóm hàng thì tự điền theo hàng chứa trong bãi nhỏ và cột Nhóm của Danh mục › Hàng hóa. Tổng quan › Quản lý kho bãi › Kế hoạch so thực tế chia kế hoạch tháng theo ngày / cộng theo quý để so với sổ kho.</p>
         {sua && <Button size="sm" variant="outline" onClick={them}><Plus />Thêm dòng</Button>}
         {sua && <Button size="sm" disabled={!doi} onClick={luu}><Save />Lưu kế hoạch{doi ? ` (${doi} thay đổi)` : ""}</Button>}
       </div>

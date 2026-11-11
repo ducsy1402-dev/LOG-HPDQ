@@ -25,7 +25,7 @@ export function Field({ label, hint, children, className }) {
     <div className={cn("grid content-start gap-1", className)}>
       <Label>{label}</Label>
       {children}
-      {hint && <span className="text-[11px] text-muted-foreground">{hint}</span>}
+      {hint && <span className="text-[0.6875rem] text-muted-foreground">{hint}</span>}
     </div>
   );
 }

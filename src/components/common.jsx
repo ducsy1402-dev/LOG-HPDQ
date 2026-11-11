@@ -29,7 +29,7 @@ export function Kpi({ label, value, sub, tone, icon: Ic, onClick }) {
     <Tag onClick={onClick} className={cn("rounded-lg border bg-card p-3 text-left shadow-sm", onClick && "transition-colors hover:border-primary/50")}>
       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">{Ic && <Ic className="h-3.5 w-3.5" />}{label}</div>
       <div className={cn("mt-1 text-2xl font-semibold tabular-nums leading-tight", T[tone])}>{value}</div>
-      {sub && <div className="mt-0.5 text-[11px] text-muted-foreground">{sub}</div>}
+      {sub && <div className="mt-0.5 text-[0.6875rem] text-muted-foreground">{sub}</div>}
     </Tag>
   );
 }

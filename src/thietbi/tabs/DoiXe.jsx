@@ -112,7 +112,7 @@ function DanhSachXe({ D, doi, loai, onClose }) {
               <td className="whitespace-nowrap font-mono font-medium">{i === 0 ? v.ma : ""}</td>
               <td className="whitespace-nowrap text-muted-foreground">{i === 0 ? v.model : ""}</td>
               <td className="whitespace-nowrap"><Nhan tone={e.loai === "Hỏng" ? "bad" : e.loai === "BD chiến lược" ? "warn" : "info"}>{e.loai}</Nhan></td>
-              <td className="min-w-[160px]">{e.mo_ta}{e.phu_tung && e.phu_tung !== "Không cần" && <div className="text-[11px] text-muted-foreground">{e.phu_tung}</div>}</td>
+              <td className="min-w-[160px]">{e.mo_ta}{e.phu_tung && e.phu_tung !== "Không cần" && <div className="text-[0.6875rem] text-muted-foreground">{e.phu_tung}</div>}</td>
               <td className="whitespace-nowrap tabular-nums">{vn(e.ngay_vao)}</td>
               <td className="num">{diffDays(e.ngay_vao, D.today)}</td>
               <td className={"whitespace-nowrap tabular-nums " + (e.ngay_du_kien && e.ngay_du_kien < D.today ? "font-semibold text-bad" : "")}>{e.ngay_du_kien ? vn(e.ngay_du_kien) : "—"}</td>

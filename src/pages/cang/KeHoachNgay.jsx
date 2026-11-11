@@ -39,7 +39,7 @@ export default function KeHoachNgay({ voyages, chiXem = false }) {
   // Bãi, xe, cẩu, băng tải, hót vét: theo phiếu chuyến (Bãi & Thiết bị)
   const cranes = useCau();
   const tbCua = (v) => thietBiChuyen(v, D.plansOf(v.id), { cranes, stops: D.stopsOf(v.id), now: D.now });
-  const nho = "text-[11px] text-muted-foreground";
+  const nho = "text-[0.6875rem] text-muted-foreground";
   // In kế hoạch điều động tàu cập / rời cảng theo biểu mẫu từng cảng, từ tất cả các chuyến (không theo bộ lọc của trang)
   const du = duLieuKeHoachCang({ voyages: D.voyages, stopsOf: D.stopsOf, tu, den });
   const chon = cang === "tat_ca" ? CANG : CANG.filter((c) => c.ma === cang);

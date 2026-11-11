@@ -95,7 +95,7 @@ export default function SoMetBen() {
           {bang.map((r) => (
             <div key={r.tuyen.ma} data-tuyen={r.tuyen.ma} className={cn("rounded-md border p-2", dangKeo?.r2.tuyen.ma === r.tuyen.ma && "border-primary bg-primary/5")}>
               <div className="mb-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
-                <b className="font-mono text-[13px]">{tenTuyen(r.tuyen, tenBen)}</b>
+                <b className="font-mono text-[0.8125rem]">{tenTuyen(r.tuyen, tenBen)}</b>
                 <span className="text-muted-foreground">{met(r.dai)} m</span>
                 {r.tau.length > 0 && (r.thieu ? <Badge tone="warn">Thiếu LOA</Badge> : r.vua ? <Badge tone="ok">Vừa</Badge> : <Badge tone="bad">Không vừa</Badge>)}
                 {r.tau.length > 0 && !r.thieu && r.can != null && <span>cần <b>{met(r.can)}</b> m · còn trống <b className={cn(r.du < 0 && "text-bad")}>{met(r.du)}</b> m</span>}
@@ -104,7 +104,7 @@ export default function SoMetBen() {
               </div>
               <div className="relative h-[60px]" data-strip={r.tuyen.ma}>
                 {r.tuyen.bens.map((b) => (
-                  <div key={b.ma} className={cn("absolute bottom-0 flex h-[20px] items-center justify-center border border-muted-foreground/40 bg-muted/60 text-[10px] font-semibold",
+                  <div key={b.ma} className={cn("absolute bottom-0 flex h-[20px] items-center justify-center border border-muted-foreground/40 bg-muted/60 text-[0.6875rem] font-semibold",
                     b.goc === "dau" && "border-l-4 border-l-warn", b.goc === "cuoi" && "border-r-4 border-r-warn")}
                     style={{ left: pct(b.tu - r.tuyen.tu, r), width: pct(b.den - b.tu, r) }}
                     title={`Bến ${b.ma}: mét ${met(b.tu)}–${met(b.den)}${b.goc ? ` · ${TEN_HINH.vuong_goc} ở mét ${met(b.goc === "dau" ? b.tu : b.den)}` : ""}`}>
@@ -117,7 +117,7 @@ export default function SoMetBen() {
                   const mau = TRANG_THAI[trangThai(item.v)]?.mau || "#64748b";
                   return (
                     <div key={`${item.v.id}:${item.seg.a}`} onPointerDown={(e) => onDown(e, item, r)}
-                      className={cn("absolute top-1 flex h-[30px] touch-none items-center overflow-hidden rounded px-1.5 text-[11px] font-medium text-white shadow-sm",
+                      className={cn("absolute top-1 flex h-[30px] touch-none items-center overflow-hidden rounded px-1.5 text-[0.6875rem] font-medium text-white shadow-sm",
                         keoDuoc && item.seg.cuoi ? "cursor-grab" : "cursor-pointer", !item.coDinh && "border-2 border-dashed border-white/80 opacity-80",
                         loi && "outline outline-2 outline-offset-1 outline-bad", dangKeoTau && "z-30 cursor-grabbing ring-2 ring-white")}
                       style={{ left: pct(item.x - r.tuyen.tu, r), width: pct(item.L, r), background: mau, transform: dangKeoTau ? `translate(${keo.dx}px, ${keo.dy}px)` : undefined }}
@@ -127,7 +127,7 @@ export default function SoMetBen() {
                 })}
               </div>
               {keoDuoc && r.tau.some((x) => x.coDinh && x.seg.cuoi) && (
-                <div className="mt-1 flex flex-wrap gap-3 text-[11px] text-muted-foreground">
+                <div className="mt-1 flex flex-wrap gap-3 text-[0.6875rem] text-muted-foreground">
                   {r.tau.filter((x) => x.coDinh && x.seg.cuoi).map((x) => <button key={x.v.id} type="button" className="hover:text-primary hover:underline" onClick={() => boViTri(x)}>Bỏ vị trí {x.v.ten_tau}</button>)}
                 </div>)}
             </div>))}
@@ -137,7 +137,7 @@ export default function SoMetBen() {
         <div className="pointer-events-none fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-md border bg-popover px-3 py-1.5 text-sm shadow-lg">
           {keo.item.v.ten_tau}: mét {met(dangKeo.x)}–{met(dangKeo.x + keo.item.L)} · {dangKeo.ben ? `bến ${noiHaiBen(dangKeo.ben.ben_ma, dangKeo.ben.ben_phu)}` : <span className="text-bad">ra ngoài tuyến / chiếm hơn hai bến</span>}
         </div>)}
-      <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-[0.6875rem] text-muted-foreground">
         <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-5 rounded-sm bg-slate-500" />Tàu đã ghi vị trí mét</span>
         <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-5 rounded-sm border-2 border-dashed border-slate-400" />Web tự xếp (chưa ghi vị trí)</span>
         <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-2 border-l-4 border-l-warn" />Đầu góc vuông</span>

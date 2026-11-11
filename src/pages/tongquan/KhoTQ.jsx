@@ -142,9 +142,9 @@ function LapDay({ kho }) {
           <tbody>{bai.map((x) => { const l = kho.luuLuong.bai.get(x.ten_bai); const tau = (l?.tau || []).reduce((s, t) => s + t.con, 0); const trong = kho.choTrong(x.ten_bai); return (
             <tr key={x.ten_bai} className="cursor-pointer hover:bg-accent" onClick={() => setChon(x.ten_bai)} title="Bấm để xem các bãi nhỏ">
               {kv && <td className="whitespace-nowrap">{x.khu || <span className="text-muted-foreground">—</span>}</td>}
-              <td className="whitespace-nowrap font-medium">{x.ten_bai}<div className="text-[11px] text-primary">{x.dong.length} bãi nhỏ ›</div></td>
+              <td className="whitespace-nowrap font-medium">{x.ten_bai}<div className="text-[0.6875rem] text-primary">{x.dong.length} bãi nhỏ ›</div></td>
               <td>{TEN_LOAI[x.loai]}</td>
-              <td className="num">{so(x.ton)}{x.sucChua ? <div className="text-[11px] text-muted-foreground">/ {so(x.sucChua)}</div> : ""}</td>
+              <td className="num">{so(x.ton)}{x.sucChua ? <div className="text-[0.6875rem] text-muted-foreground">/ {so(x.sucChua)}</div> : ""}</td>
               <td className="num whitespace-nowrap"><NhapXuatTB l={l} /></td>
               <td className="whitespace-nowrap"><DuKienDay l={l} /></td>
               <td className={cn("whitespace-nowrap", trong != null && tau > trong && "font-semibold text-bad")}>{l?.tau.length ? `${l.tau.length} tàu · ${so(tau)} t` : <span className="text-muted-foreground">—</span>}</td>
@@ -187,7 +187,7 @@ function ChiTietBaiLon({ b, kho, kv, onQuayLai }) {
                 <td className="min-w-[120px] font-medium">{d.ten}</td>
                 <td className="whitespace-nowrap">{d.saiBai ? <Badge tone="bad">Sai bãi</Badge> : <Badge tone="outline">{KIEU_NGAN[d.kieu] || "—"}{d.kieu === "co_dinh_nhom" && d.nhomBai ? ` ${d.nhomBai}` : ""}</Badge>}</td>
                 <td className="min-w-[130px] max-w-[220px]">{d.chua.length ? d.chua.map((c) => <div key={c.hang} className="flex justify-between gap-2"><span className="truncate">{c.hang}</span>{d.chua.length > 1 && <span className="tabular-nums text-muted-foreground">{so(c.ton)}</span>}</div>) : <span className="text-muted-foreground">{d.hang || "Chưa có hàng"}</span>}</td>
-                <td className={cn("num whitespace-nowrap", d.lapDay >= NGUONG_KHO.vang && "font-semibold text-warn", d.ton < 0 && "text-bad")}>{so(d.ton)}{d.sucChua ? <span className="text-muted-foreground"> / {so(d.sucChua)}</span> : ""}{d.lapDay != null && <div className="text-[11px]">{pct(d.lapDay)}</div>}</td>
+                <td className={cn("num whitespace-nowrap", d.lapDay >= NGUONG_KHO.vang && "font-semibold text-warn", d.ton < 0 && "text-bad")}>{so(d.ton)}{d.sucChua ? <span className="text-muted-foreground"> / {so(d.sucChua)}</span> : ""}{d.lapDay != null && <div className="text-[0.6875rem]">{pct(d.lapDay)}</div>}</td>
                 <td className="num whitespace-nowrap"><NhapXuatTB l={k} /></td>
                 <td className="whitespace-nowrap"><DuKienDay l={k} /></td>
                 <td className="num whitespace-nowrap">{k?.luuBai != null ? `${so(k.luuBai, k.luuBai < 10 ? 1 : 0)} ngày` : "—"}</td>
@@ -264,7 +264,7 @@ function TonDuBao({ kho }) {
         {chon.length > 0 && <Button size="xs" variant="ghost" onClick={() => setChon([])}>Bỏ chọn</Button>}
       </div>
       <EChart option={opt} height={340} />
-      <p className="mt-1 text-[11px] text-muted-foreground">Chưa chọn bãi: hai đường kho thành phẩm và kho nguyên liệu. Nét liền: tồn cuối ngày 30 ngày qua; nét đứt: dự báo 7 ngày theo nhập − xuất bình quân 30 ngày; nét chấm: sức chứa.</p>
+      <p className="mt-1 text-[0.6875rem] text-muted-foreground">Chưa chọn bãi: hai đường kho thành phẩm và kho nguyên liệu. Nét liền: tồn cuối ngày 30 ngày qua; nét đứt: dự báo 7 ngày theo nhập − xuất bình quân 30 ngày; nét chấm: sức chứa.</p>
     </div>
   );
 }
@@ -341,7 +341,7 @@ function KeHoachThucTe({ kho }) {
                 <td className="num">{chenh(r.tonKH, r.tonTT)}</td></tr>))}</tbody>
           </table>
         </div>)}
-      <p className="mt-1 text-[11px] text-muted-foreground">
+      <p className="mt-1 text-[0.6875rem] text-muted-foreground">
         Kế hoạch (KH) lấy từ trang Kho › tab Kế hoạch Xuất/Nhập tồn: kế hoạch nhập / xuất cả tháng của từng bãi nhỏ, chia đều theo ngày khi xem theo ngày, cộng các tháng khi xem theo quý. Thực tế (TT) lấy từ sổ kho theo bãi nhỏ nhận hàng. Điều chuyển giữa các bãi không tính vào Nhập / Xuất (vẫn tính vào tồn thực tế). Tồn KH cuối kỳ = tồn đầu kỳ + nhập KH − xuất KH.
         {kq.dangDienRa ? " Kỳ đang diễn ra: số thực tế mới đến hôm nay." : ""}{!(D.khoKeHoach || []).length ? " Chưa có kế hoạch nào: nhập ở trang Kho." : ""}{kq.matKH ? ` ${kq.matKH} dòng kế hoạch thuộc bãi nhỏ không còn trong danh mục nên không được tính.` : ""}
       </p>

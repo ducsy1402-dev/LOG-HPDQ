@@ -21,8 +21,8 @@ import { thoiLuong, ngayGioNam } from "@/lib/format";
 export const SNAP = 30 * 60e3;
 // Kích thước dòng / thanh: bình thường và chế độ gọn
 const CO = {
-  thuong: { row: 46, lan: 26, bar: 22, top: 4, label: 76, head: 38, chu: "text-[11px]" },
-  gon: { row: 28, lan: 18, bar: 15, top: 3, label: 58, head: 30, chu: "text-[10px]" },
+  thuong: { row: 46, lan: 26, bar: 22, top: 4, label: 76, head: 38, chu: "text-[0.6875rem]" },
+  gon: { row: 28, lan: 18, bar: 15, top: 3, label: 58, head: 30, chu: "text-[0.6875rem]" },
 };
 export const THU = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 export const KEO_DUOC = new Set(["du_kien", "cho_neo"]);
@@ -151,8 +151,8 @@ export default function Gantt({ voyages, tu, soNgay, pxNgay, che = "ben", gon = 
               <div key={r.ma || "_"} className="absolute inset-x-0 border-b" style={{ top: r.y, height: r.h }}>
                 <div className="sticky left-0 z-20 flex h-full flex-col justify-center border-r bg-card px-2" style={{ width: LABEL }}
                   title={r.b ? `Bến ${r.b.ma}: DWT ${so(r.b.dwt_max)} · mớn ${r.b.mon_cung ? "≤" : ""}${so(r.b.mon_max, 2)} m · dài ${met(r.b.loa_max)} m\n${r.b.loai_hang || ""}` : "Chuyến chưa xếp bến"}>
-                  <span className={cn("font-mono font-semibold", gon ? "text-[11px]" : "text-[13px]")}>{r.b ? tenBen(r.b.ma) : "Chưa xếp"}</span>
-                  {r.b && !gon && <span className="text-[10px] text-muted-foreground">{r.b.mon_cung ? "≤" : ""}{so(r.b.mon_max, 1)}m · {met(r.b.loa_max)}m</span>}
+                  <span className={cn("font-mono font-semibold", gon ? "text-[0.6875rem]" : "text-[0.8125rem]")}>{r.b ? tenBen(r.b.ma) : "Chưa xếp"}</span>
+                  {r.b && !gon && <span className="text-[0.6875rem] text-muted-foreground">{r.b.mon_cung ? "≤" : ""}{so(r.b.mon_max, 1)}m · {met(r.b.loa_max)}m</span>}
                 </div>
                 {r.ds.map((x) => {
                   const dangKeo = keo?.x.v.id === x.v.id && keo.moved && keo.coKeo;
@@ -195,7 +195,7 @@ export default function Gantt({ voyages, tu, soNgay, pxNgay, che = "ben", gon = 
           </div>
         </div>
       </div>
-      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[0.6875rem] text-muted-foreground">
         {Object.entries(TRANG_THAI).filter(([k]) => k !== "huy").map(([k, t]) => <span key={k} className="flex items-center gap-1"><i className="inline-block h-2.5 w-4 rounded-sm" style={{ background: t.mau }} />{t.ten}</span>)}
         <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-4 rounded-sm" style={{ background: "repeating-linear-gradient(135deg,#94a3b8,#94a3b8 4px,#94a3b8aa 4px,#94a3b8aa 6px)" }} />Giờ rời ước tính</span>
         <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-4 rounded-sm border-2 border-dashed border-slate-400" />≈ Trạng thái theo giờ dự kiến (chưa ghi mốc thực tế)</span>
@@ -243,7 +243,7 @@ export function TheTau({ x, cx, cy }) {
       style={{ width: W, left: Math.max(8, trai), top: tren, visibility: cao ? "visible" : "hidden" }}>
       <div className="flex items-start gap-2">
         <div className="min-w-0 flex-1"><div className="text-sm font-semibold">{v.ten_tau}</div><div className="text-muted-foreground">{v.ma_chuyen}</div></div>
-        <span className="rounded px-1.5 py-0.5 text-[11px] font-semibold text-white" style={{ background: TRANG_THAI[x.st].mau }}>{TRANG_THAI[x.st].ten}</span>
+        <span className="rounded px-1.5 py-0.5 text-[0.6875rem] font-semibold text-white" style={{ background: TRANG_THAI[x.st].mau }}>{TRANG_THAI[x.st].ten}</span>
       </div>
       <D2 l="Bến">{v.ben_ma ? `${tenBenChuyen(v)}${v.vi_tri != null ? " " + viTriChu(v.vi_tri, v.loa) : ""}` : "Chưa xếp"}{v.dwt ? ` · DWT ${so(v.dwt)}` : ""}{v.draft ? ` · mớn ${so(v.draft, 2)} m` : ""}{v.loa ? ` · LOA ${so(v.loa, 1)} m` : ""}</D2>
       <D2 l="Hàng">{v.huong === "xuat" ? "Xuất" : "Nhập"} {v.loai_hang}{v.ten_hang && v.ten_hang !== v.loai_hang ? ` – ${v.ten_hang}` : ""}</D2>
@@ -253,7 +253,7 @@ export function TheTau({ x, cx, cy }) {
       <div className="mt-0.5 border-t pt-1.5">{moc.map(([l, t]) => <D2 key={l} l={l}><span className="tabular-nums">{ngayGioNam(t)}</span></D2>)}</div>
       {cs.choNeo != null && <D2 l="Chờ bến">{thoiLuong(cs.choNeo)}</D2>}
       <div className="mt-0.5 border-t pt-1.5 grid gap-1.5">
-        <div className="text-[11px] text-muted-foreground">{tb.plan ? `Theo phương án ${tb.plan.ten} (${TRANG_THAI_PA[tb.plan.trang_thai]?.ten.toLowerCase() || tb.plan.trang_thai})` : "Theo phiếu chuyến (chưa có phương án)"}</div>
+        <div className="text-[0.6875rem] text-muted-foreground">{tb.plan ? `Theo phương án ${tb.plan.ten} (${TRANG_THAI_PA[tb.plan.trang_thai]?.ten.toLowerCase() || tb.plan.trang_thai})` : "Theo phiếu chuyến (chưa có phương án)"}</div>
         <D2 l={tenBai(v)}>{tb.bai.map((b) => `${b.bai}${b.khu ? ` › ${b.khu}` : ""}${b.khoi_luong != null ? ` ${so(b.khoi_luong)} t` : ""}`).join("; ") || "—"}</D2>
         <D2 l="Xe vận chuyển">{moTaTB(tb.xe) || "—"}</D2>
         <D2 l="Hót vét / be hầm">{moTaTB(tb.hotVet) || "—"}</D2>
@@ -263,7 +263,7 @@ export function TheTau({ x, cx, cy }) {
         {tb.cauGan.length > 0 && <D2 l="Gắn cẩu">{tb.cauGan.join(", ")}</D2>}
       </div>
       {canh.length > 0 && <div className="mt-0.5 grid gap-1 border-t pt-1.5">{canh.map((a) => <div key={a.id} className="flex gap-1.5"><MucIcon muc={a.muc} className="h-3.5 w-3.5" />{a.nd}</div>)}</div>}
-      <div className="text-[11px] text-muted-foreground">{KEO_DUOC.has(x.st) && quyen.nhap ? "Kéo để đổi bến / giờ dự kiến · bấm để mở phiếu" : "Bấm để mở phiếu chuyến"}</div>
+      <div className="text-[0.6875rem] text-muted-foreground">{KEO_DUOC.has(x.st) && quyen.nhap ? "Kéo để đổi bến / giờ dự kiến · bấm để mở phiếu" : "Bấm để mở phiếu chuyến"}</div>
     </div>
   );
 }

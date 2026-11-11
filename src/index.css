@@ -31,34 +31,37 @@
     --radius: 0.6rem;
     color-scheme: light;
   }
+  /* Giao diện tối kiểu SCADA (màn hình điều khiển nhà máy): nền xanh đậm, khung xanh sáng, số xanh lá, vàng cảnh báo */
   .dark {
-    --background: 220 52% 5%;
-    --foreground: 215 56% 93%;
-    --card: 219 49% 10%;
-    --card-foreground: 215 56% 93%;
-    --popover: 219 45% 12%;
-    --popover-foreground: 215 56% 93%;
-    --primary: 188 86% 53%;
-    --primary-foreground: 194 73% 6%;
-    --secondary: 218 40% 16%;
-    --secondary-foreground: 215 40% 88%;
-    --muted: 218 40% 14%;
-    --muted-foreground: 217 17% 57%;
-    --accent: 218 40% 18%;
-    --accent-foreground: 215 56% 93%;
-    --destructive: 351 80% 60%;
+    --background: 219 89% 12%;
+    --foreground: 209 100% 96%;
+    --card: 217 86% 19%;
+    --card-foreground: 209 100% 96%;
+    --popover: 217 84% 23%;
+    --popover-foreground: 209 100% 96%;
+    --primary: 196 94% 60%;
+    --primary-foreground: 220 90% 10%;
+    --secondary: 216 75% 27%;
+    --secondary-foreground: 209 100% 92%;
+    --muted: 217 80% 17%;
+    --muted-foreground: 214 76% 78%;
+    --accent: 216 75% 29%;
+    --accent-foreground: 209 100% 96%;
+    --destructive: 355 90% 62%;
     --destructive-foreground: 0 0% 100%;
-    --border: 219 30% 18%;
-    --input: 219 30% 22%;
-    --ring: 188 86% 53%;
-    --ok: 158 64% 52%;
-    --warn: 43 96% 56%;
-    --bad: 351 95% 71%;
-    --info: 213 94% 68%;
+    --border: 213 72% 34%;
+    --input: 211 66% 36%;
+    --ring: 196 94% 60%;
+    --ok: 142 71% 58%;
+    --warn: 53 97% 64%;
+    --bad: 355 94% 70%;
+    --info: 205 92% 66%;
     color-scheme: dark;
   }
   * { @apply border-border; }
-  body { @apply bg-background text-foreground font-sans antialiased; font-size: 14px; }
+  html { font-size: 14.5px; } /* thu nhỏ ~90% toàn web: mọi cỡ rem (chữ, biểu tượng, khoảng cách) co theo */
+  body { @apply bg-background text-foreground font-sans antialiased; font-size: 0.9rem; }
+  .dark body { background-image: linear-gradient(rgba(56, 189, 248, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(56, 189, 248, 0.05) 1px, transparent 1px), linear-gradient(180deg, #03163a 0%, #062a5c 100%); background-size: 24px 24px, 24px 24px, auto; background-attachment: fixed; }
   input[type="datetime-local"]::-webkit-calendar-picker-indicator { opacity: 0.6; cursor: pointer; }
   .dark input[type="datetime-local"]::-webkit-calendar-picker-indicator { filter: invert(1); }
 }
@@ -77,3 +80,20 @@
 }
 /* Toàn màn hình (thẻ, hộp thoại): vùng cuộn bên trong cao gần hết màn hình thay vì bị khống chế (max-h-[60vh], .tw 340 / 560 px…). Dùng !important để thắng cả style gắn trực tiếp. */
 [data-tmh] [class*="max-h-"]:not([class*="max-h-none"]), [data-tmh] .scroll-x, [data-tmh] .tw, [data-tmh] .tw.short { max-height: calc(100dvh - 120px) !important; }
+
+/* ---- Giao diện tối kiểu SCADA ---- */
+@layer components {
+  /* Tab đang chọn: xanh bóng có viền sáng như nhãn "Coking", "Sinter" trên màn hình điều khiển */
+  .dark [role="tab"][data-state="active"] { background-image: linear-gradient(180deg, #5fb4f2 0%, #2a78cf 55%, #174b94 100%); color: #fff; border: 1px solid #bfe8ff; text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35); box-shadow: 0 0 10px rgba(56, 189, 248, 0.4); }
+  /* Nút chính: xanh bóng */
+  .dark .bg-primary { background-image: linear-gradient(180deg, #5fb4f2 0%, #2a78cf 55%, #174b94 100%); color: #fff; text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35); }
+  /* Tiêu đề cột bảng: ruy băng xanh */
+  .dark .tbl th { background-image: linear-gradient(180deg, #3b82c4 0%, #1e4e8c 100%); color: #fff; border-color: rgba(96, 165, 250, 0.5); }
+  /* Số trong bảng: chữ số đơn cách xanh lá như ô số liệu SCADA (class tiện ích như text-bad vẫn thắng) */
+  :where(.dark) .tbl td.num { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 0.92em; color: hsl(var(--ok)); }
+  /* Ô nhập liệu: ô tối viền xanh */
+  .dark :is(input, select, textarea):not([type="checkbox"]):not([type="radio"]):not([type="range"]) { background-color: #04162b; border-color: hsl(var(--input)); }
+  /* Thẻ và hộp: viền xanh sáng, hơi phát sáng */
+  .dark .bg-card { box-shadow: 0 0 0 1px rgba(56, 130, 220, 0.25), 0 2px 14px rgba(2, 12, 40, 0.5); }
+  .dark ::-webkit-scrollbar-thumb { background: #1e5a94; border-radius: 6px; }
+}

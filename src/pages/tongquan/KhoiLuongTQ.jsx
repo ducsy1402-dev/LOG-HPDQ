@@ -48,7 +48,7 @@ export function TheKhoiLuong({ onMo }) {
             <div className="absolute inset-y-0" style={{ left: `${Math.min(100, (k.nhap.th / mau) * 100)}%`, width: `${Math.min(100, (k.xuat.th / mau) * 100)}%`, background: MAU.tim }} />
             <div className="absolute inset-y-[-2px] w-0.5 bg-foreground/60" style={{ left: `${quaThang * 100}%` }} title={`Đã qua ${pct(quaThang)} thời gian tháng`} />
           </div>
-          <div className="mt-1.5 flex flex-wrap gap-x-3 text-[10.5px] text-muted-foreground">
+          <div className="mt-1.5 flex flex-wrap gap-x-3 text-[0.6875rem] text-muted-foreground">
             <span className="inline-flex items-center gap-1"><i className="h-2 w-2 rounded-sm" style={{ background: MAU.info }} />Nhập</span>
             <span className="inline-flex items-center gap-1"><i className="h-2 w-2 rounded-sm" style={{ background: MAU.tim }} />Xuất</span>
             <span className="inline-flex items-center gap-1"><i className="h-2.5 w-0.5 bg-foreground/60" />Hôm nay ({pct(quaThang)} tháng)</span>
@@ -97,7 +97,7 @@ export function HopKhoiLuong({ onClose, go }) {
     for (const v of dsHuong) { const ten = tenBenChuyen(v) || "(chưa xếp bến)", x = m.get(ten) || { ten, kl: 0, lam: 0, mt: null }; x.kl += +v.khoi_luong || 0; x.lam += daLam(v); m.set(ten, x); }
     return [...m.values()];
   }, [dsHuong]);
-  const Pt = ({ th, m }) => (m > 0 ? <span className={cn("ml-1 text-[11px]", th >= m ? "text-ok" : "text-muted-foreground")}>({pct(th / m)})</span> : null);
+  const Pt = ({ th, m }) => (m > 0 ? <span className={cn("ml-1 text-[0.6875rem]", th >= m ? "text-ok" : "text-muted-foreground")}>({pct(th / m)})</span> : null);
   return (
     <HopTQ title="Khối lượng xếp dỡ" onClose={onClose}
       description={`${tenKy(loai, khoa)} · thực hiện ${so(k.thucHien)} t${mt ? ` / mục tiêu ${so(mt.tong)} t (${pct(dat(k.thucHien, mt.tong))})` : " · chưa đặt mục tiêu"} · kỳ của chuyến tính theo ngày cập bến; thực hiện lấy ở ô "KL đã làm" của chuyến${loai !== "thang" ? "; mục tiêu cộng / chia từ mục tiêu tháng" : ""}`}
@@ -124,7 +124,7 @@ export function HopKhoiLuong({ onClose, go }) {
             <Dong ten="Nhập thực hiện / mục tiêu"><b>{so(k.nhap.th)}</b> / {mt ? so(mt.nhap) : "—"} t<Pt th={k.nhap.th} m={mt?.nhap} /></Dong>
             <Dong ten="Xuất thực hiện / mục tiêu"><b>{so(k.xuat.th)}</b> / {mt ? so(mt.xuat) : "—"} t<Pt th={k.xuat.th} m={mt?.xuat} /></Dong>
             <Dong ten={`KL tàu trong ${tenK} (nhập / xuất)`}>{so(k.nhap.tau)} / {so(k.xuat.tau)} t · {k.ds.length} chuyến</Dong>
-            <Dong ten="Kho nhập / xuất (sổ kho)">{k.kho ? `${so(k.kho.nhap)} / ${so(k.kho.xuat)} t` : "—"}{loai !== "thang" && k.kho ? <span className="block text-[10.5px] text-muted-foreground">sổ kho chỉ tải 35 ngày gần nhất</span> : null}</Dong>
+            <Dong ten="Kho nhập / xuất (sổ kho)">{k.kho ? `${so(k.kho.nhap)} / ${so(k.kho.xuat)} t` : "—"}{loai !== "thang" && k.kho ? <span className="block text-[0.6875rem] text-muted-foreground">sổ kho chỉ tải 35 ngày gần nhất</span> : null}</Dong>
         </div>
         <TabsContent value="thang"><TheoKy loai={loai} khoa={khoa} /></TabsContent>
         <TabsContent value="hang"><TheoNhom rows={dongLoai} trong={`Chưa đặt mục tiêu${huong ? ` hàng ${huong === "xuat" ? "xuất" : "nhập"}` : ""} cho loại hàng nào trong kỳ này. Biểu đồ chỉ hiện các loại hàng có trong Mục tiêu sản lượng.`} /></TabsContent>

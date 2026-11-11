@@ -13,11 +13,11 @@ const ICON_TONE = { ok: CheckCircle2, warn: AlertTriangle, bad: Siren };
 
 // Mũi tên thay đổi so với kỳ trước: doi = tỉ lệ (0,12 = +12%); tot = "cao" (tăng là tốt) hoặc "thap" (tăng là xấu)
 export function Delta({ doi, tot = "cao", nhan = "so kỳ trước", diem, className }) {
-  if (doi == null || !Number.isFinite(doi)) return <span className={cn("text-[10.5px] text-muted-foreground", className)}>— {nhan}</span>;
+  if (doi == null || !Number.isFinite(doi)) return <span className={cn("text-[0.6875rem] text-muted-foreground", className)}>— {nhan}</span>;
   const phang = Math.abs(doi) < 0.005, tang = doi > 0, tuot = phang ? null : tang === (tot === "cao");
   const Ic = phang ? Minus : tang ? ArrowUpRight : ArrowDownRight;
   return (
-    <span className={cn("inline-flex items-center gap-0.5 text-[10.5px] font-medium tabular-nums", phang ? "text-muted-foreground" : tuot ? "text-ok" : "text-bad", className)}>
+    <span className={cn("inline-flex items-center gap-0.5 text-[0.6875rem] font-medium tabular-nums", phang ? "text-muted-foreground" : tuot ? "text-ok" : "text-bad", className)}>
       <Ic className="h-3 w-3" />{doi > 0 ? "+" : "−"}{diem ? `${so(Math.abs(doi) * 100)} điểm` : pct(Math.abs(doi), 1)}<span className="ml-0.5 font-normal text-muted-foreground">{nhan}</span>
     </span>
   );
@@ -45,7 +45,7 @@ export function TheChiSo({ icon: Ic, ten, giaTri, donVi, tone, doi, tot = "cao",
     <Tag type={onClick ? "button" : undefined} onClick={onClick}
       className={cn("group relative flex min-w-0 flex-col gap-1 overflow-hidden rounded-xl border bg-gradient-to-br to-transparent p-3 text-left shadow-sm transition-all",
         tone ? [VIEN[tone], NEN[tone]] : "border-border/70 from-muted/30", onClick && "hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", className)}>
-      <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+      <div className="flex items-center gap-1.5 text-[0.6875rem] font-medium uppercase tracking-wide text-muted-foreground">
         {Ic && <Ic className="h-4 w-4 shrink-0 text-primary/80" />}
         <span className="truncate">{ten}</span>
         {tone && tone !== "ok" && <span className={cn("ml-auto h-2 w-2 shrink-0 animate-pulse rounded-full", tone === "bad" ? "bg-bad" : "bg-warn")} />}
@@ -53,16 +53,16 @@ export function TheChiSo({ icon: Ic, ten, giaTri, donVi, tone, doi, tot = "cao",
       {gauge ? (
         <div className="flex items-center gap-2">
           <Gauge {...gauge} size={gauge.size || 112}><span className={cn("text-lg font-semibold tabular-nums", CHU[tone])}>{giaTri}</span></Gauge>
-          <div className="min-w-0 flex-1 text-[11px] leading-snug text-muted-foreground">{children}</div>
+          <div className="min-w-0 flex-1 text-[0.6875rem] leading-snug text-muted-foreground">{children}</div>
         </div>
       ) : (
         <div className="flex items-baseline gap-1.5">
-          <span className={cn("text-[26px] font-semibold leading-none tabular-nums tracking-tight", CHU[tone])}>{giaTri}</span>
+          <span className={cn("text-[1.625rem] font-semibold leading-none tabular-nums tracking-tight", CHU[tone])}>{giaTri}</span>
           {donVi && <span className="text-xs text-muted-foreground">{donVi}</span>}
         </div>
       )}
       {doi !== undefined && <Delta doi={doi} tot={tot} nhan={nhanDoi} diem={diem} />}
-      {phu && <div className="text-[11px] leading-snug text-muted-foreground">{phu}</div>}
+      {phu && <div className="text-[0.6875rem] leading-snug text-muted-foreground">{phu}</div>}
       {!gauge && children}
       {spark && <Spark data={spark} mau={mauSpark || MAU_TONE[tone] || MAU.primary} className="mt-auto" />}
     </Tag>
@@ -95,9 +95,9 @@ export function TheSucKhoe({ icon: Ic, ten, giaTri, nhan, tone, gauge, dong, onC
     <button type="button" onClick={onClick} className={cn("flex min-w-0 flex-col items-center gap-1 rounded-xl border bg-gradient-to-b to-transparent p-3 text-center transition-all hover:-translate-y-0.5 hover:shadow-md",
       tone ? [VIEN[tone], NEN[tone]] : "border-border/70 from-muted/30")}>
       <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{Ic && <Ic className="h-4 w-4 text-primary/80" />}{ten}</div>
-      <Gauge {...gauge} size={150}><span className={cn("text-2xl font-semibold tabular-nums", CHU[tone])}>{giaTri}</span><span className="mt-0.5 text-[10px] text-muted-foreground">{nhan}</span></Gauge>
-      <div className={cn("inline-flex items-center gap-1 text-[11px] font-semibold", tone ? CHU[tone] : "text-muted-foreground")}>{T && <T className="h-3.5 w-3.5" />}{tone ? TEN_TONE[tone] : "Chưa có số liệu"}</div>
-      <div className="min-h-[28px] text-[11px] leading-snug text-muted-foreground">{dong}</div>
+      <Gauge {...gauge} size={150}><span className={cn("text-2xl font-semibold tabular-nums", CHU[tone])}>{giaTri}</span><span className="mt-0.5 text-[0.6875rem] text-muted-foreground">{nhan}</span></Gauge>
+      <div className={cn("inline-flex items-center gap-1 text-[0.6875rem] font-semibold", tone ? CHU[tone] : "text-muted-foreground")}>{T && <T className="h-3.5 w-3.5" />}{tone ? TEN_TONE[tone] : "Chưa có số liệu"}</div>
+      <div className="min-h-[28px] text-[0.6875rem] leading-snug text-muted-foreground">{dong}</div>
     </button>
   );
 }
@@ -112,7 +112,7 @@ export function MangTQ({ id, icon: Ic, ten, mota, loai, tone, thu, onThu, kpi, c
         <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">{Ic && <Ic className="h-6 w-6" />}</span>
         <span className="relative min-w-0 flex-1">
           <span className="flex items-center gap-2 text-base font-semibold">{ten}
-            {tone && <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide", tone === "bad" ? "bg-bad/15 text-bad" : tone === "warn" ? "bg-warn/15 text-warn" : "bg-ok/15 text-ok")}>{TEN_TONE[tone]}</span>}
+            {tone && <span className={cn("rounded-full px-2 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-wide", tone === "bad" ? "bg-bad/15 text-bad" : tone === "warn" ? "bg-warn/15 text-warn" : "bg-ok/15 text-ok")}>{TEN_TONE[tone]}</span>}
           </span>
           <span className="block truncate text-xs text-muted-foreground">{mota}</span>
         </span>
@@ -135,7 +135,7 @@ export function DaiVanDe({ ds, onMo, tongCanhBao, onXemCanhBao }) {
       <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
         {ds.length ? <Siren className={cn("h-4 w-4", khan ? "text-bad" : "text-warn")} /> : <CheckCircle2 className="h-4 w-4 text-ok" />}
         Cần xử lý ngay
-        <span className="ml-auto flex items-center gap-1.5 text-[11px] font-normal">
+        <span className="ml-auto flex items-center gap-1.5 text-[0.6875rem] font-normal">
           {khan > 0 && <span className="rounded-full bg-bad/15 px-2 py-0.5 font-semibold text-bad">{khan} khẩn</span>}
           {ds.length - khan > 0 && <span className="rounded-full bg-warn/15 px-2 py-0.5 font-semibold text-warn">{ds.length - khan} chú ý</span>}
         </span>
@@ -146,13 +146,13 @@ export function DaiVanDe({ ds, onMo, tongCanhBao, onXemCanhBao }) {
             <li key={i}>
               <button type="button" onClick={() => onMo(x.dich)} className="flex w-full items-start gap-2 rounded-lg border border-transparent px-2 py-1.5 text-left text-xs transition-colors hover:border-border hover:bg-accent/60">
                 <span className={cn("mt-1 h-2 w-2 shrink-0 rounded-full", x.muc === "bad" ? "bg-bad" : "bg-warn")} />
-                <span className="min-w-0 flex-1"><span className="mr-1.5 rounded bg-muted px-1 py-px text-[9.5px] font-semibold uppercase text-muted-foreground">{NHAN_MANG[x.mang]}</span>{x.nd}</span>
+                <span className="min-w-0 flex-1"><span className="mr-1.5 rounded bg-muted px-1 py-px text-[0.6875rem] font-semibold uppercase text-muted-foreground">{NHAN_MANG[x.mang]}</span>{x.nd}</span>
                 <ChevronRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
               </button>
             </li>))}
         </ul>
       ) : <div className="rounded-lg bg-ok/5 px-3 py-4 text-center text-xs text-ok">Mọi chỉ số đang trong ngưỡng an toàn.</div>}
-      <div className="mt-2 flex items-center gap-3 text-[11px]">
+      <div className="mt-2 flex items-center gap-3 text-[0.6875rem]">
         {tongCanhBao > 0 && <button type="button" onClick={onXemCanhBao} className="ml-auto text-muted-foreground hover:text-primary hover:underline">Chuông cảnh báo chi tiết ({tongCanhBao})</button>}
       </div>
     </div>

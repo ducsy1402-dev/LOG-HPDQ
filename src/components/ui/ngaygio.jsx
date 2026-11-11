@@ -106,7 +106,7 @@ export function NgayGio({ value, onChange, chiNgay = false, min, max, disabled, 
     },
     title: docDuoc ? undefined : "Không đọc được ngày giờ: gõ dạng 24/10/2026 14:30",
   };
-  const oPhu = "h-8 rounded-full border bg-background px-3 text-center text-[13px] tabular-nums outline-none focus:border-primary";
+  const oPhu = "h-8 rounded-full border bg-background px-3 text-center text-[0.8125rem] tabular-nums outline-none focus:border-primary";
   const phimPhu = (xong) => (e) => { if (e.key === "Enter") { e.preventDefault(); xong(); } else if (e.key === "Escape") { e.stopPropagation(); huy(); } };
   const nutThang = "rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground";
   return (
@@ -134,14 +134,14 @@ export function NgayGio({ value, onChange, chiNgay = false, min, max, disabled, 
                   <button type="button" className={nutThang} onClick={() => doiThang(-12)} aria-label="Năm trước"><ChevronsLeft className="h-4 w-4" /></button>
                   <button type="button" className={nutThang} onClick={() => doiThang(-1)} aria-label="Tháng trước"><ChevronLeft className="h-4 w-4" /></button>
                 </div>
-                <b className="text-[15px] tracking-wide text-primary">Tháng {m + 1} · {y}</b>
+                <b className="text-[0.9375rem] tracking-wide text-primary">Tháng {m + 1} · {y}</b>
                 <div className="flex">
                   <button type="button" className={nutThang} onClick={() => doiThang(1)} aria-label="Tháng sau"><ChevronRight className="h-4 w-4" /></button>
                   <button type="button" className={nutThang} onClick={() => doiThang(12)} aria-label="Năm sau"><ChevronsRight className="h-4 w-4" /></button>
                 </div>
               </div>
-              <div className="grid grid-cols-7 gap-1 pb-1 pt-1 text-center text-[12px] font-semibold text-primary/80">{THU.map((t) => <div key={t}>{t}</div>)}</div>
-              <div className="grid grid-cols-7 gap-1 text-center text-[13px]">
+              <div className="grid grid-cols-7 gap-1 pb-1 pt-1 text-center text-[0.75rem] font-semibold text-primary/80">{THU.map((t) => <div key={t}>{t}</div>)}</div>
+              <div className="grid grid-cols-7 gap-1 text-center text-[0.8125rem]">
                 {o.map((d) => {
                   const n = chuoi(d, true), ngoai = d.getMonth() !== m, khoa = !trongKhoang(n), chon = n === ngayChon;
                   return (
@@ -152,12 +152,12 @@ export function NgayGio({ value, onChange, chiNgay = false, min, max, disabled, 
                 })}
               </div>
               <div className="mt-2 flex items-center justify-between border-t pt-2">
-                <button type="button" className="rounded px-2 py-1 text-[13px] font-medium text-primary hover:bg-accent" onClick={bayGio}>{chiNgay ? "Hôm nay" : "Bây giờ"}</button>
+                <button type="button" className="rounded px-2 py-1 text-[0.8125rem] font-medium text-primary hover:bg-accent" onClick={bayGio}>{chiNgay ? "Hôm nay" : "Bây giờ"}</button>
                 <div className="flex items-center gap-1">
-                  {!p.required && <button type="button" className="rounded px-2 py-1 text-[13px] text-muted-foreground hover:bg-accent" onClick={xoa}>Xóa</button>}
+                  {!p.required && <button type="button" className="rounded px-2 py-1 text-[0.8125rem] text-muted-foreground hover:bg-accent" onClick={xoa}>Xóa</button>}
                   {!chiNgay && (
                     <button type="button" disabled={nhap == null} onClick={xacNhan}
-                      className="h-8 rounded-full border border-primary/50 px-4 text-[13px] font-semibold text-primary hover:bg-primary/10 disabled:border-border disabled:text-muted-foreground disabled:opacity-60 disabled:hover:bg-transparent">Xác nhận</button>)}
+                      className="h-8 rounded-full border border-primary/50 px-4 text-[0.8125rem] font-semibold text-primary hover:bg-primary/10 disabled:border-border disabled:text-muted-foreground disabled:opacity-60 disabled:hover:bg-transparent">Xác nhận</button>)}
                 </div>
               </div>
             </div>
@@ -170,14 +170,14 @@ export function NgayGio({ value, onChange, chiNgay = false, min, max, disabled, 
                       <div style={{ height: 4 * CAO_O }} />
                       {ds.map((g) => (
                         <button key={g} type="button" onClick={() => doi(g)} style={{ height: CAO_O }}
-                          className={cn("block w-full rounded text-center text-[14px] tabular-nums text-muted-foreground hover:bg-accent hover:text-foreground",
+                          className={cn("block w-full rounded text-center text-[0.875rem] tabular-nums text-muted-foreground hover:bg-accent hover:text-foreground",
                             g === chon && "border-y border-primary/30 bg-primary/10 font-bold text-foreground")}>{g}</button>))}
                       <div style={{ height: 4 * CAO_O }} />
                     </div>))}
                 </div>
                 <div className="flex items-center justify-between gap-1 border-t px-3 py-2">
-                  <button type="button" className="rounded px-1.5 py-1 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground" onClick={huy}>Hủy</button>
-                  <button type="button" className="rounded px-1.5 py-1 text-[13px] font-bold text-primary hover:bg-primary/10" onClick={xacNhan}>Xác nhận</button>
+                  <button type="button" className="rounded px-1.5 py-1 text-[0.8125rem] text-muted-foreground hover:bg-accent hover:text-foreground" onClick={huy}>Hủy</button>
+                  <button type="button" className="rounded px-1.5 py-1 text-[0.8125rem] font-bold text-primary hover:bg-primary/10" onClick={xacNhan}>Xác nhận</button>
                 </div>
               </div>)}
           </div>

@@ -98,7 +98,7 @@ function ChuyenBen({ v }) {
             <thead><tr><th>Việc</th><th>Rời bến</th><th>Về / cập</th><th className="num">Giờ</th><th>Bến</th><th>Do</th><th>Chi phí</th><th>Trừ laytime</th><th /></tr></thead>
             <tbody>{ds.map((s) => (
               <tr key={s.id}>
-                <td>{LOAI[s.loai]}{s.ghi_chu && <div className="text-[11px] text-muted-foreground">{s.ghi_chu}</div>}</td>
+                <td>{LOAI[s.loai]}{s.ghi_chu && <div className="text-[0.6875rem] text-muted-foreground">{s.ghi_chu}</div>}</td>
                 <td className="whitespace-nowrap tabular-nums">{ngayGio(s.tu)}</td>
                 <td className="whitespace-nowrap tabular-nums">{s.den ? ngayGio(s.den) : quyen.nhap ? <CapLai v={v} s={s} /> : <Badge tone="warn">đang ở neo</Badge>}</td>
                 <td className="num">{so(((ms(s.den) ?? D.now) - ms(s.tu)) / 36e5, 1)}</td>
@@ -111,7 +111,7 @@ function ChuyenBen({ v }) {
           </table>
         </div>
       ) : <Empty>Chưa có lần chuyển bến / ra neo.</Empty>}
-      <div className="text-[11px] text-muted-foreground">Các lần này cũng nằm trong tab Khoảng dừng. Lịch cầu bến hiện tàu ở từng bến theo từng đoạn; lúc ra neo hoặc đang chuyển tàu không chiếm bến nào.</div>
+      <div className="text-[0.6875rem] text-muted-foreground">Các lần này cũng nằm trong tab Khoảng dừng. Lịch cầu bến hiện tàu ở từng bến theo từng đoạn; lúc ra neo hoặc đang chuyển tàu không chiếm bến nào.</div>
     </section>
   );
 }
@@ -164,10 +164,10 @@ function TraHang({ v }) {
     <section className="grid gap-3">
       <div className={nhan}>Trả hàng <span className="font-normal normal-case tracking-normal">· khối lượng trả không tính vào khối lượng xếp dỡ, chỉ ghi nhận</span></div>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 text-sm">
-        <div><div className="text-[11px] text-muted-foreground">Khối lượng chuyến</div><b>{so(v.khoi_luong)} t</b></div>
-        <div><div className="text-[11px] text-muted-foreground">Đã làm</div><b>{so(cs.daLam)} t</b></div>
-        <div><div className="text-[11px] text-muted-foreground">Đã trả lại</div><b className={v.kl_tra ? "text-warn" : ""}>{so(v.kl_tra || 0)} t</b></div>
-        <div><div className="text-[11px] text-muted-foreground">Còn phải làm</div><b>{so(conLai)} t</b></div>
+        <div><div className="text-[0.6875rem] text-muted-foreground">Khối lượng chuyến</div><b>{so(v.khoi_luong)} t</b></div>
+        <div><div className="text-[0.6875rem] text-muted-foreground">Đã làm</div><b>{so(cs.daLam)} t</b></div>
+        <div><div className="text-[0.6875rem] text-muted-foreground">Đã trả lại</div><b className={v.kl_tra ? "text-warn" : ""}>{so(v.kl_tra || 0)} t</b></div>
+        <div><div className="text-[0.6875rem] text-muted-foreground">Còn phải làm</div><b>{so(conLai)} t</b></div>
       </div>
       {quyen.nhap && (
         <div className="grid gap-2 rounded-md border p-3 sm:grid-cols-3">
@@ -193,7 +193,7 @@ function TraHang({ v }) {
                 <td className="whitespace-nowrap tabular-nums">{ngayGio(t.thoi_diem)}</td>
                 <td>{KIEU_TRA[t.kieu] || t.kieu}</td>
                 <td className="num">{so(t.khoi_luong)}</td>
-                <td>{t.ly_do}{t.ghi_chu && <div className="text-[11px] text-muted-foreground">{t.ghi_chu}</div>}</td>
+                <td>{t.ly_do}{t.ghi_chu && <div className="text-[0.6875rem] text-muted-foreground">{t.ghi_chu}</div>}</td>
                 <td>{quyen.quanLy && <ConfirmButton confirmText="Xóa?" onConfirm={() => run(() => api.deleteTraHang(t.id), "Đã xóa")}><Trash2 /></ConfirmButton>}</td>
               </tr>))}</tbody>
           </table>
