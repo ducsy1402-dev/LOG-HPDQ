@@ -257,7 +257,7 @@ export default function SoDoKhoBai({ bai, kho, onMo, ten, tp }) {
     <div ref={dauRef} className="grid scroll-mt-4 gap-2">
       <style>{CSS}</style>
       <div className="relative w-fit"><Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input className="h-8 w-64 pl-8 text-sm" placeholder="Tìm bãi, gian, hàng…" value={q} onChange={(e) => setQ(e.target.value)} /></div>
-      <div className="overflow-hidden rounded-lg border border-sky-900" style={{ background: "rgba(14, 130, 118, 0.34)", WebkitBackdropFilter: "blur(12px)", backdropFilter: "blur(12px)" }}>
+      <div className="overflow-hidden rounded-lg border border-sky-900" style={{ background: "rgba(10, 60, 120, 0.32)", WebkitBackdropFilter: "blur(12px)", backdropFilter: "blur(12px)" }}>
         <svg viewBox={`0 0 ${VB} ${bd.cao}`} width="100%" className="block" role="img" aria-label={`Sơ đồ ${ten}`}>
           <defs>
             <linearGradient id="kb-vom" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#7cc4ff" stopOpacity="0.4" /><stop offset="100%" stopColor="#1d5fd1" stopOpacity="0.12" /></linearGradient>

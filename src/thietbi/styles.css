@@ -1,29 +1,29 @@
 /* ============ Chủ đề ============ */
 :root, :root[data-theme="dark"] {
-  --bg: #0c5d5a;
-  --bg2: #0a4f4c;
-  --surface: rgba(25, 170, 150, 0.28);
-  --surface2: rgba(25, 170, 150, 0.4);
-  --raise: rgba(70, 215, 190, 0.3);
-  --line: rgba(130, 245, 220, 0.34);
-  --line2: rgba(150, 250, 228, 0.5);
-  --ink: #f1fffb;
-  --ink2: #cdf3ea;
-  --mute: #a4dccf;
-  --accent: #5eead4;
+  --bg: #083866;
+  --bg2: #0b3e72;
+  --surface: rgba(30, 110, 200, 0.24);
+  --surface2: rgba(30, 110, 200, 0.36);
+  --raise: rgba(70, 150, 235, 0.3);
+  --line: rgba(90, 170, 240, 0.38);
+  --line2: rgba(140, 200, 255, 0.55);
+  --ink: #ffffff;
+  --ink2: #cdeaff;
+  --mute: #9ccdf0;
+  --accent: #3fb8f0;
   --accent2: #818cf8;
   --accent-ink: #04141a;
-  --accent-soft: rgba(94, 234, 212, 0.18);
-  --ok: #4ade80; --ok-soft: rgba(52, 211, 153, 0.13);
+  --accent-soft: rgba(63, 184, 240, 0.18);
+  --ok: #3dff5f; --ok-soft: rgba(52, 211, 153, 0.13);
   --warn: #fbbf24; --warn-soft: rgba(251, 191, 36, 0.13);
   --bad: #fb7185; --bad-soft: rgba(251, 113, 133, 0.14);
   --info: #60a5fa; --info-soft: rgba(96, 165, 250, 0.14);
   --orange: #fbbf24; --orange-soft: rgba(251, 191, 36, 0.13);
   --c-ok: #12a877; --c-info: #3b82f6; --c-warn: #f59e0b; --c-bad: #f43f5e;
-  --input: rgba(160, 255, 235, 0.13);
+  --input: rgba(120, 190, 255, 0.12);
   --shadow: 0 0 0 1px rgba(56, 130, 220, 0.25), 0 2px 14px rgba(2, 12, 40, 0.5);
-  --glow: 0 0 0 1px rgba(94, 234, 212, 0.45), 0 0 24px -4px rgba(94, 234, 212, 0.45);
-  --grid: rgba(120, 255, 225, 0.05);
+  --glow: 0 0 0 1px rgba(110, 190, 255, 0.45), 0 0 24px -4px rgba(110, 190, 255, 0.45);
+  --grid: rgba(120, 190, 255, 0.05);
   color-scheme: dark;
 }
 :root[data-theme="light"] {
@@ -266,7 +266,7 @@ table.t { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 
 .legend span { display: inline-flex; align-items: center; gap: 6px; }
 .legend i { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
 .recharts-tooltip-wrapper { outline: none; }
-.tip { background: #0b5550; border: 1px solid var(--line2); border-radius: 10px; padding: 8px 10px; font-size: 0.75rem; box-shadow: var(--shadow); min-width: 140px; }
+.tip { background: #0a3f73; border: 1px solid var(--line2); border-radius: 10px; padding: 8px 10px; font-size: 0.75rem; box-shadow: var(--shadow); min-width: 140px; }
 .tip .h { font-weight: 700; margin-bottom: 4px; }
 .tip .r { display: flex; justify-content: space-between; gap: 14px; }
 .tip .r i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; margin-right: 6px; }
@@ -412,7 +412,7 @@ table.t { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 
 .timeline { display: flex; flex-direction: column; gap: 8px; }
 .tl-item { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--surface); font-size: 0.8125rem; }
 
-.menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 40; min-width: 230px; background: #0a4f4c; border: 1px solid var(--line2); border-radius: 12px; padding: 6px; box-shadow: 0 20px 50px -15px rgba(0, 0, 0, 0.6); }
+.menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 40; min-width: 230px; background: #0b3e72; border: 1px solid var(--line2); border-radius: 12px; padding: 6px; box-shadow: 0 20px 50px -15px rgba(0, 0, 0, 0.6); }
 .menu button, .menu a.mi-link { width: 100%; display: flex; align-items: center; gap: 10px; padding: 9px 10px; border: 0; background: none; border-radius: 8px; cursor: pointer; text-align: left; font-size: 0.8125rem; color: var(--ink); }
 .menu button:hover, .menu a.mi-link:hover { background: var(--raise); }
 .menu a.mi-link { text-decoration: none; }
@@ -463,9 +463,9 @@ a.btn { text-decoration: none; }
 }
 
 /* Giao diện tối kiểu SCADA: tiêu đề cột bảng ruy băng xanh, số liệu xanh lá, thẻ có ánh bóng nhẹ */
-:root:not([data-theme="light"]) .ttb .t th { background-image: linear-gradient(180deg, #2fa595 0%, #136b63 100%); color: #fff; }
+:root:not([data-theme="light"]) .ttb .t th { background-image: linear-gradient(180deg, #2f78d0 0%, #1a56a8 100%); color: #fff; }
 :root:not([data-theme="light"]) .ttb .t td.n { color: var(--ok); }
-:root:not([data-theme="light"]) .ttb .card { background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.02) 42%); -webkit-backdrop-filter: blur(12px) saturate(1.25); backdrop-filter: blur(12px) saturate(1.25); border-color: rgba(150, 245, 225, 0.4); }
-:root:not([data-theme="light"]) .ttb :is(input, select, textarea):hover { background-color: rgba(160, 255, 235, 0.16); }
-:root:not([data-theme="light"]) .ttb :is(input, select, textarea):focus { background-color: rgba(160, 255, 235, 0.19); }
-:root:not([data-theme="light"]) .ttb option { background-color: #0b5550; color: #eaf4ff; }
+:root:not([data-theme="light"]) .ttb .card { background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.02) 42%); -webkit-backdrop-filter: blur(12px) saturate(1.25); backdrop-filter: blur(12px) saturate(1.25); border-color: rgba(110, 180, 245, 0.5); }
+:root:not([data-theme="light"]) .ttb :is(input, select, textarea):hover { background-color: rgba(120, 190, 255, 0.17); }
+:root:not([data-theme="light"]) .ttb :is(input, select, textarea):focus { background-color: rgba(120, 190, 255, 0.2); }
+:root:not([data-theme="light"]) .ttb option { background-color: #0a3f73; color: #eaf4ff; }
