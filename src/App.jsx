@@ -130,7 +130,7 @@ function Main() {
   useEffect(() => { window.scrollTo({ top: 0 }); tb?.closeVehicle?.(); }, [route]); // eslint-disable-line react-hooks/exhaustive-deps
   const chuaCaiCang = (
     <div className="rounded-md border border-warn/40 bg-warn/5 px-3 py-2 text-sm">
-      Phần Khai thác Cảng chưa sẵn sàng: quản trị cần chạy <b>sql/13_logistics_nen_tang.sql</b> và <b>sql/14_nap_danh_muc.sql</b> trong Supabase, hoặc tài khoản chưa được cấp quyền Cảng.
+      Phần Khai thác Cảng chưa sẵn sàng: quản trị cần chạy <b>sql/dung_lai/phan_1_cau_truc.sql</b> rồi <b>phan_2_danh_muc.sql</b> trong Supabase, hoặc tài khoản chưa được cấp quyền Cảng.
     </div>
   );
   const trang = () => {
