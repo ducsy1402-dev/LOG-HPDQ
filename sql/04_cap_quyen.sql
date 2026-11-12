@@ -3,7 +3,7 @@
 -- Muốn thêm người khác: dùng màn hình Phân quyền trên web (sau khi họ có tài khoản), hoặc copy một khối INSERT, đổi email.
 --   Vai trò chung (user_roles): 'xem' | 'nhap' | 'quan_tri'.
 insert into public.user_roles (user_id, vai_tro, ho_ten)
-select id, 'quan_tri', 'Lê Đức Sỹ' from auth.users where email = 'ducsy1402@gmail.com'
+select id, 'quan_tri', 'Điều độ cảng' from auth.users where email = 'dieudocanghpdq@gmail.com'
 on conflict (user_id) do update set vai_tro = excluded.vai_tro, ho_ten = excluded.ho_ten;
 
 -- Kiểm tra: phải thấy 1 dòng

@@ -1,8 +1,8 @@
-// Cùng project Supabase với web Thiết bị cơ giới (app/src/config.js). Anon key là khóa công khai, an toàn vì mọi bảng bật RLS.
-// TUYỆT ĐỐI không đưa service_role key vào đây.
-export const SUPABASE_URL = "https://tggigcprrbpbbospqfto.supabase.co";
-export const SUPABASE_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnZ2lnY3BycmJwYmJvc3BxZnRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM1Nzc1OTksImV4cCI6MjEwOTE1MzU5OX0.aSG_hxAcPPQ-cclmPkj9WTbUef6jvbjXyVTee3cpYUs";
+// Project Supabase của web LOG-HPDQ (dựng lại 12/11/2026 sau khi project cũ bị xóa nhầm).
+// Khóa dưới đây là khóa CÔNG KHAI (publishable), an toàn vì mọi bảng bật RLS.
+// TUYỆT ĐỐI không đưa service_role key / secret key vào đây.
+export const SUPABASE_URL = "https://vyrttgpqefaajoiaetyz.supabase.co";
+export const SUPABASE_ANON_KEY = "sb_publishable_I8M0ccD5lpoPhjT60441Jg_MFP4Z46i";
 
 // ?demo: dữ liệu giả lập trong trình duyệt, không đăng nhập, không ghi CSDL. ?demo=xem | nhap | quan_ly để thử vai trò.
 const qs = typeof location !== "undefined" ? new URLSearchParams(location.search) : new URLSearchParams();

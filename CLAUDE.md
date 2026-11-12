@@ -3,7 +3,7 @@
 Chủ dự án: Lê Đức Sỹ, không phải lập trình viên. **Trả lời bằng tiếng Việt, ngắn gọn; chưa chắc thì hỏi trước khi làm.**
 
 ## Đây là gì
-- Bản **tách riêng** từ web Quản trị Logistics gốc (kho `WEB-QLTB`, web https://quanlythietbi-98y.pages.dev), chạy trên **Supabase và Cloudflare Pages khác**: Supabase project `tggigcprrbpbbospqfto`, kho GitHub `ducsy1402-dev/LOG-HPDQ`.
+- Bản **tách riêng** từ web Quản trị Logistics gốc (kho `WEB-QLTB`, web https://quanlythietbi-98y.pages.dev), chạy trên **Supabase và Cloudflare Pages khác**: Supabase project `vyrttgpqefaajoiaetyz` (dựng lại 12/11/2026 sau khi project cũ `tggigcprrbpbbospqfto` bị xóa nhầm, mất hết dữ liệu nhập), kho GitHub `ducsy1402-dev/LOG-HPDQ`.
 - React + Vite + Tailwind + shadcn/ui (JSX), ECharts. Mã nằm ở **gốc kho** (không có thư mục `app/` hay `logistics/`). Build: `npm run build` → thư mục `dist`.
 - Hai bản không dùng chung dữ liệu hay mã. Sửa ở bản này không ảnh hưởng web gốc, và ngược lại.
 
@@ -20,6 +20,12 @@ Chủ dự án: Lê Đức Sỹ, không phải lập trình viên. **Trả lời
 - Kế hoạch Dài hạn chỉ lấy thiết bị và mốc thời gian theo phiếu chuyến › Bãi & Thiết bị (không còn "phương án đã duyệt").
 - `src/lib/phuongAn.js`, `bieuMauPA.js` vẫn còn trong mã vì các hàm tính xe / thiết bị / in kế hoạch cảng dùng chung; chỉ bỏ giao diện và dữ liệu phương án.
 - Dữ liệu xe, nhân sự, nhà thầu mẫu, bảng phân bổ cố định của web gốc **không** được nạp: bắt đầu trống, chỉ có Danh mục (cầu bến, cẩu, hàng hóa, kho bãi) và thông số model xe.
+
+## Dựng lại CSDL từ đầu (12/11/2026)
+- Project Supabase cũ bị xóa nhầm, **không khôi phục được** (Supabase xóa luôn backup). Mất dữ liệu nhập: chuyến tàu, sản lượng, giao dịch kho, sự kiện thiết bị, quân số, tài khoản. Danh mục (xe, cẩu, hàng, kho, bến) nạp lại từ SQL 08.
+- Project trống mới: chạy `sql/dung_lai/phan_1_cau_truc.sql` (= 01, 02, 03, 06, 07) rồi `phan_2_danh_muc.sql` (= 08, 09, 10, 11), tạo người dùng ở Authentication, chạy `04_cap_quyen.sql`. Hai file này là bản gộp của các file lẻ: sửa file lẻ thì gộp lại.
+- `src/config.js` dùng khóa **publishable** (`sb_publishable_…`), công khai, an toàn nhờ RLS; không bao giờ đưa secret / service_role vào mã.
+- **Sao lưu**: web có nút "Sao lưu dữ liệu Cảng (Excel)" ở menu tài khoản; nên bấm định kỳ và cất file ngoài máy. Khi không chắc thì **tạm dừng** project Supabase, đừng xóa.
 
 ## Cơ sở dữ liệu (thư mục `sql/`)
 Chạy lần lượt trong Supabase › SQL Editor, trên project mới còn trống:

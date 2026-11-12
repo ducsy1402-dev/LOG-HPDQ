@@ -10,6 +10,10 @@
 - Anh báo: màu SCADA hôm qua khó nhìn, chói mắt → thiết kế lại màu sắc, bố cục theo kiểu web app tài chính hiện đại (sáng và tối).
 - Anh báo: còn khối đè lên nhau → sửa đồng hồ đo (số đè cung), chú thích biểu đồ đè số trục, nhãn số đè cột, nhãn bến Linetime tràn hàng, thanh kỳ che thanh menu trên điện thoại, bản đồ kho che bãi, biểu đồ tàu ở bến tràn khung.
 
+## Dựng lại CSDL sau khi xóa nhầm project Supabase (12/11/2026)
+- Đã nối web vào project mới `vyrttgpqefaajoiaetyz`; SQL 01…11 đã chạy. Dữ liệu nhập cũ đã mất, nhập lại từ đầu.
+- Còn: tạo tài khoản + chạy 04, đăng nhập thử, đẩy lên main, thêm địa chỉ web vào Authentication › URL Configuration của Supabase mới.
+
 ## Còn mở
 - Cột "mái che" ở Danh mục › Khai báo kho / bãi (hiện đoán theo tên: "Kho …" = mái che, trừ "Kho hở").
 - Toạ độ thật của các khu vực / bãi lớn cho bản đồ định vị (hiện xếp đều theo thứ tự).
