@@ -15,7 +15,7 @@ const base = { grid: { left: 4, right: 10, top: 30, bottom: 0, containLabel: tru
 const truc = { type: "value", axisLabel: { fontSize: 10, formatter: nghin } };
 const MAU_T = { ok: MAU.ok, warn: MAU.warn, bad: MAU.bad };
 const MAU_HUONG = { nhap: MAU.info, xuat: MAU.tim, phuc_vu_cang: MAU.info, phuc_vu_san_xuat: "#ec4899" };
-const MAU_LAT = ["#3b82f6", "#8b5cf6", "#06b6d4", "#10b981", "#f59e0b", "#ec4899", "#f97316", "#84cc16", "#94a3b8"];
+const MAU_LAT = ["#6366f1", "#14b8a6", "#38bdf8", "#f59e0b", "#a78bfa", "#ec4899", "#f97316", "#22c55e", "#94a3b8"];
 const chieuCao = (n) => Math.max(250, 40 + n * 36);
 
 // Biểu đồ lũy kế theo thời gian: mỗi hướng hai đường, lũy kế kế hoạch (nét đứt) và lũy kế thực tế (nét liền). Cảng: nhập, xuất; vận tải: phục vụ cảng, phục vụ sản xuất
@@ -41,8 +41,8 @@ const optNhom = (ds) => ({
   xAxis: { type: "value", axisLabel: { fontSize: 10, formatter: nghin } },
   yAxis: { type: "category", inverse: true, data: ds.map((d) => d.ten), axisLabel: { fontSize: 10, width: 100, overflow: "truncate" } },
   series: [
-    { name: "Kế hoạch", type: "bar", barMaxWidth: 10, itemStyle: { color: MAU.xam, opacity: 0.55 }, data: ds.map((d) => r2(d.mt)) },
-    { name: "Lũy kế thực tế", type: "bar", barMaxWidth: 10, itemStyle: { color: MAU.primary }, label: { show: true, position: "right", fontSize: 10, formatter: (p) => (ds[p.dataIndex].mt ? pct(ds[p.dataIndex].tt / ds[p.dataIndex].mt) : "") }, data: ds.map((d) => r2(d.tt)) },
+    { name: "Kế hoạch", type: "bar", barMaxWidth: 9, barGap: "45%", itemStyle: { color: MAU.xam, opacity: 0.5 }, data: ds.map((d) => r2(d.mt)) },
+    { name: "Lũy kế thực tế", type: "bar", barMaxWidth: 9, itemStyle: { color: MAU.primary }, label: { show: true, position: "right", fontSize: 10, distance: 4, formatter: (p) => (ds[p.dataIndex].mt ? pct(ds[p.dataIndex].tt / ds[p.dataIndex].mt) : "") }, data: ds.map((d) => r2(d.tt)) },
   ],
 });
 

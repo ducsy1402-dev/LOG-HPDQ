@@ -14,7 +14,7 @@ import { Khung, ChuaCo, ChonDs, BangChiTiet, nghin } from "./khungBD";
 
 const SoLon = ({ v, sub, tone }) => (
   <div className="flex items-baseline gap-2">
-    <span className={`font-mono text-2xl font-semibold tabular-nums ${tone ? `text-${tone}` : ""}`}>{v}</span>
+    <span className={`text-2xl font-semibold tabular-nums tracking-tight ${tone ? `text-${tone}` : ""}`}>{v}</span>
     {sub && <span className="truncate text-[0.6875rem] text-muted-foreground">{sub}</span>}
   </div>
 );

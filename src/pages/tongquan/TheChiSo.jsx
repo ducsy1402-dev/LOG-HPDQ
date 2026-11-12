@@ -6,8 +6,8 @@ import { MAU } from "./khung";
 
 // Thành phần giao diện của Tổng quan mới: thẻ chỉ số (KPI), thanh chọn kỳ, thẻ sức khỏe có đồng hồ, khối mảng có ảnh nền, danh sách vấn đề.
 const CHU = { ok: "text-ok", warn: "text-warn", bad: "text-bad", info: "text-info", primary: "text-primary" };
-const VIEN = { ok: "border-ok/35", warn: "border-warn/50", bad: "border-bad/60", info: "border-info/35", primary: "border-primary/30" };
-const NEN = { ok: "from-ok/10", warn: "from-warn/12", bad: "from-bad/14", info: "from-info/10", primary: "from-primary/10" };
+const CHAM = { ok: "bg-ok", warn: "bg-warn", bad: "bg-bad", info: "bg-info", primary: "bg-primary" };
+const NHAN_TONE = { ok: "bg-ok/12 text-ok", warn: "bg-warn/12 text-warn", bad: "bg-bad/12 text-bad", info: "bg-info/12 text-info", primary: "bg-primary/12 text-primary" };
 export const TEN_TONE = { ok: "Bình thường", warn: "Cần chú ý", bad: "Cần xử lý ngay" };
 const ICON_TONE = { ok: CheckCircle2, warn: AlertTriangle, bad: Siren };
 
@@ -43,12 +43,12 @@ export function TheChiSo({ icon: Ic, ten, giaTri, donVi, tone, doi, tot = "cao",
   const Tag = onClick ? "button" : "div";
   return (
     <Tag type={onClick ? "button" : undefined} onClick={onClick}
-      className={cn("group relative flex min-w-0 flex-col gap-1 overflow-hidden rounded-xl border bg-gradient-to-br to-transparent p-3 text-left shadow-sm transition-all",
-        tone ? [VIEN[tone], NEN[tone]] : "border-border/70 from-muted/30", onClick && "hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", className)}>
+      className={cn("group relative flex min-w-0 flex-col gap-1 overflow-hidden rounded-xl border bg-card p-3 text-left transition-all",
+        onClick && "hover:border-primary/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", className)}>
       <div className="flex items-center gap-1.5 text-[0.6875rem] font-medium uppercase tracking-wide text-muted-foreground">
         {Ic && <Ic className="h-4 w-4 shrink-0 text-primary/80" />}
         <span className="truncate">{ten}</span>
-        {tone && tone !== "ok" && <span className={cn("ml-auto h-2 w-2 shrink-0 animate-pulse rounded-full", tone === "bad" ? "bg-bad" : "bg-warn")} />}
+        {tone && tone !== "ok" && <span className={cn("ml-auto h-2 w-2 shrink-0 rounded-full", CHAM[tone])} />}
       </div>
       {gauge ? (
         <div className="flex items-center gap-2">
@@ -92,11 +92,11 @@ export function ThanhKy({ ky, dat, ds, nhan, truoc, sau, veNay, laNay, className
 export function TheSucKhoe({ icon: Ic, ten, giaTri, nhan, tone, gauge, dong, onClick }) {
   const T = ICON_TONE[tone];
   return (
-    <button type="button" onClick={onClick} className={cn("flex min-w-0 flex-col items-center gap-1 rounded-xl border bg-gradient-to-b to-transparent p-3 text-center transition-all hover:-translate-y-0.5 hover:shadow-md",
-      tone ? [VIEN[tone], NEN[tone]] : "border-border/70 from-muted/30")}>
-      <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{Ic && <Ic className="h-4 w-4 text-primary/80" />}{ten}</div>
-      <Gauge {...gauge} size={150}><span className={cn("text-2xl font-semibold tabular-nums", CHU[tone])}>{giaTri}</span><span className="mt-0.5 text-[0.6875rem] text-muted-foreground">{nhan}</span></Gauge>
-      <div className={cn("inline-flex items-center gap-1 text-[0.6875rem] font-semibold", tone ? CHU[tone] : "text-muted-foreground")}>{T && <T className="h-3.5 w-3.5" />}{tone ? TEN_TONE[tone] : "Chưa có số liệu"}</div>
+    <button type="button" onClick={onClick} className="flex min-w-0 flex-col items-center gap-1.5 rounded-xl border bg-card p-3 text-center transition-all hover:border-primary/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+      <div className="flex w-full min-w-0 flex-wrap items-center gap-1.5 text-xs font-semibold text-muted-foreground">{Ic && <Ic className="h-4 w-4 shrink-0 text-primary" />}<span className="truncate">{ten}</span>
+        <span className={cn("ml-auto inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-[0.625rem] font-semibold", tone ? NHAN_TONE[tone] : "bg-muted text-muted-foreground")}>{T && <T className="h-3 w-3" />}{tone ? TEN_TONE[tone] : "Chưa có số liệu"}</span>
+      </div>
+      <Gauge {...gauge} size={136} duoi={nhan}><span className={cn("text-[1.3rem] font-semibold tabular-nums tracking-tight", CHU[tone])}>{giaTri}</span></Gauge>
       <div className="min-h-[28px] text-[0.6875rem] leading-snug text-muted-foreground">{dong}</div>
     </button>
   );
@@ -105,11 +105,11 @@ export function TheSucKhoe({ icon: Ic, ten, giaTri, nhan, tone, gauge, dong, onC
 // Một mảng của trang: dải tiêu đề có ảnh nền minh họa, thu gọn / mở được
 export function MangTQ({ id, icon: Ic, ten, mota, loai, tone, thu, onThu, kpi, children }) {
   return (
-    <section id={id} className="scroll-mt-16 overflow-hidden rounded-2xl border border-border/70 bg-card/40">
+    <section id={id} className="scroll-mt-16 overflow-hidden rounded-2xl border bg-card/60">
       <button type="button" onClick={onThu} aria-expanded={!thu}
-        className="relative flex w-full items-center gap-3 border-b border-border/60 bg-gradient-to-r from-primary/15 via-primary/5 to-transparent px-4 py-3 text-left">
-        <AnhMang loai={loai} className="text-primary opacity-[0.22]" />
-        <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">{Ic && <Ic className="h-6 w-6" />}</span>
+        className="relative flex w-full items-center gap-3 border-b bg-card px-4 py-3 text-left">
+        <AnhMang loai={loai} className="text-primary opacity-[0.07]" />
+        <span className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/12 text-primary">{Ic && <Ic className="h-5 w-5" />}</span>
         <span className="relative min-w-0 flex-1">
           <span className="flex items-center gap-2 text-base font-semibold">{ten}
             {tone && <span className={cn("rounded-full px-2 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-wide", tone === "bad" ? "bg-bad/15 text-bad" : tone === "warn" ? "bg-warn/15 text-warn" : "bg-ok/15 text-ok")}>{TEN_TONE[tone]}</span>}
@@ -131,7 +131,7 @@ const NHAN_MANG = { sanluong: "Sản lượng", cauben: "Cầu bến", kho: "Kho
 export function DaiVanDe({ ds, onMo, tongCanhBao, onXemCanhBao }) {
   const khan = ds.filter((x) => x.muc === "bad").length;
   return (
-    <div className={cn("flex min-w-0 flex-col rounded-xl border bg-card/50 p-3", khan ? "border-bad/50" : ds.length ? "border-warn/40" : "border-ok/40")}>
+    <div className="flex min-w-0 flex-col rounded-xl border bg-card p-3">
       <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
         {ds.length ? <Siren className={cn("h-4 w-4", khan ? "text-bad" : "text-warn")} /> : <CheckCircle2 className="h-4 w-4 text-ok" />}
         Cần xử lý ngay

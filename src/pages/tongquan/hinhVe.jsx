@@ -9,19 +9,23 @@ export const MAU_TONE = { ok: MAU.ok, warn: MAU.warn, bad: MAU.bad, info: MAU.in
 // ---------- Đồng hồ đo (nửa vòng) ----------
 const diem = (cx, cy, r, t) => { const a = Math.PI * (1 - t); return [cx + r * Math.cos(a), cy - r * Math.sin(a)]; };
 const cung = (cx, cy, r, t0, t1) => { const [x0, y0] = diem(cx, cy, r, t0), [x1, y1] = diem(cx, cy, r, t1); return `M${x0.toFixed(2)} ${y0.toFixed(2)} A${r} ${r} 0 0 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`; };
-// v: 0..max (mặc định 1 = 100%); vung: [[từ, đến, màu]] các vùng nền (xanh / vàng / đỏ); mau: màu kim; children: chữ giữa đồng hồ
-export function Gauge({ v, max = 1, vung = [], mau = MAU.primary, size = 132, className, children }) {
+// v: 0..max (mặc định 1 = 100%); vung: [[từ, đến, màu]] các vùng nền (xanh / vàng / đỏ); mau: màu kim;
+// children: số lớn, đặt sát đường đáy của cung (chỗ lòng cung rộng nhất) để không đè lên cung; duoi: dòng chữ nhỏ nằm DƯỚI đồng hồ
+export function Gauge({ v, max = 1, vung = [], mau = MAU.primary, size = 132, className, children, duoi }) {
   const t = v == null || !Number.isFinite(v) ? 0 : Math.max(0, Math.min(1, v / max));
-  const [kx, ky] = diem(60, 60, 44, t);
+  const [kx, ky] = diem(60, 60, 46, t);
   return (
-    <div className={cn("relative", className)} style={{ width: size, height: size * 0.62 }}>
-      <svg viewBox="0 0 120 72" className="absolute inset-0 h-full w-full" aria-hidden>
-        <path d={cung(60, 60, 44, 0, 1)} fill="none" stroke="currentColor" strokeOpacity={0.12} strokeWidth={9} strokeLinecap="round" />
-        {vung.map(([a, b, c], i) => <path key={i} d={cung(60, 60, 50, a / max, Math.min(1, b / max))} fill="none" stroke={c} strokeOpacity={0.55} strokeWidth={3} />)}
-        {t > 0 && <path d={cung(60, 60, 44, 0, t)} fill="none" stroke={mau} strokeWidth={9} strokeLinecap="round" />}
-        {v != null && <circle cx={kx} cy={ky} r={4.2} fill="var(--card, #0f172a)" stroke={mau} strokeWidth={2.2} />}
-      </svg>
-      <div className="absolute inset-x-0 bottom-0 flex flex-col items-center leading-none">{children}</div>
+    <div className={cn("flex flex-col items-center", className)}>
+      <div className="relative" style={{ width: size, height: size * 0.6 }}>
+        <svg viewBox="0 0 120 72" className="absolute inset-0 h-full w-full" aria-hidden>
+          <path d={cung(60, 60, 46, 0, 1)} fill="none" stroke="currentColor" strokeOpacity={0.1} strokeWidth={7} strokeLinecap="round" />
+          {vung.map(([a, b, c], i) => <path key={i} d={cung(60, 60, 53, a / max, Math.min(1, b / max))} fill="none" stroke={c} strokeOpacity={0.5} strokeWidth={2} />)}
+          {t > 0 && <path d={cung(60, 60, 46, 0, t)} fill="none" stroke={mau} strokeWidth={7} strokeLinecap="round" />}
+          {v != null && <circle cx={kx} cy={ky} r={3.6} fill="hsl(var(--card))" stroke={mau} strokeWidth={2} />}
+        </svg>
+        <div className="absolute inset-x-0 flex justify-center leading-none" style={{ bottom: "16%" }}>{children}</div>
+      </div>
+      {duoi && <div className="mt-1 text-[0.6875rem] leading-tight text-muted-foreground">{duoi}</div>}
     </div>
   );
 }

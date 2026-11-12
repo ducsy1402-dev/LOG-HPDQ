@@ -21,7 +21,7 @@ import { thoiLuong, ngayGioNam } from "@/lib/format";
 export const SNAP = 30 * 60e3;
 // Kích thước dòng / thanh: bình thường và chế độ gọn
 const CO = {
-  thuong: { row: 46, lan: 26, bar: 22, top: 4, label: 76, head: 38, chu: "text-[0.6875rem]" },
+  thuong: { row: 46, lan: 26, bar: 22, top: 4, label: 94, head: 38, chu: "text-[0.6875rem]" },
   gon: { row: 28, lan: 18, bar: 15, top: 3, label: 58, head: 30, chu: "text-[0.6875rem]" },
 };
 export const THU = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
@@ -149,10 +149,10 @@ export default function Gantt({ voyages, tu, soNgay, pxNgay, che = "ben", gon = 
             {D.now >= tu && D.now <= den && <div className="absolute inset-y-0 z-10 w-0.5 bg-bad/80" style={{ left: LABEL + xOf(D.now) }} title={`Hiện tại ${ngayGio(D.now)}`} />}
             {hang.map((r) => (
               <div key={r.ma || "_"} className="absolute inset-x-0 border-b" style={{ top: r.y, height: r.h }}>
-                <div className="sticky left-0 z-20 flex h-full flex-col justify-center border-r bg-card px-2" style={{ width: LABEL }}
+                <div className="sticky left-0 z-20 flex h-full flex-col justify-center overflow-hidden border-r bg-card px-2 leading-tight" style={{ width: LABEL }}
                   title={r.b ? `Bến ${r.b.ma}: DWT ${so(r.b.dwt_max)} · mớn ${r.b.mon_cung ? "≤" : ""}${so(r.b.mon_max, 2)} m · dài ${met(r.b.loa_max)} m\n${r.b.loai_hang || ""}` : "Chuyến chưa xếp bến"}>
                   <span className={cn("font-mono font-semibold", gon ? "text-[0.6875rem]" : "text-[0.8125rem]")}>{r.b ? tenBen(r.b.ma) : "Chưa xếp"}</span>
-                  {r.b && !gon && <span className="text-[0.6875rem] text-muted-foreground">{r.b.mon_cung ? "≤" : ""}{so(r.b.mon_max, 1)}m · {met(r.b.loa_max)}m</span>}
+                  {r.b && !gon && <span className="truncate text-[0.6875rem] text-muted-foreground">{r.b.mon_cung ? "≤" : ""}{so(r.b.mon_max, 1)}m · {met(r.b.loa_max)}m</span>}
                 </div>
                 {r.ds.map((x) => {
                   const dangKeo = keo?.x.v.id === x.v.id && keo.moved && keo.coKeo;

@@ -2,79 +2,84 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Bảng màu đồng bộ với web Thiết bị cơ giới (app/src/styles.css), viết theo biến HSL của shadcn/ui */
+/* Giao diện kiểu web app tài chính hiện đại (12/11/2026, thay SCADA):
+   nền dịu không lưới, thẻ phẳng viền mảnh, một màu nhấn chàm (indigo), màu trạng thái dịu, không phát sáng / chuyển sắc bóng.
+   Biến HSL theo kiểu shadcn/ui; phần Thiết bị cơ giới dùng cùng bảng màu ở src/thietbi/styles.css. */
 @layer base {
   :root {
-    --background: 216 45% 95%;
-    --foreground: 222 47% 11%;
+    --background: 220 23% 97%;
+    --foreground: 224 30% 13%;
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 224 30% 13%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
-    --primary: 192 91% 36%;
+    --popover-foreground: 224 30% 13%;
+    --primary: 243 75% 59%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 214 32% 91%;
-    --secondary-foreground: 222 47% 15%;
-    --muted: 214 32% 91%;
-    --muted-foreground: 215 16% 42%;
-    --accent: 210 40% 90%;
-    --accent-foreground: 222 47% 11%;
-    --destructive: 350 80% 50%;
+    --secondary: 220 18% 94%;
+    --secondary-foreground: 224 30% 18%;
+    --muted: 220 18% 95%;
+    --muted-foreground: 220 9% 43%;
+    --accent: 228 30% 94%;
+    --accent-foreground: 224 30% 13%;
+    --destructive: 352 72% 51%;
     --destructive-foreground: 0 0% 100%;
-    --border: 214 28% 84%;
-    --input: 214 28% 80%;
-    --ring: 192 91% 36%;
+    --border: 220 16% 89%;
+    --input: 220 14% 84%;
+    --ring: 243 75% 59%;
     --ok: 160 84% 30%;
-    --warn: 32 95% 40%;
-    --bad: 350 80% 48%;
-    --info: 217 91% 50%;
-    --radius: 0.6rem;
+    --warn: 32 92% 42%;
+    --bad: 352 72% 51%;
+    --info: 212 85% 48%;
+    --radius: 0.7rem;
+    --bong: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06);
     color-scheme: light;
   }
-  /* Giao diện tối kiểu SCADA (màn hình điều khiển nhà máy): nền xanh đậm, khung xanh sáng, số xanh lá, vàng cảnh báo */
-  /* Giao diện tối theo màn hình điều khiển mẫu (anh Sỹ gửi): nền xanh #083866, thanh tiêu đề xanh, tab bóng xanh nhạt, số xanh lá neon */
+  /* Giao diện tối: nền than chì ánh xanh, thẻ sáng hơn nền một bậc, chữ trắng ngà (không trắng tinh) cho đỡ chói */
   .dark {
-    --background: 209 85% 22%;
-    --foreground: 0 0% 100%;
-    --card: 209 82% 29%;
-    --card-foreground: 0 0% 100%;
-    --popover: 209 84% 25%;
-    --popover-foreground: 0 0% 100%;
-    --primary: 199 88% 60%;
-    --primary-foreground: 212 90% 12%;
-    --secondary: 209 72% 34%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 209 80% 26%;
-    --muted-foreground: 200 75% 85%;
-    --accent: 209 72% 35%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 100% 62%;
+    --background: 225 22% 7%;
+    --foreground: 220 20% 93%;
+    --card: 225 19% 10.5%;
+    --card-foreground: 220 20% 93%;
+    --popover: 225 19% 12%;
+    --popover-foreground: 220 20% 93%;
+    --primary: 244 88% 72%;
+    --primary-foreground: 240 40% 10%;
+    --secondary: 225 15% 16%;
+    --secondary-foreground: 220 20% 90%;
+    --muted: 225 16% 14%;
+    --muted-foreground: 220 11% 64%;
+    --accent: 225 15% 18%;
+    --accent-foreground: 220 20% 95%;
+    --destructive: 352 85% 64%;
     --destructive-foreground: 0 0% 100%;
-    --border: 208 72% 47%;
-    --input: 205 70% 56%;
-    --ring: 199 88% 60%;
-    --ok: 130 100% 62%;
-    --warn: 55 100% 55%;
-    --bad: 0 100% 64%;
-    --info: 199 88% 64%;
+    --border: 225 14% 19%;
+    --input: 225 13% 25%;
+    --ring: 244 88% 72%;
+    --ok: 156 60% 52%;
+    --warn: 38 92% 60%;
+    --bad: 352 85% 67%;
+    --info: 207 88% 66%;
+    --bong: 0 1px 2px rgba(0, 0, 0, 0.3);
     color-scheme: dark;
   }
   * { @apply border-border; }
   html { font-size: 15.2px; } /* thu nhỏ ~95% toàn web: mọi cỡ rem (chữ, biểu tượng, khoảng cách) co theo */
-  body { @apply bg-background text-foreground font-sans antialiased; font-size: 0.9rem; }
-  .dark body { background-image: linear-gradient(rgba(120, 190, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(120, 190, 255, 0.05) 1px, transparent 1px), linear-gradient(180deg, #0b3e72 0%, #083866 45%, #06305c 100%); background-size: 24px 24px, 24px 24px, auto; background-attachment: fixed; }
+  body { @apply bg-background text-foreground font-sans antialiased; font-size: 0.9rem; font-feature-settings: "cv11", "ss01"; }
+  /* Nền tối: một quầng chàm rất nhẹ ở góc trên, không lưới */
+  .dark body { background-image: radial-gradient(1100px 520px at 75% -12%, rgba(99, 102, 241, 0.09), transparent 62%); background-attachment: fixed; }
   input[type="datetime-local"]::-webkit-calendar-picker-indicator { opacity: 0.6; cursor: pointer; }
   .dark input[type="datetime-local"]::-webkit-calendar-picker-indicator { filter: invert(1); }
+  ::selection { background: hsl(var(--primary) / 0.22); }
 }
 
 @layer components {
   .num { @apply tabular-nums text-right; }
   .tbl { @apply w-full text-sm border-collapse; }
   /* Tổng quan: chữ chú thích sáng hơn ở giao diện tối */
-  [data-theme="dark"] .tq-sang { --muted-foreground: 215 26% 80%; }
-  .tbl th { @apply sticky top-0 z-10 bg-card text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground px-2.5 py-2 border-b whitespace-nowrap; }
+  [data-theme="dark"] .tq-sang { --muted-foreground: 220 12% 72%; }
+  .tbl th { @apply sticky top-0 z-10 bg-muted text-left text-[0.6875rem] font-semibold uppercase tracking-wide text-muted-foreground px-2.5 py-2 border-b whitespace-nowrap; }
   .tbl td { @apply px-2.5 py-2 border-b align-middle; }
-  .tbl tbody tr:hover { @apply bg-accent/40; }
+  .tbl tbody tr:hover { @apply bg-accent/50; }
   .scroll-x { @apply overflow-auto; scrollbar-width: thin; }
   /* Ô lưới được co nhỏ hơn bảng bên trong (bảng tự cuộn ngang), tránh trang bị kéo rộng trên điện thoại */
   main .grid > *, main .flex-1 { min-width: 0; }
@@ -82,26 +87,19 @@
 /* Toàn màn hình (thẻ, hộp thoại): vùng cuộn bên trong cao gần hết màn hình thay vì bị khống chế (max-h-[60vh], .tw 340 / 560 px…). Dùng !important để thắng cả style gắn trực tiếp. */
 [data-tmh] [class*="max-h-"]:not([class*="max-h-none"]), [data-tmh] .scroll-x, [data-tmh] .tw, [data-tmh] .tw.short { max-height: calc(100dvh - 120px) !important; }
 
-/* ---- Giao diện tối kiểu SCADA ---- */
+/* ---- Hoàn thiện kiểu fintech ---- */
 @layer components {
-  /* Tab đang chọn: xanh bóng có viền sáng như nhãn "Coking", "Sinter" trên màn hình điều khiển */
-  .dark [role="tab"][data-state="active"] { background-image: linear-gradient(180deg, #d6f2ff 0%, #7cc6f5 24%, #2a7fd0 58%, #1b4f8f 100%); color: #fff; border: 1px solid #a8dcff; text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35); box-shadow: 0 0 10px rgba(110, 190, 255, 0.45); }
-  /* Nút chính: xanh bóng */
-  .dark .bg-primary { background-image: linear-gradient(180deg, #d6f2ff 0%, #7cc6f5 24%, #2a7fd0 58%, #1b4f8f 100%); color: #fff; text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35); }
-  /* Tiêu đề cột bảng: ruy băng xanh */
-  .dark .tbl th { background-image: linear-gradient(180deg, #2f78d0 0%, #1a56a8 100%); color: #fff; border-color: rgba(120, 190, 255, 0.5); }
-  /* Số trong bảng: chữ số đơn cách xanh lá như ô số liệu SCADA (class tiện ích như text-bad vẫn thắng) */
-  :where(.dark) .tbl td.num { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 0.92em; color: hsl(var(--ok)); }
-  /* Ô nhập liệu: ô tối viền xanh */
-  .dark :is(input, select, textarea):not([type="checkbox"]):not([type="radio"]):not([type="range"]) { background-color: rgba(120, 190, 255, 0.12); border-color: rgba(120, 190, 255, 0.45); transition: background-color 0.15s, border-color 0.15s; }
-  .dark :is(input, select, textarea):not([type="checkbox"]):not([type="radio"]):not([type="range"]):hover { background-color: rgba(120, 190, 255, 0.17); border-color: rgba(140, 205, 255, 0.65); }
-  .dark :is(input, select, textarea):not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus { background-color: rgba(120, 190, 255, 0.2); border-color: hsl(var(--primary) / 0.85); }
-  .dark option { background-color: #0a3f73; color: #eaf4ff; }
-  /* Thẻ và hộp: viền xanh sáng, hơi phát sáng */
-  /* Khối nền xuyên thấu (kính mờ): thẻ, khung biểu đồ, ô chỉ số trong suốt để thấy nền xanh phía sau; ô sticky / hộp thoại / toàn màn hình giữ đặc cho dễ đọc */
-  .dark :is(.rounded-lg, .rounded-xl, .rounded-2xl, .rounded-md)[class*="bg-card"], .dark button[class*="bg-card"] { background-color: hsl(var(--card) / 0.32); background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.015) 42%); -webkit-backdrop-filter: blur(12px) saturate(1.25); backdrop-filter: blur(12px) saturate(1.25); border-color: rgba(110, 180, 245, 0.5); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 6px 22px rgba(2, 18, 45, 0.3); }
-  .dark .tbl tbody tr:hover { background-color: rgba(120, 190, 255, 0.1); }
-  .dark [role="dialog"], .dark [data-tmh], .dark .fixed[class*="bg-card"] { background-color: hsl(var(--popover) / 0.96) !important; -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); }
-  .dark [role="listbox"], .dark [role="menu"] { background-color: hsl(var(--popover) / 0.96); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
-  .dark ::-webkit-scrollbar-thumb { background: #2f78d0; border-radius: 6px; }
+  /* Thẻ: viền mảnh + bóng rất nhẹ (sáng); tối chỉ dùng viền */
+  :is(.rounded-lg, .rounded-xl, .rounded-2xl)[class*="bg-card"] { box-shadow: var(--bong); }
+  /* Ô nhập liệu: nền thẻ, viền rõ, vòng sáng màu nhấn khi bấm vào */
+  :is(input, select, textarea):not([type="checkbox"]):not([type="radio"]):not([type="range"]) { transition: border-color 0.15s, box-shadow 0.15s; }
+  :is(input, select, textarea):not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus { border-color: hsl(var(--primary) / 0.7); box-shadow: 0 0 0 3px hsl(var(--primary) / 0.15); outline: none; }
+  .dark :is(input, select, textarea):not([type="checkbox"]):not([type="radio"]):not([type="range"]) { background-color: hsl(225 16% 12.5%); }
+  .dark option { background-color: hsl(var(--popover)); color: hsl(var(--popover-foreground)); }
+  /* Thanh cuộn mảnh, dịu */
+  * { scrollbar-width: thin; scrollbar-color: hsl(var(--muted-foreground) / 0.35) transparent; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: hsl(var(--muted-foreground) / 0.3); border-radius: 8px; border: 2px solid transparent; background-clip: padding-box; }
+  ::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground) / 0.5); background-clip: padding-box; border: 2px solid transparent; }
+  ::-webkit-scrollbar-track { background: transparent; }
 }

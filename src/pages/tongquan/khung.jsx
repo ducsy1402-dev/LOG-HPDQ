@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 // Màu biểu đồ dùng chung cho Tổng quan (khớp màu trạng thái ở lib/linetime.js)
-export const MAU = { ok: "#10b981", warn: "#f59e0b", bad: "#f43f5e", info: "#3b82f6", primary: "#06b6d4", xam: "#94a3b8", tim: "#8b5cf6" };
+export const MAU = { ok: "#10b981", warn: "#f59e0b", bad: "#f43f5e", info: "#6366f1", primary: "#14b8a6", xam: "#94a3b8", tim: "#38bdf8" }; // fintech: nhập chàm, xuất xanh trời, nhấn ngọc
 const VIEN = { ok: "before:bg-ok", warn: "before:bg-warn", bad: "before:bg-bad", info: "before:bg-info", primary: "before:bg-primary" };
 const CHU = { ok: "text-ok", warn: "text-warn", bad: "text-bad", info: "text-info", primary: "text-primary" };
 

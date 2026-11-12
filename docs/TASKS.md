@@ -6,6 +6,10 @@
 - Bản đồ định vị nhỏ (ghim khu vực, bấm để tới khu / bãi lớn).
 - Đường nối không đè chữ; tên bãi, hàng, số liệu đứng thẳng hàng bên phải biểu tượng; đầu trang chỉ còn ô tìm kiếm.
 
+## Giao diện kiểu fintech, sửa khối đè nhau (12/11/2026) — đã làm, chờ anh Sỹ xem (nhánh giao-dien-fintech)
+- Anh báo: màu SCADA hôm qua khó nhìn, chói mắt → thiết kế lại màu sắc, bố cục theo kiểu web app tài chính hiện đại (sáng và tối).
+- Anh báo: còn khối đè lên nhau → sửa đồng hồ đo (số đè cung), chú thích biểu đồ đè số trục, nhãn số đè cột, nhãn bến Linetime tràn hàng, thanh kỳ che thanh menu trên điện thoại, bản đồ kho che bãi, biểu đồ tàu ở bến tràn khung.
+
 ## Còn mở
 - Cột "mái che" ở Danh mục › Khai báo kho / bãi (hiện đoán theo tên: "Kho …" = mái che, trừ "Kho hở").
 - Toạ độ thật của các khu vực / bãi lớn cho bản đồ định vị (hiện xếp đều theo thứ tự).

@@ -123,10 +123,10 @@ export default function GanttMet({ voyages, tu, soNgay, pxNgay, che = "ben", gon
                     {i > 0 && <div className="pointer-events-none absolute inset-x-0 border-t border-dashed border-muted-foreground/50" style={{ top: K.pad + (b.tu - d.t.tu) * K.mPx }} />}
                     {/* Nhãn bến dính bên trái khi cuộn ngang */}
                     <div className="pointer-events-none absolute inset-x-0" style={{ top: K.pad + (b.tu - d.t.tu) * K.mPx, height: (b.den - b.tu) * K.mPx }}>
-                      <div className="pointer-events-auto sticky left-0 z-20 flex h-full flex-col justify-center border-r bg-card px-2" style={{ width: LABEL }}
+                      <div className="pointer-events-auto sticky left-0 z-20 flex h-full flex-col justify-center overflow-hidden border-r bg-card px-2 leading-tight" style={{ width: LABEL }}
                         title={`Bến ${b.ma}: mét ${met(b.tu)}–${met(b.den)}${b.goc ? ` · đầu ${b.goc === "dau" ? "mét " + met(b.tu) : "mét " + met(b.den)} góc vuông` : ""}`}>
                         <span className={cn("w-fit font-mono font-semibold", gon ? "text-[0.6875rem]" : "text-[0.8125rem]", b.goc === "dau" && "border-t-2 border-warn", b.goc === "cuoi" && "border-b-2 border-warn")}>{tenBen(b.ma)}</span>
-                        {(b.den - b.tu) * K.mPx > 26 && <span className="text-[0.6875rem] tabular-nums text-muted-foreground">{met(b.tu)}–{met(b.den)} m</span>}
+                        {(b.den - b.tu) * K.mPx > 26 && <span className="truncate text-[0.6875rem] tabular-nums text-muted-foreground">{met(b.tu)}–{met(b.den)} m</span>}
                       </div>
                     </div>
                   </div>))}

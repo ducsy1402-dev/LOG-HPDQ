@@ -13,7 +13,9 @@ const lech = (s, m) => { let h = 7; for (const c of s) h = (h * 31 + c.charCodeA
 const cat = (s, n) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
 
 export default function BanDoDinhVi({ nhom, ten, onKhu, onDi, onToanKho }) {
-  const [thu, setThu] = useState(false), [chon, setChon] = useState(null);
+  // Mặc định THU NHỎ thành nút "Bản đồ" để khung nổi không che các bãi ở góc phải sơ đồ; mở / thu được, nhớ trên máy
+  const [thu, setThu0] = useState(() => { try { return localStorage.getItem("lg-bdv-mo") !== "1"; } catch { return true; } }), [chon, setChon] = useState(null);
+  const setThu = (v) => { setThu0(v); try { localStorage.setItem("lg-bdv-mo", v ? "0" : "1"); } catch { /* bỏ qua */ } };
   const ghim = useMemo(() => {
     const n = nhom.length, cols = Math.min(3, Math.max(1, n)), rows = Math.ceil(n / cols);
     return nhom.map((g, i) => {

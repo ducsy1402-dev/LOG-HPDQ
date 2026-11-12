@@ -182,14 +182,14 @@ export default function TongQuanMoi({ onMo, go, tongCanhBao }) {
   return (
     <div className="tq-sang grid gap-3">
       {/* Thanh chọn kỳ dùng chung */}
-      <div className="sticky top-0 z-30 -mx-1 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl border border-border/60 bg-background/85 px-3 py-2 backdrop-blur">
+      <div className="sticky top-12 z-30 -mx-1 lg:top-0 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl border bg-background/90 px-3 py-2 backdrop-blur">
         <ThanhKy ky={kyLoai} dat={doiKy} ds={KY} nhan={kyInfo.nhan} laNay={laNay} truoc={() => setNgayTC(kyT.ngays[0])} sau={() => setNgayTC(kySau(kyInfo).ngays[0])} veNay={() => setNgayTC(homNay)} />
-        <span className="text-[0.6875rem] text-muted-foreground">Mọi chỉ số so với {kyT.nhan.toLowerCase()}{laNay ? ` (cùng ${Math.max(1, qua)} ngày đầu)` : ""} · mục tiêu chia đều theo ngày, quý / năm có mục tiêu riêng thì dùng số đó</span>
+        <span className="hidden text-[0.6875rem] text-muted-foreground sm:inline">Mọi chỉ số so với {kyT.nhan.toLowerCase()}{laNay ? ` (cùng ${Math.max(1, qua)} ngày đầu)` : ""} · mục tiêu chia đều theo ngày, quý / năm có mục tiêu riêng thì dùng số đó</span>
       </div>
 
       {/* Bức tranh chung: bốn đồng hồ + vấn đề */}
       <div className="grid gap-3 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-        <div className="grid gap-2.5 [grid-template-columns:repeat(auto-fit,minmax(200px,1fr))]">{sucKhoe}</div>
+        <div className="grid gap-2.5 [grid-template-columns:repeat(auto-fit,minmax(170px,1fr))]">{sucKhoe}</div>
         <DaiVanDe ds={vanDe} onMo={moVanDe} tongCanhBao={tongCanhBao} onXemCanhBao={() => onMo("canh-bao")} />
       </div>
 
@@ -238,7 +238,7 @@ export default function TongQuanMoi({ onMo, go, tongCanhBao }) {
               }} />
             </Khung>
             <Khung cao={CAO} ten="Tàu ở bến và tàu chờ theo ngày" phu={kyInfo.nhan}>
-              <EChart height={Math.max(220, 40 + cb.theoBen.length * 20)} option={{
+              <EChart height={CAO - 50} option={{
                 ...base, tooltip: { trigger: "axis", valueFormatter: (v) => `${v} tàu` }, xAxis: { type: "category", data: tauNgay.map((x) => x.ngay.slice(8) + "/" + x.ngay.slice(5, 7)), axisLabel: { fontSize: 10, hideOverlap: true } }, yAxis: { type: "value", minInterval: 1, axisLabel: { fontSize: 10 } },
                 series: [{ name: "Tàu ở bến", type: "bar", stack: "t", barMaxWidth: 16, itemStyle: { color: MAU.ok, opacity: 0.85 }, data: tauNgay.map((x) => x.oBen) }, { name: "Tàu chờ bến", type: "bar", stack: "t", barMaxWidth: 16, itemStyle: { color: MAU.bad, opacity: 0.85 }, data: tauNgay.map((x) => x.cho) }],
               }} />
