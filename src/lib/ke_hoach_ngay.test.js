@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { chiaDeuTheoGio, ngayCuaChuyen, keHoachTheoNgay, tongNgay, thucTeNgay, chuoiKeHoach, luyKe, demTau, loaiThe } from "./keHoachNgay";
+import { chiaDeuTheoGio, ngayCuaChuyen, keHoachTheoNgay, tongNgay, thucTeNgay, keHoachTheoDiem, luyKe, demTau, loaiThe } from "./keHoachNgay";
+import { khoangKy, khoaDiem } from "./bieuDoSanLuong";
 import { taoNhomHang } from "./sanLuong";
 
 // Kế hoạch sản lượng theo ngày, theo line tàu (SQL 13, 13/11/2026)
@@ -53,11 +54,22 @@ describe("gộp kế hoạch ngày, so với thực tế", () => {
     expect(thucTeNgay(tt, ngays, "xuat")).toEqual([800, 0, 0]);
     expect(thucTeNgay(tt, ngays, "xuat", "HRC")).toEqual([700, 0, 0]);
   });
-  it("kế hoạch biểu đồ: có kế hoạch ngày thì dùng, không thì mục tiêu tháng chia đều", () => {
+  it("kế hoạch theo điểm của kỳ: tháng có kế hoạch ngày dùng kế hoạch, tháng chưa đặt thì null (dùng mục tiêu chia đều)", () => {
     const m = keHoachTheoNgay(rows, vmap, nhomHang);
-    expect(chuoiKeHoach(m, ngays, "xuat", 9000)).toEqual({ kh: [1000, 2000, 0], nguon: "ngay" });
-    expect(chuoiKeHoach(new Map(), ngays, "xuat", 9000)).toEqual({ kh: [3000, 3000, 3000], nguon: "muc_tieu" });
-    expect(chuoiKeHoach(new Map(), ngays, "xuat", 0).nguon).toBe("khong");
+    const ky = khoangKy("quy", "2026-10-15"); // quý 4: điểm theo tuần
+    const r = keHoachTheoDiem(ky, m, "xuat");
+    expect(r.coKh).toBe(true);
+    expect(r.du).toBe(false);
+    const i10 = ky.ngays.indexOf("2026-11-10"); // tuần chứa 10/11 và 11/11 → 3000
+    const diem = []; for (const d of ky.ngays) { const k = khoaDiem(ky.buoc, d); if (!diem.includes(k)) diem.push(k); }
+    expect(r.kh[diem.indexOf(khoaDiem(ky.buoc, ky.ngays[i10]))]).toBe(3000);
+    expect(r.kh[0]).toBeNull();                        // tuần đầu quý (tháng 10) chưa có kế hoạch ngày
+    expect(keHoachTheoDiem(ky, new Map(), "xuat").coKh).toBe(false);
+  });
+  it("kế hoạch theo điểm lọc theo nhóm hàng", () => {
+    const m = keHoachTheoNgay(rows, vmap, nhomHang), ky = khoangKy("thang", "2026-11-10");
+    expect(keHoachTheoDiem(ky, m, "xuat", "HRC").kh[9]).toBe(1000);
+    expect(keHoachTheoDiem(ky, m, "xuat", "Than").kh[9]).toBeNull(); // nhóm chưa có kế hoạch ngày: dùng mục tiêu chia đều
   });
   it("lũy kế, thực tế chỉ đến ngày giới hạn", () => {
     expect(luyKe([1, 2, 3])).toEqual([1, 3, 6]);

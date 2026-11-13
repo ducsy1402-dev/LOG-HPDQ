@@ -7,6 +7,7 @@ import { mocDuKien } from "./xepBen";
 import { dongHang } from "./sanLuong";
 import { laHRC, loaiKhoTuHang } from "./kho";
 import { plain } from "./format";
+import { khoaDiem } from "./bieuDoSanLuong";
 
 const HOUR = 36e5, DAY = 864e5;
 const p2 = (n) => String(n).padStart(2, "0");
@@ -61,13 +62,21 @@ export function thucTeNgay(thucTe, ngays, huong, nhom = "") {
   for (const r of thucTe || []) if (r.huong === huong && (!nhom || plain(r.loai_hang) === plain(nhom))) { const d = String(r.ngay).slice(0, 10); m.set(d, (m.get(d) || 0) + (+r.tan || 0)); }
   return ngays.map((n) => m.get(n) || 0);
 }
-// Chuỗi kế hoạch ngày của một hướng: có kế hoạch ngày thì dùng (ngày chưa đặt = 0); chưa có kế hoạch ngày nào trong tháng thì mục tiêu tháng chia đều theo số ngày.
-// Trả { kh: mảng tấn, nguon: "ngay" | "muc_tieu" | "khong" }
-export function chuoiKeHoach(map, ngays, huong, mucTieuThang) {
-  const ngay = tongNgay(map, ngays, huong);
-  if (ngay.some((x) => x > 0)) return { kh: ngay, nguon: "ngay" };
-  if (mucTieuThang > 0) return { kh: ngays.map(() => mucTieuThang / ngays.length), nguon: "muc_tieu" };
-  return { kh: ngays.map(() => 0), nguon: "khong" };
+// Kế hoạch ngày của một hướng (và nhóm hàng nếu có): Map ngày -> tấn (chỉ các ngày có kế hoạch)
+export function keHoachNgayMap(map, huong, nhom = "") {
+  const m = new Map();
+  for (const [k, v] of map) { const [d, h, l] = k.split("|"); if (h === huong && (!nhom || plain(l) === plain(nhom))) m.set(d, (m.get(d) || 0) + v); }
+  return m;
+}
+// Kế hoạch theo từng điểm của kỳ (cùng thứ tự điểm với chuoiKy ở bieuDoSanLuong.js; kyInfo = khoangKy(...)). Điểm thuộc THÁNG đã có kế hoạch ngày
+// (của hướng / nhóm hàng đang xem) lấy tổng kế hoạch ngày của điểm; tháng chưa đặt kế hoạch ngày thì null để nơi gọi dùng mục tiêu chia đều.
+// Trả { kh: [tấn | null], coKh: có kế hoạch ngày ở ít nhất một điểm, du: mọi điểm đều theo kế hoạch ngày }
+export function keHoachTheoDiem(kyInfo, map, huong, nhom = "") {
+  const m = keHoachNgayMap(map, huong, nhom), thangCo = new Set([...m].filter(([, v]) => v > 0).map(([d]) => d.slice(0, 7)));
+  const idx = new Map(), dau = [], tong = [];
+  for (const d of kyInfo.ngays) { const k = khoaDiem(kyInfo.buoc, d); if (!idx.has(k)) { idx.set(k, tong.length); tong.push(0); dau.push(d); } tong[idx.get(k)] += m.get(d) || 0; }
+  const kh = tong.map((t, i) => (thangCo.has(dau[i].slice(0, 7)) ? t : null));
+  return { kh, coKh: kh.some((x) => x != null), du: kh.every((x) => x != null) };
 }
 export const luyKe = (a, gioiHan = a.length) => { let s = 0; return a.map((x, i) => (i < gioiHan ? (s += x) : null)); };
 

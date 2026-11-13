@@ -21,7 +21,7 @@
 - **Cần anh xác nhận**: cách chia hàng cho hai tab thành phẩm (HRC = hàng có chữ HRC; Thanh/Cuộn = mọi thành phẩm còn lại). Hiện Danh mục chưa có gian / lô nào của Thanh/Cuộn nên tab này đang trống.
 
 ## Mục tiêu sản lượng bố cục mới (13/11/2026) — đã làm, chờ anh Sỹ xem (nhánh muc-tieu-san-luong-moi)
-- Tab Khai thác cảng: 3 thẻ tàu (HRC, thép thành phẩm, hàng nhập), 4 nút (Đặt mục tiêu, Xem kế hoạch, Kế hoạch ngày, Sản lượng thực tế), 3 biểu đồ. Tab Khai thác vận tải giữ như cũ.
+- Khai thác cảng: hàng nút trên cùng, 3 thẻ tàu chỉ số lượng, 3 biểu đồ xem theo tháng / quý / năm (có đường kế hoạch – thực tế lọc loại hàng); Dán nhanh trong Đặt mục tiêu và Sản lượng thực tế; hộp Kế hoạch ngày có dòng Thực nhập / Thực xuất, cửa sổ 7 / 14 ngày, phím mũi tên, dán từ Excel. Mục tiêu vận tải chuyển sang Thiết bị cơ giới › Kế hoạch & phân bổ.
 - **Cần chạy `sql/13_ke_hoach_san_luong_ngay.sql` trong Supabase trước khi đẩy code** (nút Kế hoạch ngày cần bảng này).
 - Cần anh xác nhận: "tàu chờ trong 24h tới" đang tính là tàu chưa làm hàng mà giờ bắt đầu làm hàng dự kiến trong 24 giờ tới (hoặc đã quá giờ); Tàu thép thành phẩm không gồm HRC.
 
