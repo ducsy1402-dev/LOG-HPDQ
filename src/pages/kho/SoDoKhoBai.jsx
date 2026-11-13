@@ -186,8 +186,12 @@ function KhoiGon({ b, mai, x, y, onMo, uid, tt, tp, nhay }) {
     </g>);
 }
 
-export default function SoDoKhoBai({ bai, kho, onMo, ten, tp }) {
+// bai nhận bãi lớn; tp: true / false = ép kiểu chỉ tiêu (m² · lớp / m³) cho mọi bãi, không truyền (Overview) = theo từng bãi (bãi có gian thành phẩm → m² · lớp).
+// Bãi nhỏ trong mỗi bãi lớn xếp tăng dần (số trước, chữ sau, A–Z).
+export default function SoDoKhoBai({ bai: baiGoc, kho, onMo, ten, tp: tpEp }) {
   const { D } = useApp();
+  const bai = useMemo(() => baiGoc.map((b) => ({ ...b, dong: [...b.dong].sort((x, y) => String(x.ten).localeCompare(String(y.ten), "vi", { numeric: true, sensitivity: "base" })) })), [baiGoc]);
+  const laTP = (b) => tpEp ?? b.loai === "thanh_pham";
   const [q, setQ] = useState(""), [nhay, setNhay] = useState(null);
   const dauRef = useRef();
   const kb = useMemo(() => khaiBaoBai(D.dmBang), [D.dmBang]);
@@ -224,7 +228,7 @@ export default function SoDoKhoBai({ bai, kho, onMo, ten, tp }) {
       const ds = bai.filter((b) => khuCua(b) === k && khop(b)).sort((a, b) => a.ten_bai.localeCompare(b.ten_bai, "vi", { numeric: true }));
       if (!ds.length) continue;
       const all = bai.filter((b) => khuCua(b) === k), ton = all.reduce((s, b) => s + b.ton, 0), suc = all.reduce((s, b) => s + (b.sucChua || 0), 0);
-      const soMai = all.filter((b) => mai.get(b.ten_bai)?.mai).length, v = all.reduce((s, b) => s + ((tp ? ttBai.get(b.ten_bai)?.dt : ttBai.get(b.ten_bai)?.vMax) || 0), 0);
+      const soMai = all.filter((b) => mai.get(b.ten_bai)?.mai).length, vDt = all.filter(laTP).reduce((s, b) => s + (ttBai.get(b.ten_bai)?.dt || 0), 0), vTt = all.filter((b) => !laTP(b)).reduce((s, b) => s + (ttBai.get(b.ten_bai)?.vMax || 0), 0);
       const yHead = y; y += 40;
       const cay = ds.filter((b) => b.dong.length > 1), gon = ds.filter((b) => b.dong.length <= 1), cot = [y, y], dat = [];
       for (const b of cay) {
@@ -235,7 +239,7 @@ export default function SoDoKhoBai({ bai, kho, onMo, ten, tp }) {
       const moiHang = Math.max(1, Math.floor((VB - 2 * PAD) / CW_GON));
       gon.forEach((b, i) => dat.push({ b, loai: "gon", x: PAD + (i % moiHang) * CW_GON, y: y + Math.floor(i / moiHang) * GON_H }));
       if (gon.length) y += Math.ceil(gon.length / moiHang) * GON_H;
-      phan.push({ k, yHead, dat, ton, suc, v, soMai, soLo: all.length - soMai, soNho: all.reduce((s, b) => s + b.dong.length, 0), n: all.length });
+      phan.push({ k, yHead, dat, ton, suc, vDt, vTt, soMai, soLo: all.length - soMai, soNho: all.reduce((s, b) => s + b.dong.length, 0), n: all.length });
       y += 18;
     }
     return { phan, cao: Math.max(y, 120) };
@@ -251,7 +255,6 @@ export default function SoDoKhoBai({ bai, kho, onMo, ten, tp }) {
   }, [nhay]);
   const nhomMap = useMemo(() => dsKhu.map((k) => ({ k, ds: bai.filter((b) => khuCua(b) === k).sort((a, b) => a.ten_bai.localeCompare(b.ten_bai, "vi", { numeric: true })) })), [dsKhu, bai]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const donVi = tp ? "m²" : "m³";
 
   return (
     <div ref={dauRef} className="grid scroll-mt-4 gap-2">
@@ -270,20 +273,20 @@ export default function SoDoKhoBai({ bai, kho, onMo, ten, tp }) {
               <text x={PAD} y={p.yHead + 20} fontSize="17" fontWeight="700" fill="#e6f2ff">{p.k}
                 <tspan fontSize="12" fontWeight="400" fill="#8fb4dc">{`   ${p.n} bãi lớn · ${p.soNho} bãi nhỏ · ${p.soMai} kho mái che · ${p.soLo} bãi lộ thiên · tồn `}</tspan>
                 <tspan fontSize="12" fontWeight="700" fill={CHU[mucDay(p.suc ? p.ton / p.suc : null)]}>{so(p.ton, 0)} t{p.suc ? ` (${pct(p.ton / p.suc)})` : ""}</tspan>
-                <tspan fontSize="12" fontWeight="400" fill="#8fb4dc">{p.v ? ` · ${so(p.v, 0)} ${donVi}` : ""}</tspan>
+                <tspan fontSize="12" fontWeight="400" fill="#8fb4dc">{`${p.vDt ? ` · ${so(p.vDt, 0)} m²` : ""}${p.vTt ? ` · ${so(p.vTt, 0)} m³` : ""}`}</tspan>
               </text>
               <line x1={PAD} y1={p.yHead + 30} x2={VB - PAD} y2={p.yHead + 30} stroke="#3b6fc0" strokeOpacity="0.6" />
               {p.dat.map((o, i) => {
                 const m = mai.get(o.b.ten_bai)?.mai, uid = `kb-${khoaTenBai(o.b.ten_bai)}-${i}`, nh = nhay?.t === o.b.ten_bai;
                 return o.loai === "cay"
-                  ? <KhoiCay key={o.b.ten_bai} b={o.b} mai={m} x={o.x} y={o.y} onMo={onMo} uid={uid} tp={tp} tt={ttBai.get(o.b.ten_bai)} ttDong={ttDong} nhay={nh} />
-                  : <KhoiGon key={o.b.ten_bai} b={o.b} mai={m} x={o.x} y={o.y} onMo={onMo} uid={uid} tt={ttBai.get(o.b.ten_bai)} tp={tp} nhay={nh} />;
+                  ? <KhoiCay key={o.b.ten_bai} b={o.b} mai={m} x={o.x} y={o.y} onMo={onMo} uid={uid} tp={laTP(o.b)} tt={ttBai.get(o.b.ten_bai)} ttDong={ttDong} nhay={nh} />
+                  : <KhoiGon key={o.b.ten_bai} b={o.b} mai={m} x={o.x} y={o.y} onMo={onMo} uid={uid} tt={ttBai.get(o.b.ten_bai)} tp={laTP(o.b)} nhay={nh} />;
               })}
             </g>))}
           {!bd.phan.length && <text x={VB / 2} y="64" textAnchor="middle" fontSize="14" fill="#8fb4dc">Không có bãi nào khớp bộ lọc.</text>}
         </svg>
       </div>
-      <p className="text-[0.6875rem] text-muted-foreground">Mái vòm = kho có mái che · đống vòm = bãi lộ thiên. Khối màu có mặt sóng bên trong = mức lấp đầy: xanh bình thường, vàng từ {pct(NGUONG_KHO.vang)}, đỏ từ {pct(NGUONG_KHO.do)} (nhấp nháy).{tp ? " Diện tích (m²) và số lớp xếp khả dụng theo Danh mục › Kho bãi." : " Số m³ = thể tích tối đa (diện tích × chiều cao chất đống; không có thì sức chứa ÷ tỉ trọng hàng)."} Bấm một bãi để mở bảng chi tiết.{doan ? " Kho / bãi có mái che đang đoán theo tên (chưa có cột mái che ở Danh mục › Khai báo kho / bãi)." : ""}</p>
+      <p className="text-[0.6875rem] text-muted-foreground">Mái vòm = kho có mái che · đống vòm = bãi lộ thiên. Khối màu có mặt sóng bên trong = mức lấp đầy: xanh bình thường, vàng từ {pct(NGUONG_KHO.vang)}, đỏ từ {pct(NGUONG_KHO.do)} (nhấp nháy).{" Kho thành phẩm: diện tích (m²) · số lớp xếp khả dụng. Kho nguyên liệu: số m³ = thể tích tối đa (diện tích × chiều cao chất đống; không có thì sức chứa ÷ tỉ trọng hàng)."} Bấm một bãi để mở bảng chi tiết.{doan ? " Kho / bãi có mái che đang đoán theo tên (chưa có cột mái che ở Danh mục › Khai báo kho / bãi)." : ""}</p>
       <BanDoDinhVi nhom={nhomMap} ten={ten} onDi={diToi} onToanKho={() => { dauRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); }}
         onKhu={(k) => { setQ(""); requestAnimationFrame(() => document.getElementById(`kb-khu-${khoaTenBai(k)}`)?.scrollIntoView({ behavior: "smooth", block: "start" })); }} />
     </div>

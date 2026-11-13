@@ -14,6 +14,11 @@
 - Đã nối web vào project mới `vyrttgpqefaajoiaetyz`; SQL 01…11 đã chạy. Dữ liệu nhập cũ đã mất, nhập lại từ đầu.
 - Còn: tạo tài khoản + chạy 04, đăng nhập thử, đẩy lên main, thêm địa chỉ web vào Authentication › URL Configuration của Supabase mới.
 
+## Khai thác kho bãi 4 tab, tự tính sức chứa (13/11/2026) — đã làm, chờ anh Sỹ xem (nhánh kho-bai-4-tab)
+- Hộp thêm kho thành phẩm / nguyên liệu: sức chứa khả dụng / danh nghĩa để trống thì tự tính, thiếu hệ số lưu chứa thì thông báo.
+- Menu Khai thác kho bãi: tab Overview, Kho HRC, Kho Thanh/Cuộn, Kho Nguyên liệu; mỗi tab kho 3 biểu đồ + 5 nút.
+- **Cần anh xác nhận**: cách chia hàng cho hai tab thành phẩm (HRC = hàng có chữ HRC; Thanh/Cuộn = mọi thành phẩm còn lại). Hiện Danh mục chưa có gian / lô nào của Thanh/Cuộn nên tab này đang trống.
+
 ## Còn mở
 - Cột "mái che" ở Danh mục › Khai báo kho / bãi (hiện đoán theo tên: "Kho …" = mái che, trừ "Kho hở").
 - Toạ độ thật của các khu vực / bãi lớn cho bản đồ định vị (hiện xếp đều theo thứ tự).

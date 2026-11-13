@@ -28,7 +28,8 @@ export default function KeHoachKho({ loai, kho }) {
   const dem = useRef(0);
   const taoKey = () => `n${++dem.current}`;
   // Dòng đã lưu của tháng thuộc kho này (bãi nhỏ của kho này, hoặc bãi nhỏ đã bị xóa khỏi danh mục để còn xóa được)
-  const lienQuan = (r) => { const d = khuCuaKeHoach(r, kho.dong.filter((x) => !x.saiBai)); return d ? d.loai === loai : true; };
+  // kho.dongAll có khi kho đã lọc theo tab (Khai thác kho bãi): dòng thuộc gian / lô của tab khác thì bỏ qua, không tìm thấy ở đâu mới là "bãi đã xóa"
+  const lienQuan = (r) => { const d = khuCuaKeHoach(r, (kho.dongAll || kho.dong).filter((x) => !x.saiBai)); return d ? (kho.dongAll ? dongTheoKey.has(d.key) : d.loai === loai) : true; };
   const goc = useMemo(() => (D.khoKeHoach || []).filter((r) => r.thang === thang && lienQuan(r)).map((r) => ({
     _k: `d${r.id}`, id: r.id, khu_key: khuCuaKeHoach(r, dong)?.key || "", mat: !khuCuaKeHoach(r, dong), ten_bai: r.ten_bai, ten_khu: r.ten_khu,
     hang: r.hang || "", nhom: r.nhom || "", huong: r.huong, khoi_luong: so(r.khoi_luong), ghi_chu: r.ghi_chu || "",

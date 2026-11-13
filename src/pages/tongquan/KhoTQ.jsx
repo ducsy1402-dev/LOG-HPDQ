@@ -71,7 +71,7 @@ export function HopKho({ onClose, go }) {
   return (
     <HopTQ title="Quản lý kho bãi" onClose={onClose}
       description={`Tồn ${so(ton)} t${suc ? ` / ${so(suc)} t (${pct(lapDay)})` : ""} · ${kho.bai.length} bãi lớn · ${kho.canh.length} cảnh báo`}
-      moTrang={[["Mở Kho thành phẩm", () => go("kho/thanh-pham")], ["Mở Kho nguyên liệu", () => go("kho/nguyen-lieu")]]}>
+      moTrang={[["Mở Kho HRC", () => go("kho/hrc")], ["Mở Kho Thanh/Cuộn", () => go("kho/thanh-cuon")], ["Mở Kho Nguyên liệu", () => go("kho/nguyen-lieu")]]}>
       <Tabs value={tab} onValueChange={setTab}>
         <div className="flex flex-wrap items-center gap-2">
           <TabsList>

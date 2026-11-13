@@ -49,11 +49,38 @@ export function tiTrong(hang, hangHoa = []) {
   const dauNhom = co.filter((x) => x.nhom && p.startsWith(plain(x.nhom)));
   return binhQuan(dauNhom);
 }
+// Hệ số lưu chứa: nhập 0,85 hoặc 85 (%) đều được; trống / không hợp lệ = chưa có
+export const heSoLuuChua = (v) => { const h = +v; return h > 0 ? (h > 1 ? Math.min(1, h / 100) : h) : null; };
+const lam2 = (x) => Math.round(x * 100) / 100;
 export function sucChua(row, hangHoa) {
   if (+row.suc_chua_tay > 0) return { tan: +row.suc_chua_tay, cach: "nhập tay" };
+  // Khả dụng trống: sức chứa danh nghĩa × hệ số lưu chứa (chưa có hệ số thì khả dụng = danh nghĩa)
+  if (+row.suc_chua_dn > 0) { const hs = heSoLuuChua(row.he_so_luu_chua); return { tan: lam2(+row.suc_chua_dn * (hs ?? 1)), cach: hs ? `danh nghĩa ${row.suc_chua_dn} t × hệ số ${hs}` : "= sức chứa danh nghĩa (chưa có hệ số lưu chứa)" }; }
   const tt = tiTrong(row.hang, hangHoa);
   if (+row.dien_tich > 0 && +row.chieu_cao > 0 && tt > 0) return { tan: +row.dien_tich * +row.chieu_cao * tt, cach: `${row.dien_tich} m² × ${row.chieu_cao} m × ${tt} t/m³` };
   return { tan: null, cach: !(+row.chieu_cao > 0) ? "chưa có chiều cao chất đống" : !(tt > 0) ? "hàng chưa có tỉ trọng" : "chưa có diện tích" };
+}
+
+// Hộp thêm / sửa / import kho bãi: ô sức chứa để trống thì web tự tính rồi lưu.
+//   • Sức chứa danh nghĩa (chỉ kho nguyên liệu, có cột): trống → diện tích × chiều cao đống × tỷ khối hàng.
+//   • Sức chứa khả dụng (cả hai kho): trống → sức chứa danh nghĩa × hệ số lưu chứa; chưa có hệ số thì khả dụng = danh nghĩa (kèm thông báo).
+// Trả về { rows, thieuHeSo: số dòng chưa có hệ số, tuTinh: số dòng được tự điền }
+export function tuTinhSucChua(rows, loai, hangHoa = [], coCotMoi = true) {
+  let thieuHeSo = 0, tuTinh = 0;
+  const out = rows.map((r) => {
+    const o = { ...r };
+    if (coCotMoi && loai !== "thanh_pham" && !(+o.suc_chua_dn > 0) && +o.dien_tich > 0 && +o.chieu_cao > 0) {
+      const tt = tiTrong(o.hang, hangHoa);
+      if (tt > 0) { o.suc_chua_dn = lam2(+o.dien_tich * +o.chieu_cao * tt); tuTinh++; }
+    }
+    if (!(+o.suc_chua_tay > 0) && +o.suc_chua_dn > 0) {
+      const hs = heSoLuuChua(o.he_so_luu_chua);
+      o.suc_chua_tay = lam2(+o.suc_chua_dn * (hs ?? 1)); tuTinh++;
+      if (hs == null) thieuHeSo++;
+    }
+    return o;
+  });
+  return { rows: out, thieuHeSo, tuTinh };
 }
 
 // Ngày địa phương dạng yyyy-mm-dd
@@ -399,4 +426,32 @@ export function soSanhKhoTheoKhu({ dong = [], keHoach = [], giaoDich = [], gan, 
     };
   });
   return { rows, matKH: kh.mat, dangDienRa };
+}
+
+// ---------- Trang Khai thác kho bãi: 4 tab (12–13/11/2026, anh Sỹ chốt) ----------
+// Overview = sơ đồ mọi kho / bãi theo khu vực; ba tab kho chia theo loại hàng:
+//   Kho HRC          = thành phẩm thuộc nhóm HRC (hàng có chữ HRC: "Thép cuộn HRC");
+//   Kho Thanh/Cuộn   = các thành phẩm còn lại (thép thanh, thép cuộn, cuộn CLC, phôi, slab, hàng bao…);
+//   Kho Nguyên liệu  = mọi kho / bãi nguyên liệu.
+// Muốn đổi cách chia thì sửa laHRC / TAB_KHO tại đây.
+export const TAB_KHO = [
+  { id: "overview", ten: "Overview" },
+  { id: "hrc", ten: "Kho HRC", loai: "thanh_pham", kieu: "hrc" },
+  { id: "thanh-cuon", ten: "Kho Thanh/Cuộn", loai: "thanh_pham", kieu: "khac" },
+  { id: "nguyen-lieu", ten: "Kho Nguyên liệu", loai: "nguyen_lieu" },
+];
+export const laHRC = (hang, hangHoa = []) => /\bhrc\b/.test(plain(nhomCua(hang, hangHoa) || "")) || /\bhrc\b/.test(plain(hang));
+// Bản sao của kho tổng hợp chỉ gồm gian / lô, tồn, lô của một tab (các thành phần biểu đồ / hộp thao tác dùng nguyên không cần sửa).
+// Gian / lô chưa có hàng nào (bãi tự do còn trống) hiện ở mọi tab cùng loại kho.
+export function locKhoTheoTab(kho, tab) {
+  if (!kho || !tab?.loai) return kho;
+  const hh = kho.hangHoa || [];
+  const khop = (hang) => !tab.kieu || laHRC(hang, hh) === (tab.kieu === "hrc");
+  const dongOk = (d) => { const hs = [d.hang, ...(d.chua || []).map((c) => c.hang)].filter(Boolean); return !hs.length || hs.some(khop); };
+  const dong = kho.dong.filter((d) => d.loai === tab.loai && dongOk(d)), key = new Set(dong.map((d) => d.key));
+  return {
+    ...kho, dong, dongAll: kho.dong, // dongAll: mọi gian / lô (để biết dòng kế hoạch thuộc tab khác, không báo nhầm "bãi đã xóa")
+    cap: kho.cap.filter((c) => c.loai === tab.loai && (key.has(c.key) || khop(c.hang)) && khop(c.hang)),
+    lo: kho.lo.filter((l) => khop(l.hang)),
+  };
 }

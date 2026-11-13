@@ -1,17 +1,17 @@
-import { useMemo, useState } from "react";
-import { Search, Boxes, PenLine, Pencil, ClipboardCheck, ClipboardPaste, Trash2, Bell, Package, Network, List, LineChart, CalendarRange, ChevronRight, Layers } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Bell, ChevronRight, CalendarRange, Eye, PenLine, History, Layers, MoreHorizontal, ClipboardCheck, ClipboardPaste, Package, List, Network, Warehouse, Boxes } from "lucide-react";
 import { useApp } from "@/store";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input, NativeSelect } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { PageHead, Empty, MucIcon, ConfirmButton } from "@/components/common";
-import { so, pct, ngayNam, matchQ, plain } from "@/lib/format";
-import { LOAI_GD, TRANG_THAI_LO, NGUONG_KHO } from "@/lib/kho";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/menu";
+import { PageHead, Empty, MucIcon } from "@/components/common";
+import { so, pct } from "@/lib/format";
+import { NGUONG_KHO, TAB_KHO, locKhoTheoTab } from "@/lib/kho";
 import { cn } from "@/lib/utils";
-import { mauDay, KIEU_TONE, KIEU_NGAN, Chi, Thanh, NgayDay, ThongQua, LuuBai, T_NGAY_DAY, T_LUU_BAI, T_THONG_QUA, T_NHAP_XUAT } from "./khoUi";
+import { KIEU_TONE, KIEU_NGAN, Chi, Thanh, NgayDay, ThongQua, LuuBai, T_NGAY_DAY, T_LUU_BAI, T_THONG_QUA, T_NHAP_XUAT } from "./khoUi";
 import SoDoKhoBai from "./SoDoKhoBai";
 import BieuDoTon from "./BieuDoTon";
 import { useKho } from "./useKho";
@@ -19,9 +19,8 @@ import GiaoDichForm, { KiemKeForm, SuaKiemKe } from "./GiaoDichForm";
 import DanNhanhKho from "./DanNhanhKho";
 import KeHoachKho from "./KeHoachKho";
 import PhanLoaiTon from "./PhanLoaiTon";
-
-const TEN_LOAI = { thanh_pham: "Kho thành phẩm", nguyen_lieu: "Kho nguyên liệu" };
-const TEN_GD = Object.fromEntries(LOAI_GD);
+import XemKeHoach from "./XemKeHoach";
+import { LichSuKho, BangLo, BangTon } from "./BangKho";
 
 // Chi tiết một bãi lớn: từng bãi nhỏ với kiểu, hàng đang chứa, tồn / sức chứa, lưu lượng, dự kiến đầy, lưu bãi, thông qua
 export function ChiTietBai({ b, kho, onClose }) {
@@ -87,143 +86,98 @@ function DaiCanhBaoKho({ ds }) {
   );
 }
 
-export default function Kho({ loai }) {
-  const { D, quyen, run, api } = useApp();
-  const kho = useKho();
-  const [q, setQ] = useState("");
-  const [qSo, setQSo] = useState(""); // tìm nhanh trong Sổ nhập – xuất
-  const [form, setForm] = useState(null); // { loai } | "kiem_ke" | "dan"
-  const [moBai, setMoBai] = useState(null);
-  if (!D.coSql15 || !kho) return <div className="rounded-md border border-warn/40 bg-warn/5 px-3 py-2 text-sm">Phần kho bãi chưa sẵn sàng: quản trị cần chạy <b>sql/15_phuong_an_va_kho_bai.sql</b> trong Supabase.</div>;
-  const tp = loai === "thanh_pham";
-  const dong = kho.dong.filter((d) => d.loai === loai);
-  const tenBai = new Set(dong.map((d) => d.ten_bai));
-  const bai = kho.bai.filter((b) => tenBai.has(b.ten_bai));
-  const lo = kho.lo.filter((l) => tenBai.has(l.ten_bai));
+// Một nút thao tác của tab kho: biểu tượng + chữ ngắn (chữ ẩn trên màn hình hẹp, rê chuột xem tên đầy đủ)
+function NutKho({ icon: Ic, ngan, title, onClick, disabled, chinh }) {
+  return (
+    <Button size="sm" variant={chinh ? "default" : "outline"} onClick={onClick} disabled={disabled} title={title} aria-label={title}>
+      <Ic /><span className="hidden sm:inline">{ngan}</span>
+    </Button>
+  );
+}
+
+// Một tab kho (HRC, Thanh/Cuộn, Nguyên liệu): 5 nút thao tác (mỗi nút mở một hộp) và 3 biểu đồ (tồn theo bãi nhỏ, nhập / xuất kế hoạch – thực tế, dự báo tồn)
+function KhoTab({ tab, kho }) {
+  const { quyen } = useApp();
+  const [mo, setMo] = useState(null); // ke-hoach | xem-kh | nhap | lich-su | phan-loai | kiem-ke | dan | lo | ton
+  const [sua, setSua] = useState(null); // lượt đang sửa (mở từ Lịch sử)
+  const loai = tab.loai, tp = loai === "thanh_pham", nhap = quyen.kho.nhap;
+  const tenBai = useMemo(() => new Set(kho.dong.map((d) => d.ten_bai)), [kho]);
   const canh = kho.canh.filter((c) => tenBai.has(c.bai));
-  const TEN_NGUON = { tau: "Tàu", cap_sx: "Cấp sản xuất", san_xuat: "Từ sản xuất", don_hang: "Đơn hàng", khac: "Khác" };
-  const gd = (D.giaoDich || []).filter((g) => tenBai.has(g.ten_bai) || tenBai.has(g.den_bai)).sort((a, b) => String(b.ngay).localeCompare(String(a.ngay)) || b.id - a.id);
-  const gdLoc = qSo.trim() ? gd.filter((g) => matchQ(qSo, ngayNam(g.ngay), g.ca, TEN_GD[g.loai], g.ten_bai, g.den_bai, g.hang, g.so_lo, g.chung_tu, g.ghi_chu, TEN_NGUON[g.nguon], g.voyage_id ? D.vmap.get(g.voyage_id)?.ten_tau : "")) : gd;
-  const nhap = quyen.kho.nhap;
+  const dong = () => { setMo(null); };
+  const Hop = ({ id, title, description, rong = "max-w-6xl", children }) => mo === id && (
+    <Dialog onOpenChange={(o) => !o && dong()} className={rong} title={title} description={description}>{children}</Dialog>);
+  return (
+    <div className="grid gap-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <NutKho icon={CalendarRange} ngan="Kế hoạch" title="Kế hoạch xuất/nhập kho (đặt kế hoạch theo tháng)" onClick={() => setMo("ke-hoach")} />
+        <NutKho icon={Eye} ngan="Xem KH" title="Xem kế hoạch (so với thực tế)" onClick={() => setMo("xem-kh")} />
+        <NutKho icon={PenLine} ngan="Nhập / Xuất" title={nhap ? "Xuất/nhập kho" : "Xuất/nhập kho (cần quyền nhập liệu)"} onClick={() => setMo("nhap")} disabled={!nhap} chinh />
+        <NutKho icon={History} ngan="Lịch sử" title="Lịch sử xuất/nhập kho" onClick={() => setMo("lich-su")} />
+        <NutKho icon={Layers} ngan="Phân loại" title="Phân loại tồn (cần giải phóng / đầu cơ)" onClick={() => setMo("phan-loai")} />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild><Button size="sm" variant="ghost" title="Thao tác khác" aria-label="Thao tác khác"><MoreHorizontal /></Button></DropdownMenuTrigger>
+          <DropdownMenuContent align="start">
+            {nhap && <DropdownMenuItem onSelect={() => setMo("kiem-ke")}><ClipboardCheck />Kiểm kê</DropdownMenuItem>}
+            {nhap && <DropdownMenuItem onSelect={() => setMo("dan")}><ClipboardPaste />Dán nhanh / Excel</DropdownMenuItem>}
+            {tp && <DropdownMenuItem onSelect={() => setMo("lo")}><Package />Lô thành phẩm ({kho.lo.length})</DropdownMenuItem>}
+            <DropdownMenuItem onSelect={() => setMo("ton")}><List />Bảng tồn theo bãi nhỏ</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <span className="ml-auto text-xs text-muted-foreground">{tab.ten}: {kho.dong.length} gian / lô · tồn {so(kho.dong.reduce((s, d) => s + d.ton, 0), 0)} t</span>
+      </div>
+
+      {canh.length > 0 && <DaiCanhBaoKho ds={canh} />}
+      {kho.dong.length ? <BieuDoTon loai={loai} kho={kho} /> : <Empty>Chưa có gian / lô nào của {tab.ten.toLowerCase()}. Thêm ở Danh mục › Kho bãi (hàng của kho khai ở cột Hàng đang chứa).</Empty>}
+
+      <Hop id="ke-hoach" title={`Kế hoạch xuất/nhập kho · ${tab.ten}`} description="Kế hoạch nhập / xuất cả tháng của từng bãi nhỏ."><KeHoachKho loai={loai} kho={kho} /></Hop>
+      <Hop id="xem-kh" title={`Xem kế hoạch · ${tab.ten}`} description="Kế hoạch so với thực tế theo sổ nhập – xuất."><XemKeHoach kho={kho} /></Hop>
+      <Hop id="lich-su" title={`Lịch sử xuất/nhập kho · ${tab.ten}`}><LichSuKho kho={kho} loai={loai} onSua={(g) => { setMo(null); setSua(g); }} /></Hop>
+      <Hop id="phan-loai" title={`Phân loại tồn · ${tab.ten}`}><PhanLoaiTon loai={loai} kho={kho} /></Hop>
+      <Hop id="lo" title="Lô thành phẩm" description={`${kho.lo.length} lô còn tồn`}><BangLo kho={kho} /></Hop>
+      <Hop id="ton" title={`Tồn theo bãi nhỏ · ${tab.ten}`}><BangTon kho={kho} loai={loai} /></Hop>
+      {mo === "nhap" && <GiaoDichForm loaiKho={loai} loaiGD="nhap" kho={kho} onClose={dong} />}
+      {mo === "kiem-ke" && <KiemKeForm loaiKho={loai} kho={kho} onClose={dong} />}
+      {mo === "dan" && <DanNhanhKho loaiKho={loai} kho={kho} onClose={dong} />}
+      {sua && (sua.loai === "kiem_ke" ? <SuaKiemKe g={sua} onClose={() => setSua(null)} /> : <GiaoDichForm key={sua.id} loaiKho={loai} loaiGD={sua.loai} sua={sua} kho={kho} onClose={() => setSua(null)} />)}
+    </div>
+  );
+}
+
+const IC_TAB = { overview: Network, hrc: Warehouse, "thanh-cuon": Warehouse, "nguyen-lieu": Boxes };
+const tabTheoRoute = (r) => TAB_KHO.find((t) => `kho/${t.id}` === r)?.id || "overview";
+
+// Khai thác kho bãi (anh Sỹ chốt 13/11/2026, thay hai trang Kho thành phẩm / Kho nguyên liệu): 4 tab
+//   Overview: sơ đồ mọi kho mái che và bãi lộ thiên theo khu vực (bãi nhỏ xếp số tăng dần, chữ A–Z);
+//   Kho HRC, Kho Thanh/Cuộn, Kho Nguyên liệu: 3 biểu đồ + 5 nút thao tác. Cách chia hàng cho tab: TAB_KHO ở lib/kho.js.
+export default function Kho({ route = "kho" }) {
+  const { D, quyen } = useApp();
+  const kho = useKho();
+  const [tabId, setTabId] = useState(() => tabTheoRoute(route));
+  const [moBai, setMoBai] = useState(null);
+  useEffect(() => { setTabId(tabTheoRoute(route)); }, [route]);
+  const tab = TAB_KHO.find((t) => t.id === tabId) || TAB_KHO[0];
+  const khoTab = useMemo(() => locKhoTheoTab(kho, tab), [kho, tab]);
+  if (!D.coSql15 || !kho) return <div className="rounded-md border border-warn/40 bg-warn/5 px-3 py-2 text-sm">Phần kho bãi chưa sẵn sàng: quản trị cần chạy <b>sql/dung_lai/phan_1_cau_truc.sql</b> trong Supabase.</div>;
 
   return (
     <>
-      <PageHead title={TEN_LOAI[loai]} desc={`Tồn luôn tính từ sổ nhập – xuất. Sức chứa = sức chứa khả dụng của gian / lô ở Danh mục › Kho bãi; để trống thì tính diện tích × chiều cao × tỷ khối hàng. Vàng từ ${pct(NGUONG_KHO.vang)}, đỏ từ ${pct(NGUONG_KHO.do)} lấp đầy.`}>
-        {nhap && <>
-          <Button size="sm" onClick={() => setForm({ loai: "nhap" })}><PenLine />Nhập liệu</Button>
-          <Button size="sm" variant="outline" onClick={() => setForm("kiem_ke")}><ClipboardCheck />Kiểm kê</Button>
-          <Button size="sm" variant="outline" onClick={() => setForm("dan")}><ClipboardPaste />Dán nhanh / Excel</Button>
-        </>}
-      </PageHead>
-
-
-      {canh.length > 0 && <DaiCanhBaoKho ds={canh} />}
-
-      <Tabs defaultValue="so-do" className="mt-3">
+      <PageHead title="Khai thác kho bãi" desc={`Tồn luôn tính từ sổ nhập – xuất. Sức chứa = sức chứa khả dụng của gian / lô ở Danh mục › Kho bãi (để trống thì web tự tính). Vàng từ ${pct(NGUONG_KHO.vang)}, đỏ từ ${pct(NGUONG_KHO.do)} lấp đầy.`} />
+      <Tabs value={tabId} onValueChange={setTabId} className="mt-3">
         <TabsList>
-          <TabsTrigger value="so-do"><Network />Sơ đồ bãi</TabsTrigger>
-          <TabsTrigger value="ton"><List />Tồn theo bãi nhỏ</TabsTrigger>
-          {tp && <TabsTrigger value="lo"><Package />Lô thành phẩm ({lo.length})</TabsTrigger>}
-          <TabsTrigger value="so"><Boxes />Sổ nhập – xuất</TabsTrigger>
-          <TabsTrigger value="bd"><LineChart />Biểu đồ tồn</TabsTrigger>
-          <TabsTrigger value="kh"><CalendarRange />Kế hoạch Xuất/Nhập tồn</TabsTrigger>
-          <TabsTrigger value="pl"><Layers />Phân loại tồn</TabsTrigger>
+          {TAB_KHO.map((t) => { const Ic = IC_TAB[t.id]; return <TabsTrigger key={t.id} value={t.id}><Ic />{t.ten}</TabsTrigger>; })}
         </TabsList>
 
-        <TabsContent value="so-do">
-          {bai.length || quyen.kho.quanTri ? (
-            <SoDoKhoBai bai={bai} kho={kho} tp={tp} ten={TEN_LOAI[loai]} onMo={setMoBai} />
-          ) : <Empty>Chưa có bãi {tp ? "thành phẩm" : "nguyên liệu"}. Thêm ở Danh mục › Kho bãi (loại kho tự theo nhóm hàng, sửa được).</Empty>}
+        <TabsContent value="overview">
+          {kho.canh.length > 0 && <DaiCanhBaoKho ds={kho.canh} />}
+          {kho.bai.length || quyen.kho.quanTri
+            ? <div className="mt-3"><SoDoKhoBai bai={kho.bai} kho={kho} ten="Kho bãi" onMo={setMoBai} /></div>
+            : <Empty>Chưa có kho / bãi. Thêm ở Danh mục › Kho bãi.</Empty>}
         </TabsContent>
 
-        <TabsContent value="ton">
-          <Card><CardContent className="pt-4">
-            <Input className="mb-2 w-56" placeholder="Tìm bãi, hàng…" value={q} onChange={(e) => setQ(e.target.value)} />
-            <div className="scroll-x max-h-[60vh]">
-              <table className="tbl">
-                <thead><tr><th>Bãi lớn</th><th>Bãi nhỏ</th><th>Hàng đang chứa</th><th className="num">Tồn (t)</th><th className="num">Sức chứa (t)</th><th className="min-w-[140px]">Lấp đầy</th>{!tp && <><th className="num">Tiêu thụ / ngày</th><th className="num">Ngày cấp</th></>}<th>Cách tính sức chứa</th></tr></thead>
-                <tbody>{dong.filter((d) => matchQ(q, d.ten_bai, d.ten, d.hang, ...d.chua.map((c) => c.hang))).map((d, i) => (
-                  <tr key={i} className={cn(d.saiBai && "bg-bad/5")}>
-                    <td className="font-medium">{d.ten_bai}</td><td>{d.ten}{d.saiBai ? <Badge tone="bad" className="ml-1">Sai bãi</Badge> : d.kieu !== "co_dinh_hang" && <Badge tone={KIEU_TONE[d.kieu]} className="ml-1">{KIEU_NGAN[d.kieu]}</Badge>}</td><td className="text-xs">{d.chua.length ? d.chua.map((c) => c.hang).join(", ") : <span className="text-muted-foreground">—</span>}</td>
-                    <td className={cn("num", d.ton < 0 && "text-bad")}>{so(d.ton)}</td><td className="num">{so(d.sucChua)}</td>
-                    <td><div className="flex items-center gap-2"><div className="h-2 flex-1 overflow-hidden rounded-full bg-muted"><div className={cn("h-full", mauDay(d.lapDay))} style={{ width: `${Math.min(100, (d.lapDay ?? 0) * 100)}%` }} /></div><span className="w-12 text-right text-xs tabular-nums">{d.lapDay != null ? pct(d.lapDay) : "—"}</span></div></td>
-                    {!tp && <><td className="num">{so(d.tieuThu)}</td><td className={cn("num", d.ngayCap < NGUONG_KHO.ngayCapDo ? "text-bad" : d.ngayCap < NGUONG_KHO.ngayCapVang ? "text-warn" : "")}>{d.ngayCap != null ? so(d.ngayCap, 1) : "—"}</td></>}
-                    <td className="text-xs text-muted-foreground">{d.cachTinh}</td>
-                  </tr>))}</tbody>
-              </table>
-            </div>
-          </CardContent></Card>
-        </TabsContent>
-
-        {tp && (
-          <TabsContent value="lo">
-            <Card><CardContent className="pt-4">
-              {lo.length ? (
-                <div className="scroll-x max-h-[60vh]">
-                  <table className="tbl">
-                    <thead><tr><th>Số lô</th><th>Hàng</th><th>Bãi</th><th>Ngày nhập</th><th className="num">Tuổi tồn (ngày)</th><th className="num">Tồn (t)</th><th>Tình trạng</th><th>Ghi chú</th></tr></thead>
-                    <tbody>{lo.sort((a, b) => (b.tuoi ?? 0) - (a.tuoi ?? 0)).map((l) => (
-                      <tr key={l.so_lo + l.ten_bai}>
-                        <td className="font-mono">{l.so_lo}</td><td>{l.hang}</td><td>{l.ten_bai}</td><td className="tabular-nums">{ngayNam(l.ngay_nhap)}</td>
-                        <td className={cn("num", l.tuoi > NGUONG_KHO.tonLauNgay && "font-semibold text-warn")}>{l.tuoi}</td><td className="num">{so(l.ton)}</td>
-                        <td>{nhap ? <NativeSelect className="h-8 w-36" value={l.trang_thai} options={Object.entries(TRANG_THAI_LO).map(([k, t]) => [k, t.ten])}
-                          onChange={(e) => run(() => api.saveLo([{ so_lo: l.so_lo, hang: l.hang, ngay_nhap: l.ngay_nhap, trang_thai: e.target.value }]), `Đã đổi tình trạng lô ${l.so_lo}`)} />
-                          : <Badge tone={TRANG_THAI_LO[l.trang_thai].tone}>{TRANG_THAI_LO[l.trang_thai].ten}</Badge>}</td>
-                        <td className="text-xs text-muted-foreground">{l.ghi_chu}</td>
-                      </tr>))}</tbody>
-                  </table>
-                </div>
-              ) : <Empty>Chưa có lô thành phẩm nào còn tồn. Nhập thành phẩm kèm số lô ở nút Nhập.</Empty>}
-            </CardContent></Card>
-          </TabsContent>
-        )}
-
-        <TabsContent value="so">
-          <Card><CardContent className="pt-4">
-            <div className="mb-2 flex flex-wrap items-center gap-2">
-              <div className="relative w-full max-w-sm">
-                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input className="pl-8" value={qSo} onChange={(e) => setQSo(e.target.value)} placeholder="Tìm nhanh: ngày, bãi, hàng, lô, tàu, chứng từ, ghi chú…" aria-label="Tìm nhanh trong sổ nhập – xuất" />
-              </div>
-              <span className="text-xs text-muted-foreground">{qSo.trim() ? `${gdLoc.length}/${gd.length} lượt` : "Các lượt trong 35 ngày gần nhất, mới nhất ở trên."}</span>
-            </div>
-            {gd.length && !gdLoc.length ? <Empty>Không có lượt nào khớp "{qSo}".</Empty> : gd.length ? (
-              <div className="scroll-x max-h-[60vh]">
-                <table className="tbl">
-                  <thead><tr><th>Ngày</th><th>Ca</th><th>Loại</th><th>Bãi</th><th>Hàng</th><th className="num">Số lượng (t)</th>{tp && <th>Lô</th>}<th>Nguồn / chuyến</th><th>Chứng từ, ghi chú</th>{nhap && <th></th>}</tr></thead>
-                  <tbody>{gdLoc.slice(0, 400).map((g) => (
-                    <tr key={g.id}>
-                      <td className="whitespace-nowrap tabular-nums">{ngayNam(g.ngay)}</td><td>{g.ca}</td>
-                      <td><Badge tone={g.loai === "nhap" || g.loai === "dau_ky" ? "ok" : g.loai === "xuat" ? "warn" : g.loai === "kiem_ke" ? "info" : "default"}>{TEN_GD[g.loai]}</Badge></td>
-                      <td>{g.ten_bai}{g.den_bai ? ` → ${g.den_bai}` : ""}</td><td>{g.hang}</td>
-                      <td className={cn("num", g.loai === "xuat" && "text-warn")}>{g.loai === "xuat" ? "−" : ""}{so(g.so_luong, 2)}</td>
-                      {tp && <td className="font-mono text-xs">{g.so_lo}</td>}
-                      <td className="text-xs">{g.voyage_id ? D.vmap.get(g.voyage_id)?.ten_tau || "Tàu" : ""}{g.nguon && !g.voyage_id ? g.nguon === "cap_sx" ? "Cấp sản xuất" : g.nguon === "san_xuat" ? "Từ sản xuất" : g.nguon === "don_hang" ? "Đơn hàng" : "" : ""}</td>
-                      <td className="max-w-[260px] truncate text-xs text-muted-foreground" title={[g.chung_tu, g.ghi_chu].filter(Boolean).join(" · ")}>{[g.chung_tu, g.ghi_chu].filter(Boolean).join(" · ")}</td>
-                      {nhap && <td className="whitespace-nowrap"><Button size="icon" variant="ghost" className="h-7 w-7" title="Sửa lượt này" aria-label="Sửa lượt này" onClick={() => setForm({ loai: g.loai, sua: g })}><Pencil /></Button>{quyen.kho.quanLy && <ConfirmButton confirmText="Xóa?" onConfirm={() => run(() => api.deleteGiaoDich(g.id), "Đã xóa lượt")}><Trash2 /></ConfirmButton>}</td>}
-                    </tr>))}</tbody>
-                </table>
-              </div>
-            ) : <Empty>Chưa có lượt nhập – xuất. Bấm Nhập, hoặc Dán nhanh / Excel để nạp cả bảng (kể cả tồn đầu kỳ).</Empty>}
-          </CardContent></Card>
-        </TabsContent>
-
-        <TabsContent value="bd">
-          <BieuDoTon loai={loai} kho={kho} />
-        </TabsContent>
-
-        <TabsContent value="kh">
-          <Card><CardContent className="pt-4"><KeHoachKho loai={loai} kho={kho} /></CardContent></Card>
-        </TabsContent>
-
-        <TabsContent value="pl">
-          <Card><CardContent className="pt-4"><PhanLoaiTon loai={loai} kho={kho} /></CardContent></Card>
-        </TabsContent>
+        {TAB_KHO.filter((t) => t.loai).map((t) => (
+          <TabsContent key={t.id} value={t.id}>{tabId === t.id && <KhoTab tab={t} kho={khoTab} />}</TabsContent>
+        ))}
       </Tabs>
-
-      {form && typeof form === "object" && (form.sua?.loai === "kiem_ke" ? <SuaKiemKe g={form.sua} onClose={() => setForm(null)} /> : <GiaoDichForm key={form.sua?.id ?? "moi"} loaiKho={loai} loaiGD={form.loai} sua={form.sua} kho={kho} onClose={() => setForm(null)} />)}
-      {form === "kiem_ke" && <KiemKeForm loaiKho={loai} kho={kho} onClose={() => setForm(null)} />}
-      {form === "dan" && <DanNhanhKho loaiKho={loai} kho={kho} onClose={() => setForm(null)} />}
       {moBai && kho.bai.some((b) => b.ten_bai === moBai) && <ChiTietBai b={kho.bai.find((b) => b.ten_bai === moBai)} kho={kho} onClose={() => setMoBai(null)} />}
     </>
   );

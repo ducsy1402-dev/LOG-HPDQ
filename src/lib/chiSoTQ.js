@@ -143,10 +143,10 @@ export function taoVanDe({ sl = [], cb = null, kho = null, tbi = [] }) {
     for (const { v, gio } of (cb.choLau || []).filter((x) => x.gio > NGUONG.choVang).slice(0, 3)) them(gio > NGUONG.choTauDo ? "bad" : "warn", "cauben", `${v.ten_tau} đang chờ bến ${so0(gio)} giờ`, { voyage: v.id });
   }
   if (kho) {
-    if (kho.lap != null && kho.lap >= NGUONG.khoVang) them(kho.lap >= NGUONG.khoDo ? "bad" : "warn", "kho", `Kho lấp đầy ${pc(kho.lap)} sức chứa`, "kho/thanh-pham");
-    if (kho.baiVuot > 0) them("bad", "kho", `${kho.baiVuot} bãi vượt sức chứa`, "kho/thanh-pham");
+    if (kho.lap != null && kho.lap >= NGUONG.khoVang) them(kho.lap >= NGUONG.khoDo ? "bad" : "warn", "kho", `Kho lấp đầy ${pc(kho.lap)} sức chứa`, "kho");
+    if (kho.baiVuot > 0) them("bad", "kho", `${kho.baiVuot} bãi vượt sức chứa`, "kho");
     if (kho.ngayCapThap > 0) them(kho.ngayCapDo > 0 ? "bad" : "warn", "kho", `${kho.ngayCapThap} nhóm hàng nguyên liệu tồn đủ cấp dưới ${NGUONG.ngayCapVang} ngày`, "kho/nguyen-lieu");
-    if (kho.tonLau > 0 && kho.tong > 0 && kho.tonLau / kho.tong >= 0.1) them("warn", "kho", `Tồn trên ${NGUONG.tonLauNgay} ngày: ${so0(kho.tonLau)} t (${pc(kho.tonLau / kho.tong)} tổng tồn)`, "kho/thanh-pham");
+    if (kho.tonLau > 0 && kho.tong > 0 && kho.tonLau / kho.tong >= 0.1) them("warn", "kho", `Tồn trên ${NGUONG.tonLauNgay} ngày: ${so0(kho.tonLau)} t (${pc(kho.tonLau / kho.tong)} tổng tồn)`, "kho");
   }
   for (const x of tbi) {
     if (!x.m || x.m.rateHT == null) continue;

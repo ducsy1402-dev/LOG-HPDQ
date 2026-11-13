@@ -11,7 +11,7 @@ Chủ dự án: Lê Đức Sỹ, không phải lập trình viên. **Trả lời
 - **Tổng quan**: Linetime tàu cập bến (Quản lý Cảng), Khối lượng xếp dỡ, Quản lý kho bãi, Quản lý Thiết bị cơ giới, chuông cảnh báo.
 - **Thiết bị cơ giới** (`src/thietbi/`): Tình trạng & sự kiện, Nhân sự & quân số, Kế hoạch & phân bổ (ngắn hạn, dài hạn).
 - **Khai thác Cảng**: Linetime tàu cập bến (lịch cầu bến, theo mét, sơ đồ cầu bến, phiếu chuyến, kế hoạch ngày tới), Mục tiêu sản lượng.
-- **Khai thác kho bãi**: Kho thành phẩm, Kho nguyên liệu.
+- **Khai thác kho bãi** (một mục menu, 4 tab): Overview, Kho HRC, Kho Thanh/Cuộn, Kho Nguyên liệu.
 - **Danh mục**, **Phân quyền**.
 
 ## ĐÃ BỎ so với web gốc (chủ ý)
@@ -81,6 +81,14 @@ Thay đổi CSDL về sau: viết file SQL mới đánh số tiếp (07, 08…),
 - **Đồng hồ đo** (`Gauge` ở `hinhVe.jsx`): số nằm sát đáy cung, chữ nhỏ (`duoi`) nằm DƯỚI đồng hồ để không đè lên cung; thẻ sức khỏe trạng thái là nhãn tròn nhỏ góc phải; 4 thẻ một hàng (`minmax(170px)`).
 - Sửa khối đè: nhãn bến ở lịch cầu bến (cột nhãn 94 px, chữ không xuống dòng tràn hàng dưới); thanh chọn kỳ Tổng quan trên điện thoại dính dưới thanh menu (`top-12`), ẩn dòng giải thích dài; bản đồ định vị kho mặc định thu nhỏ thành nút "Bản đồ" (nhớ ở localStorage `lg-bdv-mo`) để không che bãi góc phải; biểu đồ "Tàu ở bến và tàu chờ" vừa khung.
 - Sơ đồ bãi giữ nền tối cố định (đổi sang `#121725`, bỏ kính mờ).
+
+## Khai thác kho bãi: 4 tab (13/11/2026, thay hai trang Kho thành phẩm / Kho nguyên liệu)
+- Menu chỉ còn **Khai thác kho bãi** (route `kho`, `kho/hrc`, `kho/thanh-cuon`, `kho/nguyen-lieu`; code `src/pages/kho/Kho.jsx`). Cách chia tab và lọc kho: `TAB_KHO`, `laHRC`, `locKhoTheoTab` ở `src/lib/kho.js` (có kiểm thử `suc_chua_kho.test.js`).
+  - **Overview**: sơ đồ (`SoDoKhoBai`) của cả kho mái che và bãi lộ thiên theo khu vực; bãi nhỏ trong mỗi bãi lớn xếp tăng dần (số trước, chữ A–Z, `localeCompare` numeric); chỉ tiêu mỗi bãi theo loại của bãi (thành phẩm m² · lớp, nguyên liệu m³). Bấm bãi mở `ChiTietBai`.
+  - **Kho HRC** = thành phẩm có hàng nhóm HRC (hàng có chữ HRC). **Kho Thanh/Cuộn** = mọi thành phẩm còn lại (thép thanh, thép cuộn, CLC, phôi, slab, hàng bao). **Kho Nguyên liệu** = kho nguyên liệu. Gian / lô chưa có hàng (bãi tự do trống) hiện ở mọi tab cùng loại. Tab chưa có gian / lô thì báo trống, thêm ở Danh mục › Kho bãi (cột "Hàng đang chứa" quyết định gian thuộc tab nào).
+  - Mỗi tab kho: **3 biểu đồ** (`BieuDoTon.jsx`: tồn theo bãi nhỏ; nhập / xuất kế hoạch – thực tế lũy kế theo ngày của tháng chọn, dùng `chuoiKho`; dự báo tồn) và **5 nút** (biểu tượng + chữ ngắn, mỗi nút mở hộp): Kế hoạch xuất/nhập kho (`KeHoachKho`), Xem kế hoạch (`XemKeHoach`, kế hoạch so thực tế từng bãi nhỏ), Nhập / Xuất (`GiaoDichForm`), Lịch sử (`LichSuKho`), Phân loại tồn (`PhanLoaiTon`). Nút "⋯" giữ các chức năng cũ: Kiểm kê, Dán nhanh / Excel, Lô thành phẩm, Bảng tồn theo bãi nhỏ (`BangKho.jsx`). Bỏ biểu đồ "Tồn theo loại hàng" cũ.
+  - Các thành phần dùng chung nhận **bản kho đã lọc** (`locKhoTheoTab`, có `dongAll` = mọi gian / lô) nên không cần sửa; link cũ `kho/thanh-pham` đã đổi (Tổng quan › cảnh báo kho → `kho`, nút mở kho → `kho/hrc`, `kho/thanh-cuon`, `kho/nguyen-lieu`).
+- **Hộp thêm / sửa kho bãi (Danh mục › Kho bãi, cả import Excel)**: sức chứa để trống thì web **tự tính** rồi lưu (`tuTinhSucChua` ở `lib/kho.js`): khả dụng = sức chứa danh nghĩa × hệ số lưu chứa; chưa có hệ số thì khả dụng = danh nghĩa và hiện thông báo; riêng kho nguyên liệu, danh nghĩa trống = diện tích × chiều cao đống × tỷ khối hàng. Hệ số nhập 0,85 hoặc 85 (%) đều được. `sucChua()` cũng tính như vậy cho dòng cũ chỉ có danh nghĩa. Lưu ý: số khả dụng đã lưu không tự đổi khi sửa danh nghĩa sau này; muốn web tính lại thì xóa ô khả dụng.
 
 ## Chốt 12/11/2026: nhập liệu kho nhiều dòng, biểu đồ tồn, thu gọn bảng sản lượng
 - **Kho › Nhập liệu** (`GiaoDichForm.jsx`): một lần mở hộp ghi được NHIỀU lượt: chọn Nhập / Xuất / Điều chuyển, điền, bấm **Thêm dòng** (đưa vào danh sách chờ, bỏ được từng dòng), đổi nghiệp vụ điền tiếp; **Lưu n lượt** ghi cả danh sách (kèm dòng đang điền nếu đã có số lượng) bằng một lần `addGiaoDich`. Kiểm tra tồn cộng / trừ các dòng chờ (nhập rồi xuất cùng lúc được). Sửa một lượt vẫn như cũ.

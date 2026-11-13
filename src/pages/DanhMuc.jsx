@@ -13,6 +13,7 @@ import { DanhSachNhanSu } from "@/thietbi/tabs/Staffing";
 import { DEFAULT_NHA_THAU } from "@/thietbi/lib/plan";
 import DM_BANG from "@/data/dmBang.json";
 import CotThem from "@/components/CotThem";
+import { tuTinhSucChua } from "@/lib/kho";
 
 // Danh mục dùng chung cho cả web. Mỗi danh sách cùng giao diện Danh mục xe: Thêm, Import, Xuất Excel; Sửa / Xóa ở từng dòng (sửa trong hộp riêng).
 // Cột: [khóa, tên cột, loại (text | so | bool | mang), độ rộng, tên cột khác khi nhập Excel]
@@ -45,7 +46,7 @@ function TabNho({ khoa, ds }) {
 }
 
 export default function DanhMuc() {
-  const { D, quyen, api, run } = useApp();
+  const { D, quyen, api, run, toast } = useApp();
   const tb = useThietBi();
   const tbD = tb?.D;
   const [tab, doiTab] = useTabNho("lg-danh-muc-tab", "thiet-bi");
@@ -108,7 +109,7 @@ export default function DanhMuc() {
     return {
       ten: tp ? "Kho thành phẩm" : "Kho nguyên liệu", khoa: "id", batBuoc: "ten_bai", coSua: quyen.quanTri || adminTB, ai: "quản trị", bang: "kho", anCot: ["khu vuc"],
       rows: (D.khoBai || []).filter((r) => (tp ? r.loai_kho === "thanh_pham" : r.loai_kho !== "thanh_pham")),
-      mo: `Mỗi dòng là một gian / lô trong kho / bãi lớn. Sức chứa khả dụng (tấn) là số web dùng; để trống thì tính = diện tích × ${tp ? "chiều cao" : "chiều cao đống"} × tỷ khối hàng. Kho / bãi khai báo "Cố định" thì mỗi gian / lô chỉ nhận đúng hàng của dòng; "Tự do" nhận mọi hàng (sửa ở tab Khai báo kho / bãi).`,
+      mo: `Mỗi dòng là một gian / lô trong kho / bãi lớn. Sức chứa khả dụng (tấn) là số web dùng; để trống thì web tự tính = sức chứa danh nghĩa × hệ số lưu chứa (chưa có hệ số thì = sức chứa danh nghĩa)${tp ? "" : "; sức chứa danh nghĩa để trống thì = diện tích × chiều cao đống × tỷ khối hàng"}. Kho / bãi khai báo "Cố định" thì mỗi gian / lô chỉ nhận đúng hàng của dòng; "Tự do" nhận mọi hàng (sửa ở tab Khai báo kho / bãi).`,
       cot: [["ten_bai", "Tên kho / bãi", "text", 150, ["ten kho/bai", "ten kho bai", "bai lon", "ten bai"]], ["ten_khu", "Gian / lô", "text", 140, ["gian/lo", "gian lo", "bai nho", "khu"]],
         ["dien_tich", "Diện tích phân bổ (m²)", "so", 100, ["dien tich phan bo", "dien tich"]],
         ...(tp ? (khoMoi ? [["so_lop", "Số lớp xếp khả dụng", "so", 90, ["so lop xep kha dung", "so lop"]]] : []) : [["chieu_cao", "Chiều cao đống (m)", "so", 90, ["chieu cao dong", "chieu cao"]]]),
@@ -117,10 +118,15 @@ export default function DanhMuc() {
         ["suc_chua_tay", "Sức chứa khả dụng (t)", "so", 110, ["suc chua kha dung", "suc chua nhap tay"]],
         ...(tp ? [] : [["tieu_thu_ngay", "Tiêu thụ / ngày (t)", "so", 100, ["tieu thu"]]]),
         ["thiet_bi", "Thiết bị tại kho / bãi", "text", 140, ["thiet bi tai kho/bai", "thiet bi"]], ["ghi_chu", "Ghi chú", "text", 180]],
-      ph: { ten_khu: "Trống = tên hàng", suc_chua_tay: "Trống = tính theo công thức" },
+      ph: { ten_khu: "Trống = tên hàng", suc_chua_tay: "Trống = danh nghĩa × hệ số lưu chứa", ...(tp ? {} : { suc_chua_dn: "Trống = diện tích × cao × tỷ khối" }) },
       goiY: { ten_bai: [...new Set((D.khoBai || []).map((r) => r.ten_bai).filter(Boolean))], hang: (tbD?.hanghoa || []).map((h) => h.loai_hang) },
       khop: (o, rows) => rows.find((x) => x.ten_bai === o.ten_bai && (x.ten_khu || "") === (o.ten_khu || "") && (x.hang || "") === (o.hang || ""))?.id,
-      luu: (rows) => run(() => api.upsertRows("kho_bai", rows.map((r) => ({ ...r, loai_kho: loai, ...(D.coSql17 ? { ten_khu: String(r.ten_khu || "").trim() || null } : {}) })), "id"), `Đã lưu ${rows.length} dòng kho bãi`),
+      luu: (rows) => {
+        // Sức chứa để trống thì tự tính (danh nghĩa × hệ số lưu chứa; kho nguyên liệu: danh nghĩa = diện tích × cao × tỷ khối)
+        const tt = tuTinhSucChua(rows, loai, tbD?.hanghoa || [], khoMoi);
+        if (tt.thieuHeSo) toast(tt.thieuHeSo === 1 ? "Chưa điền hệ số lưu chứa: lấy sức chứa khả dụng = sức chứa danh nghĩa." : `${tt.thieuHeSo} dòng chưa điền hệ số lưu chứa: lấy sức chứa khả dụng = sức chứa danh nghĩa.`);
+        return run(() => api.upsertRows("kho_bai", tt.rows.map((r) => ({ ...r, loai_kho: loai, ...(D.coSql17 ? { ten_khu: String(r.ten_khu || "").trim() || null } : {}) })), "id"), `Đã lưu ${rows.length} dòng kho bãi${tt.tuTinh ? " (đã tự tính sức chứa để trống)" : ""}`);
+      },
       xoa: (r) => run(() => api.deleteRow("kho_bai", "id", r.id), `Đã xóa ${r.ten_bai}${r.ten_khu ? ` › ${r.ten_khu}` : ""}`),
       xoaNhieu: (rs) => run(() => api.deleteRows("kho_bai", "id", rs.map((r) => r.id)), `Đã xóa ${rs.length} dòng`),
     };

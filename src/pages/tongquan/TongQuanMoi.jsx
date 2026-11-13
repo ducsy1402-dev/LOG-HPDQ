@@ -145,7 +145,7 @@ export default function TongQuanMoi({ onMo, go, tongCanhBao }) {
     });
     const them = [];
     if (coCang) for (const a of D.alerts.filter((x) => x.muc === "bad" && x.voyage).slice(0, 4)) them.push({ muc: "bad", mang: "cauben", nd: `${a.voyage.ten_tau}: ${a.nd}`, dich: { voyage: a.voyage.id } });
-    if (coKho) for (const a of (kho?.canh || []).filter((x) => x.muc === "bad").slice(0, 3)) them.push({ muc: "bad", mang: "kho", nd: a.nd, dich: "kho/thanh-pham" });
+    if (coKho) for (const a of (kho?.canh || []).filter((x) => x.muc === "bad").slice(0, 3)) them.push({ muc: "bad", mang: "kho", nd: a.nd, dich: "kho" });
     if (coTB) for (const e of tb.open.slice(0, 40)) { const f = tb.flags(e).find((x) => x.tone === "bad"); if (f && them.filter((x) => x.mang === "thietbi").length < 3) them.push({ muc: "bad", mang: "thietbi", nd: `${e.ma_xe} (${tb.vmap[e.ma_xe]?.doi || ""}): ${f.label}`, dich: "thiet-bi/su-kien" }); }
     return [...ds, ...them].sort((a, b) => (a.muc === "bad" ? 0 : 1) - (b.muc === "bad" ? 0 : 1));
   }, [tdC, tdV, cb, khoK, tbm, D.alerts, kho, tb, coCang, coKho, coTB]);

@@ -38,9 +38,8 @@ const NAV = [
   { nhom: "Khai thác Cảng", cang: true },
   { id: "cang/linetime", ten: "Linetime tàu cập bến", icon: Ship, cang: true },
   { id: "cang/muc-tieu", ten: "Mục tiêu sản lượng", icon: Target, cang: true },
-  { nhom: "Khai thác kho bãi", kho: true },
-  { id: "kho/thanh-pham", ten: "Kho thành phẩm", icon: Warehouse, kho: true },
-  { id: "kho/nguyen-lieu", ten: "Kho nguyên liệu", icon: Boxes, kho: true },
+  { nhom: "Kho bãi", kho: true },
+  { id: "kho", ten: "Khai thác kho bãi", icon: Warehouse, kho: true }, // 4 tab: Overview, Kho HRC, Kho Thanh/Cuộn, Kho Nguyên liệu (route kho, kho/hrc, kho/thanh-cuon, kho/nguyen-lieu)
   { nhom: "Hệ thống" },
   { id: "danh-muc", ten: "Danh mục", icon: Database },
   { id: "phan-quyen", ten: "Phân quyền", icon: ShieldCheck, quanTri: true },
@@ -140,8 +139,7 @@ function Main() {
     if (route.startsWith("cang/") && !quyen.coCang) return chuaCaiCang;
     if (route === "cang/linetime") return <Linetime />;
     if (route === "cang/muc-tieu") return <MucTieu />;
-    if (route === "kho/thanh-pham") return <Kho key="tp" loai="thanh_pham" />;
-    if (route === "kho/nguyen-lieu") return <Kho key="nl" loai="nguyen_lieu" />;
+    if (route === "kho" || route.startsWith("kho/")) return <Kho route={route} />;
     if (route === "danh-muc") return <DanhMuc />;
     if (route === "phan-quyen" && quyen.quanTri) return <PhanQuyen />;
     const n = NAV.find((x) => x.id === route);
@@ -187,7 +185,7 @@ function Main() {
             : (
               <div key={i} className="relative flex items-center">
                 <button onClick={() => chon(n.id)} title={rong ? undefined : n.ten}
-                  className={cn("flex min-w-0 flex-1 items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm transition-colors", route === n.id ? "bg-primary/15 font-medium text-primary" : "text-muted-foreground hover:bg-accent hover:text-foreground")}>
+                  className={cn("flex min-w-0 flex-1 items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm transition-colors", (n.id === "kho" ? route === "kho" || route.startsWith("kho/") : route === n.id) ? "bg-primary/15 font-medium text-primary" : "text-muted-foreground hover:bg-accent hover:text-foreground")}>
                   <n.icon className="h-4 w-4 shrink-0" /><span className={cn(nhan, "truncate")}>{n.ten}</span>{n.sau && <Badge tone="outline" className="ml-auto font-normal">{n.sau}</Badge>}
                 </button>
                 {/* Chuông cảnh báo đặt cạnh mục Tổng quan */}
