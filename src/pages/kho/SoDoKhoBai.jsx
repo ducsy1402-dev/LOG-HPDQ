@@ -135,16 +135,19 @@ export function chiaNhanh(dong) {
   return le.length ? [...ds, { ten: "", ds: le }] : ds;
 }
 const cat5 = (a, n) => { const o = []; for (let i = 0; i < a.length; i += n) o.push(a.slice(i, i + n)); return o; };
-// Các hàng của một bãi lớn: [{ nhan, ds }]; có nhánh thì mỗi nhánh một (hoặc vài, nếu quá 5 bãi nhỏ) hàng, không thì chia cột như cũ
-function hangCua(b) {
+// Các hàng của một bãi lớn: [{ nhan, ds }] (anh Sỹ chốt 13/11):
+//   • bãi lộ thiên (m = false): bãi nhỏ xếp DỌC, mỗi bãi nhỏ một hàng;
+//   • kho có mái che (m = true): bãi nhỏ xếp NGANG, tối đa 5 một hàng (5 bãi nhỏ: một hàng; 7: hai hàng 4 + 3; 10: hai hàng 5 + 5); có nhánh theo tên (GA / GB) thì mỗi nhánh một hàng.
+function hangCua(b, m) {
+  if (!m) return b.dong.map((d) => ({ nhan: "", ds: [d] }));
   const nh = chiaNhanh(b.dong);
   if (nh) return nh.flatMap((g) => cat5(g.ds, TOI_DA_NHANH).map((ds, i) => ({ nhan: i === 0 ? g.ten : "", ds })));
-  const c = b.dong.length > 6 ? 3 : 1;
-  return cat5(b.dong, c).map((ds) => ({ nhan: "", ds }));
+  const soHang = Math.ceil(b.dong.length / TOI_DA_NHANH);
+  return cat5(b.dong, Math.ceil(b.dong.length / soHang)).map((ds) => ({ nhan: "", ds }));
 }
-const soCot = (b) => (chiaNhanh(b.dong) ? TOI_DA_NHANH : b.dong.length > 6 ? 3 : 1);
-const slotCua = (b) => (chiaNhanh(b.dong) ? SLOT_N : SLOT);
-const caoCay = (b) => Math.max(BG_H, hangCua(b).length * ROW);
+const soCot = (b, m) => hangCua(b, m).reduce((t, h) => Math.max(t, h.ds.length), 1);
+const slotCua = (b, m) => (m && soCot(b, m) > 1 ? SLOT_N : SLOT);
+const caoCay = (b, m) => Math.max(BG_H, hangCua(b, m).length * ROW);
 // Cột chữ bên phải biểu tượng: tên, dòng phụ, tồn · %, sức chứa (m³ hoặc m² · lớp)
 function CotChu({ x, y, ten, phu, ton, lap, muc, them, ct, lon }) {
   const c = lon ? [20, 36, 53, 69] : [18, 32, 46, 60];
@@ -160,7 +163,7 @@ function CotChu({ x, y, ten, phu, ton, lap, muc, them, ct, lon }) {
     </g>);
 }
 function KhoiCay({ b, mai, x, y, onMo, uid, tp, tt, ttDong, nhay }) {
-  const n = b.dong.length, cols = soCot(b), SL = slotCua(b), hang = hangCua(b), rows = hang.length, H = caoCay(b), bigTop = (H - BG_H) / 2, conTop = (H - rows * ROW) / 2, muc = mucDay(b.lapDay);
+  const n = b.dong.length, cols = soCot(b, mai), SL = slotCua(b, mai), hang = hangCua(b, mai), rows = hang.length, H = caoCay(b, mai), bigTop = (H - BG_H) / 2, conTop = (H - rows * ROW) / 2, muc = mucDay(b.lapDay);
   const yBig = bigTop + 84, yy = (r) => conTop + r * ROW, yCon = (r) => yy(r) + 8 + 46, xCon = (c) => XC + c * SL, yBus = (r) => conTop + r * ROW + 1;
   const v1 = Math.min(yBig, cols > 1 ? yBus(0) : yCon(0)), v2 = Math.max(yBig, cols > 1 ? yBus(rows - 1) : yCon(rows - 1));
   const dongLon = tiLeHang(b.dong.flatMap((d) => d.chua || []));
@@ -254,13 +257,24 @@ export default function SoDoKhoBai({ bai: baiGoc, kho, onMo, ten, tp: tpEp }) {
       const yHead = y; y += 40;
       // Trong mỗi khu vực: kho có mái che xếp TRÊN, bãi lộ thiên xếp DƯỚI (anh Sỹ chốt 13/11); mỗi nhóm xếp bãi theo thứ tự tên, bãi lớn có nhiều bãi nhỏ chiếm cả bề ngang
       const dat = [], vach = [];
+      const maiCua = (b) => !!mai.get(b.ten_bai)?.mai, nuaRong = (VB - 2 * PAD) / 2;
       const xepNhom = (list) => {
-        const cay = list.filter((b) => b.dong.length > 1), gon = list.filter((b) => b.dong.length <= 1), cot = [y, y];
+        const cay = list.filter((b) => b.dong.length > 1), gon = list.filter((b) => b.dong.length <= 1);
+        // Khối hẹp (bãi lộ thiên bãi nhỏ xếp dọc) đi theo từng đợt giữa các khối rộng: khối cao nhất đặt cột PHẢI, các khối còn lại đặt vào cột đang thấp hơn (cột trái trước), mỗi cột xếp theo thứ tự tên
+        let cho = [];
+        const xepDot = () => {
+          if (!cho.length) return;
+          const h = (b) => caoCay(b, false) + 22, theoCao = [...cho].sort((a, b) => h(b) - h(a)), cot = new Map(), tong = [0, 0];
+          theoCao.forEach((b, i) => { const c = i === 0 ? (cho.length > 1 && h(b) > h(theoCao[1]) ? 1 : 0) : tong[0] <= tong[1] ? 0 : 1; cot.set(b, c); tong[c] += h(b); });
+          const cur = [y, y];
+          for (const b of cho) { const c = cot.get(b); dat.push({ b, loai: "cay", x: PAD + c * nuaRong, y: cur[c] }); cur[c] += h(b); }
+          y = Math.max(...cur); cho = [];
+        };
         for (const b of cay) {
-          if (soCot(b) > 1) { const yy = Math.max(...cot); dat.push({ b, loai: "cay", x: PAD, y: yy }); cot[0] = cot[1] = yy + caoCay(b) + 22; continue; }
-          const c = cot[0] <= cot[1] ? 0 : 1; dat.push({ b, loai: "cay", x: PAD + c * ((VB - 2 * PAD) / 2), y: cot[c] }); cot[c] += caoCay(b) + 22;
+          if (soCot(b, maiCua(b)) > 1) { xepDot(); dat.push({ b, loai: "cay", x: PAD, y }); y += caoCay(b, true) + 22; continue; } // khối rộng (kho mái che): cả bề ngang
+          cho.push(b);
         }
-        y = cay.length ? Math.max(...cot) : y;
+        xepDot();
         const moiHang = Math.max(1, Math.floor((VB - 2 * PAD) / CW_GON));
         gon.forEach((b, i) => dat.push({ b, loai: "gon", x: PAD + (i % moiHang) * CW_GON, y: y + Math.floor(i / moiHang) * GON_H }));
         if (gon.length) y += Math.ceil(gon.length / moiHang) * GON_H;
