@@ -161,7 +161,6 @@ function CotChu({ x, y, ten, phu, ton, lap, muc, them, ct, lon }) {
 }
 function KhoiCay({ b, mai, x, y, onMo, uid, tp, tt, ttDong, nhay }) {
   const n = b.dong.length, cols = soCot(b), SL = slotCua(b), hang = hangCua(b), rows = hang.length, H = caoCay(b), bigTop = (H - BG_H) / 2, conTop = (H - rows * ROW) / 2, muc = mucDay(b.lapDay);
-  const coNhanh = cols > 1 && !!chiaNhanh(b.dong);
   const yBig = bigTop + 84, yy = (r) => conTop + r * ROW, yCon = (r) => yy(r) + 8 + 46, xCon = (c) => XC + c * SL, yBus = (r) => conTop + r * ROW + 1;
   const v1 = Math.min(yBig, cols > 1 ? yBus(0) : yCon(0)), v2 = Math.max(yBig, cols > 1 ? yBus(rows - 1) : yCon(rows - 1));
   const dongLon = tiLeHang(b.dong.flatMap((d) => d.chua || []));
@@ -172,7 +171,7 @@ function KhoiCay({ b, mai, x, y, onMo, uid, tp, tt, ttDong, nhay }) {
         <title>{`${b.ten_bai} (${tenLoai(mai)}): tồn ${so(b.ton)} t${b.sucChua ? ` / ${so(b.sucChua)} t` : ""}${b.lapDay != null ? ` · ${pct(b.lapDay)}` : ""} · ${nhanCT(tp).toLowerCase()} ${chuCT(tt, tp)} · ${n} bãi nhỏ\nBấm để mở bảng chi tiết`}</title>
         <rect x="-4" y={bigTop} width={SX - 8} height={BG_H} rx="10" fill="#7cc4ff" className="kb-nen" />
         <BieuTuong mai={mai} id={`${uid}-l`} lap={b.lapDay} dong={dongLon} muc={muc} x={0} y={bigTop + 16} s={BS} />
-        <CotChu lon x={TX} y={bigTop} ten={cat(b.ten_bai, 17)} phu={coNhanh ? `${n} bãi nhỏ · ${hang.filter((h) => h.nhan).length} nhánh` : `${tenLoai(mai)} · ${n} bãi nhỏ`} ton={b.ton} lap={b.lapDay} muc={muc} ct={chuCT(tt, tp)} />
+        <CotChu lon x={TX} y={bigTop} ten={cat(b.ten_bai, 17)} phu={`${tenLoai(mai)} · ${n} bãi nhỏ`} ton={b.ton} lap={b.lapDay} muc={muc} ct={chuCT(tt, tp)} />
       </g>
       <g stroke="#6b9be0" strokeWidth="2.2" fill="none" strokeLinecap="round">
         <line x1={TX + 132} y1={yBig} x2={SX} y2={yBig} /><line x1={SX} y1={v1} x2={SX} y2={v2} />
@@ -182,7 +181,6 @@ function KhoiCay({ b, mai, x, y, onMo, uid, tp, tt, ttDong, nhay }) {
             <g key={r}><line x1={SX} y1={yBus(r)} x2={XC - 8 + (h.ds.length - 1) * SL} y2={yBus(r)} />
               {h.ds.map((__, c) => <path key={c} d={`M${XC - 8 + c * SL},${yBus(r)} V${yCon(r)} H${XC - 2 + c * SL}`} />)}</g>))}
       </g>
-      {coNhanh && hang.map((h, r) => h.nhan ? <text key={r} x={SX + 10} y={yBus(r) - 5} fontSize="11" fontWeight="700" fill="#9fc3ea">{`Nhánh ${h.nhan}`}</text> : null)}
       {hang.flatMap((h, r) => h.ds.map((d, c) => {
         const m = d.saiBai ? "bad" : mucDay(d.lapDay), cap = !tp && d.ngayCap != null, t = ttDong.get(d.key), x0 = xCon(c), y0 = yy(r);
         return (
@@ -254,16 +252,24 @@ export default function SoDoKhoBai({ bai: baiGoc, kho, onMo, ten, tp: tpEp }) {
       const all = bai.filter((b) => khuCua(b) === k), ton = all.reduce((s, b) => s + b.ton, 0), suc = all.reduce((s, b) => s + (b.sucChua || 0), 0);
       const soMai = all.filter((b) => mai.get(b.ten_bai)?.mai).length, vDt = all.filter(laTP).reduce((s, b) => s + (ttBai.get(b.ten_bai)?.dt || 0), 0), vTt = all.filter((b) => !laTP(b)).reduce((s, b) => s + (ttBai.get(b.ten_bai)?.vMax || 0), 0);
       const yHead = y; y += 40;
-      const cay = ds.filter((b) => b.dong.length > 1), gon = ds.filter((b) => b.dong.length <= 1), cot = [y, y], dat = [];
-      for (const b of cay) {
-        if (soCot(b) > 1) { const yy = Math.max(...cot); dat.push({ b, loai: "cay", x: PAD, y: yy }); cot[0] = cot[1] = yy + caoCay(b) + 22; continue; }
-        const c = cot[0] <= cot[1] ? 0 : 1; dat.push({ b, loai: "cay", x: PAD + c * ((VB - 2 * PAD) / 2), y: cot[c] }); cot[c] += caoCay(b) + 22;
-      }
-      y = cay.length ? Math.max(...cot) : y;
-      const moiHang = Math.max(1, Math.floor((VB - 2 * PAD) / CW_GON));
-      gon.forEach((b, i) => dat.push({ b, loai: "gon", x: PAD + (i % moiHang) * CW_GON, y: y + Math.floor(i / moiHang) * GON_H }));
-      if (gon.length) y += Math.ceil(gon.length / moiHang) * GON_H;
-      phan.push({ k, yHead, dat, ton, suc, vDt, vTt, soMai, soLo: all.length - soMai, soNho: all.reduce((s, b) => s + b.dong.length, 0), n: all.length });
+      // Trong mỗi khu vực: kho có mái che xếp TRÊN, bãi lộ thiên xếp DƯỚI (anh Sỹ chốt 13/11); mỗi nhóm xếp bãi theo thứ tự tên, bãi lớn có nhiều bãi nhỏ chiếm cả bề ngang
+      const dat = [], vach = [];
+      const xepNhom = (list) => {
+        const cay = list.filter((b) => b.dong.length > 1), gon = list.filter((b) => b.dong.length <= 1), cot = [y, y];
+        for (const b of cay) {
+          if (soCot(b) > 1) { const yy = Math.max(...cot); dat.push({ b, loai: "cay", x: PAD, y: yy }); cot[0] = cot[1] = yy + caoCay(b) + 22; continue; }
+          const c = cot[0] <= cot[1] ? 0 : 1; dat.push({ b, loai: "cay", x: PAD + c * ((VB - 2 * PAD) / 2), y: cot[c] }); cot[c] += caoCay(b) + 22;
+        }
+        y = cay.length ? Math.max(...cot) : y;
+        const moiHang = Math.max(1, Math.floor((VB - 2 * PAD) / CW_GON));
+        gon.forEach((b, i) => dat.push({ b, loai: "gon", x: PAD + (i % moiHang) * CW_GON, y: y + Math.floor(i / moiHang) * GON_H }));
+        if (gon.length) y += Math.ceil(gon.length / moiHang) * GON_H;
+      };
+      const maiDs = ds.filter((b) => mai.get(b.ten_bai)?.mai), loDs = ds.filter((b) => !mai.get(b.ten_bai)?.mai);
+      xepNhom(maiDs);
+      if (maiDs.length && loDs.length) { y += 4; vach.push(y); y += 16; } // vạch mờ ngăn kho mái che với bãi lộ thiên
+      xepNhom(loDs);
+      phan.push({ k, yHead, dat, vach, ton, suc, vDt, vTt, soMai, soLo: all.length - soMai, soNho: all.reduce((s, b) => s + b.dong.length, 0), n: all.length });
       y += 18;
     }
     return { phan, cao: Math.max(y, 120) };
@@ -300,6 +306,7 @@ export default function SoDoKhoBai({ bai: baiGoc, kho, onMo, ten, tp: tpEp }) {
                 <tspan fontSize="12" fontWeight="400" fill="#8fb4dc">{`${p.vDt ? ` · ${so(p.vDt, 0)} m²` : ""}${p.vTt ? ` · ${so(p.vTt, 0)} m³` : ""}`}</tspan>
               </text>
               <line x1={PAD} y1={p.yHead + 30} x2={VB - PAD} y2={p.yHead + 30} stroke="#3b6fc0" strokeOpacity="0.6" />
+              {p.vach.map((v) => <line key={v} x1={PAD} y1={v} x2={VB - PAD} y2={v} stroke="#3b6fc0" strokeOpacity="0.35" strokeDasharray="4 7" />)}
               {p.dat.map((o, i) => {
                 const m = mai.get(o.b.ten_bai)?.mai, uid = `kb-${khoaTenBai(o.b.ten_bai)}-${i}`, nh = nhay?.t === o.b.ten_bai;
                 return o.loai === "cay"
