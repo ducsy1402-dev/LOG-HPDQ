@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { tongHopKho, khuChoPhepHang } from "./kho";
-import { chiaNhanh } from "../pages/kho/SoDoKhoBai.jsx";
+import { chiaNhanh, chiaDeu } from "../pages/kho/SoDoKhoBai.jsx";
 
 // Bãi nhỏ trong sổ nhập – xuất (SQL 12, 13/11/2026)
 const HH = [{ loai_hang: "Thép cuộn HRC", nhom: "HRC", ti_trong: 1 }, { loai_hang: "Thép thanh", nhom: "Thép thanh", ti_trong: 1 }];
@@ -41,19 +41,33 @@ describe("tồn theo bãi nhỏ", () => {
   });
 });
 
-describe("sơ đồ chia nhánh theo tên bãi nhỏ", () => {
+describe("sơ đồ: chia nhánh theo tên, chia đều các hàng", () => {
   const ds = (...t) => t.map((ten) => ({ ten }));
-  it("GA1..GA5 và GB1..GB5 thành hai nhánh GA, GB", () => {
+  const dem = (n) => Array.from({ length: n }, (_, i) => i);
+  it("GA1..GA3 và GB1..GB3 thành hai nhánh GA, GB", () => {
     const n = chiaNhanh(ds("GA1", "GA2", "GA3", "GB1", "GB2", "GB3"));
     expect(n.map((g) => g.ten)).toEqual(["GA", "GB"]);
     expect(n[0].ds.length).toBe(3);
   });
-  it("một nhánh hoặc tên không có số: không chia", () => {
+  it("một nhánh, tên không có số, nhánh chỉ có một bãi nhỏ, tên không đều: không chia nhánh", () => {
     expect(chiaNhanh(ds("Gian A", "Gian B", "Gian C"))).toBeNull();
     expect(chiaNhanh(ds("Bãi 1", "Bãi 2", "Bãi 3"))).toBeNull();
+    expect(chiaNhanh(ds("GA1", "GB1", "Kho phụ"))).toBeNull();
+    expect(chiaNhanh(ds("GA1", "GA2", "GB1"))).toBeNull();
+    // tên kiểu thật: "Gian CD khu 1/F01" … mỗi tên một tiền tố riêng
+    expect(chiaNhanh(ds("Gian CD khu 1/F01", "Gian CD khu 2/F02", "Gian DE khu 1/F01", "Gian DE khu 2/F02"))).toBeNull();
   });
-  it("tên không có số cuối đi chung nhánh không tên ở cuối", () => {
-    const n = chiaNhanh(ds("GA1", "GB1", "Kho phụ"));
-    expect(n.map((g) => g.ten)).toEqual(["GA", "GB", ""]);
+  it("chia đều các hàng, tối đa 5 ô một hàng", () => {
+    const sz = (n) => chiaDeu(dem(n)).map((h) => h.length);
+    expect(sz(1)).toEqual([1]);
+    expect(sz(5)).toEqual([5]);
+    expect(sz(6)).toEqual([3, 3]);
+    expect(sz(7)).toEqual([4, 3]);
+    expect(sz(10)).toEqual([5, 5]);
+    expect(sz(11)).toEqual([4, 4, 3]);
+    expect(sz(17)).toEqual([5, 4, 4, 4]);
+  });
+  it("chia đều giữ nguyên thứ tự", () => {
+    expect(chiaDeu(dem(7)).flat()).toEqual(dem(7));
   });
 });
