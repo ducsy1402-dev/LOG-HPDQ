@@ -1,5 +1,7 @@
 // Backend giả lập cho ?demo: cùng giao diện với supabaseApi, dữ liệu nằm trong bộ nhớ (mất khi tải lại trang).
 // Kiểm tra quyền giống RLS để thử vai trò: ?demo=xem | nhap | quan_ly (mặc định quản trị).
+import { chiaDeuTheoGio } from "../lib/keHoachNgay";
+import { klCanLam } from "../lib/linetime";
 import { demoData } from "../data/demoData";
 import { DEMO_ROLE } from "../config";
 import { NHOM, khoaDong, tuDb } from "../lib/sanLuongTT";
@@ -28,6 +30,12 @@ export function makeDemoApi() {
   db.dmBang = db.dmBang || [];
   db.nextId.dm = db.dmBang.length;
   db.nextId.pl = db.tonPhanLoai.length;
+  // Kế hoạch ngày mẫu: mỗi chuyến đang / sắp làm hàng chia 90% khối lượng cần làm theo giờ làm hàng
+  db.keHoachNgay = []; db.nextId.kn = 0;
+  for (const v of db.voyages) {
+    if (v.huy || !(klCanLam(v) > 0)) continue;
+    for (const [ngay, tan] of chiaDeuTheoGio(v, klCanLam(v) * 0.9)) if (tan > 0) db.keHoachNgay.push({ id: ++db.nextId.kn, voyage_id: v.id, ngay, khoi_luong: tan, ghi_chu: null, updated_at: null });
+  }
   const role = DEMO_ROLE;
   const can = (r) => { if (BAC[role] < BAC[r]) throw new Error(`Chế độ demo đang thử vai trò "${role}": không đủ quyền thao tác này`); };
   const KHOA = { berths: "ma", vessels: "ten", agents: "ten", kho_bai: "id" };
@@ -142,6 +150,15 @@ export function makeDemoApi() {
       for (const r of rows) {
         db[bang] = db[bang].filter((x) => !(x.ngay === r.ngay && x.ca === r.ca && kho(tuDb(nhom, x)) === kho(r)));
         if (r.tan != null) db[bang].push({ ngay: r.ngay, ca: r.ca, huong: r.huong, ...(nhom === "van_tai" ? { loai_xe: r.loai, don_vi: r.donVi, loai_hang: r.hang || "" } : { loai_hang: r.loai }), tan: r.tan, updated_at: new Date().toISOString() });
+      }
+    },
+    // Kế hoạch sản lượng theo ngày, theo chuyến tàu (SQL 13): dữ liệu mẫu trong bộ nhớ
+    async docKeHoachNgay(tu, den) { await wait(60); return clone(db.keHoachNgay.filter((x) => x.ngay >= tu && x.ngay <= den)); },
+    async saveKeHoachNgay(rows) {
+      can("nhap"); await wait();
+      for (const r of rows) {
+        db.keHoachNgay = db.keHoachNgay.filter((x) => !(x.voyage_id === r.voyage_id && x.ngay === r.ngay));
+        if (r.khoi_luong != null) db.keHoachNgay.push({ id: ++db.nextId.kn, voyage_id: r.voyage_id, ngay: r.ngay, khoi_luong: r.khoi_luong, ghi_chu: null, updated_at: new Date().toISOString() });
       }
     },
     async saveKeHoachKho({ them = [], sua = [], xoa = [] }) {

@@ -20,6 +20,11 @@
 - **Cần chạy `sql/12_bai_nho_ke_hoach_ky.sql` trong Supabase trước khi đẩy code** (chưa chạy thì bãi nhỏ và kế hoạch theo ngày / tuần / năm chưa dùng được).
 - **Cần anh xác nhận**: cách chia hàng cho hai tab thành phẩm (HRC = hàng có chữ HRC; Thanh/Cuộn = mọi thành phẩm còn lại). Hiện Danh mục chưa có gian / lô nào của Thanh/Cuộn nên tab này đang trống.
 
+## Mục tiêu sản lượng bố cục mới (13/11/2026) — đã làm, chờ anh Sỹ xem (nhánh muc-tieu-san-luong-moi)
+- Tab Khai thác cảng: 3 thẻ tàu (HRC, thép thành phẩm, hàng nhập), 4 nút (Đặt mục tiêu, Xem kế hoạch, Kế hoạch ngày, Sản lượng thực tế), 3 biểu đồ. Tab Khai thác vận tải giữ như cũ.
+- **Cần chạy `sql/13_ke_hoach_san_luong_ngay.sql` trong Supabase trước khi đẩy code** (nút Kế hoạch ngày cần bảng này).
+- Cần anh xác nhận: "tàu chờ trong 24h tới" đang tính là tàu chưa làm hàng mà giờ bắt đầu làm hàng dự kiến trong 24 giờ tới (hoặc đã quá giờ); Tàu thép thành phẩm không gồm HRC.
+
 ## Còn mở
 - Cột "mái che" ở Danh mục › Khai báo kho / bãi (hiện đoán theo tên: "Kho …" = mái che, trừ "Kho hở").
 - Toạ độ thật của các khu vực / bãi lớn cho bản đồ định vị (hiện xếp đều theo thứ tự).

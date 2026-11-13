@@ -3,24 +3,24 @@ import { Anchor, Truck } from "lucide-react";
 import { useApp } from "@/store";
 import { NativeSelect } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { PageHead } from "@/components/common";
 import { thangCua, tenThang, congThang } from "@/lib/format";
 import { khoaKy, dsKy, tenKy } from "@/lib/ky";
 import { cn } from "@/lib/utils";
+import { PageHead } from "@/components/common";
 import SanLuongTab from "./SanLuongTab";
+import MucTieuCang from "./MucTieuCang";
 
 // Khai thác Cảng › Mục tiêu sản lượng, hai tab:
-//   Mục tiêu khai thác cảng : mục tiêu theo hướng nhập / xuất và loại hàng + nhập thực tế theo ngày.
-//   Mục tiêu khai thác vận tải: mục tiêu theo hướng (phục vụ cảng / sản xuất), loại xe, đơn vị thực hiện (Hòa Phát / nhà thầu) + nhập thực tế theo ngày.
-// Kỳ: Tháng (bảng mục tiêu + nhập số theo ngày), Quý hoặc Năm (mục tiêu nhập riêng cho kỳ, SQL 10; thực tế cộng từ các tháng).
-// Kỳ đang chọn dùng chung cho cả hai tab. Tổng quan › Khối lượng xếp dỡ vẫn so khối lượng chuyến tàu với mục tiêu cảng của tháng.
+//   Khai thác cảng  : bảng điều khiển mới (13/11/2026): 3 thẻ tàu, 4 nút (Đặt mục tiêu, Xem kế hoạch, Kế hoạch ngày, Sản lượng thực tế), 3 biểu đồ — xem MucTieuCang.jsx.
+//   Khai thác vận tải: như cũ — mục tiêu theo hướng (phục vụ cảng / sản xuất), loại xe, đơn vị thực hiện (Hòa Phát / nhà thầu) + nhập thực tế theo ngày.
+// Kỳ của tab vận tải: Tháng (bảng mục tiêu + nhập số theo ngày), Quý hoặc Năm (mục tiêu nhập riêng cho kỳ, SQL 10; thực tế cộng từ các tháng).
+// Tổng quan › Khối lượng xếp dỡ vẫn so khối lượng chuyến tàu với mục tiêu cảng của tháng.
 const luu = (k, v) => { try { localStorage.setItem(k, v); } catch { /* bỏ qua */ } };
 const doc = (k, mac) => { try { return localStorage.getItem(k) || mac; } catch { return mac; } };
 const KY = [["thang", "Tháng"], ["quy", "Quý"], ["nam", "Năm"]];
 
-export default function MucTieu() {
+function VanTai() {
   const { D } = useApp();
-  const [tab, setTab] = useState(() => (doc("lg-mt-tab", "cang") === "van_tai" ? "van_tai" : "cang"));
   const [kyLoai, setKyLoai] = useState(() => (["quy", "nam"].includes(doc("lg-mt-ky", "thang")) ? doc("lg-mt-ky", "thang") : "thang"));
   const [chon, setChon] = useState(() => ({ thang: thangCua(D.now), quy: khoaKy("quy", D.now), nam: khoaKy("nam", D.now) }));
   const hienTai = { thang: thangCua(D.now), quy: khoaKy("quy", D.now), nam: khoaKy("nam", D.now) };
@@ -31,8 +31,9 @@ export default function MucTieu() {
   };
   const ky = chon[kyLoai];
   return (
-    <>
-      <PageHead title="Mục tiêu sản lượng" desc="Mục tiêu tháng, quý, năm và số liệu thực tế theo ngày của khai thác cảng và khai thác vận tải.">
+    <div className="grid gap-3">
+      <PageHead title="Mục tiêu sản lượng" desc="Khai thác vận tải: mục tiêu và số liệu thực tế theo ngày của đội xe, Hòa Phát và nhà thầu." />
+      <div className="flex flex-wrap items-center gap-2">
         <div className="inline-flex overflow-hidden rounded-md border" role="tablist" aria-label="Kỳ mục tiêu">
           {KY.map(([k, ten]) => (
             <button key={k} type="button" role="tab" aria-selected={kyLoai === k} onClick={() => { setKyLoai(k); luu("lg-mt-ky", k); }}
@@ -40,15 +41,22 @@ export default function MucTieu() {
         </div>
         <NativeSelect className="h-8 w-52" value={ky} onChange={(e) => setChon((o) => ({ ...o, [kyLoai]: e.target.value }))}
           options={dsChon[kyLoai].map(([x, ten]) => [x, ten + (x === hienTai[kyLoai] ? " (này)" : "")])} aria-label={KY.find(([k]) => k === kyLoai)[1]} />
-      </PageHead>
-      <Tabs value={tab} onValueChange={(v) => { setTab(v); luu("lg-mt-tab", v); }}>
-        <TabsList>
-          <TabsTrigger value="cang"><Anchor className="mr-1.5 h-4 w-4" />Mục tiêu khai thác cảng</TabsTrigger>
-          <TabsTrigger value="van_tai"><Truck className="mr-1.5 h-4 w-4" />Mục tiêu khai thác vận tải</TabsTrigger>
-        </TabsList>
-        <TabsContent value="cang"><SanLuongTab nhom="cang" thang={ky} kyLoai={kyLoai} /></TabsContent>
-        <TabsContent value="van_tai"><SanLuongTab nhom="van_tai" thang={ky} kyLoai={kyLoai} /></TabsContent>
-      </Tabs>
-    </>
+      </div>
+      <SanLuongTab nhom="van_tai" thang={ky} kyLoai={kyLoai} />
+    </div>
+  );
+}
+
+export default function MucTieu() {
+  const [tab, setTab] = useState(() => (doc("lg-mt-tab", "cang") === "van_tai" ? "van_tai" : "cang"));
+  return (
+    <Tabs value={tab} onValueChange={(v) => { setTab(v); luu("lg-mt-tab", v); }}>
+      <TabsList className="h-8 p-0.5">
+        <TabsTrigger value="cang" className="h-7 px-2.5 py-0 text-xs"><Anchor className="mr-1.5 h-3.5 w-3.5" />Khai thác cảng</TabsTrigger>
+        <TabsTrigger value="van_tai" className="h-7 px-2.5 py-0 text-xs"><Truck className="mr-1.5 h-3.5 w-3.5" />Khai thác vận tải</TabsTrigger>
+      </TabsList>
+      <TabsContent value="cang"><MucTieuCang /></TabsContent>
+      <TabsContent value="van_tai"><VanTai /></TabsContent>
+    </Tabs>
   );
 }

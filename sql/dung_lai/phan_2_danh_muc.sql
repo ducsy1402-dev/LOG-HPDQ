@@ -1,6 +1,6 @@
 -- ================================================================
 -- DỰNG LẠI PROJECT SUPABASE MỚI — PHẦN 2/2 (chạy SAU phần 1)
--- Gồm: 08 danh mục tổng hợp (xe, cẩu, hàng hóa, kho bãi), 09 mét bến CTH, 10 mục tiêu quý/năm, 11 đơn vị nhà thầu, 12 bãi nhỏ + kế hoạch theo kỳ.
+-- Gồm: 08 danh mục tổng hợp (xe, cẩu, hàng hóa, kho bãi), 09 mét bến CTH, 10 mục tiêu quý/năm, 11 đơn vị nhà thầu, 12 bãi nhỏ + kế hoạch kho theo kỳ, 13 kế hoạch sản lượng theo ngày.
 -- Sau phần này: tạo người dùng ở Authentication, rồi chạy 04_cap_quyen.sql.
 -- ================================================================
 
@@ -892,3 +892,34 @@ update public.kho_ke_hoach set ky = thang where ky is null;
 alter table public.kho_ke_hoach drop constraint if exists kho_ke_hoach_loai_ky_check;
 alter table public.kho_ke_hoach add constraint kho_ke_hoach_loai_ky_check check (loai_ky in ('ngay', 'tuan', 'thang', 'nam'));
 create index if not exists kho_ke_hoach_ky_idx on public.kho_ke_hoach (loai_ky, ky);
+
+
+-- >>>>>>>>>> 13_ke_hoach_san_luong_ngay.sql <<<<<<<<<<
+-- 13. KẾ HOẠCH SẢN LƯỢNG THEO NGÀY, THEO LINE TÀU (Khai thác Cảng › Mục tiêu sản lượng › nút "Kế hoạch ngày").
+-- Người lập kế hoạch đặt số tấn kế hoạch cho từng ngày của từng chuyến tàu trong line tàu cập; hướng (nhập / xuất) và loại hàng lấy theo chuyến tàu.
+-- Các biểu đồ so kế hoạch với thực tế (bảng san_luong_cang, SQL 06) dùng bảng này. Chạy SAU 01…12. Chạy được nhiều lần.
+-- Ai có quyền phần Cảng đọc được; nhập liệu trở lên thêm / sửa / xóa (xóa số trong ô là xóa dòng).
+create table if not exists public.ke_hoach_san_luong_ngay (
+  id          bigint generated always as identity primary key,
+  voyage_id   bigint not null references public.voyages(id) on delete cascade,
+  ngay        date not null,
+  khoi_luong  numeric not null check (khoi_luong >= 0),   -- tấn kế hoạch của chuyến trong ngày đó
+  ghi_chu     text,
+  nguoi       uuid default auth.uid(),
+  updated_at  timestamptz not null default now(),
+  unique (voyage_id, ngay)
+);
+create index if not exists ke_hoach_sl_ngay_idx on public.ke_hoach_san_luong_ngay (ngay);
+
+alter table public.ke_hoach_san_luong_ngay enable row level security;
+drop policy if exists ke_hoach_sl_ngay_doc on public.ke_hoach_san_luong_ngay;
+drop policy if exists ke_hoach_sl_ngay_ghi on public.ke_hoach_san_luong_ngay;
+create policy ke_hoach_sl_ngay_doc on public.ke_hoach_san_luong_ngay for select
+  using (public.co_quyen('cang', array['xem','nhap','quan_ly','quan_tri']));
+create policy ke_hoach_sl_ngay_ghi on public.ke_hoach_san_luong_ngay for all
+  using (public.co_quyen('cang', array['nhap','quan_ly','quan_tri']))
+  with check (public.co_quyen('cang', array['nhap','quan_ly','quan_tri']));
+
+drop trigger if exists audit_ke_hoach_sl_ngay on public.ke_hoach_san_luong_ngay;
+create trigger audit_ke_hoach_sl_ngay after insert or update or delete on public.ke_hoach_san_luong_ngay
+  for each row execute function public.ghi_audit();

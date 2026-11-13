@@ -31,12 +31,13 @@ const fmt = (n) => (n == null ? "" : soGon(n));
 // Một tab của Khai thác Cảng › Mục tiêu sản lượng (nhom = "cang" | "van_tai"): bảng mục tiêu tháng và bảng nhập thực tế theo ca / ngày.
 // Tab vận tải có thêm cột Loại hàng (nhóm hàng như bên cảng) và bộ lọc đội xe (Xe ben, Xe đầu kéo, Xe bồn…) áp cho cả hai bảng.
 // Dữ liệu của tháng đang chọn tải riêng từ Supabase (SQL 06); sau mỗi lần lưu tải lại.
-export default function SanLuongTab({ nhom, thang, kyLoai = "thang" }) {
+// che: "mucTieu" chỉ hiện bảng mục tiêu, "thucTe" chỉ hiện bảng thực tế (hộp Đặt mục tiêu / Sản lượng thực tế của trang cảng); bỏ trống = cả hai
+export default function SanLuongTab({ nhom, thang, kyLoai = "thang", che, onLuu }) {
   const { api } = useApp();
   const [lan, setLan] = useState(0);
   const [kq, setKq] = useState(undefined); // undefined: đang tải · null: chưa chạy SQL · { mucTieu, thucTe }
   const [doiXe, setDoiXe] = useState(""); // bộ lọc đội xe (vận tải); "" = tất cả
-  const tai = useCallback(() => setLan((x) => x + 1), []);
+  const tai = useCallback(() => { setLan((x) => x + 1); onLuu?.(); }, [onLuu]);
   useEffect(() => {
     let huy = false;
     const dau = `${kyLoai}|${thang}`; // đánh dấu số liệu thuộc kỳ nào: đổi kỳ thì chờ tải xong, không dùng số liệu của kỳ trước
@@ -64,10 +65,10 @@ export default function SanLuongTab({ nhom, thang, kyLoai = "thang" }) {
           {doiXe && <Button size="sm" variant="ghost" onClick={() => setDoiXe("")}><X />Bỏ lọc</Button>}
           {doiXe && <span className="text-xs text-muted-foreground">Cả hai bảng chỉ hiện {doiXe}; tổng và % Đạt tính theo đội xe đang lọc.</span>}
         </div>)}
-      <Card><CardContent className="pt-4"><BangMucTieu key={`mt-${nhom}-${kyLoai}-${thang}-${lan}`} nhom={nhom} thang={thang} kyLoai={kyLoai} mucTieu={kq.mucTieu} mucTieuThang={kq.mucTieuThang} thucTe={kq.thucTe} loc={loc} onLuu={tai} /></CardContent></Card>
-      <Card><CardContent className="pt-4">{kyLoai === "thang"
+      {che !== "thucTe" && <Card><CardContent className="pt-4"><BangMucTieu key={`mt-${nhom}-${kyLoai}-${thang}-${lan}`} nhom={nhom} thang={thang} kyLoai={kyLoai} mucTieu={kq.mucTieu} mucTieuThang={kq.mucTieuThang} thucTe={kq.thucTe} loc={loc} onLuu={tai} /></CardContent></Card>}
+      {che !== "mucTieu" && <Card><CardContent className="pt-4">{kyLoai === "thang"
         ? <BangThucTe key={`tt-${nhom}-${thang}-${lan}`} nhom={nhom} thang={thang} mucTieu={kq.mucTieu} thucTe={kq.thucTe} loc={loc} onLuu={tai} />
-        : <BangTheoThang nhom={nhom} kyLoai={kyLoai} ky={thang} thangs={kq.thangs} mucTieu={kq.mucTieu} thucTe={kq.thucTe} loc={loc} />}</CardContent></Card>
+        : <BangTheoThang nhom={nhom} kyLoai={kyLoai} ky={thang} thangs={kq.thangs} mucTieu={kq.mucTieu} thucTe={kq.thucTe} loc={loc} />}</CardContent></Card>}
     </div>
   );
 }

@@ -19,7 +19,7 @@ export const NGUON_GD = {
 export const TRANG_THAI_LO = { san_sang: { ten: "Sẵn sàng xuất", tone: "ok" }, cho_kiem: { ten: "Chờ kiểm", tone: "warn" }, giu_lai: { ten: "Giữ lại", tone: "bad" } };
 
 // Hàng thành phẩm (thép, HRC, phôi, slab, cuộn…) hay nguyên liệu (quặng, than, đá, xỉ, phế…)
-const NHOM_NL = /phe|quang|than|da|xi|bui|coc|vay|dat|huynh|vat lieu|rac|gang|thach cao|trau|vai|bun|hbi|dolomit/;
+const NHOM_NL = /(?:phe|quang|than|da|xi|bui|coc|vay|dat|huynh|vat lieu|rac|gang|thach cao|trau|vai|bun|hbi|dolomit)/; // từ nguyên vẹn: "than" không khớp "thanh" (Thép thanh là thành phẩm)
 const TEN_TP = /thep|hrc|phoi|slab|cuon|thanh van|day thep|\bton\b/;
 const DAU_NL = /^(quang|than|da|xi|bui|coc|coke|vay|via|bun|hbi|dolomit|dat|huynh|thach cao|trau|gang|rac|vat lieu|lieu hoi)\b/;
 export function loaiKhoTuHang(hang, hangHoa = []) {

@@ -155,6 +155,19 @@ export function makeSupabaseApi() {
       const ghi = rows.filter((x) => x.tan != null).map((r) => ({ ngay: r.ngay, ca: r.ca, huong: r.huong, ...(nhom === "van_tai" ? { loai_xe: r.loai, don_vi: r.donVi, loai_hang: r.hang || "" } : { loai_hang: r.loai }), tan: r.tan, updated_at: now() }));
       for (const g of chunk(ghi, 300)) ok(await sb.from(c.bangTT).upsert(g, { onConflict: nhom === "van_tai" ? "ngay,ca,huong,loai_xe,don_vi,loai_hang" : "ngay,ca,huong,loai_hang" }));
     },
+    // Kế hoạch sản lượng theo ngày, theo chuyến tàu (SQL 13): các dòng { id, voyage_id, ngay, khoi_luong } từ ngày tu đến ngày den (yyyy-mm-dd); null = chưa chạy SQL 13
+    async docKeHoachNgay(tu, den) {
+      const r = await sb.from("ke_hoach_san_luong_ngay").select("*").gte("ngay", tu).lte("ngay", den).order("ngay").range(0, 9999);
+      return r.error ? null : r.data;
+    },
+    // rows: [{ voyage_id, ngay, khoi_luong }]; khoi_luong = null thì xóa số của chuyến đó trong ngày đó
+    async saveKeHoachNgay(rows) {
+      const xoa = new Map();
+      for (const r of rows.filter((x) => x.khoi_luong == null)) { if (!xoa.has(r.voyage_id)) xoa.set(r.voyage_id, []); xoa.get(r.voyage_id).push(r.ngay); }
+      for (const [vid, ngays] of xoa) ok(await sb.from("ke_hoach_san_luong_ngay").delete().eq("voyage_id", vid).in("ngay", ngays));
+      const ghi = rows.filter((x) => x.khoi_luong != null).map((r) => ({ voyage_id: r.voyage_id, ngay: r.ngay, khoi_luong: r.khoi_luong, updated_at: now() }));
+      for (const g of chunk(ghi, 300)) ok(await sb.from("ke_hoach_san_luong_ngay").upsert(g, { onConflict: "voyage_id,ngay" }));
+    },
     // Kế hoạch xuất / nhập tồn kho: { them: [dòng mới], sua: [{ id, ...cột đổi }], xoa: [id] }
     async saveKeHoachKho({ them = [], sua = [], xoa = [] }) {
       if (xoa.length) ok(await sb.from("kho_ke_hoach").delete().in("id", xoa));
