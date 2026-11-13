@@ -66,13 +66,13 @@ export function makeSupabaseApi() {
       // Bản này không có phương án làm hàng: luôn là danh sách rỗng (store và các phần tính toán vẫn nhận mảng plans)
       const plansP = Promise.resolve([]);
       // Số máng, tàu ưu tiên, vét / be hầm (SQL 19); cẩu tàu (SQL 24); thiết bị gắn của cẩu cảng (SQL 25); chuyển bến, ra neo, trả hàng (SQL 26); bến phụ (SQL 28)
-      const coP = Promise.all([dò("19", "voyages", "uu_tien"), dò("24", "voyages", "cau_tau"), dò("25", "voyages", "cau_gan"), dò("26", "voyage_stops", "loai"), dò("28", "voyages", "ben_phu")]);
+      const coP = Promise.all([dò("19", "voyages", "uu_tien"), dò("24", "voyages", "cau_tau"), dò("25", "voyages", "cau_gan"), dò("26", "voyage_stops", "loai"), dò("28", "voyages", "ben_phu"), dò("12", "kho_giao_dich", "ten_khu")]);
       if (nhe) {
-        const [c, plans, [coSql19, coSql24, coSql25, coSql26, coSql28]] = await Promise.all([phanChuyen(), plansP, coP]);
-        return { ...c, plans, coSql19, coSql24, coSql25, coSql26, coSql28 };
+        const [c, plans, [coSql19, coSql24, coSql25, coSql26, coSql28, coSql12]] = await Promise.all([phanChuyen(), plansP, coP]);
+        return { ...c, plans, coSql19, coSql24, coSql25, coSql26, coSql28, coSql12 };
       }
       const tuNgay = new Date(Date.now() - 35 * 864e5).toISOString().slice(0, 10);
-      const [[berths, vessels, agents, khoBai], c, plans, khoTon, khoLo, giaoDich, dmCot, mucTieu, khoKeHoach, dmBang, [coSql19, coSql24, coSql25, coSql26, coSql28]] = await Promise.all([
+      const [[berths, vessels, agents, khoBai], c, plans, khoTon, khoLo, giaoDich, dmCot, mucTieu, khoKeHoach, dmBang, [coSql19, coSql24, coSql25, coSql26, coSql28, coSql12]] = await Promise.all([
         Promise.all([
           sb.from("berths").select("*").order("thu_tu").then(ok),
           fetchAll(() => sb.from("vessels").select("*").order("ten")),
@@ -93,7 +93,7 @@ export function makeSupabaseApi() {
         thu(sb.from("danh_muc_bang").select("*").order("bang").order("thu_tu").order("id").range(0, 9999)),
         coP,
       ]);
-      return { berths, vessels, agents, khoBai, ...c, plans, khoTon, khoLo, giaoDich, dmCot, coSql19, coSql24, coSql25, coSql26, coSql28, mucTieu, khoKeHoach, dmBang };
+      return { berths, vessels, agents, khoBai, ...c, plans, khoTon, khoLo, giaoDich, dmCot, coSql19, coSql24, coSql25, coSql26, coSql28, coSql12, mucTieu, khoKeHoach, dmBang };
     },
     loadEvents: async (voyageId) => ok(await sb.from("voyage_events").select("*").eq("voyage_id", voyageId).order("thoi_diem")),
     loadEventsMany: async (ids) => theoVoyage(sb, "voyage_events", ids),

@@ -5,12 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input, NativeSelect } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Empty, ConfirmButton } from "@/components/common";
-import { so, pct, ngayNam, matchQ } from "@/lib/format";
+import { so, ngayNam, matchQ } from "@/lib/format";
 import { LOAI_GD, TRANG_THAI_LO, NGUONG_KHO } from "@/lib/kho";
 import { cn } from "@/lib/utils";
-import { mauDay, KIEU_TONE, KIEU_NGAN } from "./khoUi";
 
-// Các bảng mở trong hộp thao tác của trang Khai thác kho bãi (chuyển từ các tab cũ của trang Kho): Lịch sử nhập – xuất, Lô thành phẩm, Tồn theo bãi nhỏ.
+// Các bảng mở trong hộp thao tác của trang Khai thác kho bãi (chuyển từ các tab cũ của trang Kho): Lịch sử nhập – xuất, Lô thành phẩm.
 // kho: bản kho đã lọc theo tab (locKhoTheoTab); loai: thanh_pham | nguyen_lieu
 const TEN_GD = Object.fromEntries(LOAI_GD);
 const TEN_NGUON = { tau: "Tàu", cap_sx: "Cấp sản xuất", san_xuat: "Từ sản xuất", don_hang: "Đơn hàng", khac: "Khác" };
@@ -21,7 +20,7 @@ export function LichSuKho({ kho, loai, onSua }) {
   const [qSo, setQSo] = useState("");
   const tp = loai === "thanh_pham", nhap = quyen.kho.nhap;
   const keys = useMemo(() => new Set(kho.dong.map((d) => d.key)), [kho]);
-  const gd = useMemo(() => (D.giaoDich || []).filter((g) => keys.has(kho.gan(g.ten_bai, g.hang)) || (g.den_bai && keys.has(kho.gan(g.den_bai, g.hang))))
+  const gd = useMemo(() => (D.giaoDich || []).filter((g) => keys.has(kho.gan(g.ten_bai, g.hang, g.ten_khu)) || (g.den_bai && keys.has(kho.gan(g.den_bai, g.hang, g.den_khu))))
     .sort((a, b) => String(b.ngay).localeCompare(String(a.ngay)) || b.id - a.id), [D.giaoDich, keys, kho]);
   const gdLoc = qSo.trim() ? gd.filter((g) => matchQ(qSo, ngayNam(g.ngay), g.ca, TEN_GD[g.loai], g.ten_bai, g.den_bai, g.hang, g.so_lo, g.chung_tu, g.ghi_chu, TEN_NGUON[g.nguon], g.voyage_id ? D.vmap.get(g.voyage_id)?.ten_tau : "")) : gd;
   return (
@@ -41,7 +40,7 @@ export function LichSuKho({ kho, loai, onSua }) {
               <tr key={g.id}>
                 <td className="whitespace-nowrap tabular-nums">{ngayNam(g.ngay)}</td><td>{g.ca}</td>
                 <td><Badge tone={g.loai === "nhap" || g.loai === "dau_ky" ? "ok" : g.loai === "xuat" ? "warn" : g.loai === "kiem_ke" ? "info" : "default"}>{TEN_GD[g.loai]}</Badge></td>
-                <td>{g.ten_bai}{g.den_bai ? ` → ${g.den_bai}` : ""}</td><td>{g.hang}</td>
+                <td>{g.ten_bai}{g.ten_khu ? ` › ${g.ten_khu}` : ""}{g.den_bai ? ` → ${g.den_bai}${g.den_khu ? ` › ${g.den_khu}` : ""}` : ""}</td><td>{g.hang}</td>
                 <td className={cn("num", g.loai === "xuat" && "text-warn")}>{g.loai === "xuat" ? "−" : ""}{so(g.so_luong, 2)}</td>
                 {tp && <td className="font-mono text-xs">{g.so_lo}</td>}
                 <td className="text-xs">{g.voyage_id ? D.vmap.get(g.voyage_id)?.ten_tau || "Tàu" : ""}{g.nguon && !g.voyage_id ? g.nguon === "cap_sx" ? "Cấp sản xuất" : g.nguon === "san_xuat" ? "Từ sản xuất" : g.nguon === "don_hang" ? "Đơn hàng" : "" : ""}</td>
@@ -75,30 +74,6 @@ export function BangLo({ kho }) {
             <td className="text-xs text-muted-foreground">{l.ghi_chu}</td>
           </tr>))}</tbody>
       </table>
-    </div>
-  );
-}
-
-// Tồn theo bãi nhỏ (bảng): tồn, sức chứa, lấp đầy, cách tính sức chứa; kho nguyên liệu thêm tiêu thụ / ngày và ngày cấp
-export function BangTon({ kho, loai }) {
-  const [q, setQ] = useState("");
-  const tp = loai === "thanh_pham";
-  return (
-    <div className="grid gap-2">
-      <Input className="w-56" placeholder="Tìm bãi, hàng…" value={q} onChange={(e) => setQ(e.target.value)} />
-      <div className="scroll-x max-h-[60vh]">
-        <table className="tbl">
-          <thead><tr><th>Bãi lớn</th><th>Bãi nhỏ</th><th>Hàng đang chứa</th><th className="num">Tồn (t)</th><th className="num">Sức chứa (t)</th><th className="min-w-[140px]">Lấp đầy</th>{!tp && <><th className="num">Tiêu thụ / ngày</th><th className="num">Ngày cấp</th></>}<th>Cách tính sức chứa</th></tr></thead>
-          <tbody>{kho.dong.filter((d) => matchQ(q, d.ten_bai, d.ten, d.hang, ...d.chua.map((c) => c.hang))).map((d, i) => (
-            <tr key={i} className={cn(d.saiBai && "bg-bad/5")}>
-              <td className="font-medium">{d.ten_bai}</td><td>{d.ten}{d.saiBai ? <Badge tone="bad" className="ml-1">Sai bãi</Badge> : d.kieu !== "co_dinh_hang" && <Badge tone={KIEU_TONE[d.kieu]} className="ml-1">{KIEU_NGAN[d.kieu]}</Badge>}</td><td className="text-xs">{d.chua.length ? d.chua.map((c) => c.hang).join(", ") : <span className="text-muted-foreground">—</span>}</td>
-              <td className={cn("num", d.ton < 0 && "text-bad")}>{so(d.ton)}</td><td className="num">{so(d.sucChua)}</td>
-              <td><div className="flex items-center gap-2"><div className="h-2 flex-1 overflow-hidden rounded-full bg-muted"><div className={cn("h-full", mauDay(d.lapDay))} style={{ width: `${Math.min(100, (d.lapDay ?? 0) * 100)}%` }} /></div><span className="w-12 text-right text-xs tabular-nums">{d.lapDay != null ? pct(d.lapDay) : "—"}</span></div></td>
-              {!tp && <><td className="num">{so(d.tieuThu)}</td><td className={cn("num", d.ngayCap < NGUONG_KHO.ngayCapDo ? "text-bad" : d.ngayCap < NGUONG_KHO.ngayCapVang ? "text-warn" : "")}>{d.ngayCap != null ? so(d.ngayCap, 1) : "—"}</td></>}
-              <td className="text-xs text-muted-foreground">{d.cachTinh}</td>
-            </tr>))}</tbody>
-        </table>
-      </div>
     </div>
   );
 }

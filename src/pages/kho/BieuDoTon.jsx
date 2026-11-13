@@ -5,10 +5,10 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { NativeSelect } from "@/components/ui/input";
 import EChart from "@/components/EChart";
 import { so, pct, r2, plain, thangCua, tenThang, congThang } from "@/lib/format";
-import { khuCuaKeHoach, ngayStr } from "@/lib/kho";
+import { khuCuaKeHoach, ngayStr, khaiBaoBai, khoaTenBai } from "@/lib/kho";
 import { chuoiKho } from "@/lib/bieuDoKho";
 import { khoangKy } from "@/lib/bieuDoSanLuong";
-import { ngayCuaThang } from "@/lib/sanLuongTT";
+import { ngayCuaKeHoach } from "@/lib/keHoachKy";
 import { mucDay } from "./khoUi";
 
 // Ba biểu đồ của mỗi tab kho ở Khai thác kho bãi (anh Sỹ chốt 13/11/2026):
@@ -39,7 +39,7 @@ function NhapXuatKeHoach({ kho, loai }) {
   return (
     <Card>
       <CardHeader><CardTitle><ArrowLeftRight />Nhập / xuất kho · kế hoạch / thực tế</CardTitle>
-        <NativeSelect className="ml-auto h-8 w-40" value={thang} onChange={(e) => setThang(e.target.value)} options={thangs.map((x) => [x, tenThang(x) + (x === thangCua(D.now) ? " (này)" : "")])} aria-label="Tháng" />
+        <NativeSelect className="ml-auto h-7 w-40 text-xs" value={thang} onChange={(e) => setThang(e.target.value)} options={thangs.map((x) => [x, tenThang(x) + (x === thangCua(D.now) ? " (này)" : "")])} aria-label="Tháng" />
       </CardHeader>
       <CardContent>
         {c ? (
@@ -72,8 +72,18 @@ export default function BieuDoTon({ loai, kho }) {
 
   // 1. Tồn theo bãi nhỏ
   const dsBaiLon = useMemo(() => [...new Set(kho.dong.filter((d) => d.loai === loai && !d.saiBai).map((d) => d.ten_bai))].sort((a, b) => a.localeCompare(b, "vi", { numeric: true })), [kho, loai]);
+  // Xếp theo khu vực (Danh mục › Khai báo kho / bãi) → bãi lớn → bãi nhỏ (số tăng dần, chữ A–Z); mỗi khu vực có một dòng tiêu đề
+  const kb = useMemo(() => khaiBaoBai(D.dmBang), [D.dmBang]);
+  const KHONG_KHU = "Chưa khai báo khu vực";
+  const khuCua = (d) => kb.get(khoaTenBai(d.ten_bai))?.khuVuc || KHONG_KHU;
+  const ss = (a, b) => String(a).localeCompare(String(b), "vi", { numeric: true, sensitivity: "base" });
   const baiNho = useMemo(() => kho.dong.filter((d) => d.loai === loai && !d.saiBai && (!baiLon || d.ten_bai === baiLon))
-    .sort((a, b) => (b.lapDay ?? -1) - (a.lapDay ?? -1) || b.ton - a.ton), [kho, loai, baiLon]);
+    .sort((a, b) => (khuCua(a) === KHONG_KHU) - (khuCua(b) === KHONG_KHU) || ss(khuCua(a), khuCua(b)) || ss(a.ten_bai, b.ten_bai) || ss(a.ten, b.ten)), [kho, loai, baiLon, kb]); // eslint-disable-line react-hooks/exhaustive-deps
+  const dongBieuDo = useMemo(() => { // baiNho chèn dòng tiêu đề khu vực (khi có từ 2 khu vực)
+    const nhieuKhu = new Set(baiNho.map(khuCua)).size > 1, out = []; let cu = null;
+    for (const d of baiNho) { const k = khuCua(d); if (nhieuKhu && k !== cu) { out.push({ tieuDe: k }); cu = k; } out.push(d); }
+    return out;
+  }, [baiNho]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 3. Dự báo tồn theo loại hàng
   const duBao = useMemo(() => {
@@ -93,8 +103,8 @@ export default function BieuDoTon({ loai, kho }) {
     for (const r of D.khoKeHoach || []) {
       const d = khuCuaKeHoach(r, dongOk); if (!d || d.loai !== loai) continue;
       const hang = r.hang || d.hang; if (!hang) continue;
-      const k = plain(hang), khoa = `${k}|${r.thang}`, o = kh.get(khoa) || { n: null, x: null }, c = r.huong === "xuat" ? "x" : "n";
-      o[c] = (o[c] || 0) + (+r.khoi_luong || 0) / (ngayCuaThang(r.thang).length || 30); kh.set(khoa, o);
+      const k = plain(hang), c = r.huong === "xuat" ? "x" : "n", nd = ngayCuaKeHoach(r), moi = (+r.khoi_luong || 0) / (nd.length || 1);
+      for (const n of nd) { const khoa = `${k}|${n}`, o = kh.get(khoa) || { n: null, x: null }; o[c] = (o[c] || 0) + moi; kh.set(khoa, o); } // kế hoạch chia đều theo ngày của kỳ (ngày / tuần / tháng / năm)
       if (!ten.has(k)) ten.set(k, hang);
     }
     const ngays = Array.from({ length: soNgay + 1 }, (_, i) => ngayStr(D.now + i * DAY));
@@ -102,7 +112,7 @@ export default function BieuDoTon({ loai, kho }) {
       let t = tonH.get(k) || 0, het = null, coKH = false;
       const diem = [r2(t)], a = bq.get(k) || { n: 0, x: 0 };
       for (let i = 1; i < ngays.length; i++) {
-        const p = kh.get(`${k}|${ngays[i].slice(0, 7)}`);
+        const p = kh.get(`${k}|${ngays[i]}`);
         if (p) coKH = true;
         t = Math.max(0, t + (p?.n ?? a.n) - (p?.x ?? a.x));
         if (t <= 1e-6 && het == null && (tonH.get(k) || 0) > 0) het = ngays[i];
@@ -121,17 +131,19 @@ export default function BieuDoTon({ loai, kho }) {
       <div className="grid gap-3 lg:grid-cols-2">
         <Card>
           <CardHeader><CardTitle><Boxes />Tồn theo bãi nhỏ</CardTitle>
-            <NativeSelect className="ml-auto h-8 w-52" value={baiLon} onChange={(e) => setBaiLon(e.target.value)} placeholder="Tất cả bãi lớn" options={dsBaiLon} />
+            <NativeSelect className="ml-auto h-7 w-44 text-xs" value={baiLon} onChange={(e) => setBaiLon(e.target.value)} placeholder="Tất cả bãi lớn" options={dsBaiLon} />
           </CardHeader>
           <CardContent>
-            {baiNho.length ? <div className="max-h-[330px] overflow-y-auto pr-1"><EChart height={Math.max(290, cao(baiNho.length))} option={{
+            {baiNho.length ? <div className="max-h-[330px] overflow-y-auto pr-1"><EChart height={Math.max(290, cao(dongBieuDo.length))} option={{
               legend: { data: ["Tồn", "Sức chứa"] },
-              grid: { left: 4, right: 52, top: 30, bottom: 4, containLabel: true }, tooltip: { axisPointer: { type: "shadow" }, valueFormatter: (v) => `${so(v)} t` },
-              xAxis: { type: "value", axisLabel: { fontSize: 10 } }, yAxis: { type: "category", inverse: true, data: baiNho.map((d) => (baiLon ? d.ten : `${d.ten_bai} › ${d.ten}`)), axisLabel: { fontSize: 10, width: 150, overflow: "truncate" } },
+              grid: { left: 4, right: 52, top: 30, bottom: 4, containLabel: true }, tooltip: { axisPointer: { type: "shadow" }, valueFormatter: (v) => (v == null ? "" : `${so(v)} t`) },
+              xAxis: { type: "value", axisLabel: { fontSize: 10 } },
+              yAxis: { type: "category", inverse: true, data: dongBieuDo.map((d, i) => (d.tieuDe ? `§${d.tieuDe}§${i}` : baiLon ? d.ten : `${d.ten_bai} › ${d.ten}`)),
+                axisLabel: { fontSize: 10, width: 170, overflow: "truncate", formatter: (v) => (v.startsWith("§") ? `{h|${v.split("§")[1]}}` : v), rich: { h: { fontSize: 10, fontWeight: 700, color: "#818cf8" } } } },
               series: [
-                { name: "Sức chứa", type: "bar", barMaxWidth: 14, barGap: "-100%", itemStyle: { color: "rgba(148,163,184,0.28)" }, data: baiNho.map((d) => r2(d.sucChua || 0)), z: 1 },
-                { name: "Tồn", type: "bar", barMaxWidth: 14, itemStyle: { color: MAU.ok }, z: 2, data: baiNho.map((d) => ({ value: r2(Math.max(0, d.ton)), itemStyle: { color: MAU[mucDay(d.lapDay)] === MAU.xam ? MAU_NHAP : MAU[mucDay(d.lapDay)] } })),
-                  label: { show: true, position: "right", fontSize: 10, textBorderWidth: 0, formatter: (p) => (baiNho[p.dataIndex].lapDay != null ? pct(baiNho[p.dataIndex].lapDay) : "") } },
+                { name: "Sức chứa", type: "bar", barMaxWidth: 14, barGap: "-100%", itemStyle: { color: "rgba(148,163,184,0.28)" }, data: dongBieuDo.map((d) => (d.tieuDe ? null : r2(d.sucChua || 0))), z: 1 },
+                { name: "Tồn", type: "bar", barMaxWidth: 14, itemStyle: { color: MAU.ok }, z: 2, data: dongBieuDo.map((d) => (d.tieuDe ? null : { value: r2(Math.max(0, d.ton)), itemStyle: { color: MAU[mucDay(d.lapDay)] === MAU.xam ? MAU_NHAP : MAU[mucDay(d.lapDay)] } })),
+                  label: { show: true, position: "right", fontSize: 10, textBorderWidth: 0, formatter: (p) => (dongBieuDo[p.dataIndex]?.lapDay != null ? pct(dongBieuDo[p.dataIndex].lapDay) : "") } },
               ],
             }} /></div> : <p className="py-8 text-center text-sm text-muted-foreground">Chưa có bãi nhỏ.</p>}
           </CardContent>
@@ -140,8 +152,8 @@ export default function BieuDoTon({ loai, kho }) {
       </div>
       <Card>
         <CardHeader><CardTitle><TrendingUp />Dự báo tồn kho</CardTitle>
-          <NativeSelect className="ml-auto h-8 w-56" value={hangDB} onChange={(e) => setHangDB(e.target.value)} placeholder="6 hàng tồn nhiều nhất" options={duBao.ds.map((x) => [x.k, x.ten])} />
-          <NativeSelect className="h-8 w-28" value={String(soNgay)} onChange={(e) => setSoNgay(+e.target.value)} options={[["15", "15 ngày"], ["30", "30 ngày"], ["60", "60 ngày"], ["90", "90 ngày"]]} />
+          <NativeSelect className="ml-auto h-7 w-48 text-xs" value={hangDB} onChange={(e) => setHangDB(e.target.value)} placeholder="6 hàng tồn nhiều nhất" options={duBao.ds.map((x) => [x.k, x.ten])} />
+          <NativeSelect className="h-7 w-28 text-xs" value={String(soNgay)} onChange={(e) => setSoNgay(+e.target.value)} options={[["15", "15 ngày"], ["30", "30 ngày"], ["60", "60 ngày"], ["90", "90 ngày"]]} />
         </CardHeader>
         <CardContent className="grid gap-2">
           {hien.length ? <EChart height={320} option={{

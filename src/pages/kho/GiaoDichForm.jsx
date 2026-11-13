@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Save, Settings2, X } from "lucide-react";
+import { ClipboardPaste, Plus, Save, Settings2, X } from "lucide-react";
 import { useApp } from "@/store";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { useThietBi } from "@/thietbi/Host";
 import { so, plain } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { docSo } from "@/lib/paste";
-import { NGUON_GD, LOAI_GD, ngayStr, goiYBai, khuNhan } from "@/lib/kho";
+import { NGUON_GD, LOAI_GD, ngayStr, goiYBai, khuNhan, khuChoPhepHang, nhomCua } from "@/lib/kho";
 import { trangThai } from "@/lib/linetime";
 
 const TEN_GD = Object.fromEntries(LOAI_GD);
@@ -34,13 +34,17 @@ const moDanhMucKho = (onClose) => { try { localStorage.setItem("lg-danh-muc-tab"
 // đổi nghiệp vụ điền tiếp; bấm Lưu ghi cả danh sách (kèm dòng đang điền nếu đã có số lượng) một lần. Kiểm tra tồn có tính các dòng chờ (nhập trước rồi xuất cùng lúc được).
 // Nhập từ chuyến tàu tự lấy bãi nhận và hàng; thành phẩm ghi số lô.
 // Hàng chưa có bãi chứa (không bãi nhỏ nào nhận) thì không cho lưu: phải khai báo ở Danh mục › Kho bãi.
-export default function GiaoDichForm({ loaiKho, loaiGD: loaiDau, kho, sua, onClose }) {
+export default function GiaoDichForm({ loaiKho, loaiGD: loaiDau, kho, sua, onClose, onDan }) {
   const { D, api, run, toast } = useApp();
   const tbD = useThietBi()?.D;
   const tp = loaiKho === "thanh_pham";
   const dongKho = kho.dong.filter((d) => d.loai === loaiKho && !d.saiBai);
   const capKho = kho.cap.filter((c) => c.loai === loaiKho);
   const baiDs = [...new Set(dongKho.map((d) => d.ten_bai))];
+  // Bãi nhỏ (gian / lô) của một bãi lớn, xếp số tăng dần rồi chữ A–Z
+  const khuCuaBai = (b) => dongKho.filter((d) => d.ten_bai === b).sort((x, y) => String(x.ten).localeCompare(String(y.ten), "vi", { numeric: true, sensitivity: "base" }));
+  const khuMacDinh = (b) => { const ds = khuCuaBai(b); return ds.length === 1 ? ds[0].ten : ""; }; // bãi lớn chỉ có một bãi nhỏ thì tự chọn
+  const coBaiNho = !!D.coSql12; // CSDL đã chạy SQL 12 (cột ten_khu); chưa thì vẫn xếp bãi nhỏ theo hàng như cũ
   // Hộp Nhập liệu: chọn nghiệp vụ Nhập / Xuất / Điều chuyển ngay trong hộp (đổi nghiệp vụ giữ ngày, ca, bãi, số lượng, chứng từ, ghi chú)
   const [loaiGD, setLoaiGD] = useState(loaiDau);
   const vao = loaiGD === "nhap" || loaiGD === "dau_ky";
@@ -48,48 +52,70 @@ export default function GiaoDichForm({ loaiKho, loaiGD: loaiDau, kho, sua, onClo
   const [ds, setDs] = useState([]); // các lượt chờ lưu: { rec, taoLo }
   const laVao = (lg) => lg === "nhap" || lg === "dau_ky";
   // Tồn thay đổi bởi các lượt chờ lưu (cộng nhập / điều chuyển đến, trừ xuất / điều chuyển đi)
-  const doiTon = (bai, hang) => ds.reduce((t, { rec: r }) => t + (plain(r.hang) !== plain(hang) ? 0 : (r.ten_bai === bai ? (laVao(r.loai) ? r.so_luong : -r.so_luong) : 0) + (r.den_bai === bai ? r.so_luong : 0)), 0);
+  const cungKhu = (a, b) => !coBaiNho || plain(a || "") === plain(b || "");
+  const doiTon = (bai, hang, khuTen) => ds.reduce((t, { rec: r }) => t + (plain(r.hang) !== plain(hang) ? 0 : (r.ten_bai === bai && cungKhu(r.ten_khu, khuTen) ? (laVao(r.loai) ? r.so_luong : -r.so_luong) : 0) + (r.den_bai === bai && cungKhu(r.den_khu, khuTen) ? r.so_luong : 0)), 0);
   // Sửa một lượt đã ghi: lượt đó đang tính trong tồn, nên khi kiểm tra tồn phải cộng lại số lượng cũ
-  const hangTai = (bai) => [...new Set([...capKho.filter((c) => c.ten_bai === bai && (c.ton > 1e-6 || vao)).map((c) => c.hang), ...(sua && sua.ten_bai === bai && !vao ? [sua.hang] : []),
-    ...ds.filter(({ rec: r }) => (laVao(r.loai) && r.ten_bai === bai) || r.den_bai === bai).map(({ rec: r }) => r.hang)])];
+  const hangTai = (bai, khuRow) => [...new Set([...capKho.filter((c) => c.ten_bai === bai && (!khuRow || c.key === khuRow.key) && (c.ton > 1e-6 || vao)).map((c) => c.hang), ...(sua && sua.ten_bai === bai && !vao ? [sua.hang] : []),
+    ...ds.filter(({ rec: r }) => (laVao(r.loai) && r.ten_bai === bai && (!khuRow || plain(r.ten_khu || "") === plain(khuRow.ten))) || (r.den_bai === bai && (!khuRow || plain(r.den_khu || "") === plain(khuRow.ten)))).map(({ rec: r }) => r.hang)])];
   const khoiTao = (lg, o = {}) => {
     const ca = caHienTai(), bai = o.ten_bai ?? (baiDs[0] || ""), vaoMoi = lg === "nhap" || lg === "dau_ky";
-    return { ngay: o.ngay ?? ca.ngay, ca: o.ca ?? ca.so, ten_bai: bai, den_bai: "", hang: vaoMoi ? "" : hangTai(bai)[0] || "", so_luong: o.so_luong ?? "", so_lo: "", nguon: NGUON_GD[loaiKho][lg]?.[0]?.[0] || "khac", voyage_id: "", chung_tu: o.chung_tu ?? "", ghi_chu: o.ghi_chu ?? "" };
+    const khuTen = o.ten_khu !== undefined && khuCuaBai(bai).some((d) => d.ten === o.ten_khu) ? o.ten_khu : khuMacDinh(bai), khuRow = khuCuaBai(bai).find((d) => d.ten === khuTen);
+    return { ngay: o.ngay ?? ca.ngay, ca: o.ca ?? ca.so, ten_bai: bai, ten_khu: khuTen, den_bai: "", den_khu: "", hang: vaoMoi ? (khuRow?.kieu === "co_dinh_hang" && khuRow.hang ? khuRow.hang : "") : hangTai(bai, khuRow)[0] || "", so_luong: o.so_luong ?? "", so_lo: "", nguon: NGUON_GD[loaiKho][lg]?.[0]?.[0] || "khac", voyage_id: "", chung_tu: o.chung_tu ?? "", ghi_chu: o.ghi_chu ?? "" };
   };
   const [f, setF] = useState(() => sua ? {
-    ngay: String(sua.ngay).slice(0, 10), ca: (/^CA\s*(HC|\d+)/i.exec(sua.ca || "")?.[1] || "1").toUpperCase(), ten_bai: sua.ten_bai, den_bai: sua.den_bai || "", hang: sua.hang,
+    ngay: String(sua.ngay).slice(0, 10), ca: (/^CA\s*(HC|\d+)/i.exec(sua.ca || "")?.[1] || "1").toUpperCase(), ten_bai: sua.ten_bai, ten_khu: sua.ten_khu || khuMacDinh(sua.ten_bai), den_bai: sua.den_bai || "", den_khu: sua.den_khu || "", hang: sua.hang,
     so_luong: String(sua.so_luong).replace(".", ","), so_lo: sua.so_lo || "", nguon: sua.nguon || "khac", voyage_id: sua.voyage_id ? String(sua.voyage_id) : "", chung_tu: sua.chung_tu || "", ghi_chu: sua.ghi_chu || "",
   } : khoiTao(loaiDau));
   const doiLoai = (lg) => { if (lg === loaiGD) return; setLoaiGD(lg); setF((o) => khoiTao(lg, o)); };
   const set = (k) => (e) => setF((o) => ({ ...o, [k]: e.target.value }));
   const caNgay = dsCa(tbD, f.ngay);
   const doiNgay = (ngay) => { if (!ngay) return; setF((o) => ({ ...o, ngay, ca: dsCa(tbD, ngay).some((c) => c[0] === o.ca) ? o.ca : dsCa(tbD, ngay)[0]?.[0] || o.ca })); };
-  const doiBai = (bai) => setF((o) => ({ ...o, ten_bai: bai, hang: vao || hangTai(bai).some((h) => plain(h) === plain(o.hang)) ? o.hang : hangTai(bai)[0] || "", so_lo: "" }));
+  // Đổi bãi lớn: bãi nhỏ chỉ chọn trong bãi lớn đó (một bãi nhỏ thì tự chọn); hàng nhảy theo bãi nhỏ
+  const hangTheoKhu = (khuRow, o, bai) => {
+    if (!khuRow) return vao ? o.hang : hangTai(bai).some((h) => plain(h) === plain(o.hang)) ? o.hang : hangTai(bai)[0] || "";
+    if (vao) {
+      if (khuRow.kieu === "co_dinh_hang" && khuRow.hang) return khuRow.hang;       // bãi nhỏ cố định hàng: hàng nhảy theo
+      if (o.hang && khuChoPhepHang(khuRow, o.hang, kho.hangHoa)) return o.hang;
+      return khuRow.kieu === "tu_do" && khuRow.hang ? khuRow.hang : "";
+    }
+    const hs = hangTai(bai, khuRow);
+    return hs.some((h) => plain(h) === plain(o.hang)) ? o.hang : hs[0] || "";
+  };
+  const doiBai = (bai) => setF((o) => { const kt = khuMacDinh(bai), khuRow = khuCuaBai(bai).find((d) => d.ten === kt); return { ...o, ten_bai: bai, ten_khu: kt, hang: hangTheoKhu(khuRow, o, bai), so_lo: "" }; });
+  const doiKhu = (ten) => setF((o) => { const khuRow = khuCuaBai(o.ten_bai).find((d) => d.ten === ten); return { ...o, ten_khu: ten, hang: hangTheoKhu(khuRow, o, o.ten_bai), so_lo: "" }; });
+  const doiDenBai = (b) => setF((o) => ({ ...o, den_bai: b, den_khu: khuMacDinh(b) }));
   const coBai = (b) => baiDs.find((x) => plain(x) === plain(b));
   const bai = coBai(f.ten_bai), denBai = coBai(f.den_bai);
-  const hangCuaBai = bai ? hangTai(bai) : [];
+  const khuDi = bai ? khuCuaBai(bai).find((d) => d.ten === f.ten_khu) || null : null, khuDen = denBai ? khuCuaBai(denBai).find((d) => d.ten === f.den_khu) || null : null;
+  const hangCuaBai = bai ? hangTai(bai, khuDi) : [];
   const hang = f.hang.trim();
-  const hoanLai = sua && !vao && sua.ten_bai === bai && plain(sua.hang) === plain(hang) ? +sua.so_luong || 0 : 0;
-  const tonBH = (capKho.find((c) => c.ten_bai === bai && plain(c.hang) === plain(hang))?.ton || 0) + hoanLai + (bai && hang ? doiTon(bai, hang) : 0);
+  const hoanLai = sua && !vao && sua.ten_bai === bai && plain(sua.hang) === plain(hang) && (!khuDi || plain(sua.ten_khu || "") === plain(khuDi.ten) || !sua.ten_khu) ? +sua.so_luong || 0 : 0;
+  const tonBH = (capKho.find((c) => c.ten_bai === bai && (khuDi ? c.key === khuDi.key : true) && plain(c.hang) === plain(hang))?.ton || 0) + hoanLai + (bai && hang ? doiTon(bai, hang, khuDi?.ten) : 0);
   // Nhập: bãi nhỏ sẽ nhận hàng ở bãi đã chọn; điều chuyển: bãi nhỏ nhận ở bãi đến. Gợi ý các bãi nhận được hàng này
   const baiNhan = vao ? bai : dc ? denBai : null;
-  const khu = baiNhan && hang ? khuNhan(kho, baiNhan, hang) : null;
+  const khuChon = vao ? khuDi : dc ? khuDen : null;
+  const khu = baiNhan && hang ? (khuChon && khuChoPhepHang(khuChon, hang, kho.hangHoa) ? khuChon : khuChon ? null : khuNhan(kho, baiNhan, hang)) : null;
   const goiY = (vao || dc) && hang ? goiYBai(kho, hang, loaiKho).filter((g) => !dc || g.ten_bai !== bai).slice(0, 5) : [];
-  const dsHang = vao ? [...new Set([...hangCuaBai, ...(kho.hangHoa || []).map((h) => h.loai_hang)])].map((h) => [h, h, hangCuaBai.includes(h) ? "có ở bãi" : ""])
-    : hangCuaBai.map((h) => [h, h, `tồn ${so(capKho.find((c) => c.ten_bai === bai && c.hang === h)?.ton || 0)} t`]);
+  // Hàng nhập: bãi nhỏ cố định hàng → đúng hàng đó; cố định nhóm → hàng cùng nhóm; tự do → mọi hàng. Xuất / điều chuyển: hàng đang có ở bãi nhỏ
+  const hangChoPhep = (kho.hangHoa || []).map((h) => h.loai_hang).filter((h) => !khuDi || khuChoPhepHang(khuDi, h, kho.hangHoa));
+  const dsHang = vao ? [...new Set([...(khuDi?.kieu === "co_dinh_hang" && khuDi.hang ? [khuDi.hang] : []), ...hangCuaBai, ...hangChoPhep])].map((h) => [h, h, hangCuaBai.includes(h) ? "có ở bãi nhỏ" : ""])
+    : hangCuaBai.map((h) => [h, h, `tồn ${so(capKho.find((c) => c.ten_bai === bai && (!khuDi || c.key === khuDi.key) && c.hang === h)?.ton || 0)} t`]);
   const loTon = kho.lo.filter((l) => l.ten_bai === bai && plain(l.hang) === plain(hang));
   const tonLo = f.so_lo ? (loTon.find((l) => l.so_lo === f.so_lo)?.ton || 0) + (hoanLai && sua.so_lo === f.so_lo ? hoanLai : 0) : null;
   // Lỗi chặn lưu về bãi / hàng (hiện ngay dưới ô, bấm Lưu cũng báo)
   const loiBai = !f.ten_bai.trim() ? "Chọn bãi"
     : !bai ? `Bãi "${f.ten_bai.trim()}" chưa có trong danh mục kho bãi ${tp ? "thành phẩm" : "nguyên liệu"}`
+    : khuCuaBai(bai).length > 1 && !khuDi ? "Chọn bãi nhỏ"
     : dc && !f.den_bai.trim() ? "Chọn bãi đến"
     : dc && !denBai ? `Bãi "${f.den_bai.trim()}" chưa có trong danh mục kho bãi ${tp ? "thành phẩm" : "nguyên liệu"}`
-    : dc && denBai === bai ? "Bãi đến phải khác bãi đi"
+    : dc && khuCuaBai(denBai).length > 1 && !khuDen ? "Chọn bãi nhỏ đến"
+    : dc && denBai === bai && (!khuDi || !khuDen || khuDi.key === khuDen.key) ? "Bãi nhỏ đến phải khác bãi nhỏ đi"
+    : khuChon && hang && !khuChoPhepHang(khuChon, hang, kho.hangHoa) ? `Bãi nhỏ ${khuChon.ten} không nhận ${hang}${khuChon.kieu === "co_dinh_hang" && khuChon.hang ? ` (cố định hàng ${khuChon.hang})` : khuChon.kieu === "co_dinh_nhom" ? " (cố định nhóm khác)" : ""}`
     : !hang ? "Chọn hàng"
     : !vao && !hangCuaBai.some((h) => plain(h) === plain(hang)) ? `${bai} không có ${hang} (tồn 0 t)`
     : baiNhan && !khu ? `${baiNhan} chưa có bãi chứa ${hang}` : null;
   const hienLoi = !!loiBai && !loiBai.startsWith("Chọn"); // chưa chọn thì không báo đỏ, bấm Lưu mới nhắc
-  const canKhaiBao = !!loiBai && (!bai || (dc && !!f.den_bai.trim() && !denBai) || (baiNhan && hang && !khu));
+  const canKhaiBao = !!loiBai && (!bai || (dc && !!f.den_bai.trim() && !denBai) || (baiNhan && hang && !khu && !khuChon));
   // Chuyến tàu: nhập nguyên liệu từ tàu nhập; xuất thành phẩm theo tàu xuất (đang / sắp làm hàng)
   const huongTau = loaiGD === "nhap" ? "nhap" : "xuat";
   const tau = D.voyages.filter((v) => !v.huy && (v.huong || "nhap") === huongTau && !["da_roi"].includes(trangThai(v)));
@@ -98,7 +124,7 @@ export default function GiaoDichForm({ loaiKho, loaiGD: loaiDau, kho, sua, onClo
     setF((o) => {
       const n = { ...o, voyage_id: id };
       const baiTau = String(v?.bai_hang || "").split(";").map((x) => x.trim()).find((x) => baiDs.includes(x));
-      if (baiTau) n.ten_bai = baiTau;
+      if (baiTau) { n.ten_bai = baiTau; n.ten_khu = khuMacDinh(baiTau); }
       const hs = vao ? [...new Set([...hangTai(n.ten_bai), ...(kho.hangHoa || []).map((h) => h.loai_hang)])] : hangTai(n.ten_bai);
       const khop = hs.find((h) => plain(h) === plain(v?.ten_hang) || plain(h) === plain(v?.loai_hang)) || hs.find((h) => plain(v?.ten_hang || "").includes(plain(h)) || plain(h).includes(plain(v?.loai_hang || "")));
       if (khop) n.hang = khop;
@@ -115,10 +141,10 @@ export default function GiaoDichForm({ loaiKho, loaiGD: loaiDau, kho, sua, onClo
     if ((loaiGD === "xuat" || dc) && sl > (tonLo ?? tonBH) + 1e-6) { toast(`Vượt tồn: ${f.so_lo ? "lô" : "bãi"} chỉ còn ${so(tonLo ?? tonBH)} t`, "bad"); return null; }
     if (tp && loaiGD === "nhap" && !f.so_lo.trim()) { toast("Thành phẩm cần số lô", "bad"); return null; }
     const tenHang = (vao ? hangCuaBai.find((h) => plain(h) === plain(hang)) || (kho.hangHoa || []).find((h) => plain(h.loai_hang) === plain(hang))?.loai_hang : hangCuaBai.find((h) => plain(h) === plain(hang))) || hang;
-    const rec = { ngay: f.ngay, ca: tenCa(tbD, f.ngay, f.ca), loai: loaiGD, ten_bai: bai, den_bai: dc ? denBai : null, hang: tenHang, so_luong: sl,
+    const rec = { ngay: f.ngay, ca: tenCa(tbD, f.ngay, f.ca), loai: loaiGD, ten_bai: bai, ...(coBaiNho ? { ten_khu: khuDi?.ten || null, den_khu: dc ? khuDen?.ten || null : null } : {}), den_bai: dc ? denBai : null, hang: tenHang, so_luong: sl,
       so_lo: f.so_lo.trim() || null, nguon: f.nguon || null, voyage_id: f.voyage_id ? +f.voyage_id : null, chung_tu: f.chung_tu.trim() || null, ghi_chu: f.ghi_chu.trim() || null };
     const taoLo = tp && loaiGD === "nhap" && !(D.khoLo || []).some((l) => l.so_lo === rec.so_lo) && !ds.some((x) => x.rec.so_lo === rec.so_lo);
-    return { rec, taoLo, nhan: `${TEN_GD[loaiGD].toLowerCase()} ${so(sl)} t ${tenHang} · ${bai}${dc ? ` → ${denBai}` : ""}` };
+    return { rec, taoLo, nhan: `${TEN_GD[loaiGD].toLowerCase()} ${so(sl)} t ${tenHang} · ${bai}${khuDi ? ` › ${khuDi.ten}` : ""}${dc ? ` → ${denBai}${khuDen ? ` › ${khuDen.ten}` : ""}` : ""}` };
   };
   const dangDien = String(f.so_luong).trim() !== "";
   const themDong = () => { const d = lapDong(); if (!d) return; setDs((o) => [...o, d]); setF((o) => ({ ...o, so_luong: "", so_lo: "" })); };
@@ -143,10 +169,11 @@ export default function GiaoDichForm({ loaiKho, loaiGD: loaiDau, kho, sua, onClo
     if (r) onClose();
   };
   const nguon = NGUON_GD[loaiKho][loaiGD];
-  const chonGoiY = (g) => setF((o) => (dc ? { ...o, den_bai: g.ten_bai } : { ...o, ten_bai: g.ten_bai, hang: hang || o.hang }));
+  const chonGoiY = (g) => setF((o) => (dc ? { ...o, den_bai: g.ten_bai, den_khu: g.khu.ten } : { ...o, ten_bai: g.ten_bai, ten_khu: g.khu.ten, hang: hang || o.hang }));
   return (
     <Dialog onOpenChange={(o) => !o && onClose()} title={`${sua ? `Sửa ${TEN_GD[loaiGD].toLowerCase()}` : "Nhập liệu"} · ${tp ? "kho thành phẩm" : "kho nguyên liệu"}`} className="max-w-2xl"
       footer={<><Button variant="outline" onClick={onClose}>Hủy</Button>
+        {!sua && onDan && <Button variant="outline" className="mr-auto" onClick={onDan} title="Nạp nhiều lượt cùng lúc từ bảng Excel (dán hoặc chọn file)"><ClipboardPaste />Dán nhanh / Excel</Button>}
         {!sua && <Button variant="outline" onClick={themDong} title="Đưa dòng đang điền vào danh sách chờ, điền tiếp lượt khác (nhập / xuất / điều chuyển)"><Plus />Thêm dòng</Button>}
         <Button onClick={luu}><Save />Lưu{ds.length ? ` ${ds.length + (dangDien ? 1 : 0)} lượt` : ""}</Button></>}>
       <div className="grid gap-3 sm:grid-cols-3">
@@ -156,7 +183,7 @@ export default function GiaoDichForm({ loaiKho, loaiGD: loaiDau, kho, sua, onClo
             {ds.map((x, i) => (
               <div key={i} className="flex items-center gap-2 rounded px-1.5 py-1 hover:bg-accent">
                 <span className={cn("w-20 shrink-0 rounded px-1.5 py-0.5 text-center font-semibold", laVao(x.rec.loai) ? "bg-ok/15 text-ok" : x.rec.loai === "xuat" ? "bg-bad/15 text-bad" : "bg-info/15 text-info")}>{TEN_GD[x.rec.loai]}</span>
-                <span className="min-w-0 flex-1 truncate">{x.rec.ten_bai}{x.rec.den_bai ? ` → ${x.rec.den_bai}` : ""} · {x.rec.hang}{x.rec.so_lo ? ` · lô ${x.rec.so_lo}` : ""}<span className="text-muted-foreground"> · {x.rec.ngay.slice(8, 10)}/{x.rec.ngay.slice(5, 7)} {x.rec.ca}</span></span>
+                <span className="min-w-0 flex-1 truncate">{x.rec.ten_bai}{x.rec.ten_khu ? ` › ${x.rec.ten_khu}` : ""}{x.rec.den_bai ? ` → ${x.rec.den_bai}${x.rec.den_khu ? ` › ${x.rec.den_khu}` : ""}` : ""} · {x.rec.hang}{x.rec.so_lo ? ` · lô ${x.rec.so_lo}` : ""}<span className="text-muted-foreground"> · {x.rec.ngay.slice(8, 10)}/{x.rec.ngay.slice(5, 7)} {x.rec.ca}</span></span>
                 <b className="shrink-0 tabular-nums">{so(x.rec.so_luong)} t</b>
                 <button type="button" onClick={() => setDs((o) => o.filter((_, j) => j !== i))} className="shrink-0 rounded p-0.5 text-muted-foreground hover:text-bad" aria-label="Bỏ dòng này"><X className="h-3.5 w-3.5" /></button>
               </div>))}
@@ -171,11 +198,19 @@ export default function GiaoDichForm({ loaiKho, loaiGD: loaiDau, kho, sua, onClo
         <Field label="Ca"><NativeSelect value={f.ca} onChange={set("ca")} options={caNgay.map(([v, t, gio]) => [v, gio ? `${t} ${gio}` : t])} /></Field>
         {nguon && <Field label="Nguồn / mục đích"><NativeSelect value={f.nguon} onChange={set("nguon")} options={nguon} /></Field>}
         {f.nguon === "tau" && <Field label={loaiGD === "nhap" ? "Từ chuyến tàu" : "Xuất cho chuyến tàu"} className="sm:col-span-3"><NativeSelect value={f.voyage_id} onChange={chonTau} placeholder="Chọn chuyến…" options={tau.map((v) => [v.id, `${v.ten_tau} · ${v.ten_hang || v.loai_hang || ""} · ${so(v.khoi_luong)} t${v.bai_hang ? ` · ${v.bai_hang}` : ""}`])} /></Field>}
-        <Field label={dc ? "Từ bãi" : "Bãi"}><ChonGo value={f.ten_bai} onChange={doiBai} options={baiDs} placeholder="Chọn hoặc gõ tên bãi" /></Field>
-        {dc && <Field label="Đến bãi"><ChonGo value={f.den_bai} onChange={(v) => setF((o) => ({ ...o, den_bai: v }))} options={baiDs.filter((b) => b !== bai)} placeholder="Chọn hoặc gõ tên bãi" /></Field>}
-        <Field label="Hàng" hint={bai && hang ? `Tồn ở ${bai}: ${so(tonBH)} t` : undefined} className={dc ? "" : "sm:col-span-2"}>
-          <ChonGo value={f.hang} onChange={(v) => setF((o) => ({ ...o, hang: v, so_lo: "" }))} options={dsHang} placeholder={vao ? "Chọn hoặc gõ tên hàng" : "Chọn hàng có ở bãi"} />
+        <Field label={dc ? "Từ bãi" : "Bãi lớn"}><ChonGo value={f.ten_bai} onChange={doiBai} options={baiDs} placeholder="Chọn hoặc gõ tên bãi" /></Field>
+        <Field label={dc ? "Từ bãi nhỏ" : "Bãi nhỏ"}>
+          <NativeSelect value={f.ten_khu} onChange={(e) => doiKhu(e.target.value)} placeholder={bai ? "Chọn bãi nhỏ" : "Chọn bãi lớn trước"} disabled={!bai}
+            options={bai ? khuCuaBai(bai).map((d) => [d.ten, d.hang && plain(d.hang) !== plain(d.ten) ? `${d.ten} · ${d.hang}` : d.ten]) : []} />
         </Field>
+        <Field label="Hàng" hint={bai && hang ? `Tồn ở ${bai}${khuDi ? ` › ${khuDi.ten}` : ""}: ${so(tonBH)} t` : undefined}>
+          <ChonGo value={f.hang} onChange={(v) => setF((o) => ({ ...o, hang: v, so_lo: "" }))} options={dsHang} placeholder={vao ? "Chọn hoặc gõ tên hàng" : "Chọn hàng có ở bãi nhỏ"} />
+        </Field>
+        {dc && <Field label="Đến bãi"><ChonGo value={f.den_bai} onChange={doiDenBai} options={baiDs} placeholder="Chọn hoặc gõ tên bãi" /></Field>}
+        {dc && <Field label="Đến bãi nhỏ">
+          <NativeSelect value={f.den_khu} onChange={(e) => setF((o) => ({ ...o, den_khu: e.target.value }))} placeholder={denBai ? "Chọn bãi nhỏ" : "Chọn bãi đến trước"} disabled={!denBai}
+            options={denBai ? khuCuaBai(denBai).filter((d) => !(denBai === bai && d.ten === f.ten_khu)).map((d) => [d.ten, d.hang && plain(d.hang) !== plain(d.ten) ? `${d.ten} · ${d.hang}` : d.ten]) : []} />
+        </Field>}
         {hienLoi || ((vao || dc) && khu) ? (
           <div className="grid gap-1.5 text-xs sm:col-span-3">
             {hienLoi ? (
@@ -199,36 +234,6 @@ export default function GiaoDichForm({ loaiKho, loaiGD: loaiDau, kho, sua, onClo
           : <Field label="Lô" hint={tonLo != null ? `Tồn lô: ${so(tonLo)} t` : "Không chọn lô: trừ chung"}><NativeSelect value={f.so_lo} onChange={set("so_lo")} placeholder="—" options={[...(sua?.so_lo && !loTon.some((l) => l.so_lo === sua.so_lo) ? [[sua.so_lo, `${sua.so_lo} · đã xuất hết`]] : []), ...loTon.map((l) => [l.so_lo, `${l.so_lo} · ${so(l.ton)} t`])]} /></Field>)}
         <Field label="Chứng từ"><Input value={f.chung_tu} onChange={set("chung_tu")} placeholder="Số phiếu, biên bản…" /></Field>
         <Field label="Ghi chú" className="sm:col-span-3"><Input value={f.ghi_chu} onChange={set("ghi_chu")} /></Field>
-      </div>
-    </Dialog>
-  );
-}
-
-// Kiểm kê: nhập số đo thực tế, web tính chênh lệch với sổ và ghi thành lượt điều chỉnh kiểm kê
-export function KiemKeForm({ loaiKho, kho, onClose }) {
-  const { api, run, toast } = useApp();
-  const tbD = useThietBi()?.D;
-  const dongKho = kho.cap.filter((c) => c.loai === loaiKho).sort((a, b) => a.ten_bai.localeCompare(b.ten_bai) || a.hang.localeCompare(b.hang));
-  const [chon, setChon] = useState(0);
-  const [doTT, setDoTT] = useState("");
-  const [ghiChu, setGhiChu] = useState("");
-  const d = dongKho[chon];
-  const doSo = docSo(doTT), chenh = d && doSo != null ? doSo - d.ton : null;
-  const luu = async () => {
-    if (!d || doSo == null || doSo < 0) return toast("Nhập số đo thực tế", "bad");
-    const hien = caHienTai();
-    const r = await run(() => api.addGiaoDich([{ ngay: hien.ngay, ca: tenCa(tbD, hien.ngay, hien.so), loai: "kiem_ke", ten_bai: d.ten_bai, hang: d.hang, so_luong: chenh, do_thuc_te: doSo, so_sach: d.ton,
-      ghi_chu: [`Kiểm kê: đo ${so(doSo)} t, sổ ${so(d.ton)} t`, ghiChu.trim()].filter(Boolean).join(". ") }]), `Đã ghi kiểm kê ${d.ten_bai} – ${d.hang}: chênh ${so(chenh)} t`);
-    if (r) onClose();
-  };
-  return (
-    <Dialog onOpenChange={(o) => !o && onClose()} title="Kiểm kê" description="Nhập số đo thực tế; web ghi phần chênh lệch so với sổ thành lượt điều chỉnh kiểm kê."
-      footer={<><Button variant="outline" onClick={onClose}>Hủy</Button><Button onClick={luu}><Save />Ghi kiểm kê</Button></>}>
-      <div className="grid gap-3">
-        <Field label="Bãi – hàng" hint={d ? `Sổ: ${so(d.ton)} t` : undefined}><ChonGo tuDo={false} value={chon} onChange={setChon} placeholder="Gõ tên bãi hoặc hàng…" options={dongKho.map((x, i) => [i, `${x.ten_bai} · ${x.hang}`, `sổ ${so(x.ton)} t`])} /></Field>
-        <Field label="Số đo thực tế (tấn)"><Input className="num" inputMode="decimal" value={doTT} onChange={(e) => setDoTT(e.target.value)} autoFocus /></Field>
-        {chenh != null && <div className="text-sm">Chênh lệch: <b className={chenh < 0 ? "text-bad" : "text-ok"}>{chenh > 0 ? "+" : ""}{so(chenh, 2)} t</b>{d.ton > 0 && <span className="text-muted-foreground"> ({so((Math.abs(chenh) / d.ton) * 100, 1)}% so với sổ)</span>}</div>}
-        <Field label="Ghi chú"><Input value={ghiChu} onChange={(e) => setGhiChu(e.target.value)} placeholder="Phương pháp đo, người kiểm…" /></Field>
       </div>
     </Dialog>
   );

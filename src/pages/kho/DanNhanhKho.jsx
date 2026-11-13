@@ -14,7 +14,9 @@ const TRUONG = [
   { k: "ca", ten: "Ca", bi: ["ca", "ca kip"] },
   { k: "loai", ten: "Loại (nhập / xuất…)", bi: ["loai", "loai giao dich", "nhap/xuat", "nhap xuat"] },
   { k: "ten_bai", ten: "Bãi", bi: ["bai", "ten bai", "kho", "tu bai", "bai di"] },
+  { k: "ten_khu", ten: "Bãi nhỏ", bi: ["bai nho", "gian", "gian/lo", "gian lo", "khu", "tu bai nho", "bai nho di"] },
   { k: "den_bai", ten: "Đến bãi", bi: ["den bai", "bai den"] },
+  { k: "den_khu", ten: "Đến bãi nhỏ", bi: ["den bai nho", "bai nho den", "den gian"] },
   { k: "hang", ten: "Hàng", bi: ["hang", "ten hang", "hang hoa", "ten hang hoa", "loai hang"] },
   { k: "so_luong", ten: "Số lượng (t)", bi: ["so luong", "khoi luong", "kl", "tan", "so tan", "trong luong", "ton"] },
   { k: "so_lo", ten: "Số lô", bi: ["so lo", "lo", "ma lo"] },
@@ -71,7 +73,16 @@ export default function DanNhanhKho({ loaiKho, kho, onClose }) {
     if (loai === "dieu_chuyen" && !String(r.den_bai ?? "").trim()) loi.push("Điều chuyển thiếu bãi đến");
     else if (loai === "dieu_chuyen" && !den) thieuBai(`Bãi đến "${r.den_bai}" chưa có trong danh mục kho bãi`);
     else if (loai === "dieu_chuyen" && hang && !khuNhan(kho, den, hang)) thieuBai(`${den} chưa có bãi chứa ${hang}`);
-    const rec = { ngay, ca: String(r.ca ?? "").trim() || null, loai, ten_bai: bai || String(r.ten_bai ?? "").trim(), den_bai: loai === "dieu_chuyen" ? den || String(r.den_bai ?? "").trim() : null, hang: String(r.hang ?? "").trim(),
+    // Bãi nhỏ (SQL 12): cột Bãi nhỏ nếu có (phải thuộc bãi đó); không có thì nhập vào bãi nhỏ web xếp cho hàng, xuất từ bãi nhỏ đang có nhiều hàng đó nhất
+    let tenKhu = null, denKhu = null;
+    if (D.coSql12) {
+      const khuCua = (b) => kho.dong.filter((d) => d.loai === loaiKho && !d.saiBai && b && plain(d.ten_bai) === plain(b));
+      const tim = (b, ten, cot) => { const ds = khuCua(b), x = ds.find((d) => plain(d.ten) === plain(ten)); if (!x) loi.push(`Bãi nhỏ "${ten}" không có trong ${b || cot}`); return x?.ten || null; };
+      const tuDong = (b, h, vao) => { if (!b || !h) return null; const key = vao ? khuNhan(kho, b, h)?.key : kho.cap.filter((c) => c.ten_bai === b && plain(c.hang) === plain(h) && c.ton > 1e-6).sort((x, y) => y.ton - x.ton)[0]?.key || khuNhan(kho, b, h)?.key; return kho.dong.find((d) => d.key === key && !d.saiBai)?.ten || null; };
+      tenKhu = String(r.ten_khu ?? "").trim() ? (bai ? tim(bai, r.ten_khu, "bãi") : null) : tuDong(bai, hang, loai === "nhap" || loai === "dau_ky");
+      denKhu = loai !== "dieu_chuyen" ? null : String(r.den_khu ?? "").trim() ? (den ? tim(den, r.den_khu, "bãi đến") : null) : tuDong(den, hang, true);
+    }
+    const rec = { ngay, ca: String(r.ca ?? "").trim() || null, loai, ten_bai: bai || String(r.ten_bai ?? "").trim(), ...(D.coSql12 ? { ten_khu: tenKhu, den_khu: denKhu } : {}), den_bai: loai === "dieu_chuyen" ? den || String(r.den_bai ?? "").trim() : null, hang: String(r.hang ?? "").trim(),
       so_luong: sl, so_lo: String(r.so_lo ?? "").trim() || null, nguon: loai === "nhap" ? (loaiKho === "thanh_pham" ? "san_xuat" : "khac") : loai === "xuat" ? (loaiKho === "thanh_pham" ? "don_hang" : "cap_sx") : null,
       chung_tu: String(r.chung_tu ?? "").trim() || null, ghi_chu: String(r.ghi_chu ?? "").trim() || null };
     return { rec, loi, canh, chuaBai };

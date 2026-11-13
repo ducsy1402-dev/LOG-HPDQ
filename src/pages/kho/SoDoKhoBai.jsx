@@ -121,8 +121,30 @@ const tenLoai = (mai) => (mai ? "kho mái che" : "lộ thiên");
 const Nhay = ({ x, y, w, h }) => <rect x={x} y={y} width={w} height={h} rx="12" fill="none" stroke="#fde047" strokeWidth="2.5" className="kb-chon" />;
 
 // Một bãi lớn có nhiều bãi nhỏ: biểu tượng lớn + cột chữ bên phải, ngoặc nối, các bãi nhỏ (biểu tượng nhỏ + cột chữ bên phải); nhiều bãi nhỏ thì chia 3 cột
-const soCot = (b) => (b.dong.length > 6 ? 3 : 1);
-const caoCay = (b) => Math.max(BG_H, Math.ceil(b.dong.length / soCot(b)) * ROW);
+// Bãi nhỏ chia NHÁNH theo tên: phần chữ trước số cuối ("GA1".."GA5" → nhánh GA, "GB1".."GB5" → nhánh GB); mỗi nhánh một hàng ngang nối vào thân.
+// Chỉ chia khi có từ 2 nhánh trở lên; bãi nhỏ không có số cuối ("Gian A") đi chung một nhánh không tên ở cuối.
+const SLOT_N = 224, TOI_DA_NHANH = 5;
+export function chiaNhanh(dong) {
+  const g = new Map(), le = [];
+  for (const d of dong) {
+    const m = /^(.*?[^\d\s])\s*\d+\s*$/.exec(String(d.ten || "").trim());
+    if (m) { const k = m[1].trim(); if (!g.has(k)) g.set(k, []); g.get(k).push(d); } else le.push(d);
+  }
+  if (g.size < 2) return null;
+  const ds = [...g].sort((a, b) => a[0].localeCompare(b[0], "vi", { numeric: true })).map(([ten, x]) => ({ ten, ds: x }));
+  return le.length ? [...ds, { ten: "", ds: le }] : ds;
+}
+const cat5 = (a, n) => { const o = []; for (let i = 0; i < a.length; i += n) o.push(a.slice(i, i + n)); return o; };
+// Các hàng của một bãi lớn: [{ nhan, ds }]; có nhánh thì mỗi nhánh một (hoặc vài, nếu quá 5 bãi nhỏ) hàng, không thì chia cột như cũ
+function hangCua(b) {
+  const nh = chiaNhanh(b.dong);
+  if (nh) return nh.flatMap((g) => cat5(g.ds, TOI_DA_NHANH).map((ds, i) => ({ nhan: i === 0 ? g.ten : "", ds })));
+  const c = b.dong.length > 6 ? 3 : 1;
+  return cat5(b.dong, c).map((ds) => ({ nhan: "", ds }));
+}
+const soCot = (b) => (chiaNhanh(b.dong) ? TOI_DA_NHANH : b.dong.length > 6 ? 3 : 1);
+const slotCua = (b) => (chiaNhanh(b.dong) ? SLOT_N : SLOT);
+const caoCay = (b) => Math.max(BG_H, hangCua(b).length * ROW);
 // Cột chữ bên phải biểu tượng: tên, dòng phụ, tồn · %, sức chứa (m³ hoặc m² · lớp)
 function CotChu({ x, y, ten, phu, ton, lap, muc, them, ct, lon }) {
   const c = lon ? [20, 36, 53, 69] : [18, 32, 46, 60];
@@ -138,38 +160,40 @@ function CotChu({ x, y, ten, phu, ton, lap, muc, them, ct, lon }) {
     </g>);
 }
 function KhoiCay({ b, mai, x, y, onMo, uid, tp, tt, ttDong, nhay }) {
-  const n = b.dong.length, cols = soCot(b), rows = Math.ceil(n / cols), H = caoCay(b), bigTop = (H - BG_H) / 2, conTop = (H - rows * ROW) / 2, muc = mucDay(b.lapDay);
-  const yBig = bigTop + 84, yy = (i) => conTop + Math.floor(i / cols) * ROW, yCon = (i) => yy(i) + 8 + 46, xCon = (i) => XC + (i % cols) * SLOT, yBus = (r) => conTop + r * ROW + 1;
-  const v1 = Math.min(yBig, cols > 1 ? yBus(0) : yCon(0)), v2 = Math.max(yBig, cols > 1 ? yBus(rows - 1) : yCon(n - 1));
+  const n = b.dong.length, cols = soCot(b), SL = slotCua(b), hang = hangCua(b), rows = hang.length, H = caoCay(b), bigTop = (H - BG_H) / 2, conTop = (H - rows * ROW) / 2, muc = mucDay(b.lapDay);
+  const coNhanh = cols > 1 && !!chiaNhanh(b.dong);
+  const yBig = bigTop + 84, yy = (r) => conTop + r * ROW, yCon = (r) => yy(r) + 8 + 46, xCon = (c) => XC + c * SL, yBus = (r) => conTop + r * ROW + 1;
+  const v1 = Math.min(yBig, cols > 1 ? yBus(0) : yCon(0)), v2 = Math.max(yBig, cols > 1 ? yBus(rows - 1) : yCon(rows - 1));
   const dongLon = tiLeHang(b.dong.flatMap((d) => d.chua || []));
   return (
     <g transform={`translate(${x},${y})`} id={`kb-blk-${khoaTenBai(b.ten_bai)}`}>
-      {nhay && <Nhay x={-8} y={-6} w={(cols > 1 ? XC + cols * SLOT : BW) + 8} h={H + 12} />}
+      {nhay && <Nhay x={-8} y={-6} w={(cols > 1 ? XC + cols * SL : BW) + 8} h={H + 12} />}
       <g onClick={() => onMo(b.ten_bai)} style={{ cursor: "pointer" }} className="kb-nut">
         <title>{`${b.ten_bai} (${tenLoai(mai)}): tồn ${so(b.ton)} t${b.sucChua ? ` / ${so(b.sucChua)} t` : ""}${b.lapDay != null ? ` · ${pct(b.lapDay)}` : ""} · ${nhanCT(tp).toLowerCase()} ${chuCT(tt, tp)} · ${n} bãi nhỏ\nBấm để mở bảng chi tiết`}</title>
         <rect x="-4" y={bigTop} width={SX - 8} height={BG_H} rx="10" fill="#7cc4ff" className="kb-nen" />
         <BieuTuong mai={mai} id={`${uid}-l`} lap={b.lapDay} dong={dongLon} muc={muc} x={0} y={bigTop + 16} s={BS} />
-        <CotChu lon x={TX} y={bigTop} ten={cat(b.ten_bai, 17)} phu={`${tenLoai(mai)} · ${n} bãi nhỏ`} ton={b.ton} lap={b.lapDay} muc={muc} ct={chuCT(tt, tp)} />
+        <CotChu lon x={TX} y={bigTop} ten={cat(b.ten_bai, 17)} phu={coNhanh ? `${n} bãi nhỏ · ${hang.filter((h) => h.nhan).length} nhánh` : `${tenLoai(mai)} · ${n} bãi nhỏ`} ton={b.ton} lap={b.lapDay} muc={muc} ct={chuCT(tt, tp)} />
       </g>
       <g stroke="#6b9be0" strokeWidth="2.2" fill="none" strokeLinecap="round">
         <line x1={TX + 132} y1={yBig} x2={SX} y2={yBig} /><line x1={SX} y1={v1} x2={SX} y2={v2} />
         {cols === 1
-          ? b.dong.map((d, i) => <line key={d.key} x1={SX} y1={yCon(i)} x2={XC - 4} y2={yCon(i)} />)
-          : Array.from({ length: rows }).map((_, r) => { const k = Math.min(cols, n - r * cols); return (
-            <g key={r}><line x1={SX} y1={yBus(r)} x2={XC - 8 + (k - 1) * SLOT} y2={yBus(r)} />
-              {Array.from({ length: k }).map((__, c) => <path key={c} d={`M${XC - 8 + c * SLOT},${yBus(r)} V${yCon(r * cols)} H${XC - 2 + c * SLOT}`} />)}</g>); })}
+          ? hang.map((h, r) => <line key={r} x1={SX} y1={yCon(r)} x2={XC - 4} y2={yCon(r)} />)
+          : hang.map((h, r) => (
+            <g key={r}><line x1={SX} y1={yBus(r)} x2={XC - 8 + (h.ds.length - 1) * SL} y2={yBus(r)} />
+              {h.ds.map((__, c) => <path key={c} d={`M${XC - 8 + c * SL},${yBus(r)} V${yCon(r)} H${XC - 2 + c * SL}`} />)}</g>))}
       </g>
-      {b.dong.map((d, i) => {
-        const m = d.saiBai ? "bad" : mucDay(d.lapDay), cap = !tp && d.ngayCap != null, t = ttDong.get(d.key), x0 = xCon(i), y0 = yy(i);
+      {coNhanh && hang.map((h, r) => h.nhan ? <text key={r} x={SX + 10} y={yBus(r) - 5} fontSize="11" fontWeight="700" fill="#9fc3ea">{`Nhánh ${h.nhan}`}</text> : null)}
+      {hang.flatMap((h, r) => h.ds.map((d, c) => {
+        const m = d.saiBai ? "bad" : mucDay(d.lapDay), cap = !tp && d.ngayCap != null, t = ttDong.get(d.key), x0 = xCon(c), y0 = yy(r);
         return (
           <g key={d.key} onClick={() => onMo(b.ten_bai)} style={{ cursor: "pointer" }} className="kb-nut">
-            <title>{`${b.ten_bai} › ${d.ten}${d.chua?.length ? ` (${d.chua.map((c) => c.hang).join(", ")})` : ""}: tồn ${so(d.ton)} t${d.sucChua ? ` / ${so(d.sucChua)} t` : ""}${d.lapDay != null ? ` · ${pct(d.lapDay)}` : ""} · ${nhanCT(tp).toLowerCase()} ${chuCT(t, tp)}${cap ? ` · đủ cấp ${so(d.ngayCap, 1)} ngày` : ""}${d.saiBai ? " · hàng nằm sai bãi" : ""}`}</title>
-            <rect x={x0 - 2} y={y0 + 4} width={SLOT - 12} height={ROW - 6} rx="8" fill="#7cc4ff" className="kb-nen" />
-            <BieuTuong mai={mai} id={`${uid}-${i}`} lap={d.lapDay} dong={tiLeHang(d.chua)} muc={m} x={x0} y={y0 + 8} s={SM} />
+            <title>{`${b.ten_bai} › ${d.ten}${d.chua?.length ? ` (${d.chua.map((c) => c.hang).join(", ")})` : ""}: tồn ${so(d.ton)} t${d.sucChua ? ` / ${so(d.sucChua)} t` : ""}${d.lapDay != null ? ` · ${pct(d.lapDay)}` : ""} · ${nhanCT(tp).toLowerCase()} ${chuCT(t, tp)}\nBấm để mở bảng chi tiết`}</title>
+            <rect x={x0 - 2} y={y0 + 4} width={SL - 12} height={ROW - 6} rx="8" fill="#7cc4ff" className="kb-nen" />
+            <BieuTuong mai={mai} id={`${uid}-${r}-${c}`} lap={d.lapDay} dong={tiLeHang(d.chua)} muc={m} x={x0} y={y0 + 8} s={SM} />
             <CotChu x={x0 + 112} y={y0 + 4} ten={cat(d.ten, 19)} ton={d.ton} lap={d.lapDay} muc={m} ct={chuCT(t, tp)}
               them={cap ? <tspan fill={d.ngayCap < NGUONG_KHO.ngayCapDo ? CHU.bad : d.ngayCap < NGUONG_KHO.ngayCapVang ? CHU.warn : "#8fb4dc"}> · cấp {so(d.ngayCap, 1)} ng</tspan> : null} />
           </g>);
-      })}
+      }))}
     </g>);
 }
 

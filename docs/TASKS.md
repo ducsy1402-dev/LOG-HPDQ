@@ -16,7 +16,8 @@
 
 ## Khai thác kho bãi 4 tab, tự tính sức chứa (13/11/2026) — đã làm, chờ anh Sỹ xem (nhánh kho-bai-4-tab)
 - Hộp thêm kho thành phẩm / nguyên liệu: sức chứa khả dụng / danh nghĩa để trống thì tự tính, thiếu hệ số lưu chứa thì thông báo.
-- Menu Khai thác kho bãi: tab Overview, Kho HRC, Kho Thanh/Cuộn, Kho Nguyên liệu; mỗi tab kho 3 biểu đồ + 5 nút.
+- Menu Khai thác kho bãi: tab Overview, Kho HRC, Kho Thanh/Cuộn, Kho Nguyên liệu; mỗi tab kho 3 biểu đồ + 5 nút. Đợt chỉnh theo góp ý: Dán nhanh / Excel nằm trong Kế hoạch và Nhập / Xuất, bỏ Kiểm kê và Bảng tồn; kế hoạch theo ngày / tuần / tháng / năm, mỗi bãi nhỏ một dòng nhập + xuất; hộp nhập liệu có Bãi nhỏ; chuông cảnh báo góc phải; tab và ô lọc nhỏ hơn; biểu đồ tồn xếp theo khu vực; sơ đồ bãi vẽ theo nhánh (GA, GB…).
+- **Cần chạy `sql/12_bai_nho_ke_hoach_ky.sql` trong Supabase trước khi đẩy code** (chưa chạy thì bãi nhỏ và kế hoạch theo ngày / tuần / năm chưa dùng được).
 - **Cần anh xác nhận**: cách chia hàng cho hai tab thành phẩm (HRC = hàng có chữ HRC; Thanh/Cuộn = mọi thành phẩm còn lại). Hiện Danh mục chưa có gian / lô nào của Thanh/Cuộn nên tab này đang trống.
 
 ## Còn mở

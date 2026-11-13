@@ -2,7 +2,7 @@
 // Dùng chung chuẩn kỳ với bieuDoSanLuong.js (kyInfo = khoangKy(...)). Giao dịch kho truyền vào phải phủ từ ngày đầu kỳ đến hôm nay.
 import { tonTheoNgay, khuCuaKeHoach, nhomCua } from "./kho";
 import { plain } from "./format";
-import { ngayCuaThang } from "./sanLuongTT";
+import { ngayCuaKeHoach } from "./keHoachKy";
 import { khoaDiem, nhanDiem } from "./bieuDoSanLuong";
 
 const DAY_MS = 864e5;
@@ -48,7 +48,7 @@ export function chuoiKho(kyInfo, { kho, loai, nhom = "", keHoach = [], giaoDich 
     const d = khuCuaKeHoach(r, dongOk);
     if (!d || d.loai !== loai) continue;
     if (nhom && plain(r.nhom || nhomHangKho(r.hang || d.hang, kho)) !== plain(nhom)) continue;
-    const nd = ngayCuaThang(r.thang), moi = (+r.khoi_luong || 0) / nd.length;
+    const nd = ngayCuaKeHoach(r), moi = (+r.khoi_luong || 0) / nd.length; // kế hoạch ngày / tuần / tháng / năm chia đều theo ngày của kỳ
     for (const n of nd) if (tap.has(n)) cong(r.huong === "xuat" ? xuatKH : nhapKH, n, moi);
   }
   const tonHT = nhom ? kho.cap.filter((c) => c.loai === loai && khop(c.hang)).reduce((s, c) => s + c.ton, 0) : kho.dong.filter((d) => d.loai === loai).reduce((s, d) => s + d.ton, 0);

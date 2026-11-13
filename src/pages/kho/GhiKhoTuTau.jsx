@@ -61,7 +61,13 @@ function HopGhi({ v, kho, dx, ten, onClose }) {
     const l = loi.find(Boolean);
     if (l) return toast(l, "bad");
     const caTen = tenCa(tbD, ngay, ca);
-    const recs = rows.map((r) => giaoDichTuDong(v, { ...r, bai: baiDs.find((b) => plain(b) === plain(r.bai)) || r.bai }, { ngay, ca: caTen, huong }));
+    // Bãi nhỏ (SQL 12): nhập vào bãi nhỏ mà web xếp cho hàng; xuất từ bãi nhỏ đang có nhiều hàng đó nhất trong bãi
+    const khuTen = (bai, hang) => {
+      const key = huong === "nhap" ? kho.gan(bai, hang) : kho.cap.filter((c) => c.ten_bai === bai && plain(c.hang) === plain(hang) && c.ton > 1e-6).sort((x, y) => y.ton - x.ton)[0]?.key || kho.gan(bai, hang);
+      return kho.dong.find((d) => d.key === key && !d.saiBai)?.ten || null;
+    };
+    const recs = rows.map((r) => giaoDichTuDong(v, { ...r, bai: baiDs.find((b) => plain(b) === plain(r.bai)) || r.bai }, { ngay, ca: caTen, huong }))
+      .map((x) => (D.coSql12 ? { ...x, ten_khu: khuTen(x.ten_bai, x.hang) } : x));
     // Nhập thành phẩm: lô mới tự thêm vào danh sách lô (sẵn sàng xuất) như biểu mẫu Nhập kho
     const loMoi = huong === "nhap" ? [...new Map(recs.filter((x) => x.so_lo && !(D.khoLo || []).some((l) => l.so_lo === x.so_lo)).map((x) => [x.so_lo, { so_lo: x.so_lo, hang: x.hang, ngay_nhap: x.ngay, trang_thai: "san_sang" }])).values()] : [];
     const ok = await run(async () => {

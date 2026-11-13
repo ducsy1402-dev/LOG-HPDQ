@@ -12,10 +12,10 @@ const BAC = { xem: 0, nhap: 1, quan_ly: 2, quan_tri: 3 };
 // Tồn theo bãi – hàng – lô tính từ sổ (giống view kho_ton trên Supabase)
 function tonKho(gd) {
   const m = new Map();
-  const cong = (bai, hang, lo, ngay, sl) => { const k = `${bai}|${hang}|${lo || ""}`; const r = m.get(k) || { ten_bai: bai, hang, so_lo: lo || "", ton: 0, ngay_dau: ngay, ngay_cuoi: ngay }; r.ton += sl; if (ngay < r.ngay_dau) r.ngay_dau = ngay; if (ngay > r.ngay_cuoi) r.ngay_cuoi = ngay; m.set(k, r); };
+  const cong = (bai, hang, lo, ngay, sl, khu) => { const k = `${bai}|${khu || ""}|${hang}|${lo || ""}`; const r = m.get(k) || { ten_bai: bai, ten_khu: khu || "", hang, so_lo: lo || "", ton: 0, ngay_dau: ngay, ngay_cuoi: ngay }; r.ton += sl; if (ngay < r.ngay_dau) r.ngay_dau = ngay; if (ngay > r.ngay_cuoi) r.ngay_cuoi = ngay; m.set(k, r); };
   for (const g of gd) {
-    cong(g.ten_bai, g.hang, g.so_lo, g.ngay, g.loai === "xuat" || g.loai === "dieu_chuyen" ? -g.so_luong : +g.so_luong);
-    if (g.loai === "dieu_chuyen" && g.den_bai) cong(g.den_bai, g.hang, g.so_lo, g.ngay, +g.so_luong);
+    cong(g.ten_bai, g.hang, g.so_lo, g.ngay, g.loai === "xuat" || g.loai === "dieu_chuyen" ? -g.so_luong : +g.so_luong, g.ten_khu);
+    if (g.loai === "dieu_chuyen" && g.den_bai) cong(g.den_bai, g.hang, g.so_lo, g.ngay, +g.so_luong, g.den_khu);
   }
   return [...m.values()];
 }
@@ -55,7 +55,7 @@ export function makeDemoApi() {
       return clone({
         berths: db.berths, vessels: db.vessels, agents: db.agents, khoBai: db.khoBai,
         voyages: db.voyages, stops: db.stops, tien: [],
-        plans: [], khoTon: tonKho(db.giaoDich), khoLo: db.khoLo, giaoDich: db.giaoDich, dmCot: db.dmCot, coSql19: true, coSql24: true, coSql25: true, coSql26: true, coSql28: true, traHang: db.traHang, mucTieu: db.mucTieu, khoKeHoach: db.khoKeHoach, dmBang: db.dmBang,
+        plans: [], khoTon: tonKho(db.giaoDich), khoLo: db.khoLo, giaoDich: db.giaoDich, dmCot: db.dmCot, coSql12: true, coSql19: true, coSql24: true, coSql25: true, coSql26: true, coSql28: true, traHang: db.traHang, mucTieu: db.mucTieu, khoKeHoach: db.khoKeHoach, dmBang: db.dmBang,
       });
     },
     // Kho

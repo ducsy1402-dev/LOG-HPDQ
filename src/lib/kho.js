@@ -2,6 +2,7 @@
 //   Sức chứa (tấn) = diện tích (m²) × chiều cao chất đống (m) × tỉ trọng hàng (t/m³); có ô sức chứa nhập tay thì dùng ô đó.
 //   Lấp đầy = tồn ÷ sức chứa. Vàng từ 85%, đỏ từ 95%.
 //   Nguyên liệu: số ngày cấp còn lại = tồn ÷ tiêu thụ bình quân mỗi ngày (30 ngày gần nhất, hoặc nhập tay).
+import { ngayCuaKeHoach } from "./keHoachKy";
 import { plain, DAY, so } from "./format";
 import { thangTrongKy } from "./ky";
 import DM_BANG from "../data/dmBang.json";
@@ -132,7 +133,8 @@ export function khuVucKho(dmCot, dmBang) {
 // Trả { dong: [mỗi bãi nhỏ], bai: [mỗi bãi lớn], cap: [mỗi cặp bãi – hàng có tồn], lo: [lô còn tồn], gan(bai, hang) -> khóa bãi nhỏ }
 export function tongHopKho({ khoBai = [], khoTon = [], khoLo = [], giaoDich = [], hangHoa = [], now = Date.now() }) {
   const tonBH = new Map(), tenBH = new Map();
-  for (const t of khoTon) { const k = khoa(t.ten_bai, t.hang); tonBH.set(k, (tonBH.get(k) || 0) + +t.ton); if (!tenBH.has(k)) tenBH.set(k, { ten_bai: t.ten_bai, hang: t.hang }); }
+  // Tồn theo (bãi, bãi nhỏ, hàng): bãi nhỏ ghi ở sổ (SQL 12, cột ten_khu); sổ cũ không ghi bãi nhỏ thì để trống và xếp theo hàng như trước
+  for (const t of khoTon) { const k = khoa(t.ten_bai, t.hang) + "|" + plain(t.ten_khu || ""); tonBH.set(k, (tonBH.get(k) || 0) + +t.ton); if (!tenBH.has(k)) tenBH.set(k, { ten_bai: t.ten_bai, hang: t.hang, ten_khu: t.ten_khu || "" }); }
   // Tiêu thụ bình quân 30 ngày theo hàng (xuất cấp sản xuất / xuất khác) – nguyên liệu
   const tu30 = ngayStr(now - 30 * DAY), xuat30 = new Map(); // 30 ngày gần nhất, so theo ngày (yyyy-mm-dd)
   for (const g of giaoDich) if (g.loai === "xuat" && String(g.ngay).slice(0, 10) > tu30) xuat30.set(plain(g.hang), (xuat30.get(plain(g.hang)) || 0) + +g.so_luong);
@@ -145,7 +147,7 @@ export function tongHopKho({ khoBai = [], khoTon = [], khoLo = [], giaoDich = []
   for (const r of khoBai) { const k = plain(r.ten_bai); if (!theoTenBai.has(k)) theoTenBai.set(k, []); theoTenBai.get(k).push(r); }
   const nhomRow = (r) => plain(r.nhom_bai || nhomCua(r.hang, hangHoa));
   const daGan = new Map();
-  const gan = (bai, hang) => {
+  const ganTheoHang = (bai, hang) => {
     const k = khoa(bai, hang);
     if (daGan.has(k)) return daGan.get(k);
     const ds = theoTenBai.get(plain(bai)) || [], p = plain(hang), nh = plain(nhomCua(hang, hangHoa));
@@ -154,9 +156,20 @@ export function tongHopKho({ khoBai = [], khoTon = [], khoLo = [], giaoDich = []
     daGan.set(k, out);
     return out;
   };
+  // gan(bãi, hàng, bãi nhỏ?) -> khóa bãi nhỏ: có ghi bãi nhỏ (đúng tên bãi nhỏ trong bãi) thì theo đó, không thì xếp theo hàng
+  const gan = (bai, hang, khu) => {
+    const kp = plain(khu || "");
+    if (kp) { const r = (theoTenBai.get(plain(bai)) || []).find((x) => plain(tenKhu(x)) === kp); if (r) return khoaKhu(r); }
+    return ganTheoHang(bai, hang);
+  };
 
   const chuaCua = new Map();
-  for (const [k, ton] of tonBH) { const { ten_bai, hang } = tenBH.get(k), kk = gan(ten_bai, hang); if (!chuaCua.has(kk)) chuaCua.set(kk, []); chuaCua.get(kk).push({ ten_bai, hang, ton }); }
+  for (const [k, ton] of tonBH) {
+    const { ten_bai, hang, ten_khu } = tenBH.get(k), kk = gan(ten_bai, hang, ten_khu);
+    if (!chuaCua.has(kk)) chuaCua.set(kk, []);
+    const ds = chuaCua.get(kk), c = ds.find((x) => plain(x.hang) === plain(hang));
+    if (c) c.ton += ton; else ds.push({ ten_bai, hang, ton });
+  }
   const dong = khoBai.map((r) => {
     const key = khoaKhu(r), kieu = kieuKhu(r), chua = (chuaCua.get(key) || []).filter((c) => Math.abs(c.ton) > 1e-6 || plain(c.hang) === plain(r.hang));
     const ton = chua.reduce((s, c) => s + c.ton, 0);
@@ -176,8 +189,13 @@ export function tongHopKho({ khoBai = [], khoTon = [], khoLo = [], giaoDich = []
   // Tồn ở bãi – hàng không xếp được vào bãi nhỏ nào (hàng sai bãi)
   for (const [key, chua] of chuaCua) if (key.startsWith("sai|")) for (const c of chua) if (Math.abs(c.ton) > 1e-6)
     dong.push({ id: null, key, ten_bai: c.ten_bai, hang: c.hang, ten: c.hang, kieu: null, loai: loaiKhoTuHang(c.hang, hangHoa), chua: [c], sucChua: null, cachTinh: "không có bãi nhỏ nào nhận hàng này", ton: c.ton, lapDay: null, saiBai: true });
-  const cap = [...tonBH.keys()].map((k) => { const { ten_bai, hang } = tenBH.get(k); return { ten_bai, hang, ton: tonBH.get(k), key: gan(ten_bai, hang) }; });
-  for (const d of dong) if (!d.saiBai && d.hang && !tonBH.has(khoa(d.ten_bai, d.hang))) cap.push({ ten_bai: d.ten_bai, hang: d.hang, ton: 0, key: d.key });
+  const capMap = new Map();
+  for (const k of tonBH.keys()) {
+    const { ten_bai, hang, ten_khu } = tenBH.get(k), key = gan(ten_bai, hang, ten_khu), kc = `${key}|${plain(hang)}`;
+    if (capMap.has(kc)) capMap.get(kc).ton += tonBH.get(k); else capMap.set(kc, { ten_bai, hang, ton: tonBH.get(k), key });
+  }
+  const cap = [...capMap.values()];
+  for (const d of dong) if (!d.saiBai && d.hang && !capMap.has(`${d.key}|${plain(d.hang)}`)) cap.push({ ten_bai: d.ten_bai, hang: d.hang, ton: 0, key: d.key });
   const loaiKhu = new Map(dong.map((d) => [d.key, d.loai]));
   for (const c of cap) c.loai = loaiKhu.get(c.key) || loaiKhoTuHang(c.hang, hangHoa);
 
@@ -193,7 +211,7 @@ export function tongHopKho({ khoBai = [], khoTon = [], khoLo = [], giaoDich = []
   const loMap = new Map(khoLo.map((l) => [l.so_lo, l]));
   const lo = khoTon.filter((t) => t.so_lo && +t.ton > 1e-6).map((t) => {
     const l = loMap.get(t.so_lo) || {}, ngayNhap = l.ngay_nhap || t.ngay_dau;
-    return { so_lo: t.so_lo, hang: t.hang, ten_bai: t.ten_bai, ton: +t.ton, ngay_nhap: ngayNhap, tuoi: ngayNhap ? Math.floor((now - new Date(ngayNhap).getTime()) / DAY) : null, trang_thai: l.trang_thai || "san_sang", ghi_chu: l.ghi_chu || null };
+    return { so_lo: t.so_lo, hang: t.hang, ten_bai: t.ten_bai, ten_khu: t.ten_khu || "", ton: +t.ton, ngay_nhap: ngayNhap, tuoi: ngayNhap ? Math.floor((now - new Date(ngayNhap).getTime()) / DAY) : null, trang_thai: l.trang_thai || "san_sang", ghi_chu: l.ghi_chu || null };
   });
   return { dong, bai, cap, lo, gan };
 }
@@ -213,6 +231,15 @@ export function goiYBai(th, hang, loaiKho) {
     out.push({ ten_bai: b.ten_bai, khu: d, muc: plain(d.hang) === plain(hang) ? 0 : d.kieu === "co_dinh_nhom" ? 1 : 2, trong: d.sucChua > 0 ? Math.max(0, d.sucChua - d.ton) : null });
   }
   return out.sort((a, b) => a.muc - b.muc || (b.trong ?? -1) - (a.trong ?? -1));
+}
+
+// Bãi nhỏ d có nhận được hàng này không: cố định hàng → đúng hàng; cố định nhóm → cùng nhóm; tự do → mọi hàng
+export function khuChoPhepHang(d, hang, hangHoa = []) {
+  if (!d || !String(hang || "").trim()) return false;
+  const k = d.kieu || kieuKhu(d);
+  if (k === "tu_do") return true;
+  if (k === "co_dinh_nhom") return plain(nhomCua(hang, hangHoa)) === plain(d.nhomBai || nhomCua(d.hang, hangHoa));
+  return !d.hang || plain(d.hang) === plain(hang);
 }
 
 // Chỗ trống của một bãi (tấn), null nếu chưa tính được sức chứa
@@ -265,14 +292,14 @@ export function luuLuongKho(th, { giaoDich = [], voyages = [], nguong = NGUONG_K
   const tu = ngayStr(now - soNgay * DAY), homNay = ngayStr(now);
   const dauTien = new Map(), nhap = new Map(), xuat = new Map();
   const cong = (m, k, x) => m.set(k, (m.get(k) || 0) + x);
-  const ghi = (bai, hang, m, x) => { cong(m, `b|${plain(bai)}`, x); cong(m, th.gan(bai, hang), x); };
+  const ghi = (bai, hang, khu, m, x) => { cong(m, `b|${plain(bai)}`, x); cong(m, th.gan(bai, hang, khu), x); };
   for (const g of giaoDich) {
     const ng = String(g.ngay).slice(0, 10);
     for (const b of [g.ten_bai, g.den_bai]) { const k = plain(b); if (k && (!dauTien.has(k) || ng < dauTien.get(k))) dauTien.set(k, ng); }
     if (ng <= tu || ng > homNay) continue;
-    if (g.loai === "nhap") ghi(g.ten_bai, g.hang, nhap, +g.so_luong);
-    else if (g.loai === "xuat") ghi(g.ten_bai, g.hang, xuat, +g.so_luong);
-    else if (g.loai === "dieu_chuyen") { ghi(g.ten_bai, g.hang, xuat, +g.so_luong); if (g.den_bai) ghi(g.den_bai, g.hang, nhap, +g.so_luong); }
+    if (g.loai === "nhap") ghi(g.ten_bai, g.hang, g.ten_khu, nhap, +g.so_luong);
+    else if (g.loai === "xuat") ghi(g.ten_bai, g.hang, g.ten_khu, xuat, +g.so_luong);
+    else if (g.loai === "dieu_chuyen") { ghi(g.ten_bai, g.hang, g.ten_khu, xuat, +g.so_luong); if (g.den_bai) ghi(g.den_bai, g.hang, g.den_khu, nhap, +g.so_luong); }
   }
   const tau = new Map();
   for (const v of voyages) {
@@ -289,7 +316,7 @@ export function luuLuongKho(th, { giaoDich = [], voyages = [], nguong = NGUONG_K
     const seriB = tonTheoNgay(b.ton, giaoDich, (x) => plain(x) === kb, ngay, now);
     bai.set(b.ten_bai, { ...chiSoLuong({ ton: b.ton, sucChua: b.sucChua, nhap: nhap.get(`b|${kb}`) || 0, xuat: xuat.get(`b|${kb}`) || 0, ngay, seri: seriB, nguong }), tau: tau.get(kb) || [], kieu: kieuBai(b) });
     for (const d of b.dong) {
-      const seri = tonTheoNgay(d.ton, giaoDich, (x, h) => th.gan(x, h) === d.key, ngay, now);
+      const seri = tonTheoNgay(d.ton, giaoDich, (x, h, k) => th.gan(x, h, k) === d.key, ngay, now);
       khu.set(d.key, chiSoLuong({ ton: d.ton, sucChua: d.sucChua, nhap: nhap.get(d.key) || 0, xuat: xuat.get(d.key) || 0, ngay, seri, nguong }));
     }
   }
@@ -303,8 +330,8 @@ export function tonTheoNgay(tonHienTai, giaoDich, loc, soNgay = 30, now = Date.n
   const doiNgay = new Map();
   for (const g of giaoDich) {
     let sl = 0;
-    if (loc(g.ten_bai, g.hang)) sl += g.loai === "xuat" || g.loai === "dieu_chuyen" ? -g.so_luong : +g.so_luong;
-    if (g.loai === "dieu_chuyen" && g.den_bai && loc(g.den_bai, g.hang)) sl += +g.so_luong;
+    if (loc(g.ten_bai, g.hang, g.ten_khu)) sl += g.loai === "xuat" || g.loai === "dieu_chuyen" ? -g.so_luong : +g.so_luong;
+    if (g.loai === "dieu_chuyen" && g.den_bai && loc(g.den_bai, g.hang, g.den_khu)) sl += +g.so_luong;
     if (sl) { const k = String(g.ngay).slice(0, 10); doiNgay.set(k, (doiNgay.get(k) || 0) + sl); }
   }
   const out = []; let ton = tonHienTai;
@@ -378,10 +405,11 @@ export function khuCuaKeHoach(r, dong) {
 }
 // Kế hoạch nhập / xuất của từng bãi nhỏ trong khoảng [tu, den) (ms). Trả { khu: Map(khóa bãi nhỏ -> { nhap, xuat }), mat: số dòng kế hoạch không còn bãi nhỏ tương ứng }
 export function keHoachKhuTheoKy(keHoach, dong, tu, den) {
-  const phan = new Map(thangTrongKy(tu, den).map((x) => [x.thang, x.tyLe])), khu = new Map();
+  const a = ngayStr(tu), z = ngayStr(den - 1), khu = new Map();
   let mat = 0;
   for (const r of keHoach || []) {
-    const ty = phan.get(r.thang); if (!ty) continue;
+    const nd = ngayCuaKeHoach(r), ty = nd.filter((n) => n >= a && n <= z).length / nd.length; // kế hoạch ngày / tuần / tháng / năm: phần của kỳ nằm trong [tu, den)
+    if (!ty) continue;
     const d = khuCuaKeHoach(r, dong);
     if (!d) { mat++; continue; }
     const o = khu.get(d.key) || { nhap: 0, xuat: 0 };
@@ -395,7 +423,7 @@ export function thucTeKhuTheoKy(giaoDich, gan, tu, den) {
   for (const g of giaoDich) {
     const n = String(g.ngay).slice(0, 10);
     if (n < a || n > z || (g.loai !== "nhap" && g.loai !== "xuat")) continue;
-    const k = gan(g.ten_bai, g.hang), o = khu.get(k) || { nhap: 0, xuat: 0 };
+    const k = gan(g.ten_bai, g.hang, g.ten_khu), o = khu.get(k) || { nhap: 0, xuat: 0 };
     o[g.loai] += +g.so_luong; khu.set(k, o);
   }
   return khu;
@@ -405,7 +433,7 @@ export function tonCuoiNgayKhu(d, giaoDich, gan, ngay, now = Date.now()) {
   const d0 = new Date(now), homNay = new Date(d0.getFullYear(), d0.getMonth(), d0.getDate()).getTime();
   if (ngay >= homNay) return d.ton;
   const n = Math.round((homNay - ngay) / DAY) + 1;
-  return tonTheoNgay(d.ton, giaoDich, (b, h) => gan(b, h) === d.key, n, now)[0][1];
+  return tonTheoNgay(d.ton, giaoDich, (b, h, k) => gan(b, h, k) === d.key, n, now)[0][1];
 }
 // So sánh kế hoạch với thực tế của các bãi nhỏ trong kỳ [tu, den): nhập, xuất, tồn cuối kỳ.
 // Tồn kế hoạch cuối kỳ = tồn đầu kỳ (thực tế; kỳ ở tương lai thì tồn hiện tại cộng kế hoạch từ giờ đến đầu kỳ) + nhập kế hoạch − xuất kế hoạch.

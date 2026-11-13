@@ -51,7 +51,7 @@ export function AppProvider({ children }) {
 
   // Hàm ghi chỉ đụng tới chuyến tàu và dữ liệu đi kèm chuyến: lưu xong tải lại nhẹ
 const GHI_NHE = new Set(["insertVoyages", "updateVoyage", "deleteVoyage", "addStop", "updateStop", "deleteStop", "addEvent", "deleteEvent", "savePlan", "deletePlan", "addTraHang", "deleteTraHang", "saveTien", "saveThucTe"]);
-  const RONG = { berths: [], vessels: [], agents: [], khoBai: [], voyages: [], stops: [], tien: [], plans: null, khoTon: null, khoLo: null, giaoDich: null, dmCot: null, coSql19: false, coSql24: false, coSql25: false, coSql26: false, coSql28: false, traHang: null, mucTieu: null, khoKeHoach: null, dmBang: null };
+  const RONG = { berths: [], vessels: [], agents: [], khoBai: [], voyages: [], stops: [], tien: [], plans: null, khoTon: null, khoLo: null, giaoDich: null, dmCot: null, coSql19: false, coSql24: false, coSql25: false, coSql26: false, coSql28: false, coSql12: false, traHang: null, mucTieu: null, khoKeHoach: null, dmBang: null };
   const load = useCallback(async (r = roleRef.current, thang = tuThang, nhe = false) => {
     // Chưa chạy SQL 13 hoặc không có quyền Cảng: phần Cảng trống, phần Thiết bị cơ giới vẫn dùng được
     if (!r?.cang && !r?.kho) { setRaw({ ...RONG }); setTaiLuc(Date.now()); return; }
