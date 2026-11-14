@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea, NativeSelect, Checkbox, Field } from "@/components/ui/input";
 import { MucIcon } from "@/components/common";
 import { tachBang, docSo, docNgayGio } from "@/lib/paste";
-import { LOAI_GD, ngayStr, khuNhan } from "@/lib/kho";
+import { LOAI_GD, ngayStr, khuNhan, goiYBai, khuChoPhepHang } from "@/lib/kho";
 import { so, plain } from "@/lib/format";
 
 const TRUONG = [
@@ -14,9 +14,9 @@ const TRUONG = [
   { k: "ca", ten: "Ca", bi: ["ca", "ca kip"] },
   { k: "loai", ten: "Loại (nhập / xuất…)", bi: ["loai", "loai giao dich", "nhap/xuat", "nhap xuat"] },
   { k: "ten_bai", ten: "Bãi", bi: ["bai", "ten bai", "kho", "tu bai", "bai di"] },
-  { k: "ten_khu", ten: "Bãi nhỏ", bi: ["bai nho", "gian", "gian/lo", "gian lo", "khu", "tu bai nho", "bai nho di"] },
+  { k: "ten_khu", ten: "Gian/lô", bi: ["gian/lo", "gian lo", "gian / lo", "gian", "bai nho", "khu", "tu bai nho", "bai nho di", "tu gian/lo"] },
   { k: "den_bai", ten: "Đến bãi", bi: ["den bai", "bai den"] },
-  { k: "den_khu", ten: "Đến bãi nhỏ", bi: ["den bai nho", "bai nho den", "den gian"] },
+  { k: "den_khu", ten: "Đến gian/lô", bi: ["den gian/lo", "den gian lo", "gian/lo den", "den bai nho", "bai nho den", "den gian"] },
   { k: "hang", ten: "Hàng", bi: ["hang", "ten hang", "hang hoa", "ten hang hoa", "loai hang"] },
   { k: "so_luong", ten: "Số lượng (t)", bi: ["so luong", "khoi luong", "kl", "tan", "so tan", "trong luong", "ton"] },
   { k: "so_lo", ten: "Số lô", bi: ["so lo", "lo", "ma lo"] },
@@ -27,7 +27,9 @@ const doanCot = (c) => { const p = plain(c).replace(/[()]/g, " ").replace(/\s+/g
 const docLoai = (x, md) => { const p = plain(x); if (!p) return md; if (/dau ky|ton dau/.test(p)) return "dau_ky"; if (/kiem/.test(p)) return "kiem_ke"; if (/chuyen/.test(p)) return "dieu_chuyen"; if (/xuat/.test(p)) return "xuat"; if (/nhap/.test(p)) return "nhap"; return null; };
 const docNgay = (x) => { if (x == null || x === "") return ngayStr(Date.now()); const t = docNgayGio(x); return t ? ngayStr(new Date(t).getTime()) : null; };
 
-// Dán nhanh / nhập Excel nhiều lượt nhập – xuất kho (cả tồn đầu kỳ). Mỗi dòng: ngày, ca, loại, bãi, hàng, số lượng, lô, chứng từ.
+// Dán nhanh / nhập Excel nhiều lượt nhập – xuất kho (cả tồn đầu kỳ). Mỗi dòng: ngày, ca, loại, bãi, gian/lô, hàng, số lượng, lô, chứng từ.
+// Chỉ BẮT BUỘC hàng và số lượng. Thiếu ngày = hôm nay; thiếu ca = để trống; thiếu loại = loại chọn trong hộp;
+// thiếu bãi: suy ra từ cột Gian/lô (gian / lô chỉ có ở một bãi), không có thì theo hàng (nhập: bãi gợi ý nhận hàng; xuất: bãi đang tồn nhiều hàng đó nhất).
 export default function DanNhanhKho({ loaiKho, kho, onClose }) {
   const { D, api, run, toast, fail } = useApp();
   const [text, setText] = useState("");
@@ -52,7 +54,8 @@ export default function DanNhanhKho({ loaiKho, kho, onClose }) {
     } catch (e) { fail(e); }
   };
   // Bãi trong danh mục của loại kho này (khớp không dấu, lưu đúng tên danh mục)
-  const baiDm = new Map(kho.dong.filter((d) => d.loai === loaiKho && !d.saiBai).map((d) => [plain(d.ten_bai), d.ten_bai]));
+  const dongKhoNay = kho.dong.filter((d) => d.loai === loaiKho && !d.saiBai);
+  const baiDm = new Map(dongKhoNay.map((d) => [plain(d.ten_bai), d.ten_bai]));
   const dong = bang ? (coTieuDe ? bang.slice(1) : bang) : [];
   const kq = useMemo(() => dong.map((o) => {
     if (o.every((c) => c === "" || c == null)) return null;
@@ -61,15 +64,28 @@ export default function DanNhanhKho({ loaiKho, kho, onClose }) {
     const loai = docLoai(r.loai, loaiMD), ngay = docNgay(r.ngay), sl = typeof r.so_luong === "number" ? r.so_luong : docSo(r.so_luong);
     if (!loai) loi.push(`Không rõ loại "${r.loai}"`);
     if (!ngay) loi.push(`Ngày "${r.ngay}" không đọc được`);
-    if (!String(r.ten_bai ?? "").trim()) loi.push("Thiếu bãi");
     if (!String(r.hang ?? "").trim()) loi.push("Thiếu hàng");
     if (sl == null || (loai !== "kiem_ke" && !(sl > 0))) loi.push(`Số lượng "${r.so_luong ?? ""}" không hợp lệ`);
     // Chưa có bãi chứa: chặn cả lần lưu (khai báo ở Danh mục › Kho bãi rồi dán lại)
-    const bai = baiDm.get(plain(r.ten_bai)), den = baiDm.get(plain(r.den_bai)), hang = String(r.hang ?? "").trim();
-    let chuaBai = false;
+    const den = baiDm.get(plain(r.den_bai)), hang = String(r.hang ?? "").trim(), baiGhi = String(r.ten_bai ?? "").trim(), gianGhi = String(r.ten_khu ?? "").trim();
+    let chuaBai = false, bai = baiDm.get(plain(baiGhi));
     const thieuBai = (m) => { loi.push(m); chuaBai = true; };
-    if (String(r.ten_bai ?? "").trim() && !bai) thieuBai(`Bãi "${r.ten_bai}" chưa có trong danh mục kho bãi ${loaiKho === "thanh_pham" ? "thành phẩm" : "nguyên liệu"}`);
-    else if (bai && hang && (loai === "nhap" || loai === "dau_ky") && !khuNhan(kho, bai, hang)) thieuBai(`${bai} chưa có bãi chứa ${hang}`);
+    if (baiGhi && !bai) thieuBai(`Bãi "${baiGhi}" chưa có trong danh mục kho bãi ${loaiKho === "thanh_pham" ? "thành phẩm" : "nguyên liệu"}`);
+    if (!baiGhi) {
+      // Không ghi bãi: suy ra từ Gian/lô, không có thì theo hàng
+      const vao = loai === "nhap" || loai === "dau_ky";
+      if (gianGhi) {
+        const ds = dongKhoNay.filter((d) => plain(d.ten) === plain(gianGhi)), ok = hang ? ds.filter((d) => khuChoPhepHang(d, hang, kho.hangHoa)) : ds, bs = [...new Set((ok.length ? ok : ds).map((d) => d.ten_bai))];
+        if (!ds.length) thieuBai(`Gian/lô "${gianGhi}" chưa có trong danh mục kho bãi ${loaiKho === "thanh_pham" ? "thành phẩm" : "nguyên liệu"}`);
+        else if (bs.length === 1) bai = bs[0];
+        else loi.push(`Gian/lô "${gianGhi}" có ở ${bs.length} bãi (${bs.join(", ")}): thêm cột Bãi`);
+      } else if (hang) {
+        const goiY = vao ? goiYBai(kho, hang, loaiKho)[0]?.ten_bai : kho.cap.filter((c) => c.loai === loaiKho && plain(c.hang) === plain(hang) && c.ton > 1e-6).sort((x, y) => y.ton - x.ton)[0]?.ten_bai;
+        if (goiY) { bai = goiY; canh.push(`Không ghi bãi: web chọn ${goiY} theo hàng`); }
+        else loi.push(vao ? `Không bãi nào nhận hàng ${hang}: thêm cột Bãi hoặc Gian/lô` : `Không bãi nào đang có tồn ${hang}: thêm cột Bãi hoặc Gian/lô`);
+      } else loi.push("Thiếu bãi (hoặc gian/lô)");
+    }
+    if (bai && hang && (loai === "nhap" || loai === "dau_ky") && !khuNhan(kho, bai, hang)) thieuBai(`${bai} chưa có bãi chứa ${hang}`);
     if (loai === "dieu_chuyen" && !String(r.den_bai ?? "").trim()) loi.push("Điều chuyển thiếu bãi đến");
     else if (loai === "dieu_chuyen" && !den) thieuBai(`Bãi đến "${r.den_bai}" chưa có trong danh mục kho bãi`);
     else if (loai === "dieu_chuyen" && hang && !khuNhan(kho, den, hang)) thieuBai(`${den} chưa có bãi chứa ${hang}`);
@@ -77,7 +93,7 @@ export default function DanNhanhKho({ loaiKho, kho, onClose }) {
     let tenKhu = null, denKhu = null;
     if (D.coSql12) {
       const khuCua = (b) => kho.dong.filter((d) => d.loai === loaiKho && !d.saiBai && b && plain(d.ten_bai) === plain(b));
-      const tim = (b, ten, cot) => { const ds = khuCua(b), x = ds.find((d) => plain(d.ten) === plain(ten)); if (!x) loi.push(`Bãi nhỏ "${ten}" không có trong ${b || cot}`); return x?.ten || null; };
+      const tim = (b, ten, cot) => { const ds = khuCua(b), x = ds.find((d) => plain(d.ten) === plain(ten)); if (!x) loi.push(`Gian/lô "${ten}" không có trong ${b || cot}`); return x?.ten || null; };
       const tuDong = (b, h, vao) => { if (!b || !h) return null; const key = vao ? khuNhan(kho, b, h)?.key : kho.cap.filter((c) => c.ten_bai === b && plain(c.hang) === plain(h) && c.ton > 1e-6).sort((x, y) => y.ton - x.ton)[0]?.key || khuNhan(kho, b, h)?.key; return kho.dong.find((d) => d.key === key && !d.saiBai)?.ten || null; };
       tenKhu = String(r.ten_khu ?? "").trim() ? (bai ? tim(bai, r.ten_khu, "bãi") : null) : tuDong(bai, hang, loai === "nhap" || loai === "dau_ky");
       denKhu = loai !== "dieu_chuyen" ? null : String(r.den_khu ?? "").trim() ? (den ? tim(den, r.den_khu, "bãi đến") : null) : tuDong(den, hang, true);
@@ -100,7 +116,7 @@ export default function DanNhanhKho({ loaiKho, kho, onClose }) {
   const tenLoai = Object.fromEntries(LOAI_GD);
   return (
     <Dialog onOpenChange={(o) => !o && onClose()} className="max-w-[min(1200px,calc(100vw-24px))]" title="Dán nhanh / nhập Excel sổ kho"
-      description="Chép bảng từ Excel (Ctrl+C) rồi dán (Ctrl+V), hoặc chọn file Excel. Cột nhận được: ngày, ca, loại, bãi, đến bãi, hàng, số lượng, số lô, chứng từ, ghi chú. Thiếu cột Loại thì dùng loại chọn bên dưới."
+      description="Chép bảng từ Excel (Ctrl+C) rồi dán (Ctrl+V), hoặc chọn file Excel. Cột nhận được: Ngày, Ca, Loại, Bãi, Gian/lô, Đến bãi, Đến gian/lô, Hàng, Số lượng, Số lô, Chứng từ, Ghi chú. Chỉ cần có Hàng và Số lượng: thiếu Ngày = hôm nay, thiếu Ca thì để trống, thiếu Loại thì dùng loại chọn bên dưới, thiếu Bãi thì web suy ra từ Gian/lô hoặc từ hàng."
       footer={bang && <>{nChuaBai
           ? <span className="mr-auto flex flex-wrap items-center gap-2 text-sm text-bad">{nChuaBai} dòng chưa có bãi chứa: không lưu được (kể cả các dòng đúng, để khỏi trùng khi dán lại). Khai báo bãi rồi dán lại.
               <Button size="xs" variant="outline" onClick={moDanhMuc}><Settings2 />Khai báo bãi</Button></span>
@@ -113,7 +129,7 @@ export default function DanNhanhKho({ loaiKho, kho, onClose }) {
       </div>
       {!bang ? (
         <div className="grid gap-2">
-          <Textarea rows={9} className="font-mono text-xs" value={text} onChange={(e) => setText(e.target.value)} placeholder={"Ngày\tCa\tLoại\tBãi\tHàng\tSố lượng\tSố lô\tChứng từ\n24/10\tCA 1\tNhập\tBãi KTX\tĐá vôi <20mm\t1.250\t\tPN-0123"}
+          <Textarea rows={9} className="font-mono text-xs" value={text} onChange={(e) => setText(e.target.value)} placeholder={"Ngày\tCa\tLoại\tBãi\tGian/lô\tHàng\tSố lượng\tSố lô\tChứng từ\n24/10\tCA 1\tNhập\tBãi KTX\t\tĐá vôi <20mm\t1.250\t\tPN-0123"}
             onPaste={(e) => { const t = e.clipboardData.getData("text"); setTimeout(() => docBang(tachBang(t)), 0); }} />
           <div><Button onClick={() => docBang(tachBang(text))} disabled={!text.trim()}><ClipboardPaste />Đọc bảng</Button></div>
         </div>
@@ -129,7 +145,7 @@ export default function DanNhanhKho({ loaiKho, kho, onClose }) {
                 <tr key={r}>
                   <td className="min-w-[180px] align-top">{!x ? <span className="text-muted-foreground">Dòng trống</span> : x.loi.length
                     ? x.loi.map((l, i) => <div key={i} className="flex gap-1"><MucIcon muc="bad" className="h-3 w-3" />{l}</div>)
-                    : <><b>{tenLoai[x.rec.loai]}</b> {so(x.rec.so_luong, 2)} t<div className="text-muted-foreground">{x.rec.ngay} · {x.rec.ten_bai}</div>{x.canh.map((c, i) => <div key={i} className="flex gap-1"><MucIcon muc="warn" className="h-3 w-3" />{c}</div>)}</>}</td>
+                    : <><b>{tenLoai[x.rec.loai]}</b> {so(x.rec.so_luong, 2)} t<div className="text-muted-foreground">{x.rec.ngay} · {x.rec.ten_bai}{x.rec.ten_khu ? ` › ${x.rec.ten_khu}` : ""}</div>{x.canh.map((c, i) => <div key={i} className="flex gap-1"><MucIcon muc="warn" className="h-3 w-3" />{c}</div>)}</>}</td>
                   {o.map((c, i) => <td key={i} className="align-top">{String(c ?? "")}</td>)}
                 </tr>); })}</tbody>
             </table>

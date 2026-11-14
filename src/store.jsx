@@ -98,6 +98,7 @@ const GHI_NHE = new Set(["insertVoyages", "updateVoyage", "deleteVoyage", "addSt
       if (dangKiem.current || t.phase !== "ready" || t.busy || document.hidden) return;
       const el = document.activeElement;
       if (el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)) return;
+      if (document.querySelector('[role="dialog"], [role="alertdialog"]')) return; // đang mở hộp nhập liệu / xem thông tin: không tải lại giữa chừng (lưu xong web vẫn tự tải lại)
       dangKiem.current = true;
       try {
         const fp = await t.api.dauVanTay?.().catch(() => null) ?? null;

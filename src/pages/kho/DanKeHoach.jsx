@@ -10,11 +10,11 @@ import { plain, so } from "@/lib/format";
 
 // Dán nhanh / nhập Excel KẾ HOẠCH xuất – nhập kho của kỳ đang chọn: mỗi dòng một bãi nhỏ với khối lượng nhập và khối lượng xuất.
 // Chỉ đưa số vào bảng kế hoạch đang mở (chưa ghi); bấm "Lưu kế hoạch" ở hộp Kế hoạch để ghi.
-// Cột nhận được (dòng đầu là tiêu đề): bãi lớn · bãi nhỏ · hàng · nhập · xuất · ghi chú. Chỉ có cột "Bãi" thì khớp theo tên bãi lớn (bãi chỉ có một bãi nhỏ) hoặc "bãi lớn › bãi nhỏ".
+// Cột nhận được (dòng đầu là tiêu đề): Bãi · Gian/lô · Hàng · Nhập · Xuất · Ghi chú (tên cũ "Bãi lớn", "Bãi nhỏ" vẫn nhận).
+// Chỉ có cột "Bãi" thì khớp theo tên bãi (bãi chỉ có một gian / lô) hoặc "bãi › gian / lô".
 const COT = [
-  ["bai_lon", ["bai lon", "kho", "kho/bai", "kho bai", "ten kho", "ten bai"]],
-  ["bai_nho", ["bai nho", "gian", "gian/lo", "gian lo", "khu", "ten khu", "gian / lo"]],
-  ["bai", ["bai"]],
+  ["bai_lon", ["bai", "bai lon", "kho", "kho/bai", "kho bai", "ten kho", "ten bai"]],
+  ["bai_nho", ["gian/lo", "gian lo", "gian / lo", "bai nho", "gian", "lo", "khu", "ten khu", "ten gian"]],
   ["hang", ["hang", "hang hoa", "ten hang", "loai hang"]],
   ["nhap", ["nhap", "kl nhap", "khoi luong nhap", "nhap kho", "nhap (t)", "nhap t", "nhap tan"]],
   ["xuat", ["xuat", "kl xuat", "khoi luong xuat", "xuat kho", "xuat (t)", "xuat t", "xuat tan"]],
@@ -45,14 +45,14 @@ export default function DanKeHoach({ dong, nhan, onApDung, onClose }) {
   const kq = useMemo(() => {
     if (!bang) return null;
     const cot = bang[0].map(doanCot), dung = new Set(), c = cot.map((k) => (k && !dung.has(k) ? (dung.add(k), k) : ""));
-    if (!c.includes("nhap") && !c.includes("xuat")) return { loiCot: "Không thấy cột Nhập hoặc Xuất ở dòng đầu. Dòng đầu phải là tiêu đề cột, ví dụ: Bãi lớn · Bãi nhỏ · Hàng · Nhập · Xuất." };
-    if (!c.includes("bai_nho") && !c.includes("bai") && !c.includes("bai_lon")) return { loiCot: "Không thấy cột Bãi nhỏ (hoặc Bãi) ở dòng đầu." };
+    if (!c.includes("nhap") && !c.includes("xuat")) return { loiCot: "Không thấy cột Nhập hoặc Xuất ở dòng đầu. Dòng đầu phải là tiêu đề cột, ví dụ: Bãi · Gian/lô · Hàng · Nhập · Xuất." };
+    if (!c.includes("bai_nho") && !c.includes("bai_lon")) return { loiCot: "Không thấy cột Gian/lô (hoặc Bãi) ở dòng đầu." };
     const dsDong = bang.slice(1).filter((r) => r.some((x) => x !== "" && x != null)).map((o) => {
       const r = {}; c.forEach((k, i) => { if (k) r[k] = o[i]; });
-      const lon = plain(r.bai_lon ?? ""), nho = plain(r.bai_nho ?? ""), bai = plain(r.bai ?? ""), loi = [];
+      const lon = plain(r.bai_lon ?? ""), nho = plain(r.bai_nho ?? ""), loi = [];
       let khu = null;
-      if (nho) { const ds = dong.filter((d) => plain(d.ten) === nho && (!lon || plain(d.ten_bai) === lon)); khu = ds.length === 1 ? ds[0] : null; if (ds.length > 1) loi.push(`Bãi nhỏ "${r.bai_nho}" có ở nhiều bãi lớn: thêm cột Bãi lớn`); else if (!ds.length) loi.push(`Không có bãi nhỏ "${r.bai_nho}"${lon ? ` trong ${r.bai_lon}` : ""} ở kho này`); }
-      else { const t = lon || bai; const ds = dong.filter((d) => plain(d.ten_bai) === t || plain(tenKhu(d)) === t); khu = ds.length === 1 ? ds[0] : null; if (ds.length > 1) loi.push(`"${r.bai_lon ?? r.bai}" có ${ds.length} bãi nhỏ: thêm cột Bãi nhỏ`); else if (!ds.length) loi.push(`Không có bãi "${r.bai_lon ?? r.bai}" ở kho này`); }
+      if (nho) { const ds = dong.filter((d) => plain(d.ten) === nho && (!lon || plain(d.ten_bai) === lon)); khu = ds.length === 1 ? ds[0] : null; if (ds.length > 1) loi.push(`Gian/lô "${r.bai_nho}" có ở nhiều bãi: thêm cột Bãi`); else if (!ds.length) loi.push(`Không có gian/lô "${r.bai_nho}"${lon ? ` trong ${r.bai_lon}` : ""} ở kho này`); }
+      else { const ds = dong.filter((d) => plain(d.ten_bai) === lon || plain(tenKhu(d)) === lon); khu = ds.length === 1 ? ds[0] : null; if (ds.length > 1) loi.push(`"${r.bai_lon}" có ${ds.length} gian / lô: thêm cột Gian/lô`); else if (!ds.length) loi.push(`Không có bãi "${r.bai_lon}" ở kho này`); }
       const so1 = (x, ten) => { if (x === "" || x == null) return null; const v = typeof x === "number" ? x : docSo(x); if (v == null || !(v >= 0)) { loi.push(`${ten} "${x}" không hợp lệ`); return null; } return v; };
       const nhap = so1(r.nhap, "Nhập"), xuat = so1(r.xuat, "Xuất");
       if (nhap == null && xuat == null && !loi.length) loi.push("Không có khối lượng nhập / xuất");
@@ -63,7 +63,7 @@ export default function DanKeHoach({ dong, nhan, onApDung, onClose }) {
   const hopLe = kq?.dsDong?.filter((x) => !x.loi.length) || [];
 
   return (
-    <Dialog onOpenChange={(o) => !o && onClose()} className="max-w-[min(1000px,calc(100vw-24px))]" title="Dán nhanh / nhập Excel kế hoạch" description={`Kế hoạch ${nhan}. Chép bảng từ Excel (Ctrl+C) rồi dán (Ctrl+V), hoặc chọn file Excel. Dòng đầu là tiêu đề: Bãi lớn · Bãi nhỏ · Hàng · Nhập · Xuất · Ghi chú (Hàng, Ghi chú có thể bỏ).`}
+    <Dialog onOpenChange={(o) => !o && onClose()} className="max-w-[min(1000px,calc(100vw-24px))]" title="Dán nhanh / nhập Excel kế hoạch" description={`Kế hoạch ${nhan}. Chép bảng từ Excel (Ctrl+C) rồi dán (Ctrl+V), hoặc chọn file Excel. Dòng đầu là tiêu đề: Bãi · Gian/lô · Hàng · Nhập · Xuất · Ghi chú (Hàng, Ghi chú có thể bỏ).`}
       footer={<>
         <span className="mr-auto text-sm text-muted-foreground">{kq?.dsDong ? `${hopLe.length} dòng hợp lệ · ${kq.dsDong.length - hopLe.length} dòng lỗi (bỏ qua)` : ""}</span>
         {bang && <Button variant="outline" onClick={() => setBang(null)}><RotateCcw />Dán lại</Button>}
@@ -71,18 +71,18 @@ export default function DanKeHoach({ dong, nhan, onApDung, onClose }) {
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" hidden onChange={(e) => { if (e.target.files[0]) docFile(e.target.files[0]); e.target.value = ""; }} />
         <Button variant="outline" onClick={() => fileRef.current.click()}><Upload />Chọn file Excel</Button>
-        <span className="text-xs text-muted-foreground">Số đưa vào bảng thay số đang có của bãi nhỏ đó; chưa ghi cho tới khi bấm Lưu kế hoạch.</span>
+        <span className="text-xs text-muted-foreground">Số đưa vào bảng thay số đang có của gian / lô đó; chưa ghi cho tới khi bấm Lưu kế hoạch.</span>
       </div>
       {!bang ? (
         <div className="grid gap-2">
-          <Textarea rows={9} className="font-mono text-xs" value={text} onChange={(e) => setText(e.target.value)} placeholder={"Bãi lớn\tBãi nhỏ\tHàng\tNhập\tXuất\nKho nóng HRC1\tGian A\tThép cuộn HRC\t5.800\t5.000"}
+          <Textarea rows={9} className="font-mono text-xs" value={text} onChange={(e) => setText(e.target.value)} placeholder={"Bãi\tGian/lô\tHàng\tNhập\tXuất\nKho nóng HRC1\tGian A\tThép cuộn HRC\t5.800\t5.000"}
             onPaste={(e) => { const t = e.clipboardData.getData("text"); setTimeout(() => docBang(tachBang(t)), 0); }} />
           <div><Button onClick={() => docBang(tachBang(text))} disabled={!text.trim()}><ClipboardPaste />Đọc bảng</Button></div>
         </div>
       ) : kq.loiCot ? <div className="flex gap-1.5 text-sm text-bad"><MucIcon muc="bad" className="mt-0.5" />{kq.loiCot}</div> : (
         <div className="scroll-x max-h-[55vh] rounded-md border">
           <table className="tbl text-xs">
-            <thead><tr><th>Kết quả</th><th>Bãi nhỏ</th><th>Hàng</th><th className="num">Nhập (t)</th><th className="num">Xuất (t)</th><th>Ghi chú</th></tr></thead>
+            <thead><tr><th>Kết quả</th><th>Bãi › Gian/lô</th><th>Hàng</th><th className="num">Nhập (t)</th><th className="num">Xuất (t)</th><th>Ghi chú</th></tr></thead>
             <tbody>{kq.dsDong.map((x, i) => (
               <tr key={i}>
                 <td className="min-w-[160px] align-top">{x.loi.length ? x.loi.map((l, j) => <div key={j} className="flex gap-1 text-bad"><MucIcon muc="bad" className="h-3 w-3" />{l}</div>) : <span className="text-ok">Hợp lệ</span>}</td>

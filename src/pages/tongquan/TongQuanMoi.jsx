@@ -153,8 +153,9 @@ export default function TongQuanMoi({ onMo, go, tongCanhBao }) {
   const cuon = (id) => { setThu((o) => ({ ...o, [id]: false })); setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" }), 30); };
   const doiThu = (id) => setThu((o) => ({ ...o, [id]: !o[id] }));
   const bat = (id) => setCt((o) => ({ ...o, [id]: !o[id] }));
-  const ChiTiet = ({ id, ten, children }) => (
-    <div>
+  // Gọi như hàm (không phải thẻ <ChiTiet>): component định nghĩa trong thân hàm bị dựng lại mỗi lần dữ liệu cập nhật
+  const chiTiet = (id, ten, children) => (
+    <div key={id}>
       <button type="button" onClick={() => bat(id)} className="flex items-center gap-1 text-xs font-medium text-primary hover:underline"><ChevronDown className={`h-4 w-4 transition-transform ${ct[id] ? "" : "-rotate-90"}`} />{ten}</button>
       {ct[id] && <div className="mt-2">{children}</div>}
     </div>
@@ -296,11 +297,10 @@ export default function TongQuanMoi({ onMo, go, tongCanhBao }) {
                 </ul>) : <ChuaCo>Không có thiết bị đang hỏng.</ChuaCo>}
             </Khung>
           </div>
-          <ChiTiet id="doi" ten="Bảng đội xe (từng thiết bị, đỏ = hỏng)">
-          <Khung ten="Bảng đội xe" phu="mỗi ô một thiết bị · đỏ hỏng · tím bảo dưỡng chiến lược" onChiTiet={() => onMo("thiet-bi")}>
-            <BangDoiXe nhom={tbm.nhom} onXe={() => go("thiet-bi/su-kien")} />
-          </Khung>
-          </ChiTiet>
+          {chiTiet("doi", "Bảng đội xe (từng thiết bị, đỏ = hỏng)",
+            <Khung ten="Bảng đội xe" phu="mỗi ô một thiết bị · đỏ hỏng · tím bảo dưỡng chiến lược" onChiTiet={() => onMo("thiet-bi")}>
+              <BangDoiXe nhom={tbm.nhom} onXe={() => go("thiet-bi/su-kien")} />
+            </Khung>)}
         </MangTQ>)}
     </div>
   );

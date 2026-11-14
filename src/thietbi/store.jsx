@@ -94,6 +94,7 @@ export function AppProvider({ children }) {
       if (dang || document.hidden || busyRef.current) return;
       const el = document.activeElement;
       if (el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)) return;
+      if (document.querySelector('[role="dialog"], [role="alertdialog"]')) return; // đang mở hộp nhập liệu / xem thông tin: không tải lại giữa chừng
       dang = true;
       try {
         const fp = await api.dauVanTay?.().catch(() => null) ?? null;

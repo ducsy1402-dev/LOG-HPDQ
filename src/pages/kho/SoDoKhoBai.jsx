@@ -14,7 +14,7 @@ import BanDoDinhVi from "./BanDoDinhVi";
 //   • Thể tích (m³): đang chứa = Σ tồn ÷ tỉ trọng hàng; tối đa = diện tích × chiều cao chất đống (không có thì sức chứa ÷ tỉ trọng). Bãi lớn = tổng các bãi nhỏ.
 // Kho / bãi có mái che: lấy cột "mái che" ở Danh mục › Khai báo kho / bãi nếu có; chưa có thì đoán theo tên (tên bắt đầu bằng "Kho", trừ "Kho hở" → có mái che).
 // BS / SM: tỉ lệ biểu tượng lớn / nhỏ; TX: cột chữ của bãi lớn; SX: trục ngoặc; XC: chỗ bắt đầu bãi nhỏ; SLOT: ô một bãi nhỏ
-const VB = 1480, PAD = 16, BGAP = 20, ROW = 58, SM = 0.44, BS = 0.72, BG_H = 96, TX = 150, SX = 296, XC = 316, SLOT = 232, BW = XC + SLOT, CW_GON = 292, GON_H = 104, KHOANG = 16;
+const VB = 1480, PAD = 16, BGAP = 20, ROW = 66, SM = 0.44, BS = 0.72, BG_H = 100, TX = 150, SX = 296, XC = 316, SLOT = 232, BW = XC + SLOT, CW_GON = 292, GON_H = 108, KHOANG = 16;
 const VIEN = { ok: "#9ad7ff", warn: "#fcd34d", bad: "#fb7185", xam: "#9ad7ff" };
 const CHU = { ok: "#86efac", warn: "#fcd34d", bad: "#fda4af", xam: "#9fb7d9" };
 const FILL = { ok: "#34d399", warn: "#fbbf24", bad: "#f43f5e", xam: "#64748b" };
@@ -155,14 +155,14 @@ const soCot = (b, m) => hangCua(b, m).reduce((t, h) => Math.max(t, h.ds.length),
 const slotCua = (b, m) => (xepNgang(b, m) && soCot(b, m) > 1 ? SLOT_N : SLOT);
 const caoCay = (b, m) => Math.max(BG_H, hangCua(b, m).length * ROW);
 // Cột chữ bên phải biểu tượng: tên, dòng phụ, tồn · %, sức chứa (m³ hoặc m² · lớp)
-function CotChu({ x, y, ten, phu, ton, lap, muc, them, ct, lon }) {
-  const c = lon ? [20, 36, 53, 69] : [15, 29, 43];
+function CotChu({ x, y, ten, phu, ton, lap, muc, them, ct, lon, chuaPB }) {
+  const c = lon ? [20, 40, 60, 80] : [16, 33, 50];
   return (
     <g>
       <text x={x} y={y + c[0]} fontSize={lon ? 14 : 12} fontWeight="700" fill="#e6f2ff">{ten}</text>
       {lon
         ? <><text x={x} y={y + c[1]} fontSize="11" fill="#8fb4dc">{phu}</text>
-          <text x={x} y={y + c[2]} fontSize="12.5" fontWeight="700" fill={CHU[muc]}>{so(ton, 0)} t · {lap != null ? pct(lap) : "—"}</text>
+          <text x={x} y={y + c[2]} fontSize="12.5" fontWeight="700" fill={CHU[muc]}>{chuaPB ? "Chưa phân bổ" : `${so(ton, 0)} t · ${lap != null ? pct(lap) : "—"}`}</text>
           <text x={x} y={y + c[3]} fontSize="11.5" fill="#9fc3ea">{ct}</text></>
         : <><text x={x} y={y + c[1]} fontSize="11.5" fontWeight="700" fill={CHU[muc]}>{so(ton, 0)} t · {lap != null ? pct(lap) : "—"}{them}</text>
           <text x={x} y={y + c[2]} fontSize="10.5" fill="#9fc3ea">{ct}</text></>}
@@ -210,14 +210,15 @@ function KhoiCay({ b, mai, x, y, onMo, uid, tp, tt, ttDong, nhay }) {
 
 // Bãi lớn chỉ có một bãi nhỏ: một khối gọn (biểu tượng + cột chữ bên phải)
 function KhoiGon({ b, mai, x, y, onMo, uid, tt, tp, nhay }) {
-  const d = b.dong[0], muc = mucDay(b.lapDay), hang = (d?.chua || []).filter((c) => c.ton > 0).map((c) => c.hang).join(", ") || d?.hang || "";
+  const d = b.dong[0], muc = mucDay(b.lapDay), hang = (d?.chua || []).filter((c) => c.ton > 0).map((c) => c.hang).join(", ") || d?.hang || "", pb = !!b.chuaPB;
+  const ctPB = tt?.dt ? `${so(tt.dt, 0)} m²` : "—"; // bãi chưa phân bổ: chỉ có diện tích nếu đã khai báo
   return (
-    <g transform={`translate(${x},${y})`} id={`kb-blk-${khoaTenBai(b.ten_bai)}`} onClick={() => onMo(b.ten_bai)} style={{ cursor: "pointer" }} className="kb-nut">
-      <title>{`${b.ten_bai} (${tenLoai(mai)})${hang ? ` · ${hang}` : ""}: tồn ${so(b.ton)} t${b.sucChua ? ` / ${so(b.sucChua)} t` : ""}${b.lapDay != null ? ` · ${pct(b.lapDay)}` : ""} · ${nhanCT(tp).toLowerCase()} ${chuCT(tt, tp)}\nBấm để mở bảng chi tiết`}</title>
-      <rect x="-4" y="0" width={CW_GON - 12} height={GON_H - 10} rx="10" fill="#7cc4ff" className="kb-nen" />
+    <g transform={`translate(${x},${y})`} id={`kb-blk-${khoaTenBai(b.ten_bai)}`} onClick={pb ? undefined : () => onMo(b.ten_bai)} style={pb ? { opacity: 0.6 } : { cursor: "pointer" }} className={pb ? undefined : "kb-nut"}>
+      <title>{pb ? `${b.ten_bai} (${tenLoai(mai)}): đã khai báo ở Khai báo kho / bãi nhưng chưa phân bổ gian / lô nào (thêm ở Danh mục › Kho bãi)` : `${b.ten_bai} (${tenLoai(mai)})${hang ? ` · ${hang}` : ""}: tồn ${so(b.ton)} t${b.sucChua ? ` / ${so(b.sucChua)} t` : ""}${b.lapDay != null ? ` · ${pct(b.lapDay)}` : ""} · ${nhanCT(tp).toLowerCase()} ${chuCT(tt, tp)}\nBấm để mở bảng chi tiết`}</title>
+      {!pb && <rect x="-4" y="0" width={CW_GON - 12} height={GON_H - 10} rx="10" fill="#7cc4ff" className="kb-nen" />}
       {nhay && <Nhay x={-6} y={-2} w={CW_GON - 8} h={GON_H - 6} />}
       <BieuTuong mai={mai} id={`${uid}-g`} lap={b.lapDay} dong={tiLeHang(d?.chua)} muc={muc} x={0} y={14} s={BS} />
-      <CotChu lon x={TX} y={0} ten={cat(b.ten_bai, 16)} phu={`${tenLoai(mai)} · ${cat(hang || "chưa có hàng", 14)}`} ton={b.ton} lap={b.lapDay} muc={muc} ct={chuCT(tt, tp)} />
+      <CotChu lon x={TX} y={0} ten={cat(b.ten_bai, 16)} phu={`${tenLoai(mai)} · ${pb ? "chưa phân bổ" : cat(hang || "chưa có hàng", 14)}`} ton={b.ton} lap={b.lapDay} muc={muc} ct={pb ? ctPB : chuCT(tt, tp)} chuaPB={pb} />
     </g>);
 }
 
@@ -225,11 +226,16 @@ function KhoiGon({ b, mai, x, y, onMo, uid, tt, tp, nhay }) {
 // Bãi nhỏ trong mỗi bãi lớn xếp tăng dần (số trước, chữ sau, A–Z).
 export default function SoDoKhoBai({ bai: baiGoc, kho, onMo, ten, tp: tpEp }) {
   const { D } = useApp();
-  const bai = useMemo(() => baiGoc.map((b) => ({ ...b, dong: [...b.dong].sort((x, y) => String(x.ten).localeCompare(String(y.ten), "vi", { numeric: true, sensitivity: "base" })) })), [baiGoc]);
+  const kb = useMemo(() => khaiBaoBai(D.dmBang), [D.dmBang]);
+  // Bãi đã khai báo ở Khai báo kho / bãi mà chưa có gian / lô nào trong Danh mục › Kho bãi (chưa phân bổ vào kho thành phẩm hay nguyên liệu): vẫn vẽ trên sơ đồ, thông tin để trống
+  const bai = useMemo(() => {
+    const co = new Set(baiGoc.map((b) => khoaTenBai(b.ten_bai)));
+    const chua = [...kb].filter(([k, v]) => v.ten && !co.has(k)).map(([, v]) => ({ ten_bai: v.ten, dong: [], ton: 0, sucChua: 0, thieuSucChua: false, dienTich: v.dienTich || 0, lapDay: null, loai: "chua_phan_bo", chuaPB: true }));
+    return [...baiGoc, ...chua].map((b) => ({ ...b, dong: [...b.dong].sort((x, y) => String(x.ten).localeCompare(String(y.ten), "vi", { numeric: true, sensitivity: "base" })) }));
+  }, [baiGoc, kb]);
   const laTP = (b) => tpEp ?? b.loai === "thanh_pham";
   const [q, setQ] = useState(""), [nhay, setNhay] = useState(null);
   const dauRef = useRef();
-  const kb = useMemo(() => khaiBaoBai(D.dmBang), [D.dmBang]);
   const khuCua = (b) => kb.get(khoaTenBai(b.ten_bai))?.khuVuc || KHONG_KHU;
   const mai = useMemo(() => new Map(bai.map((b) => [b.ten_bai, coMai(D.dmBang, b.ten_bai)])), [bai, D.dmBang]);
   const doan = [...mai.values()].some((m) => m.doan);
@@ -341,7 +347,7 @@ export default function SoDoKhoBai({ bai: baiGoc, kho, onMo, ten, tp: tpEp }) {
           {!bd.phan.length && <text x={VB / 2} y="64" textAnchor="middle" fontSize="14" fill="#8fb4dc">Không có bãi nào khớp bộ lọc.</text>}
         </svg>
       </div>
-      <p className="text-[0.6875rem] text-muted-foreground">Mái vòm = kho có mái che · đống vòm = bãi lộ thiên. Khối màu có mặt sóng bên trong = mức lấp đầy: xanh bình thường, vàng từ {pct(NGUONG_KHO.vang)}, đỏ từ {pct(NGUONG_KHO.do)} (nhấp nháy).{" Kho thành phẩm: diện tích (m²) · số lớp xếp khả dụng. Kho nguyên liệu: số m³ = thể tích tối đa (diện tích × chiều cao chất đống; không có thì sức chứa ÷ tỉ trọng hàng)."} Bấm một bãi để mở bảng chi tiết.{doan ? " Kho / bãi có mái che đang đoán theo tên (chưa có cột mái che ở Danh mục › Khai báo kho / bãi)." : ""}</p>
+      <p className="text-[0.6875rem] text-muted-foreground">Mái vòm = kho có mái che · đống vòm = bãi lộ thiên. Khối màu có mặt sóng bên trong = mức lấp đầy: xanh bình thường, vàng từ {pct(NGUONG_KHO.vang)}, đỏ từ {pct(NGUONG_KHO.do)} (nhấp nháy).{" Kho thành phẩm: diện tích (m²) · số lớp xếp khả dụng. Kho nguyên liệu: số m³ = thể tích tối đa (diện tích × chiều cao chất đống; không có thì sức chứa ÷ tỉ trọng hàng)."} Bấm một bãi để mở bảng chi tiết. Bãi mờ ghi "Chưa phân bổ" = đã khai báo ở Danh mục › Khai báo kho / bãi nhưng chưa có gian / lô trong Danh mục › Kho bãi.{doan ? " Kho / bãi có mái che đang đoán theo tên (chưa có cột mái che ở Danh mục › Khai báo kho / bãi)." : ""}</p>
       <BanDoDinhVi nhom={nhomMap} ten={ten} onDi={diToi} onToanKho={() => { dauRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); }}
         onKhu={(k) => { setQ(""); requestAnimationFrame(() => document.getElementById(`kb-khu-${khoaTenBai(k)}`)?.scrollIntoView({ behavior: "smooth", block: "start" })); }} />
     </div>

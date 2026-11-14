@@ -105,7 +105,7 @@ export function khaiBaoBai(dmBang) {
   for (const r of dmBang || []) {
     if (r.bang !== "bai_lon" || !r.data?.[kTen]) continue;
     const loai = plain(r.data[kLoai]);
-    m.set(khoaTenBai(r.data[kTen]), { khuVuc: String(r.data[kKhu] ?? "").trim(), kieu: /tu do/.test(loai) ? "tu_do" : /co dinh/.test(loai) ? "co_dinh_hang" : null, dienTich: Number.isFinite(+r.data[kDT]) && r.data[kDT] !== null && r.data[kDT] !== "" ? +r.data[kDT] : null });
+    m.set(khoaTenBai(r.data[kTen]), { ten: String(r.data[kTen]).trim(), khuVuc: String(r.data[kKhu] ?? "").trim(), kieu: /tu do/.test(loai) ? "tu_do" : /co dinh/.test(loai) ? "co_dinh_hang" : null, dienTich: Number.isFinite(+r.data[kDT]) && r.data[kDT] !== null && r.data[kDT] !== "" ? +r.data[kDT] : null });
   }
   return m;
 }

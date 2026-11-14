@@ -9,7 +9,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/menu";
 import { PageHead, Empty, MucIcon } from "@/components/common";
 import { so, pct } from "@/lib/format";
-import { NGUONG_KHO, TAB_KHO, locKhoTheoTab } from "@/lib/kho";
+import { NGUONG_KHO, TAB_KHO, locKhoTheoTab, khaiBaoBai } from "@/lib/kho";
 import { cn } from "@/lib/utils";
 import { KIEU_TONE, KIEU_NGAN, Chi, Thanh, NgayDay, ThongQua, LuuBai, T_NGAY_DAY, T_LUU_BAI, T_THONG_QUA, T_NHAP_XUAT } from "./khoUi";
 import SoDoKhoBai from "./SoDoKhoBai";
@@ -104,8 +104,10 @@ function KhoTab({ tab, kho }) {
   const loai = tab.loai, tp = loai === "thanh_pham", nhap = quyen.kho.nhap;
   const tenBai = useMemo(() => new Set(kho.dong.map((d) => d.ten_bai)), [kho]);
   const dong = () => { setMo(null); };
-  const Hop = ({ id, title, description, rong = "max-w-6xl", children }) => mo === id && (
-    <Dialog onOpenChange={(o) => !o && dong()} className={rong} title={title} description={description}>{children}</Dialog>);
+  // Gọi như HÀM (không đặt thành thẻ <Hop>): định nghĩa component ngay trong KhoTab sẽ là kiểu mới sau mỗi lần dữ liệu cập nhật,
+  // React dựng lại hộp từ đầu và mất hết chữ đang nhập (lỗi "đang thao tác bị tải lại").
+  const hop = (id, title, description, children, rong = "max-w-6xl") => mo === id && (
+    <Dialog key={id} onOpenChange={(o) => !o && dong()} className={rong} title={title} description={description}>{children}</Dialog>);
   return (
     <div className="grid gap-3">
       <div className="flex flex-wrap items-center gap-2">
@@ -126,11 +128,11 @@ function KhoTab({ tab, kho }) {
 
       {kho.dong.length ? <BieuDoTon loai={loai} kho={kho} /> : <Empty>Chưa có gian / lô nào của {tab.ten.toLowerCase()}. Thêm ở Danh mục › Kho bãi (hàng của kho khai ở cột Hàng đang chứa).</Empty>}
 
-      <Hop id="ke-hoach" title={`Kế hoạch xuất/nhập kho · ${tab.ten}`} description="Kế hoạch nhập / xuất cả tháng của từng bãi nhỏ."><KeHoachKho loai={loai} kho={kho} nhan={tab.ten} /></Hop>
-      <Hop id="xem-kh" title={`Xem kế hoạch · ${tab.ten}`} description="Kế hoạch so với thực tế theo sổ nhập – xuất."><XemKeHoach kho={kho} /></Hop>
-      <Hop id="lich-su" title={`Lịch sử xuất/nhập kho · ${tab.ten}`}><LichSuKho kho={kho} loai={loai} onSua={(g) => { setMo(null); setSua(g); }} /></Hop>
-      <Hop id="phan-loai" title={`Phân loại tồn · ${tab.ten}`}><PhanLoaiTon loai={loai} kho={kho} /></Hop>
-      <Hop id="lo" title="Lô thành phẩm" description={`${kho.lo.length} lô còn tồn`}><BangLo kho={kho} /></Hop>
+      {hop("ke-hoach", `Kế hoạch xuất/nhập kho · ${tab.ten}`, "Kế hoạch nhập / xuất của các bãi nhỏ theo ngày, tuần, tháng, năm.", <KeHoachKho loai={loai} kho={kho} nhan={tab.ten} />)}
+      {hop("xem-kh", `Xem kế hoạch · ${tab.ten}`, "Kế hoạch so với thực tế theo sổ nhập – xuất.", <XemKeHoach kho={kho} />)}
+      {hop("lich-su", `Lịch sử xuất/nhập kho · ${tab.ten}`, undefined, <LichSuKho kho={kho} loai={loai} onSua={(g) => { setMo(null); setSua(g); }} />)}
+      {hop("phan-loai", `Phân loại tồn · ${tab.ten}`, undefined, <PhanLoaiTon loai={loai} kho={kho} />)}
+      {hop("lo", "Lô thành phẩm", `${kho.lo.length} lô còn tồn`, <BangLo kho={kho} />)}
       {mo === "nhap" && <GiaoDichForm loaiKho={loai} loaiGD="nhap" kho={kho} onClose={dong} onDan={() => setMo("dan")} />}
       {mo === "dan" && <DanNhanhKho loaiKho={loai} kho={kho} onClose={dong} />}
       {sua && (sua.loai === "kiem_ke" ? <SuaKiemKe g={sua} onClose={() => setSua(null)} /> : <GiaoDichForm key={sua.id} loaiKho={loai} loaiGD={sua.loai} sua={sua} kho={kho} onClose={() => setSua(null)} />)}
@@ -168,7 +170,7 @@ export default function Kho({ route = "kho" }) {
         </div>
 
         <TabsContent value="overview">
-          {kho.bai.length || quyen.kho.quanTri
+          {kho.bai.length || khaiBaoBai(D.dmBang).size || quyen.kho.quanTri
             ? <div className="mt-3"><SoDoKhoBai bai={kho.bai} kho={kho} ten="Kho bãi" onMo={setMoBai} /></div>
             : <Empty>Chưa có kho / bãi. Thêm ở Danh mục › Kho bãi.</Empty>}
         </TabsContent>

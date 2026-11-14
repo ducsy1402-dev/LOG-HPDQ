@@ -68,19 +68,20 @@ export default function KeHoachKho({ loai, kho, nhan = "" }) {
     }
     return m;
   };
-  // Bảng: mỗi bãi nhỏ của kho một dòng (có sẵn số đã lưu); dòng kế hoạch của bãi nhỏ đã xóa vẫn hiện để xóa được
+  // Bảng chỉ có các dòng kế hoạch ĐÃ LƯU của kỳ (không để sẵn mọi bãi nhỏ); người lập bấm "Thêm dòng" khi cần lập thêm.
+  // Dòng kế hoạch của bãi nhỏ đã xóa vẫn hiện để xóa được
   const goc = useMemo(() => {
     const m = dongCuaKy(loaiKy, ky), out = [], dung = new Set();
     for (const d of dong) {
-      const co = [...m.entries()].filter(([, r]) => r.khu_key === d.key);
-      if (!co.length) out.push({ _k: `b${d.key}`, khu_key: d.key, mat: false, hang: "", nhom: "", nhap: "", xuat: "", idNhap: null, idXuat: null, ghi_chu: "", coDinh: true });
-      for (const [mk, r] of co) { out.push({ ...r, coDinh: true }); dung.add(mk); }
+      for (const [mk, r] of [...m.entries()].filter(([, r]) => r.khu_key === d.key)) { out.push({ ...r, coDinh: true }); dung.add(mk); }
     }
     for (const [mk, r] of m) if (!dung.has(mk)) out.push({ ...r, coDinh: false });
     return out;
   }, [D.khoKeHoach, loaiKy, ky, dong, loai]); // eslint-disable-line react-hooks/exhaustive-deps
   const [f, setF] = useState(goc);
-  useEffect(() => { setF(goc); }, [goc]);
+  // Chỉ nạp lại bảng khi NỘI DUNG kế hoạch đã lưu đổi (không phải mỗi lần web tải lại dữ liệu), khỏi mất dòng đang nhập
+  const chuKy = useMemo(() => JSON.stringify(goc), [goc]);
+  useEffect(() => { setF(goc); }, [chuKy]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!D.coSql27) return <div className="rounded-md border border-warn/40 bg-warn/5 px-3 py-2 text-sm">Chưa có bảng kế hoạch kho: quản trị cần chạy <b>sql/dung_lai/phan_1_cau_truc.sql</b> trong Supabase.</div>;
 
   const giong = (a, b) => ["khu_key", "hang", "ghi_chu"].every((k) => String(a[k] || "").trim() === String(b[k] || "").trim()) && (docSo(a.nhap) || 0) === (docSo(b.nhap) || 0) && (docSo(a.xuat) || 0) === (docSo(b.xuat) || 0);
@@ -89,7 +90,12 @@ export default function KeHoachKho({ loai, kho, nhan = "" }) {
   const dat = (k, v) => setF((o) => o.map((r) => (r._k === k ? { ...r, ...v } : r)));
   const doi = f.filter((r) => { const g = gocTheo.get(r._k); return g ? !giong(r, g) : (docSo(r.nhap) > 0 || docSo(r.xuat) > 0); }).length + xoaMat.length;
   const chonHang = (r, hang) => dat(r._k, { hang, nhom: hang ? nhomCua(hang, kho.hangHoa) || r.nhom : "" });
-  const them = () => setF((o) => [...o, { _k: taoKey(), khu_key: "", mat: false, hang: "", nhom: "", nhap: "", xuat: "", idNhap: null, idXuat: null, ghi_chu: "", coDinh: false }]);
+  // Dòng mới lên đầu bảng cho dễ thấy
+  const them = () => setF((o) => [{ _k: taoKey(), khu_key: "", bai: "", mat: false, hang: "", nhom: "", nhap: "", xuat: "", idNhap: null, idXuat: null, ghi_chu: "", coDinh: false }, ...o]);
+  const baiOpts = [...new Set(dong.map((d) => d.ten_bai))];
+  const khuCuaBai = (b) => dong.filter((d) => d.ten_bai === b);
+  // Chọn bãi: gian / lô chỉ chọn trong bãi đó (bãi chỉ có một gian / lô thì tự chọn)
+  const chonBai = (r, b) => { const ds = khuCuaBai(b), key = ds.length === 1 ? ds[0].key : ""; dat(r._k, { bai: b, khu_key: key, hang: key ? autoHang(key) : "", mat: false }); };
   const doiKy = (lk, k) => { if (doi && !confirm("Có thay đổi chưa lưu. Bỏ thay đổi để chuyển kỳ?")) return; setLoaiKy(lk); setKy(k); };
   const kyTruoc = dichKy(loaiKy, ky, -1), mTruoc = dongCuaKy(loaiKy, kyTruoc);
   // Chép số của kỳ liền trước vào bảng (chưa lưu)
@@ -126,7 +132,7 @@ export default function KeHoachKho({ loai, kho, nhan = "" }) {
       const nhapS = String(r.nhap || "").trim(), xuatS = String(r.xuat || "").trim();
       if (!r.khu_key && !nhapS && !xuatS && !r.idNhap && !r.idXuat) continue; // dòng trống vừa thêm: bỏ qua
       if (r.mat) { if (!nhapS && !xuatS) { out.xoa.push(...[r.idNhap, r.idXuat].filter(Boolean)); } continue; }
-      if (!d) { toast("Chọn bãi nhỏ cho mọi dòng (hoặc bấm x để bỏ dòng)", "bad"); return; }
+      if (!d) { toast("Chọn bãi và gian / lô cho mọi dòng (hoặc bấm x để bỏ dòng)", "bad"); return; }
       const kN = docSo(nhapS), kX = docSo(xuatS);
       if ((nhapS && (kN == null || !(kN >= 0))) || (xuatS && (kX == null || !(kX >= 0)))) { toast(`${tenKhu(d)}: khối lượng phải là số tấn`, "bad"); return; }
       const hang = String(r.hang || "").trim() || autoHang(r.khu_key), nhom = String(r.nhom || "").trim() || autoNhom(r.khu_key, hang);
@@ -153,7 +159,6 @@ export default function KeHoachKho({ loai, kho, nhan = "" }) {
     await run(() => api.saveKeHoachKho(out), `Đã lưu kế hoạch ${nhanKy(loaiKy, ky).toLowerCase()}`);
   };
   const tong = (c) => f.reduce((s, r) => s + (docSo(r[c]) || 0), 0);
-  const khuOpts = dong.map((d) => [d.key, tenKhu(d)]);
   return (
     <div className="grid gap-3">
       <div className="flex flex-wrap items-center gap-2">
@@ -169,7 +174,7 @@ export default function KeHoachKho({ loai, kho, nhan = "" }) {
       {!coKy && <p className="rounded-md border border-warn/40 bg-warn/5 px-3 py-1.5 text-xs">Chỉ lập được kế hoạch theo tháng. Quản trị chạy <b>sql/12_bai_nho_ke_hoach_ky.sql</b> trong Supabase để lập theo ngày / tuần / năm.</p>}
       <div className="scroll-x max-h-[60vh] rounded-md border">
         <table className="tbl text-xs">
-          <thead><tr><th className="min-w-[200px]">Bãi nhỏ</th><th className="min-w-[170px]">Hàng hóa</th><th className="num">Nhập (t)</th><th className="num">Xuất (t)</th><th>Ghi chú</th>{sua && <th></th>}</tr></thead>
+          <thead><tr><th className="min-w-[200px]">Bãi › Gian/lô</th><th className="min-w-[170px]">Hàng hóa</th><th className="num">Nhập (t)</th><th className="num">Xuất (t)</th><th>Ghi chú</th>{sua && <th></th>}</tr></thead>
           <tbody>
             {f.map((r) => {
               const d = dongTheoKey.get(r.khu_key), hs = hangCua(d), g = gocTheo.get(r._k), sa = g ? !giong(r, g) : docSo(r.nhap) > 0 || docSo(r.xuat) > 0;
@@ -177,7 +182,10 @@ export default function KeHoachKho({ loai, kho, nhan = "" }) {
               return (
                 <tr key={r._k} className={cn(sa && sua && "bg-warn/5")}>
                   <td className="whitespace-nowrap">{sua && !r.coDinh
-                    ? <NativeSelect className="h-8 w-full min-w-[190px]" value={r.khu_key} onChange={(e) => dat(r._k, { khu_key: e.target.value, hang: autoHang(e.target.value), mat: false })} placeholder="Chọn bãi nhỏ" options={khuOpts} aria-label="Bãi nhỏ" />
+                    ? <div className="flex gap-1.5">
+                      <NativeSelect className="h-8 min-w-[130px]" value={r.bai ?? d?.ten_bai ?? ""} onChange={(e) => chonBai(r, e.target.value)} placeholder="Chọn bãi" options={baiOpts} aria-label="Bãi" />
+                      <NativeSelect className="h-8 min-w-[130px]" value={r.khu_key} onChange={(e) => dat(r._k, { khu_key: e.target.value, hang: autoHang(e.target.value), mat: false })} placeholder="Chọn gian/lô" options={khuCuaBai(r.bai ?? d?.ten_bai ?? "").map((x) => [x.key, x.ten])} aria-label="Gian/lô" />
+                    </div>
                     : <span className="font-medium">{d ? tenKhu(d) : `${r.ten_bai} › ${r.ten_khu}`}</span>}
                     {r.mat && <Badge tone="bad" className="ml-1" title="Bãi nhỏ này không còn trong Danh mục › Kho bãi">Bãi đã xóa</Badge>}</td>
                   <td>{sua ? <ChonGo className="min-w-[160px]" value={r.hang} onChange={(x) => chonHang(r, x)} options={hs} placeholder={phHang} /> : r.hang || <span className="text-muted-foreground">{phHang}</span>}</td>
@@ -187,12 +195,12 @@ export default function KeHoachKho({ loai, kho, nhan = "" }) {
                   {sua && <td className="w-8">{!r.coDinh && <button type="button" className="rounded p-1 text-muted-foreground hover:text-bad" onClick={() => setF((o) => o.filter((x) => x._k !== r._k))} title="Bỏ dòng" aria-label="Bỏ dòng"><X className="h-4 w-4" /></button>}</td>}
                 </tr>);
             })}
-            {!f.length && <tr><td colSpan={sua ? 6 : 5} className="py-4 text-center text-muted-foreground">Kho này chưa có bãi nhỏ nào. Thêm ở Danh mục › Kho bãi.</td></tr>}
+            {!f.length && <tr><td colSpan={sua ? 6 : 5} className="py-6 text-center text-muted-foreground">{dong.length ? <>Kỳ này chưa có kế hoạch.{sua && <> Bấm <b>Thêm dòng</b> để lập.</>}</> : "Kho này chưa có bãi nhỏ nào. Thêm ở Danh mục › Kho bãi."}</td></tr>}
           </tbody>
         </table>
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <p className="flex-1 text-[0.6875rem] text-muted-foreground">Mỗi bãi nhỏ một dòng: nhập khối lượng nhập và / hoặc khối lượng xuất của kỳ (tấn), ô trống là không có kế hoạch. Hàng hóa để trống thì tự điền theo hàng chứa trong bãi nhỏ. Cần thêm hàng khác cho cùng bãi nhỏ thì bấm Thêm dòng.</p>
+        <p className="flex-1 text-[0.6875rem] text-muted-foreground">Bấm Thêm dòng, chọn bãi và gian / lô rồi nhập khối lượng nhập và / hoặc xuất của kỳ (tấn). Hàng hóa để trống thì tự điền theo hàng chứa trong gian / lô. Muốn bỏ kế hoạch đã lưu thì xóa số ở hai ô rồi bấm Lưu.</p>
         {sua && <Button size="sm" variant="outline" onClick={them}><Plus />Thêm dòng</Button>}
         {sua && <Button size="sm" disabled={!doi} onClick={luu}><Save />Lưu kế hoạch{doi ? ` (${doi} thay đổi)` : ""}</Button>}
       </div>
