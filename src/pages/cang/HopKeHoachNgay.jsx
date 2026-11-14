@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Eraser, Save, Wand2 } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Eraser, Save, Wand2 } from "lucide-react";
 import { useApp } from "@/store";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -102,6 +102,9 @@ export default function HopKeHoachNgay({ thang0, onClose, onLuu }) {
   const [sua, setSua] = useState({}); // ô đã gõ: "mã chuyến|ngày" -> chữ
   const [cua, setCua] = useState({ co: 14, bat: 0 }); // cửa sổ ngày: số ngày (31 = cả tháng) và vị trí ngày đầu
   const [pop, setPop] = useState(null); // hộp nhỏ đang mở: { ngay, huong, vid }
+  // Ẩn / hiện thanh khối lượng ở dưới cùng (Kế hoạch / Thực nhập, xuất); nhớ trên máy
+  const [anTong, setAnTong] = useState(() => { try { return localStorage.getItem("lg-khn-an-tong") === "1"; } catch { return false; } });
+  const doiAnTong = () => setAnTong((v) => { try { localStorage.setItem("lg-khn-an-tong", v ? "0" : "1"); } catch { /* bỏ qua */ } return !v; });
   const ngays = useMemo(() => ngayCuaThang(thang), [thang]);
   const homNay = ngayDia(D.now);
   useEffect(() => { // đổi tháng: cửa sổ về đầu tháng, hoặc quanh hôm nay nếu là tháng này
@@ -276,7 +279,12 @@ export default function HopKeHoachNgay({ thang0, onClose, onLuu }) {
 
                 {/* Dòng cộng: kế hoạch (bấm để mở hộp nhỏ) và thực tế */}
                 <div className="sticky bottom-0 z-20 border-t-2 bg-card">
-                  {dongTong.flatMap(([h, tenKh, tenTt]) => [
+                  <div className="flex h-6 border-b">
+                    <button type="button" onClick={doiAnTong} className="sticky left-0 z-10 flex shrink-0 items-center gap-1 bg-card px-2 text-[0.6875rem] font-medium text-muted-foreground hover:text-foreground" title={anTong ? "Hiện lại thanh khối lượng kế hoạch / thực tế" : "Ẩn thanh khối lượng để xem line tàu rộng hơn"}>
+                      {anTong ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}{anTong ? "Hiện thanh khối lượng" : "Ẩn thanh khối lượng"}
+                    </button>
+                  </div>
+                  {!anTong && dongTong.flatMap(([h, tenKh, tenTt]) => [
                     <div key={h + "k"} className="flex border-b font-semibold">
                       <div className="sticky left-0 z-10 flex shrink-0 flex-col justify-center border-r bg-card px-2 py-1" style={{ width: LABEL }}>
                         <span>{tenKh}{loc.nhom ? ` · ${loc.nhom}` : ""}</span><span className="text-[0.6875rem] font-normal tabular-nums text-muted-foreground">tháng {so(ngays.reduce((s, n) => s + khNgay(n, h), 0), 0)} t</span></div>

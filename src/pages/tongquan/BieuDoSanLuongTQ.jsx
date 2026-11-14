@@ -11,12 +11,12 @@ import { tongTheoNhom, chuoiKy } from "@/lib/bieuDoSanLuong";
 import { MAU } from "./khung";
 import { Khung, ChuaCo, Chon, nghin } from "./khungBD";
 
-// Mảng Sản lượng của Tổng quan (anh Sỹ chốt 11/2026): 6 biểu đồ (thêm 2 biểu đồ theo CẢNG TRỰC THUỘC 14/11/2026), mỗi biểu đồ một khung CỐ ĐỊNH chiều cao (CAO), dài thì cuộn trong khung:
+// Mảng Sản lượng của Tổng quan (anh Sỹ chốt 11/2026): 6 biểu đồ (thêm 1 biểu đồ theo CẢNG TRỰC THUỘC 14/11/2026), mỗi biểu đồ một khung CỐ ĐỊNH chiều cao (CAO), dài thì cuộn trong khung:
 //   1. Cơ cấu sản lượng cảng (loại hàng)            2. Cơ cấu sản lượng theo đơn vị vận chuyển (Hòa Phát / nhà thầu)
 //   3. Lũy kế sản lượng nhập / xuất cảng theo loại hàng   4. Lũy kế sản lượng theo đội xe
 //   5. Lũy kế sản lượng nhập / xuất cảng thực tế – kế hoạch   6. Lũy kế sản lượng phục vụ cảng / phục vụ sản xuất thực tế – kế hoạch
-//   7. Cơ cấu sản lượng theo cảng trực thuộc   8. Sản lượng từng cảng trực thuộc theo loại hàng (cột chồng)
-//   Hai biểu đồ 7, 8 tính từ KL đã làm của các chuyến tàu cập bến trong kỳ, cảng = cột "Cảng trực thuộc" của bến chuyến cập (Danh mục › Cầu bến › Danh sách bến).
+//   7. Cơ cấu sản lượng theo cảng trực thuộc
+//   Biểu đồ 7 tính từ KL đã làm của các chuyến tàu cập bến trong kỳ, cảng = cột "Cảng trực thuộc" của bến chuyến cập (Danh mục › Cầu bến › Danh sách bến).
 export const CAO = 350;
 const base = { grid: { left: 4, right: 10, top: 30, bottom: 0, containLabel: true }, legend: { top: 0, itemWidth: 12, itemHeight: 6, icon: "roundRect", textStyle: { fontSize: 10 } } };
 const truc = { type: "value", axisLabel: { fontSize: 10, formatter: nghin } };
@@ -85,28 +85,14 @@ export function useTheoCang(kyInfo, huong) {
     return [...m.values()].filter((o) => o.tong > 0).sort((a, b) => (a.ten === KHONG_CANG) - (b.ten === KHONG_CANG) || b.tong - a.tong);
   }, [D.voyages, D.dmCot, D.berths, D.now, kyInfo, huong, nhomHang]);
 }
-// Cột chồng: mỗi cảng một dòng, mỗi loại hàng một màu (top 7 loại, còn lại gộp "Khác")
-export function optCangLoai(ds) {
-  const tongLoai = new Map(); for (const d of ds) for (const [l, v] of d.loai) tongLoai.set(l, (tongLoai.get(l) || 0) + v);
-  const top = [...tongLoai].sort((a, b) => b[1] - a[1]).slice(0, 7).map(([l]) => l), set = new Set(top), coKhac = tongLoai.size > top.length;
-  const val = (d, l) => r2(l === "Khác" ? [...d.loai].filter(([k]) => !set.has(k)).reduce((s, [, v]) => s + v, 0) : d.loai.get(l) || 0);
-  const ten = [...top, ...(coKhac ? ["Khác"] : [])];
-  return {
-    grid: { left: 4, right: 14, top: 40, bottom: 0, containLabel: true }, legend: { type: "scroll", top: 0, itemWidth: 12, itemHeight: 6, icon: "roundRect", textStyle: { fontSize: 10 } },
-    tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => `${so(v)} t` },
-    xAxis: { type: "value", axisLabel: { fontSize: 10, formatter: nghin } },
-    yAxis: { type: "category", inverse: true, data: ds.map((d) => d.ten), axisLabel: { fontSize: 10, width: 100, overflow: "truncate" } },
-    series: ten.map((l, i) => ({ name: l, type: "bar", stack: "t", barMaxWidth: 22, itemStyle: { color: l === "Khác" ? MAU.xam : MAU_LAT[i % MAU_LAT.length] }, data: ds.map((d) => val(d, l)) })),
-  };
-}
 export const CHUA_CO_CANG = <ChuaCo>Chưa có cột <b>Cảng trực thuộc</b>: vào Danh mục › Cầu bến › Danh sách bến, bấm Thêm cột rồi ghi cảng cho từng bến.</ChuaCo>;
 
 const bo = (gt, dat, nhom) => <Chon gt={gt} dat={dat} ds={[["", "Tổng"], ...NHOM[nhom].huong]} />;
 
 // cang / vt: dữ liệu đã tải (mục tiêu + thực tế); tdC, tdV: tienDoSanLuong (dòng tóm tắt)
 export default function BieuDoSanLuongTQ({ kyInfo, cang, vt, tdC, tdV }) {
-  const [hCoCau, setHCoCau] = useState(""), [hDV, setHDV] = useState(""), [hLoai, setHLoai] = useState(""), [hDoi, setHDoi] = useState(""), [hCang, setHCang] = useState(""), [hCangLoai, setHCangLoai] = useState("");
-  const cangTong = useTheoCang(kyInfo, hCang), cangLoai = useTheoCang(kyInfo, hCangLoai);
+  const [hCoCau, setHCoCau] = useState(""), [hDV, setHDV] = useState(""), [hLoai, setHLoai] = useState(""), [hDoi, setHDoi] = useState(""), [hCang, setHCang] = useState("");
+  const cangTong = useTheoCang(kyInfo, hCang);
   const coCauCang = useMemo(() => [...tongTheoNhom(kyInfo, cang, "cang", (x) => x.loai, (x) => !hCoCau || x.huong === hCoCau)].map(([k, v]) => ({ name: k, value: r2(v.tt) })).filter((d) => d.value > 0).sort((a, b) => b.value - a.value), [kyInfo, cang, hCoCau]);
   const coCauDV = useMemo(() => [...tongTheoNhom(kyInfo, vt, "van_tai", (x) => x.donVi, (x) => !hDV || x.huong === hDV)].map(([k, v]) => ({ name: tenDonVi(k), value: r2(v.tt) })).filter((d) => d.value > 0).sort((a, b) => b.value - a.value), [kyInfo, vt, hDV]);
   const theoLoai = useMemo(() => [...tongTheoNhom(kyInfo, cang, "cang", (x) => `${x.huong}|${x.loai}`, (x) => !hLoai || x.huong === hLoai)].map(([k, v]) => { const [h, loai] = k.split("|"); return { ...v, ten: `${tenHuong("cang", h)} · ${loai}`, ord: (h === "nhap" ? 0 : 1) + loai }; }).sort((a, b) => a.ord.localeCompare(b.ord, "vi")), [kyInfo, cang, hLoai]);
@@ -139,9 +125,6 @@ export default function BieuDoSanLuongTQ({ kyInfo, cang, vt, tdC, tdV }) {
       </Khung>
       <Khung cao={CAO} ten="Cơ cấu sản lượng theo cảng trực thuộc" phu={`${kyInfo.nhan} · KL đã làm của tàu cập bến`} bo={bo(hCang, setHCang, "cang")}>
         {cangTong == null ? CHUA_CO_CANG : cangTong.length ? <BanhVong ds={cangTong.map((o) => ({ name: o.ten, value: r2(o.tong) }))} /> : <ChuaCo>Chưa có tàu cập bến trong kỳ.</ChuaCo>}
-      </Khung>
-      <Khung cao={CAO} ten="Sản lượng từng cảng trực thuộc theo loại hàng" phu={`${kyInfo.nhan} · KL đã làm của tàu cập bến`} bo={bo(hCangLoai, setHCangLoai, "cang")}>
-        {cangLoai == null ? CHUA_CO_CANG : cangLoai.length ? <EChart height={chieuCao(cangLoai.length)} option={optCangLoai(cangLoai)} /> : <ChuaCo>Chưa có tàu cập bến trong kỳ.</ChuaCo>}
       </Khung>
     </div>
   );

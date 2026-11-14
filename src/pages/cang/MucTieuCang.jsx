@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/input";
 import EChart from "@/components/EChart";
 import { Khung, Chon, ChuaCo } from "../tongquan/khungBD";
-import { BanhVong, useTheoCang, optCangLoai, CHUA_CO_CANG } from "../tongquan/BieuDoSanLuongTQ";
+import { BanhVong, useTheoCang, CHUA_CO_CANG } from "../tongquan/BieuDoSanLuongTQ";
 import { MAU } from "../tongquan/khung";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { so, pct, r2, plain, ngayGio } from "@/lib/format";
@@ -111,7 +111,7 @@ export default function MucTieuCang() {
   const [kh, setKh] = useState(undefined); // kế hoạch ngày của kỳ ([] khi chưa chạy SQL 13)
   const [mo, setMo] = useState(null); // dat-mt | xem | ngay | thuc-te
   const [hD, setHD] = useState("xuat"), [nhomD, setNhomD] = useState(""), [hL, setHL] = useState("xuat");
-  const [hCang, setHCang] = useState(""), [hCangLoai, setHCangLoai] = useState("");
+  const [hCang, setHCang] = useState("");
   const kyInfo = useMemo(() => khoangKy(kyLoai, ngayTC, homNay), [kyLoai, ngayTC, homNay]);
   const tai = () => setLan((x) => x + 1);
   const du = useSanLuongKy("cang", kyInfo.thangs, khoaKyRieng(kyInfo));
@@ -168,7 +168,7 @@ export default function MucTieuCang() {
     ],
   };
   // Theo cảng trực thuộc của bến (cùng biểu đồ ở Tổng quan): KL đã làm của các chuyến cập bến trong kỳ
-  const cangTong = useTheoCang(kyInfo, hCang), cangLoai = useTheoCang(kyInfo, hCangLoai);
+  const cangTong = useTheoCang(kyInfo, hCang);
   const tomTat = (h) => { const c = cs?.[h]; return c ? `${so(c.tongTt, 0)} t${c.tongMt ? ` / mục tiêu ${so(c.tongMt, 0)} t (${pct(c.tongTt / c.tongMt, 0)})` : ""}` : ""; };
   const nut = (icon, ten, id, tt) => { const Ic = icon; return <Button size="sm" variant="outline" onClick={() => setMo(id)} title={tt}><Ic />{ten}</Button>; };
   const dangTai = <div className="flex flex-1 items-center justify-center text-xs text-muted-foreground">Đang tải…</div>;
@@ -219,12 +219,9 @@ export default function MucTieuCang() {
           </Khung>
         </div>)}
 
-      <div className="grid gap-3 xl:grid-cols-2">
+      <div className="grid gap-3 xl:grid-cols-3">
         <Khung cao={CAO} ten="Cơ cấu sản lượng theo cảng trực thuộc" phu={`${kyInfo.nhan} · KL đã làm của tàu cập bến`} bo={<Chon gt={hCang} dat={setHCang} ds={[["", "Tổng"], ["nhap", "Nhập"], ["xuat", "Xuất"]]} />}>
           {cangTong == null ? CHUA_CO_CANG : cangTong.length ? <BanhVong ds={cangTong.map((o) => ({ name: o.ten, value: r2(o.tong) }))} /> : <ChuaCo>Chưa có tàu cập bến trong kỳ.</ChuaCo>}
-        </Khung>
-        <Khung cao={CAO} ten="Sản lượng từng cảng trực thuộc theo loại hàng" phu={`${kyInfo.nhan} · KL đã làm của tàu cập bến`} bo={<Chon gt={hCangLoai} dat={setHCangLoai} ds={[["", "Tổng"], ["nhap", "Nhập"], ["xuat", "Xuất"]]} />}>
-          {cangLoai == null ? CHUA_CO_CANG : cangLoai.length ? <EChart height={Math.max(250, 40 + cangLoai.length * 36)} option={optCangLoai(cangLoai)} /> : <ChuaCo>Chưa có tàu cập bến trong kỳ.</ChuaCo>}
         </Khung>
       </div>
 
