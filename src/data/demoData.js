@@ -165,7 +165,9 @@ export function demoData() {
   }))); return out; };
   const sanLuongCang = taoTT(MT_MAU.map(([huong, loai_hang, tan]) => ({ huong, loai_hang, tan })), (x) => ({ huong: x.huong, loai_hang: x.loai_hang }));
   const sanLuongVanTai = taoTT(MT_VT.map(([huong, loai_xe, don_vi, loai_hang, tan]) => ({ huong, loai_xe, don_vi, loai_hang, tan })), (x) => ({ huong: x.huong, loai_xe: x.loai_xe, don_vi: x.don_vi, loai_hang: x.loai_hang }));
-  const dmCot = [];
+  // Cột tự thêm "Cảng trực thuộc" của Danh sách bến (demo): 6CTH, 7CTH thuộc Cảng tổng hợp; HH2, HH3 thuộc Cảng Hào Hưng; còn lại Cảng Dung Quất
+  const dmCot = [{ bang: "ben", ma: "cang_truc_thuoc", ten: "Cảng trực thuộc", loai: "text", thu_tu: 0 }];
+  const cangBen = (ma) => (/^[67]CTH$/.test(ma) ? "Cảng tổng hợp" : /^HH/.test(ma) ? "Cảng Hào Hưng" : "Cảng Dung Quất");
   // Kế hoạch xuất / nhập tồn kho theo tháng và bãi nhỏ mẫu (SQL 27): tháng trước, tháng này, tháng sau
   const khoKeHoach = [];
   for (const lech of [-1, 0, 1]) for (const k of kho.khoBai) {
@@ -183,7 +185,7 @@ export function demoData() {
     [22, ...pl(nlPL[0]), "dau_co", 7000], [14, ...pl(nlPL[1]), "can_giai_phong", 4000],
   ].map(([lui, ten_bai, hang, loai, tan], i) => ({ id: i + 1, ngay: ngayLui(lui), ten_bai, hang, loai, tan, ghi_chu: null, created_at: ngayLui(lui) + "T08:00:00.000Z" }));
   const dmBang = Object.entries(DM.bang || {}).flatMap(([bang, rows]) => rows.map((data, i) => ({ bang, data, thu_tu: i + 1 }))).map((r, i) => ({ id: i + 1, ...r }));
-  return { dmBang, tonPhanLoai, mucTieu, mucTieuVanTai, mucTieuKy: [], sanLuongCang, sanLuongVanTai, khoKeHoach, dmCot, berths: DM.berths.map((b) => ({ ...b, bang_tai: bangTaiBen(b.ma) })), khoBai: kho.khoBai, giaoDich: kho.giaoDich, khoLo: kho.khoLo, plans, voyages, stops, events, tien, agents, vessels, nextId: { v: id, s: sid, e: eid, p: plans.length, g: kho.giaoDich.length, k: khoKeHoach.length } };
+  return { dmBang, tonPhanLoai, mucTieu, mucTieuVanTai, mucTieuKy: [], sanLuongCang, sanLuongVanTai, khoKeHoach, dmCot, berths: DM.berths.map((b) => ({ ...b, them: { cang_truc_thuoc: cangBen(String(b.ma)) }, bang_tai: bangTaiBen(b.ma) })), khoBai: kho.khoBai, giaoDich: kho.giaoDich, khoLo: kho.khoLo, plans, voyages, stops, events, tien, agents, vessels, nextId: { v: id, s: sid, e: eid, p: plans.length, g: kho.giaoDich.length, k: khoKeHoach.length } };
 }
 
 // ---------- Kho demo: chiều cao chất đống, tồn đầu kỳ, nhập từ tàu / sản xuất, xuất cấp sản xuất / theo tàu, lô thành phẩm ----------

@@ -4,11 +4,17 @@ import { useApp } from "@/store";
 import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/input";
 import EChart from "@/components/EChart";
-import { Khung, Chon } from "../tongquan/khungBD";
+import { Khung, Chon, ChuaCo } from "../tongquan/khungBD";
+import { BanhVong, useTheoCang, optCangLoai, CHUA_CO_CANG } from "../tongquan/BieuDoSanLuongTQ";
 import { MAU } from "../tongquan/khung";
-import { so, pct, r2, plain } from "@/lib/format";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { so, pct, r2, plain, ngayGio } from "@/lib/format";
+import { cangCuaChuyen, gomTheoCang } from "@/lib/cangTrucThuoc";
+import { klCanLam } from "@/lib/linetime";
+import { mocDuKien } from "@/lib/xepBen";
+import { tenBen } from "./BangTauBen";
 import { KY, khoangKy, kyTruoc, kySau, chuoiKy, tongTheoNhom } from "@/lib/bieuDoSanLuong";
-import { keHoachTheoNgay, keHoachTheoDiem, luyKe, demTau, ngayDia } from "@/lib/keHoachNgay";
+import { keHoachTheoNgay, keHoachTheoDiem, luyKe, demTau, ngayDia, hangChinh } from "@/lib/keHoachNgay";
 import { useThietBi } from "@/thietbi/Host";
 import { useSanLuongKy, khoaKyRieng } from "../tongquan/KhoiSanLuong";
 import { cn } from "@/lib/utils";
@@ -19,7 +25,7 @@ import HopXemKeHoachSL from "./HopXemKeHoachSL";
 
 // Khai thác Cảng › Mục tiêu sản lượng (anh Sỹ chốt 13/11/2026):
 //   hàng nút trên cùng (Đặt mục tiêu · Xem kế hoạch · Kế hoạch ngày · Sản lượng thực tế) và chọn kỳ Tháng / Quý / Năm;
-//   3 thẻ tàu (HRC · thép thành phẩm · hàng nhập): chỉ số lượng đang làm hàng và chờ trong 24 giờ tới;
+//   3 thẻ tàu (HRC · thép thành phẩm · hàng nhập): số lượng đang làm hàng và chờ trong 24 giờ tới, thêm số tàu theo CẢNG TRỰC THUỘC của bến (cột tự thêm ở Danh mục › Cầu bến); bấm số để xem tên tàu;
 //   3 biểu đồ theo kỳ chọn (tháng: điểm theo ngày; quý: theo tuần; năm: theo tháng): lũy kế nhập / xuất; đường kế hoạch – thực tế (lọc loại hàng); tiến độ theo loại hàng.
 // Kế hoạch của biểu đồ: kế hoạch ngày theo tàu (SQL 13) của các tháng đã đặt; tháng chưa đặt dùng mục tiêu chia đều. Vận tải: Thiết bị cơ giới › Kế hoạch & phân bổ.
 const CAO = 340;
@@ -29,19 +35,74 @@ const luu = (k, v) => { try { localStorage.setItem(k, v); } catch { /* bỏ qua 
 const doc = (k, mac) => { try { return localStorage.getItem(k) || mac; } catch { return mac; } };
 const nghin = (v) => (Math.abs(v) >= 1000 ? `${r2(v / 1000)}k` : v);
 
-function TheTau({ ten, mota, tone, lam, cho }) {
+// Danh sách tàu trong hộp nổi: tên tàu, cảng trực thuộc, bến, hàng, khối lượng (tàu chờ: giờ làm hàng dự kiến); bấm tàu để mở phiếu chuyến
+function DanhSachTau({ tieuDe, ds, cang, cho, onMo }) {
   return (
-    <div className="flex min-w-0 items-center gap-3 rounded-xl border bg-card p-3">
-      <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg", tone)}><Ship className="h-5 w-5" /></span>
-      <div className="min-w-0 flex-1"><div className="truncate text-sm font-semibold">{ten}</div><div className="truncate text-[0.6875rem] text-muted-foreground">{mota}</div></div>
-      <div className="text-center"><div className="text-[1.6rem] font-semibold leading-none tabular-nums">{lam.length}</div><div className="mt-0.5 text-[0.6875rem] text-muted-foreground">đang làm</div></div>
-      <div className="text-center"><div className={cn("text-[1.6rem] font-semibold leading-none tabular-nums", cho.length && "text-warn")}>{cho.length}</div><div className="mt-0.5 text-[0.6875rem] text-muted-foreground">chờ 24h tới</div></div>
+    <>
+      <div className="border-b px-3 py-2 text-sm font-semibold">{tieuDe}<span className="ml-1.5 text-xs font-normal text-muted-foreground">{ds.length} tàu</span></div>
+      <div className="max-h-72 overflow-auto">
+        {ds.map((v) => { const bd = mocDuKien(v).bd ?? (v.etb ? new Date(v.etb).getTime() : null); return (
+          <button key={v.id} type="button" onClick={() => onMo(v.id)} className="block w-full border-b px-3 py-1.5 text-left last:border-b-0 hover:bg-accent" title="Bấm để mở phiếu chuyến">
+            <div className="flex items-center gap-2"><b className="truncate">{v.ten_tau}</b>{cang && <span className="ml-auto shrink-0 rounded bg-muted px-1.5 py-0.5 text-[0.6875rem] text-muted-foreground">{cang(v)}</span>}</div>
+            <div className="truncate text-[0.6875rem] text-muted-foreground">{[v.ben_ma ? tenBen(v.ben_ma) : "chưa xếp bến", hangChinh(v) || "—", `${so(klCanLam(v), 0)} t`, cho && bd ? `làm hàng dự kiến ${ngayGio(bd)}` : null].filter(Boolean).join(" · ")}</div>
+          </button>); })}
+      </div>
+    </>
+  );
+}
+
+// Một hàng "Đang làm" / "Chờ 24h": mỗi cảng trực thuộc một ô (tên cảng + số tàu); bấm ô để xem tên các tàu
+function HangCang({ nhan, ds, cang, cho, onMo }) {
+  const g = gomTheoCang(ds, cang);
+  return (
+    <div className="flex flex-wrap items-center gap-1">
+      <span className="w-[4.4rem] shrink-0 text-muted-foreground">{nhan}</span>
+      {g.length ? g.map(([c, vs]) => (
+        <Popover key={c}>
+          <PopoverTrigger asChild>
+            <button type="button" className="inline-flex max-w-full items-center gap-1.5 rounded-full border bg-background px-2 py-0.5 hover:bg-accent" title={`Bấm để xem ${vs.length} tàu của ${c}`}>
+              <span className="max-w-[9rem] truncate">{c}</span><b className="tabular-nums">{vs.length}</b>
+            </button>
+          </PopoverTrigger>
+          <PopoverContent><DanhSachTau tieuDe={`${c} · ${nhan.toLowerCase()}`} ds={vs} cang={cang} cho={cho} onMo={onMo} /></PopoverContent>
+        </Popover>)) : <span className="text-muted-foreground">—</span>}
+    </div>
+  );
+}
+
+// Số lớn (đang làm / chờ 24h): bấm để xem tên tất cả các tàu (kèm cảng trực thuộc)
+function SoTau({ ds, nhan, canh, cang, cho, onMo, tieuDe }) {
+  const so_ = <div className={cn("text-[1.6rem] font-semibold leading-none tabular-nums", canh && ds.length && "text-warn")}>{ds.length}</div>;
+  return (
+    <div className="text-center">
+      {ds.length ? <Popover><PopoverTrigger asChild><button type="button" className="rounded-md px-1 hover:bg-accent" title="Bấm để xem tên các tàu">{so_}</button></PopoverTrigger>
+        <PopoverContent align="end"><DanhSachTau tieuDe={tieuDe} ds={ds} cang={cang} cho={cho} onMo={onMo} /></PopoverContent></Popover> : so_}
+      <div className="mt-0.5 text-[0.6875rem] text-muted-foreground">{nhan}</div>
+    </div>
+  );
+}
+
+function TheTau({ ten, mota, tone, lam, cho, cang, onMo }) {
+  return (
+    <div className="min-w-0 rounded-xl border bg-card p-3">
+      <div className="flex items-center gap-3">
+        <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg", tone)}><Ship className="h-5 w-5" /></span>
+        <div className="min-w-0 flex-1"><div className="truncate text-sm font-semibold">{ten}</div><div className="truncate text-[0.6875rem] text-muted-foreground">{mota}</div></div>
+        <SoTau ds={lam} nhan="đang làm" cang={cang} onMo={onMo} tieuDe={`${ten} · đang làm hàng`} />
+        <SoTau ds={cho} nhan="chờ 24h tới" canh cang={cang} cho onMo={onMo} tieuDe={`${ten} · chờ 24h tới`} />
+      </div>
+      {cang && (lam.length > 0 || cho.length > 0) && (
+        <div className="mt-2 grid gap-1 border-t pt-2 text-[0.6875rem]">
+          <HangCang nhan="Đang làm" ds={lam} cang={cang} onMo={onMo} />
+          <HangCang nhan="Chờ 24h" ds={cho} cang={cang} cho onMo={onMo} />
+        </div>)}
     </div>
   );
 }
 
 export default function MucTieuCang() {
-  const { D, api } = useApp();
+  const { D, api, setVoyageMo } = useApp();
+  const cang = useMemo(() => cangCuaChuyen(D.dmCot, D.berths), [D.dmCot, D.berths]); // null: chưa có cột Cảng trực thuộc ở Danh mục › Cầu bến
   const hangHoa = useThietBi()?.D?.hanghoa || [], nhomHang = useNhomHang();
   const homNay = ngayDia(D.now);
   const [kyLoai, setKyLoai] = useState(() => (["thang", "quy", "nam"].includes(doc("lg-mt-ky2", "thang")) ? doc("lg-mt-ky2", "thang") : "thang"));
@@ -50,6 +111,7 @@ export default function MucTieuCang() {
   const [kh, setKh] = useState(undefined); // kế hoạch ngày của kỳ ([] khi chưa chạy SQL 13)
   const [mo, setMo] = useState(null); // dat-mt | xem | ngay | thuc-te
   const [hD, setHD] = useState("xuat"), [nhomD, setNhomD] = useState(""), [hL, setHL] = useState("xuat");
+  const [hCang, setHCang] = useState(""), [hCangLoai, setHCangLoai] = useState("");
   const kyInfo = useMemo(() => khoangKy(kyLoai, ngayTC, homNay), [kyLoai, ngayTC, homNay]);
   const tai = () => setLan((x) => x + 1);
   const du = useSanLuongKy("cang", kyInfo.thangs, khoaKyRieng(kyInfo));
@@ -105,6 +167,8 @@ export default function MucTieuCang() {
         label: { show: true, position: "right", fontSize: 10, distance: 4, formatter: (p) => (loai[p.dataIndex].mt ? pct(loai[p.dataIndex].tt / loai[p.dataIndex].mt, 0) : so(loai[p.dataIndex].tt, 0)) } },
     ],
   };
+  // Theo cảng trực thuộc của bến (cùng biểu đồ ở Tổng quan): KL đã làm của các chuyến cập bến trong kỳ
+  const cangTong = useTheoCang(kyInfo, hCang), cangLoai = useTheoCang(kyInfo, hCangLoai);
   const tomTat = (h) => { const c = cs?.[h]; return c ? `${so(c.tongTt, 0)} t${c.tongMt ? ` / mục tiêu ${so(c.tongMt, 0)} t (${pct(c.tongTt / c.tongMt, 0)})` : ""}` : ""; };
   const nut = (icon, ten, id, tt) => { const Ic = icon; return <Button size="sm" variant="outline" onClick={() => setMo(id)} title={tt}><Ic />{ten}</Button>; };
   const dangTai = <div className="flex flex-1 items-center justify-center text-xs text-muted-foreground">Đang tải…</div>;
@@ -134,9 +198,9 @@ export default function MucTieuCang() {
       </div>
 
       <div className="grid gap-3 md:grid-cols-3">
-        <TheTau ten="Tàu HRC" mota="Xuất thép cuộn cán nóng" tone="bg-primary/12 text-primary" {...the.hrc} />
-        <TheTau ten="Tàu thép thành phẩm" mota="Thép cuộn, thép thanh… (không gồm HRC)" tone="bg-info/12 text-info" {...the.tp} />
-        <TheTau ten="Tàu hàng nhập" mota="Quặng, than, phế, đá…" tone="bg-ok/12 text-ok" {...the.nhap} />
+        <TheTau ten="Tàu HRC" mota="Xuất thép cuộn cán nóng" tone="bg-primary/12 text-primary" {...the.hrc} cang={cang} onMo={setVoyageMo} />
+        <TheTau ten="Tàu thép thành phẩm" mota="Thép cuộn, thép thanh… (không gồm HRC)" tone="bg-info/12 text-info" {...the.tp} cang={cang} onMo={setVoyageMo} />
+        <TheTau ten="Tàu hàng nhập" mota="Quặng, than, phế, đá…" tone="bg-ok/12 text-ok" {...the.nhap} cang={cang} onMo={setVoyageMo} />
       </div>
 
       {chuaCo}
@@ -154,6 +218,15 @@ export default function MucTieuCang() {
             {loai.length ? <EChart height={Math.max(CAO - 70, 40 + loai.length * 30)} option={op3} /> : <div className="flex flex-1 items-center justify-center text-center text-xs text-muted-foreground">{!sanSang ? "Đang tải…" : "Chưa có mục tiêu hay số thực tế. Bấm Đặt mục tiêu."}</div>}
           </Khung>
         </div>)}
+
+      <div className="grid gap-3 xl:grid-cols-2">
+        <Khung cao={CAO} ten="Cơ cấu sản lượng theo cảng trực thuộc" phu={`${kyInfo.nhan} · KL đã làm của tàu cập bến`} bo={<Chon gt={hCang} dat={setHCang} ds={[["", "Tổng"], ["nhap", "Nhập"], ["xuat", "Xuất"]]} />}>
+          {cangTong == null ? CHUA_CO_CANG : cangTong.length ? <BanhVong ds={cangTong.map((o) => ({ name: o.ten, value: r2(o.tong) }))} /> : <ChuaCo>Chưa có tàu cập bến trong kỳ.</ChuaCo>}
+        </Khung>
+        <Khung cao={CAO} ten="Sản lượng từng cảng trực thuộc theo loại hàng" phu={`${kyInfo.nhan} · KL đã làm của tàu cập bến`} bo={<Chon gt={hCangLoai} dat={setHCangLoai} ds={[["", "Tổng"], ["nhap", "Nhập"], ["xuat", "Xuất"]]} />}>
+          {cangLoai == null ? CHUA_CO_CANG : cangLoai.length ? <EChart height={Math.max(250, 40 + cangLoai.length * 36)} option={optCangLoai(cangLoai)} /> : <ChuaCo>Chưa có tàu cập bến trong kỳ.</ChuaCo>}
+        </Khung>
+      </div>
 
       {mo === "dat-mt" && <HopDatMucTieu thang0={thang0} onClose={() => setMo(null)} onLuu={tai} />}
       {mo === "xem" && <HopXemKeHoachSL thang0={thang0} onClose={() => setMo(null)} />}
