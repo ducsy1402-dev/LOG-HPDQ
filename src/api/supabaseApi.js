@@ -66,13 +66,13 @@ export function makeSupabaseApi() {
       // Bản này không có phương án làm hàng: luôn là danh sách rỗng (store và các phần tính toán vẫn nhận mảng plans)
       const plansP = Promise.resolve([]);
       // Số máng, tàu ưu tiên, vét / be hầm (SQL 19); cẩu tàu (SQL 24); thiết bị gắn của cẩu cảng (SQL 25); chuyển bến, ra neo, trả hàng (SQL 26); bến phụ (SQL 28)
-      const coP = Promise.all([dò("19", "voyages", "uu_tien"), dò("24", "voyages", "cau_tau"), dò("25", "voyages", "cau_gan"), dò("26", "voyage_stops", "loai"), dò("28", "voyages", "ben_phu"), dò("12", "kho_giao_dich", "ten_khu")]);
+      const coP = Promise.all([dò("19", "voyages", "uu_tien"), dò("24", "voyages", "cau_tau"), dò("25", "voyages", "cau_gan"), dò("26", "voyage_stops", "loai"), dò("28", "voyages", "ben_phu"), dò("12", "kho_giao_dich", "ten_khu"), dò("dan", "voyages", "gear")]);
       if (nhe) {
-        const [c, plans, [coSql19, coSql24, coSql25, coSql26, coSql28, coSql12]] = await Promise.all([phanChuyen(), plansP, coP]);
-        return { ...c, plans, coSql19, coSql24, coSql25, coSql26, coSql28, coSql12 };
+        const [c, plans, [coSql19, coSql24, coSql25, coSql26, coSql28, coSql12, coCotDan]] = await Promise.all([phanChuyen(), plansP, coP]);
+        return { ...c, plans, coSql19, coSql24, coSql25, coSql26, coSql28, coSql12, coCotDan };
       }
       const tuNgay = new Date(Date.now() - 35 * 864e5).toISOString().slice(0, 10);
-      const [[berths, vessels, agents, khoBai], c, plans, khoTon, khoLo, giaoDich, dmCot, mucTieu, khoKeHoach, dmBang, [coSql19, coSql24, coSql25, coSql26, coSql28, coSql12]] = await Promise.all([
+      const [[berths, vessels, agents, khoBai], c, plans, khoTon, khoLo, giaoDich, dmCot, mucTieu, khoKeHoach, dmBang, [coSql19, coSql24, coSql25, coSql26, coSql28, coSql12, coCotDan]] = await Promise.all([
         Promise.all([
           sb.from("berths").select("*").order("thu_tu").then(ok),
           fetchAll(() => sb.from("vessels").select("*").order("ten")),
@@ -93,7 +93,7 @@ export function makeSupabaseApi() {
         thu(sb.from("danh_muc_bang").select("*").order("bang").order("thu_tu").order("id").range(0, 9999)),
         coP,
       ]);
-      return { berths, vessels, agents, khoBai, ...c, plans, khoTon, khoLo, giaoDich, dmCot, coSql19, coSql24, coSql25, coSql26, coSql28, coSql12, mucTieu, khoKeHoach, dmBang };
+      return { berths, vessels, agents, khoBai, ...c, plans, khoTon, khoLo, giaoDich, dmCot, coSql19, coSql24, coSql25, coSql26, coSql28, coSql12, coCotDan, mucTieu, khoKeHoach, dmBang };
     },
     loadEvents: async (voyageId) => ok(await sb.from("voyage_events").select("*").eq("voyage_id", voyageId).order("thoi_diem")),
     loadEventsMany: async (ids) => theoVoyage(sb, "voyage_events", ids),
@@ -192,6 +192,8 @@ export function makeSupabaseApi() {
     async saveLo(rows) { for (const c of chunk(rows, 300)) ok(await sb.from("kho_lo").upsert(c.map((r) => ({ ...r, updated_at: now() })), { onConflict: "so_lo", ignoreDuplicates: false })); },
     loadGiaoDichKhoang: async (tu, den) => fetchAll(() => sb.from("kho_giao_dich").select("*").gte("ngay", tu).lte("ngay", den).order("id")),
     deleteVoyage: async (id) => ok(await sb.from("voyages").delete().eq("id", id)),
+    // Reset line tàu cập: xóa MỌI chuyến (khoảng dừng, nhật ký, trả hàng, kế hoạch ngày đi theo chuyến); không hoàn tác được
+    deleteAllVoyages: async () => ok(await sb.from("voyages").delete().gte("id", 0)),
     addEvent: async (rec) => ok(await sb.from("voyage_events").insert(rec).select())[0],
     deleteEvent: async (id) => ok(await sb.from("voyage_events").delete().eq("id", id)),
     // Trả hàng (hàng không đạt chất lượng bị trả lại tàu): ghi nhận, không tính vào khối lượng xếp dỡ

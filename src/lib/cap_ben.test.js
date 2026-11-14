@@ -3,10 +3,10 @@
 import { describe, it, expect } from "vitest";
 import DM from "../data/danhMuc.json";
 import { timBen } from "./checks";
-import { dongThanhChuyen } from "./paste";
+import { docDongTau } from "./danTau";
 import { doanBen } from "./linetime";
 import { datThuTuBen, tenBenChuyen, noiHaiBen } from "./tenBen";
-import { soMetCan, khoangCachD, khoangCachE, cacTuyen, tuyenCuaBen, benLienKe, laBenLienKe, benTheoViTri, xepTuyen, choBenTheoChuyen, nhanCho, kiemTraXepBen, soDoCauBen } from "./capBen";
+import { soMetCan, khoangCachD, khoangCachE, cacTuyen, tuyenCuaBen, benLienKe, laBenLienKe, benTheoViTri, xepTuyen } from "./capBen";
 
 const t = (d, h = 0) => new Date(2026, 10, d, h).getTime();
 const iso = (d, h = 0) => new Date(t(d, h)).toISOString();
@@ -106,28 +106,6 @@ describe("Cảnh báo theo chuyến, thử xếp, sơ đồ", () => {
   const NOW = t(3);
   const s = { id: 11, ten_tau: "S", loa: 118, ben_ma: "B07", ben_phu: "B08", atb: iso(1), etd: iso(5) };
   const c = { id: 13, ten_tau: "C", loa: 120, ben_ma: "B08", atb: iso(2), etd: iso(4) };
-  it("tàu 7/8 cùng lúc tàu bến 8 120 m: thiếu 8,5 m", () => {
-    const m = choBenTheoChuyen([s, c], BEN, () => [], NOW);
-    expect(m.size).toBe(2);
-    expect(nhanCho(m.get(11)[0], s)).toMatch(/S 118 m \(bến B07\/08\).*tàu C ra ngoài bến B08, thiếu 8,5 m/);
-    expect(choBenTheoChuyen([s, { ...c, loa: 111 }], BEN, () => [], NOW).size).toBe(0);
-  });
-  it("tàu dài hơn bến không báo ở đây (đã có cảnh báo LOA); tàu một mình thiếu e đầu tuyến thì báo", () => {
-    expect(choBenTheoChuyen([{ ...c, loa: 140 }], BEN, () => [], NOW).size).toBe(0);
-    const m = choBenTheoChuyen([{ id: 5, ten_tau: "D", loa: 190, ben_ma: "B04", atb: iso(1), etd: iso(3) }], BEN, () => [], NOW);
-    expect(nhanCho(m.get(5)[0], { loa: 190 })).toMatch(/Bến B04: tàu D ra ngoài bến B04, thiếu 15 m/);
-  });
-  it("thử xếp chuyến có vị trí mét", () => {
-    // S tự xếp ở 62–180; X 100 m ở bến 8 cần cách d 15 → từ mét 195
-    expect(kiemTraXepBen({ id: 99, ten_tau: "X", loa: 100, vi_tri: 190 }, "B08", t(2), t(3), { voyages: [s], berths: BEN, now: NOW })).toHaveLength(1);
-    expect(kiemTraXepBen({ id: 99, ten_tau: "X", loa: 100, vi_tri: 195 }, "B08", t(2), t(3), { voyages: [s], berths: BEN, now: NOW })).toHaveLength(0);
-  });
-  it("sơ đồ cầu bến: vị trí tự xếp và tàu thêm tối đa từng bến", () => {
-    const r = soDoCauBen([s], BEN, () => [], t(3), NOW).find((x) => x.tuyen.ma === "B07-B08-B09");
-    expect(r.tau[0]).toMatchObject({ x: 62, coDinh: false, ben: "B07", phu: "B08" });
-    expect(r.themTheoBen.find((x) => x.ma === "B08").them).toBe(111); // 180 + 15 + 111 = 306
-    expect(r.themTheoBen.find((x) => x.ma === "B09").them).toBe(116); // bến 9 306,5–433, cuối tuyến e 10: 433 − 10 − 306,5
-  });
   it("đoạn chiếm bến lấy vị trí mét ở chuyến / khoảng dừng chuyển bến", () => {
     const v = { id: 1, ben_ma: "B05", vi_tri: 300, loa: 150, atb: iso(1), etd: iso(5) };
     expect(doanBen(v, [], NOW)[0]).toMatchObject({ ben: "B05", viTri: 300, cuoi: true });
@@ -139,13 +117,13 @@ describe("Cảnh báo theo chuyến, thử xếp, sơ đồ", () => {
 
 describe("Dán nhanh và tên bến hai bến", () => {
   const berthOf = (x) => timBen(BEN, x);
-  const dan = (ben) => dongThanhChuyen(["T", ben], ["ten_tau", "ben"], { berthOf }).v;
+  const dan = (ben) => docDongTau(["T", ben], ["ten_tau", "ben"], { berthOf }).v;
   it("đọc 7/8, B07/08, HH2/3, 3/5", () => {
     expect(dan("7/8")).toMatchObject({ ben_ma: "B07", ben_phu: "B08" });
     expect(dan("B07/08")).toMatchObject({ ben_ma: "B07", ben_phu: "B08" });
     expect(dan("HH2/3")).toMatchObject({ ben_ma: "HH2", ben_phu: "HH3" });
     expect(dan("3/5")).toMatchObject({ ben_ma: "B03", ben_phu: "B05" });
-    expect(dan("B05")).toMatchObject({ ben_ma: "B05", ben_phu: null });
+    expect(dan("B05")).toMatchObject({ ben_ma: "B05" }); expect(dan("B05").ben_phu).toBeUndefined();
   });
   it("tên bến theo chiều tuyến", () => {
     datThuTuBen(BEN);

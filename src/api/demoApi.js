@@ -63,7 +63,7 @@ export function makeDemoApi() {
       return clone({
         berths: db.berths, vessels: db.vessels, agents: db.agents, khoBai: db.khoBai,
         voyages: db.voyages, stops: db.stops, tien: [],
-        plans: [], khoTon: tonKho(db.giaoDich), khoLo: db.khoLo, giaoDich: db.giaoDich, dmCot: db.dmCot, coSql12: true, coSql19: true, coSql24: true, coSql25: true, coSql26: true, coSql28: true, traHang: db.traHang, mucTieu: db.mucTieu, khoKeHoach: db.khoKeHoach, dmBang: db.dmBang,
+        plans: [], khoTon: tonKho(db.giaoDich), khoLo: db.khoLo, giaoDich: db.giaoDich, dmCot: db.dmCot, coSql12: true, coCotDan: true, coSql19: true, coSql24: true, coSql25: true, coSql26: true, coSql28: true, traHang: db.traHang, mucTieu: db.mucTieu, khoKeHoach: db.khoKeHoach, dmBang: db.dmBang,
       });
     },
     // Kho
@@ -89,6 +89,11 @@ export function makeDemoApi() {
       can("nhap"); await wait();
       const v = db.voyages.find((x) => x.id === id), cu = clone(v);
       Object.assign(v, clone(patch)); ghi("voyages", id, "UPDATE", cu, v); return clone(v);
+    },
+    async deleteAllVoyages() {
+      can("quan_tri"); await wait();
+      for (const v of db.voyages) ghi("voyages", v.id, "DELETE", v, null);
+      db.voyages = []; db.stops = []; db.traHang = []; db.events = []; db.tien = []; db.keHoachNgay = [];
     },
     async deleteVoyage(id) {
       can("quan_ly"); await wait();

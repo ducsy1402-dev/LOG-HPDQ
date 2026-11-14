@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { DEMO } from "./config";
 import { makeDemoApi } from "./api/demoApi";
 import { makeSupabaseApi } from "./api/supabaseApi";
-import { canhBaoMo, trungBen, NGUONG_MAC_DINH } from "./lib/checks";
+import { canhBaoMo, NGUONG_MAC_DINH } from "./lib/checks";
 import { thangKhoang, congThang, thangCua } from "./lib/format";
 import { datThuTuBen } from "./lib/tenBen";
 
@@ -51,7 +51,7 @@ export function AppProvider({ children }) {
 
   // Hàm ghi chỉ đụng tới chuyến tàu và dữ liệu đi kèm chuyến: lưu xong tải lại nhẹ
 const GHI_NHE = new Set(["insertVoyages", "updateVoyage", "deleteVoyage", "addStop", "updateStop", "deleteStop", "addEvent", "deleteEvent", "savePlan", "deletePlan", "addTraHang", "deleteTraHang", "saveTien", "saveThucTe"]);
-  const RONG = { berths: [], vessels: [], agents: [], khoBai: [], voyages: [], stops: [], tien: [], plans: null, khoTon: null, khoLo: null, giaoDich: null, dmCot: null, coSql19: false, coSql24: false, coSql25: false, coSql26: false, coSql28: false, coSql12: false, traHang: null, mucTieu: null, khoKeHoach: null, dmBang: null };
+  const RONG = { berths: [], vessels: [], agents: [], khoBai: [], voyages: [], stops: [], tien: [], plans: null, khoTon: null, khoLo: null, giaoDich: null, dmCot: null, coSql19: false, coSql24: false, coSql25: false, coSql26: false, coSql28: false, coSql12: false, coCotDan: false, traHang: null, mucTieu: null, khoKeHoach: null, dmBang: null };
   const load = useCallback(async (r = roleRef.current, thang = tuThang, nhe = false) => {
     // Chưa chạy SQL 13 hoặc không có quyền Cảng: phần Cảng trống, phần Thiết bị cơ giới vẫn dùng được
     if (!r?.cang && !r?.kho) { setRaw({ ...RONG }); setTaiLuc(Date.now()); return; }
@@ -162,13 +162,12 @@ const GHI_NHE = new Set(["insertVoyages", "updateVoyage", "deleteVoyage", "addSt
     const stopsOf = (id) => stopsBy.get(id) || [];
     const tienOf = (id) => tienBy.get(id) || null;
     const nguong = NGUONG_MAC_DINH;
-    const trung = trungBen(voyages, now, stopsOf, raw.berths);
     // Phương án làm hàng theo chuyến (null = chưa chạy SQL 15)
     const plansBy = new Map();
     for (const p of raw.plans || []) (plansBy.get(p.voyage_id) || plansBy.set(p.voyage_id, []).get(p.voyage_id)).push(p);
     const plansOf = (id) => (plansBy.get(id) || []).sort((a, b) => a.ten.localeCompare(b.ten));
     const alerts = canhBaoMo(voyages, { berths: raw.berths, stopsOf, tienOf, plansOf, coSql15: raw.plans != null, coSql19: !!raw.coSql19, nguong, now });
-    return { ...raw, voyages, traOf, bmap, vmap, stopsOf, tienOf, plansOf, trung, alerts, nguong, now, coSql15: raw.plans != null && raw.khoTon != null, coSql17: (raw.khoBai || []).some((r) => "kieu_bai" in r), coSql18: raw.dmCot != null, coSql19: !!raw.coSql19, coSql24: !!raw.coSql24, coSql25: !!raw.coSql25, coSql26: !!raw.coSql26 && raw.traHang != null, coSql28: !!raw.coSql28, coSql21: raw.mucTieu != null, coSql27: raw.khoKeHoach != null, coSql08: raw.dmBang != null };
+    return { ...raw, voyages, traOf, bmap, vmap, stopsOf, tienOf, plansOf, alerts, nguong, now, coSql15: raw.plans != null && raw.khoTon != null, coSql17: (raw.khoBai || []).some((r) => "kieu_bai" in r), coSql18: raw.dmCot != null, coSql19: !!raw.coSql19, coSql24: !!raw.coSql24, coSql25: !!raw.coSql25, coSql26: !!raw.coSql26 && raw.traHang != null, coSql28: !!raw.coSql28, coCotDan: !!raw.coCotDan, coSql21: raw.mucTieu != null, coSql27: raw.khoKeHoach != null, coSql08: raw.dmBang != null };
   }, [raw, now]);
 
   const bac = BAC[role?.cang] ?? -1;

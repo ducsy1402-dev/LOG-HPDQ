@@ -2,8 +2,8 @@
 import { describe, it, expect } from "vitest";
 import { duToan, etdKhongKhaThi, mocBatDau } from "./laytime";
 import { chiSo, trangThai, maChuyenMoi, mocSaiThuTu, gioDung } from "./linetime";
-import { kiemTraBen, timBen, trungBen, canhBaoChuyen } from "./checks";
-import { docSo, docDonGia, docNgayGio, tachBang, nhanDienTieuDe, dongThanhChuyen } from "./paste";
+import { timBen, canhBaoChuyen } from "./checks";
+import { docSo, docNgayGio } from "./paste";
 import { thoiLuong } from "./format";
 
 const t = (y, mo, d, h = 0, mi = 0) => new Date(y, mo - 1, d, h, mi).getTime();
@@ -134,19 +134,6 @@ describe("Kiểm tra tàu - bến", () => {
     expect(timBen(ds, "BTL")?.ma).toBe("1A");
     expect(timBen(ds, "b 10")?.ma).toBe("10");
   });
-  it("mớn vượt giới hạn cứng là lỗi đỏ", () => {
-    const c = kiemTraBen({ draft: 19, loai_hang: "Quặng" }, BEN10);
-    expect(c.find((x) => x.ma === "mon").muc).toBe("bad");
-    expect(c.find((x) => x.ma === "hang")).toBeUndefined();
-  });
-  it("hai tàu trùng bến", () => {
-    const a = { id: 1, ten_tau: "A", ben_ma: "5", etb: iso(2026, 10, 1), etd: iso(2026, 10, 3) };
-    const b = { id: 2, ten_tau: "B", ben_ma: "5", etb: iso(2026, 10, 2), etd: iso(2026, 10, 4) };
-    const c = { id: 3, ten_tau: "C", ben_ma: "5", etb: iso(2026, 10, 5), etd: iso(2026, 10, 6) };
-    const m = trungBen([a, b, c]);
-    expect(m.get(1)[0].id).toBe(2);
-    expect(m.has(3)).toBe(false);
-  });
   it("chuyến mẫu không còn cảnh báo ETD không khả thi (đã bỏ)", () => {
     const c = canhBaoChuyen(MARINE, { berths: [BEN10], now: t(2026, 10, 22, 11, 26) });
     expect(c.some((x) => x.ma === "etd")).toBe(false);
@@ -163,17 +150,6 @@ describe("Dán nhanh", () => {
     expect(docSo("CQD")).toBeNull();
     expect(docSo("10tr")).toBeNull();
   });
-  it("đọc đơn giá phạt viết tắt: 10tr dôi nhật = 10.000.000 VNĐ mỗi ngày", () => {
-    expect(docDonGia("10tr dôi nhật")).toEqual({ don_gia: 10e6, don_vi_tien: "VND" });
-    expect(docDonGia("10 triệu/ngày")).toEqual({ don_gia: 10e6, don_vi_tien: "VND" });
-    expect(docDonGia("1,5 tỷ")).toEqual({ don_gia: 1.5e9, don_vi_tien: "VND" });
-    expect(docDonGia("600.000.000đ")).toEqual({ don_gia: 6e8, don_vi_tien: "VND" });
-    expect(docDonGia("25.000 USD")).toEqual({ don_gia: 25000, don_vi_tien: "USD" });
-    expect(docDonGia("$25,000")).toEqual({ don_gia: 25000, don_vi_tien: "USD" });
-    expect(docDonGia("25k USD dôi nhật")).toEqual({ don_gia: 25000, don_vi_tien: "USD" });
-    expect(docDonGia("25000")).toEqual({ don_gia: 25000, don_vi_tien: "USD" });
-    expect(docDonGia("CQD")).toBeNull();
-  });
   it("đọc ngày giờ", () => {
     const now = t(2026, 10, 22);
     expect(new Date(docNgayGio("22/10 09:15", now)).getTime()).toBe(t(2026, 10, 22, 9, 15));
@@ -181,16 +157,5 @@ describe("Dán nhanh", () => {
     expect(new Date(docNgayGio("2026-10-25 02:00", now)).getTime()).toBe(t(2026, 10, 25, 2, 0));
     expect(new Date(docNgayGio("02/01 08:00", t(2026, 12, 28))).getFullYear()).toBe(2027);
     expect(docNgayGio("TBA", now)).toBeNull();
-  });
-  it("tách bảng dán từ Excel và đoán cột", () => {
-    const txt = "Bến\tTên tàu\tDRAFT\tLOA\tDWT\tHàng nhập\tKL\tCAM KẾT\tDEM/des\tETA\nB10\tMarine Honesty\t14,5\t229\t81.000\tQuặng\t110.680\t15.000\t10tr\t20/10 06:00";
-    const bang = tachBang(txt);
-    const { coTieuDe, cot } = nhanDienTieuDe(bang);
-    expect(coTieuDe).toBe(true);
-    expect(cot).toEqual(["ben", "ten_tau", "draft", "loa", "dwt", "hang_nhap", "khoi_luong", "cam_ket", "dem", "eta"]);
-    const { v, loi } = dongThanhChuyen(bang[1], cot, { berthOf: (x) => timBen([BEN10], x), now: t(2026, 10, 22) });
-    expect(loi).toEqual([]);
-    expect(v).toMatchObject({ ten_tau: "MARINE HONESTY", ben_ma: "10", draft: 14.5, dwt: 81000, khoi_luong: 110680, cam_ket: 15000, huong: "nhap", ten_hang: "Quặng" });
-    expect(v._tien).toEqual({ don_gia: 10e6, don_vi_tien: "VND", ghi_chu: "10tr" });
   });
 });

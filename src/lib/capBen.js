@@ -11,7 +11,7 @@ import { doanBen } from "./linetime";
 import { plain, ms, met } from "./format";
 import { noiHaiBen } from "./tenBen";
 import { VI_TRI_MAC_DINH } from "../data/danhMucGoc";
-import { uocThongSo, CACH_TAU_TRUOC } from "./xepBen";
+import { uocThongSo } from "./xepBen";
 
 // Cột theo chiều dài tàu: >300 | 201–300 | 151–200 | 100–150 | <100
 const cot = (L) => (L > 300 ? 0 : L > 200 ? 1 : L > 150 ? 2 : L >= 100 ? 3 : 4);
@@ -159,130 +159,10 @@ function tauTrenTuyen(t, s) {
 }
 const chuanHoa = (segs, berths) => segs.filter((s) => s.ben).map((s) => ({ ...s, ben: String(s.ben), phu: s.phu && laBenLienKe(berths, s.ben, s.phu) ? String(s.phu) : "" }));
 
-// Mọi khoảng thời gian không đủ chỗ. segs: [{ v, a, b, ben, phu, viTri }]. Mỗi tuyến xét riêng, chia theo các mốc thời gian.
-// Một tàu một mình: chỉ báo khi sai vị trí / thiếu e đầu tuyến (tàu dài hơn bến đã có cảnh báo LOA riêng).
-export function phanTichCho(segs, berths = []) {
-  const tuyens = cacTuyen(berths), tuyenCua = new Map();
-  for (const t of tuyens.values()) for (const b of t.bens) tuyenCua.set(b.ma, t);
-  const theoTuyen = new Map();
-  for (const s of chuanHoa(segs, berths)) {
-    const t = tuyenCua.get(s.ben) || { ma: `?${s.ben}`, bens: [{ ma: s.ben, tu: 0, den: null }], tu: 0, den: null, dau: "thang", cuoi: "thang" };
-    (theoTuyen.get(t.ma) || theoTuyen.set(t.ma, { t, ds: [] }).get(t.ma)).ds.push(s);
-  }
-  const out = [];
-  for (const { t, ds } of theoTuyen.values()) {
-    const moc = [...new Set(ds.flatMap((s) => [s.a, s.b]))].sort((x, y) => x - y);
-    const cuoi = new Map();
-    for (let i = 0; i + 1 < moc.length; i++) {
-      const a = moc[i], z = moc[i + 1];
-      const co = ds.filter((s) => s.a < z && s.b > a);
-      if (!co.length) continue;
-      const tau = co.map((s) => tauTrenTuyen(t, s));
-      const r = xepTuyen(t, tau);
-      if (r.thieu ? co.length === 1 : r.vua) continue;
-      if (co.length === 1 && !r.thieu) { // một tàu: bỏ qua khi chỉ là tàu dài hơn bến (đã có cảnh báo LOA)
-        const x = tau[0], daiCho = x.vat ? t.bens[x.k + 1].den - t.bens[x.k].tu : t.bens[x.k].den - t.bens[x.k].tu;
-        if (x.x == null && x.L > daiCho) continue;
-      }
-      const key = co.map((s) => s.v.id).sort().join(",");
-      const cu = cuoi.get(key);
-      if (cu && cu.b === a) { cu.b = z; continue; }
-      const viTriTau = new Map(co.map((s) => [s.v.id, noiHaiBen(s.ben, s.phu, (x) => x)]));
-      const item = { key, a, b: z, ds: co.map((s) => s.v), tuyen: t, ben: [...new Set(co.flatMap((s) => [s.ben, s.phu].filter(Boolean)))].join(", "), viTriTau,
-        tauVP: r.viPham ? co[r.viPham.i]?.v : null, ...r };
-      out.push(item); cuoi.set(key, item);
-    }
-  }
-  return out;
-}
-
-const gio = (t) => { const d = new Date(t), p = (n) => String(n).padStart(2, "0"); return `${p(d.getDate())}/${p(d.getMonth() + 1)} ${p(d.getHours())}:${p(d.getMinutes())}`; };
-// Câu nói chỗ vi phạm
-export function noiViPham(t) {
-  const vp = t.viPham;
-  if (!vp) return "";
-  const tau = t.tauVP ? `tàu ${t.tauVP.ten_tau}` : `tàu ${met(vp.L)} m`;
-  return {
-    hai_vat: `hai tàu cùng vắt qua ranh giới bến ${vp.ben}`,
-    khong_vat: `${tau} (bến ${vp.ben}) không nằm qua ranh giới hai bến`,
-    dau_tuyen: `${tau} thiếu khoảng cách đầu tuyến (e)`,
-    cuoi_tuyen: `${tau} thiếu khoảng cách cuối tuyến (e), phía bến ${vp.ben}`,
-    gan_tau: `${tau} quá gần tàu bên cạnh (thiếu khoảng cách d)`,
-    ngoai_ben: `${tau} ra ngoài bến ${vp.ben}`,
-  }[vp.loai] || "";
-}
-// Câu cảnh báo cho tàu v từ một khoảng không đủ chỗ
-export function nhanCho(t, v) {
-  const khac = t.ds.filter((x) => x.id !== v?.id && x.ten_tau !== v?.ten_tau).map((x) => x.ten_tau);
-  const khung = `${gio(t.a)} → ${gio(t.b)}`;
-  const ten = (x) => `${x.ten_tau} ${x.loa ? `${x._loaUoc ? "≈" : ""}${met(x.loa)} m` : "(chưa có LOA)"} (bến ${t.viTriTau?.get(x.id) || "?"})`;
-  if (t.thieu) return `Trùng bến ${t.ben} với ${khac.join(", ")} (${khung}); chưa đủ LOA tàu / mét bến để tính số mét`;
-  if (t.ds.length === 1) return `Bến ${t.ben}: ${noiViPham(t)}${t.thieuM ? `, thiếu ${met(t.thieuM)} m` : ""}`;
-  return `Bến ${t.ben} cùng lúc ${t.ds.map(ten).join(" + ")} (${khung}): ${noiViPham(t)}${t.thieuM ? `, thiếu ${met(t.thieuM)} m` : ""}`;
-}
-
 // Tàu chưa có LOA (VD tàu TBA) tính theo LOA ước (từ DWT / khối lượng / mớn, không có gì thì 150 m), giống lịch theo mét; v._loaUoc = true.
 // Trước đây tàu thiếu LOA bị coi là chiếm cả bến, làm tàu khác cùng tuyến phải chờ vô lý (anh Sỹ báo 10/11/2026).
 export const loaUoc = (v) => (+v.loa > 0 ? v : { ...v, loa: uocThongSo(v).loa || 150, _loaUoc: true });
 const segsCuaChuyen = (v0, stopsOf, now) => { const v = loaUoc(v0); return doanBen(v, stopsOf(v.id), now).filter((d) => d.ben).map((d) => ({ v, a: d.a, b: d.b, ben: d.ben, phu: d.phu, viTri: d.viTri, nguon: d.nguon, cuoi: d.cuoi, dau: d.dau })); };
-
-// ETB sớm nhất (ms) của chuyến v ở bến benMa từ thời điểm tu, ở lại dai (ms): chia sẻ bến theo số mét (hai tàu cùng bến cùng lúc nếu đủ chỗ theo quy tắc
-// cập cầu bến, xem phanTichCho); không đủ chỗ thì chờ tàu trước rời + 2 giờ. Tàu chưa có LOA tính theo LOA ước; bến / tuyến chưa có mét thì coi như chiếm cả bến.
-// Mỗi tàu được tính thêm 2 giờ sau khi rời (cách tàu cập sau). v.loa nên là LOA đã có hoặc ước.
-export function etbSomNhatMet(v, benMa, tu, dai, { voyages = [], berths = [], stopsOf = () => [], now = Date.now(), cach = CACH_TAU_TRUOC } = {}) {
-  const vv = loaUoc(v);
-  const khac = voyages.filter((o) => !o.huy && !o.atd && o.id !== v.id).flatMap((o) => segsCuaChuyen(o, stopsOf, now)).map((s) => ({ ...s, b: s.b + cach }));
-  const moc = [...new Set([tu, ...khac.map((s) => s.b).filter((t) => t > tu)])].sort((x, y) => x - y);
-  for (const t of moc) {
-    const ung = { v: vv, a: t, b: t + dai + cach, ben: benMa, phu: v.ben_phu || "", viTri: v.vi_tri };
-    if (!phanTichCho([...khac, ung], berths).some((x) => x.ds.includes(vv))) return t;
-  }
-  return moc[moc.length - 1] ?? tu;
-}
-
-// Mọi chuyến không đủ chỗ ở bến: Map id chuyến -> [{ ...khoảng không đủ chỗ, cung: [tên tàu khác], ten_tau }]
-export function choBenTheoChuyen(voyages, berths = [], stopsOf = () => [], now = Date.now()) {
-  const segs = voyages.filter((v) => !v.huy).flatMap((v) => segsCuaChuyen(v, stopsOf, now));
-  const m = new Map();
-  for (const t of phanTichCho(segs, berths)) {
-    for (const v of t.ds) {
-      const khac = t.ds.filter((x) => x.id !== v.id), cung = khac.map((x) => x.ten_tau);
-      (m.get(v.id) || m.set(v.id, []).get(v.id)).push({ ...t, cung, id: khac[0]?.id, ten_tau: cung.join(", ") });
-    }
-  }
-  return m;
-}
-
-// Thử xếp chuyến v vào bến benMa (bến phụ v.ben_phu, vị trí v.vi_tri) trong [a, b] (ms) với các chuyến khác: các khoảng không đủ chỗ có liên quan tới v
-export function kiemTraXepBen(v, benMa, a, b, { voyages = [], berths = [], stopsOf = () => [], now = Date.now() } = {}) {
-  if (!benMa || !(a < b)) return [];
-  const vv = loaUoc(v), segs = [{ v: vv, a, b, ben: benMa, phu: v.ben_phu || "", viTri: v.vi_tri }];
-  for (const o of voyages) if (!o.huy && o.id !== v.id) segs.push(...segsCuaChuyen(o, stopsOf, now));
-  return phanTichCho(segs, berths).filter((t) => t.ds.some((x) => x === vv));
-}
-
-// Sơ đồ cầu bến tại thời điểm t (ms): mỗi tuyến một dòng, tàu đang cập kèm mét đầu (cố định hoặc web tự xếp), số mét cần, còn trống,
-// tàu thêm vào dài tối đa ở từng bến. Dòng: { tuyen, tau: [{ v, seg, L, x, coDinh, ben, phu }], ...kết quả xepTuyen, themTheoBen }
-export function soDoCauBen(voyages, berths = [], stopsOf = () => [], t = Date.now(), now = Date.now()) {
-  const dang = chuanHoa(voyages.filter((v) => !v.huy).flatMap((v) => segsCuaChuyen(v, stopsOf, now)).filter((s) => s.a <= t && t < s.b), berths);
-  const out = [];
-  for (const tuyen of cacTuyen(berths).values()) {
-    const mas = new Set(tuyen.bens.map((b) => b.ma));
-    const ds = dang.filter((s) => mas.has(s.ben));
-    const xep = ds.map((s) => tauTrenTuyen(tuyen, s));
-    const r = xepTuyen(tuyen, xep);
-    const themTheoBen = r.thieu ? null : tuyen.bens.map((b, k) => ({ ma: b.ma, them: timDaiNhat(b.den - b.tu, (l) => xepTuyen(tuyen, [...xep, { L: l, k, vat: false, x: null }]).vua) }));
-    out.push({ tuyen, ...r, themTheoBen, tau: ds.map((s, i) => ({ v: s.v, seg: s, L: +s.v.loa || 0, x: r.x?.[i] ?? null, coDinh: xep[i].x != null, ben: s.ben, phu: s.phu })) });
-  }
-  return out;
-}
-function timDaiNhat(dai, vua) {
-  if (!(dai > 0)) return null;
-  if (!vua(1)) return 0;
-  let lo = 1, hi = Math.floor(dai);
-  while (lo < hi) { const mid = Math.ceil((lo + hi) / 2); if (vua(mid)) lo = mid; else hi = mid - 1; }
-  return lo;
-}
 
 // Lịch cầu bến theo mét: mỗi đoạn tàu chiếm bến trong [tu, den) (ms) kèm tuyến và mét đầu tàu.
 // Đoạn đã ghi vị trí thì giữ; chưa ghi thì lấy chỗ web tự xếp lúc tàu vào bến (đầu đoạn), cùng các tàu đang ở tuyến lúc đó.

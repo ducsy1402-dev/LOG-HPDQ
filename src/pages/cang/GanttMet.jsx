@@ -2,12 +2,8 @@ import { Fragment, useContext, useMemo, useState } from "react";
 import { PhongToCtx } from "@/components/EChart";
 import { useApp } from "@/store";
 import { trangThai, laUoc, chiSo, TRANG_THAI } from "@/lib/linetime";
-import { cacTuyen, viTriTrenLich, benTheoViTri, kiemTraXepBen, nhanCho, tenTuyen } from "@/lib/capBen";
-import { kiemTraBen } from "@/lib/checks";
+import { cacTuyen, viTriTrenLich, benTheoViTri, tenTuyen } from "@/lib/capBen";
 import { DAY, ngayGio, met, pad, iso, ms, thoiLuong } from "@/lib/format";
-import { Dialog } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { MucIcon } from "@/components/common";
 import { cn } from "@/lib/utils";
 import { tenBen, noiHaiBen } from "./BangTauBen";
 import { viTriChu } from "@/lib/tenBen";
@@ -30,7 +26,6 @@ export default function GanttMet({ voyages, tu, soNgay, pxNgay, che = "ben", gon
   const K = gon ? CO.gon : CO.thuong, LABEL = K.label;
   const { D, quyen, run, api, setVoyageMo, toast } = useApp();
   const [keo, setKeo] = useState(null); // { it, x0, y0, dx, dy, moved }
-  const [xacNhan, setXacNhan] = useState(null);
   const [tro, setTro] = useState(null);
   const den = tu + soNgay * DAY, W = soNgay * pxNgay;
   const xOf = (t) => ((t - tu) / DAY) * pxNgay;
@@ -60,9 +55,7 @@ export default function GanttMet({ voyages, tu, soNgay, pxNgay, che = "ben", gon
     const top = yMet(d0, it.x) + (doiMetDuoc(it) ? k.dy : 0);
     const d = dai.find((z) => top >= z.y && top < z.y + z.h) || (top < 0 ? dai[0] : dai[dai.length - 1]);
     const x = doiMetDuoc(it) ? Math.round(d.t.tu + (top - d.y - K.pad) / K.mPx) : it.x;
-    let lech = doiGioDuoc(it) ? Math.round(((k.dx / pxNgay) * DAY) / SNAP) * SNAP : 0;
-    const eta = ms(it.v.eta); // ETB không được trước ETA
-    if (lech && eta != null && !it.v.atb && it.seg.a + lech < eta) lech = eta - it.seg.a;
+    const lech = doiGioDuoc(it) ? Math.round(((k.dx / pxNgay) * DAY) / SNAP) * SNAP : 0;
     const ben = benTheoViTri(D.berths, d.t.bens[0].ma, x, it.L);
     return { d, x, lech, ben, a: it.seg.a + lech, b: it.seg.b + lech };
   };
@@ -86,17 +79,14 @@ export default function GanttMet({ voyages, tu, soNgay, pxNgay, che = "ben", gon
     if (!doiMetDuoc(it) && !doiGioDuoc(it)) return toast(!quyen.nhap ? "Vai trò Xem không dời được lịch" : !D.coSql28 ? "Cần chạy SQL 28 để ghi vị trí mét" : "Đoạn này là bến cũ trước khi chuyển bến: sửa ở phiếu chuyến", "warn");
     const r = tinh(k);
     if (!r.lech && r.x === it.x && it.coDinh) return;
-    if (!r.ben) return setXacNhan({ loi: `Mét ${met(r.x)}–${met(r.x + it.L)} ra ngoài tuyến ${tenTuyen(r.d.t, tenBen)} (mét ${met(r.d.t.tu)}–${met(r.d.t.den)}) hoặc chiếm hơn hai bến.` });
+    if (!r.ben) return toast(`Mét ${met(r.x)}–${met(r.x + it.L)} ra ngoài tuyến ${tenTuyen(r.d.t, tenBen)} (mét ${met(r.d.t.tu)}–${met(r.d.t.den)}) hoặc chiếm hơn hai bến`, "warn");
     const v = it.v, n = it.seg.nguon;
     const patch = { ...(doiMetDuoc(it) ? { ben_ma: r.ben.ben_ma, ben_phu: r.ben.ben_phu || null, vi_tri: r.x } : {}), ...(r.lech ? { etb: iso(r.a), etd: iso(r.b) } : {}) };
-    const vMoi = { ...v, ...patch };
-    const canh = kiemTraBen(vMoi, D.bmap[vMoi.ben_ma], vMoi.ben_phu ? D.bmap[vMoi.ben_phu] : null, D.berths).filter((c) => c.muc !== "info");
-    for (const c of kiemTraXepBen(vMoi, vMoi.ben_ma, r.a, r.b, { voyages: D.voyages, berths: D.berths, stopsOf: D.stopsOf, now: D.now })) canh.push({ muc: "warn", nd: nhanCho(c, vMoi) });
     const luu = () => run(async () => {
       if (n && doiMetDuoc(it)) await api.updateStop(n.s.id, n.phia === "moi" ? { ben_moi: r.ben.ben_ma, ben_phu_moi: r.ben.ben_phu || null, vi_tri_moi: r.x } : { ben_cu: r.ben.ben_ma, ben_phu_cu: r.ben.ben_phu || null, vi_tri_cu: r.x });
       await api.updateVoyage(v.id, patch);
     }, `Đã dời ${v.ten_tau}: bến ${noiHaiBen(r.ben.ben_ma, r.ben.ben_phu)} ${viTriChu(r.x, it.L)}, cập ${ngayGio(r.a)}`);
-    setXacNhan({ v, r, it, canh, luu });
+    luu(); // line chỉ hiển thị và kéo thả: lưu ngay, không kiểm tra hay cảnh báo
   };
 
   const ngayDs = Array.from({ length: soNgay }, (_, i) => tu + i * DAY);
@@ -191,15 +181,6 @@ export default function GanttMet({ voyages, tu, soNgay, pxNgay, che = "ben", gon
         {chuaXep > 0 && <span>{chuaXep} chuyến chưa xếp bến (bấm "Tự xếp bến" ở trên để web xếp)</span>}
       </div>
       {tro && !keo && <TheTau x={tro.x} cx={tro.cx} cy={tro.cy} />}
-      {xacNhan && (
-        <Dialog onOpenChange={(o) => !o && setXacNhan(null)} title={xacNhan.loi ? "Không dời được" : `Dời ${xacNhan.v.ten_tau}?`}
-          description={xacNhan.loi ? null : `Bến ${noiHaiBen(xacNhan.r.ben.ben_ma, xacNhan.r.ben.ben_phu)} · mét ${met(xacNhan.r.x)}–${met(xacNhan.r.x + xacNhan.it.L)} · cập ${ngayGio(xacNhan.r.a)} → rời ${ngayGio(xacNhan.r.b)}`}
-          footer={xacNhan.loi ? <Button onClick={() => setXacNhan(null)}>Đóng</Button>
-            : <><Button variant="outline" onClick={() => setXacNhan(null)}>Hủy</Button><Button variant={xacNhan.canh.length ? "destructive" : "default"} onClick={() => { xacNhan.luu(); setXacNhan(null); }}>{xacNhan.canh.length ? "Vẫn dời" : "Dời"}</Button></>}>
-          {xacNhan.loi ? <div className="text-sm">{xacNhan.loi}</div>
-            : xacNhan.canh.length ? <div className="grid gap-2 text-sm">{xacNhan.canh.map((c, i) => <div key={i} className="flex gap-2"><MucIcon muc={c.muc} className="mt-0.5" />{c.nd}</div>)}</div>
-            : <div className="text-sm text-ok">Đủ chỗ theo quy tắc cập cầu bến trong suốt thời gian tàu ở bến.</div>}
-        </Dialog>)}
     </>
   );
 }

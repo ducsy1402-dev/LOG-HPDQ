@@ -8,9 +8,8 @@ import { NgayGio } from "@/components/ui/ngaygio";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { TrangThaiBadge, TienDo, MucIcon, ConfirmButton, Empty } from "@/components/common";
-import { MOC, DU_KIEN, chiSo, rangBuocEtb, laChoHang } from "@/lib/linetime";
+import { MOC, DU_KIEN, chiSo, laChoHang } from "@/lib/linetime";
 import { mocDuKien } from "@/lib/xepBen";
-import { useCtxXep } from "./useXepBen";
 import { duToan, laCQD, tenMoc } from "@/lib/laytime";
 import { canhBaoChuyen } from "@/lib/checks";
 import { so, met, ngayGio, ngayGioNam, thoiLuong, toLocalInput, fromLocalInput, tien, pct, ms, docSo } from "@/lib/format";
@@ -54,7 +53,7 @@ export function NoiDungPhieu({ v, onDaXoa }) {
   const stops = D.stopsOf(id);
   const cs = chiSo(v, stops, D.now);
   const dt = duToan(v, stops, null, D.now);
-  const canh = canhBaoChuyen(v, { berths: D.berths, trung: D.trung, stops, tien: t, nguong: D.nguong, now: D.now });
+  const canh = canhBaoChuyen(v, { stops, tien: t, nguong: D.nguong, now: D.now });
   const b = D.bmap[v.ben_ma], bPhu = v.ben_phu ? D.bmap[v.ben_phu] : null;
   const viTriBen = viTriChu(v.vi_tri, v.loa); // vị trí mét trên tuyến bến, VD (230–397)
   const gioiHan = (x) => `${tenBen(x.ma)} ≤ ${so(x.dwt_max)} DWT, mớn ${x.mon_cung ? "≤" : ""}${so(x.mon_max, 2)} m, dài ${met(x.loa_max)} m`;
@@ -153,13 +152,12 @@ const Chi = ({ l, v, sub, tone }) => <div className="rounded-md border bg-backgr
 // 7 mốc thực tế + giờ dự kiến + mốc bắt đầu tính thưởng phạt. Lưu ngay khi rời ô.
 function MocGio({ v, moDieuKhoan }) {
   const { D, quyen, run, api, toast } = useApp();
-  const ctxXep = useCtxXep();
   // Mốc dự kiến (chưa nhập thực tế): bắt đầu làm hàng = cập + 1 giờ, thủ tục = kết thúc làm hàng + 2 giờ, rời = thủ tục + 30 phút
-  const dk = mocDuKien(v, ctxXep), DK = { atb: dk.cap, bd_lam_hang: dk.bd, kt_lam_hang: dk.kt, hoan_tat_tt: dk.thuTuc, atd: dk.roi };
+  const dk = mocDuKien(v), DK = { atb: dk.cap, bd_lam_hang: dk.bd, kt_lam_hang: dk.kt, hoan_tat_tt: dk.thuTuc, atd: dk.roi };
   // ETB luôn sau ETA: ETA đổi hoặc ETB nhập trước ETA thì web tự xếp lại ETB (gợi ý theo bến trống), ETD dời theo
   const luu = (k, val) => {
     const moi = fromLocalInput(val); if ((moi && ms(moi)) === (v[k] && ms(v[k]))) return;
-    const patch = ["eta", "etb", "etd"].includes(k) ? rangBuocEtb(v, { [k]: moi }, ctxXep) : { [k]: moi };
+    const patch = { [k]: moi };
     const xep = patch.etb && patch.etb !== (k === "etb" ? moi : v.etb) && ms(patch.etb) !== ms(v.etb);
     run(() => api.updateVoyage(v.id, patch), xep ? `Đã lưu; ETB tự xếp lại sau ETA: ${ngayGio(patch.etb)}` : "Đã lưu mốc giờ");
   };

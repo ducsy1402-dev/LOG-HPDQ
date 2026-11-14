@@ -939,6 +939,13 @@ alter table public.berths add column if not exists met_den numeric;
 alter table public.berths add column if not exists goc_vuong text;
 alter table public.voyages add column if not exists ben_phu text;
 alter table public.voyages add column if not exists vi_tri numeric;
+-- Form Dán nhanh bảng tàu (14/11/2026): các cột chữ của chuyến theo bảng mẫu; ô trống để NULL (web hiện "trống")
+alter table public.voyages add column if not exists gear          text;   -- GEAR
+alter table public.voyages add column if not exists dem_day       text;   -- DEM/day (VD "10tr", "đòi nhật")
+alter table public.voyages add column if not exists laytime_txt   text;   -- LAYTIME
+alter table public.voyages add column if not exists lsd           text;   -- LSD
+alter table public.voyages add column if not exists pt_van_chuyen jsonb not null default '[]';  -- PT. Vận chuyển: [{ ten, gia_tri }]
+alter table public.voyages add column if not exists pt_kho_bai    jsonb not null default '[]';  -- PT. Kho Bãi: [{ ten, gia_tri }]
 alter table public.voyage_stops add column if not exists ben_phu_cu text;
 alter table public.voyage_stops add column if not exists ben_phu_moi text;
 alter table public.voyage_stops add column if not exists vi_tri_cu numeric;

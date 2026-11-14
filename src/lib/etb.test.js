@@ -1,40 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { etbGoiY, rangBuocEtb, trangThai, chiSo, TRANG_THAI } from "./linetime";
+import { trangThai, chiSo, TRANG_THAI } from "./linetime";
 import { canhBaoChuyen } from "./checks";
 
 const T = (s) => new Date(`2026-11-${s}:00+07:00`).toISOString();
 const H = 36e5;
-
-describe("ETB luôn sau ETA", () => {
-  const khac = { id: 2, ten_tau: "A", ben_ma: "3", eta: T("01T00:00"), etb: T("02T00:00"), etd: T("04T00:00") }; // chiếm bến 3: 02/11 → 04/11
-  const ctx = { voyages: [khac], stopsOf: () => [], now: new Date(T("01T00:00")).getTime() };
-  it("chưa chọn bến: ETB gợi ý = ETA", () => {
-    expect(etbGoiY({ id: 1, eta: T("03T08:00") }, ctx)).toBe(new Date(T("03T08:00")).getTime());
-  });
-  it("bến đang có tàu khác: gợi ý sau khi tàu kia rời 2 giờ", () => {
-    const g = etbGoiY({ id: 1, ben_ma: "3", eta: T("02T12:00"), khoi_luong: 10000, cam_ket: 5000 }, ctx);
-    expect(g).toBe(new Date(T("04T00:00")).getTime() + 2 * H);
-  });
-  it("bến trống lúc ETA: gợi ý đúng ETA", () => {
-    expect(etbGoiY({ id: 1, ben_ma: "3", eta: T("08T00:00"), khoi_luong: 10000, cam_ket: 5000 }, ctx)).toBe(new Date(T("08T00:00")).getTime());
-  });
-  it("ETB trước ETA: tự dời ETB và giữ thời gian ở bến cho ETD", () => {
-    const v = { id: 1, ben_ma: "5", eta: T("10T00:00"), etb: T("09T00:00"), etd: T("11T00:00") };
-    const p = rangBuocEtb(v, {}, ctx);
-    expect(new Date(p.etb).getTime()).toBe(new Date(T("10T00:00")).getTime());
-    expect(new Date(p.etd).getTime() - new Date(p.etb).getTime()).toBe(2 * 24 * H);
-  });
-  it("chưa có ETB: tự điền; ETB hợp lệ thì giữ nguyên; đã cập thật thì không đụng", () => {
-    expect(rangBuocEtb({ id: 1, eta: T("10T00:00") }, {}, ctx).etb).toBeTruthy();
-    const ok = { etb: T("10T06:00"), etd: T("11T06:00") };
-    expect(rangBuocEtb({ id: 1, eta: T("10T00:00") }, ok, ctx)).toEqual(ok);
-    // có ETB mà chưa có ETD: ETD = ETB + 1 giờ + làm hàng (10000 t ÷ 5000 t/ngày = 2 ngày) + 2 giờ thủ tục + 30 phút
-    const p = rangBuocEtb({ id: 1, eta: T("10T00:00"), khoi_luong: 10000, cam_ket: 5000 }, { etb: T("10T06:00") }, ctx);
-    expect(new Date(p.etd).getTime() - new Date(T("10T06:00")).getTime()).toBe(H + 48 * H + 2.5 * H);
-    const daCap = { id: 1, eta: T("10T00:00"), etb: T("09T00:00"), atb: T("09T01:00") };
-    expect(rangBuocEtb(daCap, {}, ctx)).toEqual({});
-  });
-});
 
 describe("Trạng thái và màu", () => {
   it("chưa có NOR: chưa đến neo (cam); có NOR chưa cập: đã đến neo (xanh dương); làm hàng: vàng", () => {

@@ -1,7 +1,6 @@
 // Kiểm thử: chuyển bến (shifting) / ra neo cắt đoạn chiếm bến, trả hàng trừ khối lượng cần làm
 import { describe, it, expect } from "vitest";
 import { doanBen, chiSo, klCanLam, daLam } from "./linetime";
-import { trungBen } from "./checks";
 import { tinhPhuongAn } from "./phuongAn";
 import { tinhThang } from "./sanLuong";
 
@@ -28,15 +27,6 @@ describe("Chuyển bến / ra neo", () => {
   });
   it("khoảng dừng thường không cắt đoạn", () => {
     expect(doanBen(v, [{ loai: "dung", tu: iso(2026, 10, 29, 8), den: iso(2026, 10, 29, 10) }], NOW)).toHaveLength(1);
-  });
-  it("trùng bến tính theo từng đoạn: tàu khác cập bến 5 sau khi tàu A shifting đi không bị báo trùng", () => {
-    const b = { id: 2, ten_tau: "B", ben_ma: "5", atb: iso(2026, 10, 29, 12), etd: iso(2026, 10, 31, 8), khoi_luong: 5000 };
-    const stopsOf = (id) => (id === 1 ? [shift] : []);
-    expect(trungBen([v, b], NOW).size).toBe(0); // không biết shifting: A coi như ở bến 6, B ở bến 5 → không trùng
-    const x = { ...b, ben_ma: "6", atb: iso(2026, 10, 29, 9) }; // B vào bến 6 lúc 9h: A mới cập bến 6 lúc 10h → trùng 1 giờ
-    expect(trungBen([v, x], NOW, stopsOf).size).toBe(2);
-    const y = { ...x, atb: iso(2026, 10, 29, 8, 30), etd: iso(2026, 10, 29, 9) }; // B rời bến 6 lúc 9h, trước khi A cập lúc 10h
-    expect(trungBen([v, y], NOW, stopsOf).size).toBe(0);
   });
 });
 

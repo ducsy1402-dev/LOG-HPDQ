@@ -1,6 +1,6 @@
 // Linetime chuyến tàu: 7 mốc thực tế, trạng thái, các chỉ số tự tính.
 import { ms, HOUR } from "./format";
-import { mocDuKien, thoiGianOBen, uocThongSo, CACH_TAU_TRUOC } from "./xepBen";
+import { mocDuKien } from "./xepBen";
 
 // Các mốc thực tế theo thứ tự. Mốc 1 là ETA báo về.
 export const MOC = [
@@ -134,7 +134,7 @@ export function khoangBen(v, now = Date.now()) {
   if (a == null) return null;
   let b = ms(v.atd) ?? ms(v.etd);
   if (b == null) {
-    b = mocDuKien(v).roi ?? a + thoiGianOBen(v);
+    b = mocDuKien({ ...v, etb: v.etb ?? new Date(a).toISOString() }).roi ?? a + DAY; // chỉ có ETA: coi ETA là giờ cập
     if (v.atb && !v.atd) b = Math.max(b, now);
   }
   return { a, b: Math.max(b, a + HOUR), uoc: ms(v.atd) == null && ms(v.etd) == null };
@@ -180,49 +180,4 @@ export function mocSaiThuTu(v) {
   const sai = [];
   for (let i = 1; i < ds.length; i++) if (ms(v[ds[i].k]) < ms(v[ds[i - 1].k])) sai.push(`${ds[i].ngan} trước ${ds[i - 1].ngan}`);
   return sai;
-}
-
-// ---------- ETB luôn sau ETA ----------
-const isoGio = (t) => new Date(t).toISOString();
-// Thời gian tàu ở bến dự kiến (ms): ETD − ETB nếu có; không thì làm hàng + 2 giờ thủ tục + 30 phút (xepBen.js)
-export function thoiGianO(v, ctx) {
-  const etb = ms(v.etb), etd = ms(v.etd);
-  if (etb != null && etd != null && etd > etb) return etd - etb;
-  return thoiGianOBen(v, v.ben_ma, ctx);
-}
-
-// ETB gợi ý: giờ sớm nhất từ ETA trở đi mà bến đã chọn (và bến phụ) không có tàu khác trong suốt thời gian tàu ở bến, cách tàu trước 2 giờ.
-// Chưa chọn bến thì là chính ETA. Chỉ xét theo bến; tàu hai bến cùng tuyến đủ số mét vẫn được cập chung thì đã có cảnh báo riêng ở bước lưu.
-export function etbGoiY(v, { voyages = [], stopsOf = () => [], now = Date.now(), cach = CACH_TAU_TRUOC, ...ctx } = {}) {
-  const eta = ms(v.eta);
-  if (eta == null) return null;
-  const ben = new Set([v.ben_ma, v.ben_phu].filter(Boolean));
-  if (!ben.size) return eta;
-  const dai = thoiGianO(v, ctx), khac = [];
-  // Có ctx.etbSom (capBen.etbSomNhatMet): chia sẻ bến theo số mét; không thì coi bến là một chỗ
-  if (ctx.etbSom) return ctx.etbSom({ ...v, loa: +v.loa > 0 ? v.loa : uocThongSo(v).loa }, v.ben_ma, eta, dai, { voyages, stopsOf, now, cach, ...ctx });
-  for (const o of voyages) {
-    if (o.id === v.id || o.huy || o.atd) continue;
-    for (const d of doanBen(o, stopsOf(o.id) || [], now)) if ((d.ben && ben.has(d.ben)) || (d.phu && ben.has(d.phu))) khac.push([d.a, d.b]);
-  }
-  khac.sort((x, y) => x[0] - y[0]);
-  let t = eta;
-  for (const [a, b] of khac) if (t < b + cach && t + dai + cach > a) t = b + cach;
-  return t;
-}
-
-// Ràng buộc: ETB không được trước ETA (tàu chưa cập thật). Trước ETA hoặc chưa có ETB thì tự đặt ETB = giờ gợi ý, ETD dời theo
-// (giữ thời gian ở bến). Có ETB mà chưa có ETD thì ETD = ETB + 1 giờ + làm hàng + 2 giờ thủ tục + 30 phút.
-// Trả về patch đã chỉnh; patch.etb khác đầu vào nghĩa là đã tự sắp xếp lại.
-export function rangBuocEtb(v, patch = {}, ctx = {}) {
-  const m = { ...v, ...patch };
-  if (m.atb || m.huy) return patch;
-  const eta = ms(m.eta);
-  if (eta == null) return patch;
-  const etb = ms(m.etb), etd = ms(m.etd);
-  if (etb != null && etb >= eta) return etd == null ? { ...patch, etd: isoGio(etb + thoiGianO({ ...m, etd: null }, ctx)) } : patch;
-  const moi = etbGoiY(m, ctx), out = { ...patch, etb: isoGio(moi) };
-  if (etd != null && etb != null) out.etd = isoGio(moi + Math.max(etd - etb, HOUR));
-  else if (etd == null || etd <= moi) out.etd = isoGio(moi + thoiGianO({ ...m, etb: null, etd: null }, ctx));
-  return out;
 }

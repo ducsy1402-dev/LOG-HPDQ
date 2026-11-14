@@ -1,10 +1,9 @@
 import { useMemo, useState } from "react";
-import { Plus, ClipboardPaste, CalendarRange, CalendarClock, CalendarCheck, Rows3, Rows4, List, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Anchor, Clock3, Ruler } from "lucide-react";
+import { Plus, Trash2, ClipboardPaste, CalendarRange, CalendarClock, CalendarCheck, Rows3, Rows4, List, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Anchor, Clock3, Ruler } from "lucide-react";
 import { useApp } from "@/store";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, NativeSelect } from "@/components/ui/input";
-import SoMetBen from "./SoMetBen";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageHead, TrangThaiBadge, TienDo, Empty, MucIcon } from "@/components/common";
 import { cn } from "@/lib/utils";
@@ -17,8 +16,7 @@ import BangTauBen, { tenBen, tenBenChuyen } from "./BangTauBen";
 import ChuyenForm from "./ChuyenForm";
 import KhaiBaoTT, { UuTien } from "./KhaiBaoTT";
 import DanNhanh from "./DanNhanh";
-import TuXepBen, { chuaCoBen } from "./TuXepBen";
-import XepLaiToanBo from "./XepLaiToanBo";
+import ResetLine from "./ResetLine";
 import SapDen from "./SapDen";
 import KeHoachNgay from "./KeHoachNgay";
 
@@ -27,7 +25,7 @@ const ZOOM = [36, 56, 84, 120];
 
 export default function Linetime() {
   const { D, quyen, setVoyageMo, tuThang, moRongKhoang } = useApp();
-  const [tab, setTab] = useState(() => { try { return localStorage.getItem("lg-linetime-tab") || "gantt"; } catch { return "gantt"; } });
+  const [tab, setTab] = useState(() => { try { const t = localStorage.getItem("lg-linetime-tab"); return t && t !== "met" ? t : "gantt"; } catch { return "gantt"; } }); // tab Sơ đồ cầu bến ("met") đã bỏ
   const [f, setF] = useState({ q: "", ben: "", st: "", huong: "", thang: "" });
   const [tu, setTu] = useState(() => homNay() - 3 * DAY);
   const [soNgay, setSoNgay] = useState(30);
@@ -42,9 +40,7 @@ export default function Linetime() {
   const [them, setThem] = useState(false);
   const [toanMH, doiToanMH] = useToanManHinh();
   const [dan, setDan] = useState(false);
-  const [xep, setXep] = useState(false);
-  const [xepLai, setXepLai] = useState(false);
-  const soChuaBen = useMemo(() => D.voyages.filter(chuaCoBen).length, [D.voyages]);
+  const [reset, setReset] = useState(false);
   const doiTab = (t) => { setTab(t); try { localStorage.setItem("lg-linetime-tab", t); } catch { /* bỏ qua */ } };
 
   const loc = useMemo(() => D.voyages.filter((v) => {
@@ -63,7 +59,8 @@ export default function Linetime() {
   return (
     <>
       <PageHead title="Linetime tàu cập bến" desc="Lịch cầu bến, tiến độ theo bến và danh sách chuyến. Bấm vào tàu để mở phiếu chuyến (7 mốc giờ, nhật ký, khoảng dừng, laytime).">
-        {quyen.nhap && <>{soChuaBen > 0 && <Button variant="outline" onClick={() => setXep(true)}><Anchor />Tự xếp bến ({soChuaBen})</Button>}<Button variant="outline" onClick={() => setXepLai(true)} title="Xếp lại giờ cập mọi chuyến chưa cập thật (giữ nguyên bến đã khai báo), có xem trước"><Anchor />Xếp lại toàn bộ</Button><Button variant="outline" onClick={() => setDan(true)}><ClipboardPaste />Dán nhanh</Button><Button onClick={() => setThem(true)}><Plus />Thêm chuyến</Button></>}
+        {quyen.quanTri && <Button variant="outline" className="text-bad hover:text-bad" onClick={() => setReset(true)} title="Xóa toàn bộ các tàu trong line tàu cập (cần nhập mã xác nhận)"><Trash2 />Reset line tàu</Button>}
+        {quyen.nhap && <><Button variant="outline" onClick={() => setDan(true)}><ClipboardPaste />Dán nhanh</Button><Button onClick={() => setThem(true)}><Plus />Thêm chuyến</Button></>}
       </PageHead>
       <Card className="mb-3">
         <CardContent className="flex flex-wrap items-center gap-2 pt-4">
@@ -80,7 +77,6 @@ export default function Linetime() {
         <TabsList>
           <TabsTrigger value="gantt"><CalendarRange />Lịch cầu bến</TabsTrigger>
           <TabsTrigger value="ben"><Rows3 />Tàu theo bến</TabsTrigger>
-          <TabsTrigger value="met"><Ruler />Sơ đồ cầu bến</TabsTrigger>
           <TabsTrigger value="kh"><CalendarCheck />Kế hoạch ngày tới</TabsTrigger>
           <TabsTrigger value="sap"><CalendarClock />Tàu sắp đến (7 ngày)</TabsTrigger>
           <TabsTrigger value="ds"><List />Danh sách chuyến</TabsTrigger>
@@ -117,8 +113,6 @@ export default function Linetime() {
             : <Gantt voyages={loc} tu={tu} soNgay={soNgay} pxNgay={ZOOM[zoom]} che={che} gon={gon} maxH={toanMH ? "calc(100dvh - 130px)" : undefined} />}
           </div>
         </TabsContent>
-
-        <TabsContent value="met"><SoMetBen /></TabsContent>
 
         <TabsContent value="ben"><Card><CardContent className="pt-4"><BangTauBen /></CardContent></Card></TabsContent>
 
@@ -161,8 +155,7 @@ export default function Linetime() {
       </Tabs>
       {them && <ChuyenForm onClose={() => setThem(false)} onSaved={(v) => v && setVoyageMo(v.id)} />}
       {dan && <DanNhanh onClose={() => setDan(false)} />}
-      {xep && <TuXepBen onClose={() => setXep(false)} />}
-      {xepLai && <XepLaiToanBo onClose={() => setXepLai(false)} />}
+      {reset && <ResetLine onClose={() => setReset(false)} />}
     </>
   );
 }

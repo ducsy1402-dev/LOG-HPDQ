@@ -2,8 +2,7 @@ import { Fragment, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "@/store";
 import { khoangBen, doanBen, trangThai, laUoc, chiSo, TRANG_THAI, MAU_CHO } from "@/lib/linetime";
 import { choBatDau, kieuCho, PhanChoHang, ChuThichCho } from "./doanCho";
-import { kiemTraXepBen, nhanCho, laBenLienKe } from "@/lib/capBen";
-import { kiemTraBen } from "@/lib/checks";
+import { laBenLienKe } from "@/lib/capBen";
 import { DAY, ngayGio, so, met, pad, iso, ms } from "@/lib/format";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -19,6 +18,9 @@ import { MOC } from "@/lib/linetime";
 import { thoiLuong, ngayGioNam } from "@/lib/format";
 
 export const SNAP = 30 * 60e3;
+// Ô chưa có nội dung ở thẻ thông tin tàu hiện "trống"
+const TRONG = <span className="text-muted-foreground">trống</span>;
+const dsGiaTri = (ds) => (ds || []).filter((m) => m?.ten).map((m) => `${m.ten}${m.gia_tri != null && m.gia_tri !== "" ? ` - ${typeof m.gia_tri === "number" ? so(m.gia_tri) : m.gia_tri}` : ""}`).join("; ");
 // Kích thước dòng / thanh: bình thường và chế độ gọn
 const CO = {
   thuong: { row: 46, lan: 26, bar: 22, top: 4, label: 94, head: 38, chu: "text-[0.6875rem]" },
@@ -46,7 +48,6 @@ export default function Gantt({ voyages, tu, soNgay, pxNgay, che = "ben", gon = 
   const K = gon ? CO.gon : CO.thuong, ROW = K.row, LABEL = K.label;
   const { D, quyen, run, api, setVoyageMo, toast } = useApp();
   const [keo, setKeo] = useState(null); // { v, dx, dy, x0, y0, moved }
-  const [xacNhan, setXacNhan] = useState(null);
   const [tro, setTro] = useState(null); // { x, cx, cy } thanh tàu đang trỏ chuột
   const khung = useRef();
   const den = tu + soNgay * DAY, W = soNgay * pxNgay;
@@ -96,9 +97,7 @@ export default function Gantt({ voyages, tu, soNgay, pxNgay, che = "ben", gon = 
   // Bến và giờ mới theo chỗ đang kéo. Dời lên / xuống bao nhiêu dòng thì bến chính (và bến phụ, nếu có) dời bấy nhiêu dòng;
   // tàu hai bến dời sang hai bến mới vẫn liền nhau thì giữ hai bến
   const tinhKeo = ({ x, dx, dy }) => {
-    let lech = Math.round(((dx / pxNgay) * DAY) / SNAP) * SNAP;
-    const eta = ms(x.v.eta); // ETB không được trước ETA
-    if (eta != null && !x.v.atb && x.a + lech < eta) lech = eta - x.a;
+    const lech = Math.round(((dx / pxNgay) * DAY) / SNAP) * SNAP;
     const rowCu = hang.find((r) => r.ma === x.rowMa) || hang.find((r) => r.ma === (x.v.ben_ma || ""));
     const rowMoi = benTaiY(rowCu.y + x.lan * K.lan + K.top + dy + K.bar / 2) ?? rowCu.ma;
     let benMoi = x.v.ben_ma || "", phuMoi = x.v.ben_phu || "";
@@ -120,14 +119,10 @@ export default function Gantt({ voyages, tu, soNgay, pxNgay, che = "ben", gon = 
     const { lech, benMoi, phuMoi } = tinhKeo(keo);
     if (!lech && benMoi === (x.v.ben_ma || "") && phuMoi === (x.v.ben_phu || "")) return;
     const doiBen = benMoi !== (x.v.ben_ma || "") || phuMoi !== (x.v.ben_phu || "");
-    // Đổi bến thì bỏ vị trí mét cũ (web tự xếp; đặt lại ở Sơ đồ cầu bến)
+    // Đổi bến thì bỏ vị trí mét cũ
     const patch = { ben_ma: benMoi || null, etb: iso(x.a + lech), etd: iso(x.b + lech), ...(D.coSql28 ? { ben_phu: phuMoi || null, ...(doiBen ? { vi_tri: null } : {}) } : {}) };
-    const vMoi = { ...x.v, ...patch };
-    const canh = kiemTraBen(vMoi, D.bmap[benMoi], vMoi.ben_phu ? D.bmap[vMoi.ben_phu] : null, D.berths).filter((c) => c.muc !== "info");
-    // Cập cùng tàu khác: kiểm tra số mét theo quy tắc cập cầu bến (đủ chỗ thì không báo)
-    for (const t of kiemTraXepBen(vMoi, benMoi, x.a + lech, x.b + lech, { voyages, berths: D.berths, stopsOf: D.stopsOf, now: D.now })) canh.push({ muc: "warn", nd: nhanCho(t, vMoi) });
     const luu = () => run(() => api.updateVoyage(x.v.id, patch), `Đã dời ${x.v.ten_tau} sang ${benMoi ? "bến " + noiHaiBen(benMoi, patch.ben_phu) : "chưa xếp bến"}, cập ${ngayGio(patch.etb)}`);
-    if (canh.length) setXacNhan({ v: x.v, patch, canh, luu }); else luu();
+    luu(); // đường line chỉ hiển thị và kéo thả: lưu ngay, không kiểm tra hay cảnh báo
   };
 
   const ngayDs = Array.from({ length: soNgay }, (_, i) => tu + i * DAY);
@@ -212,14 +207,6 @@ export default function Gantt({ voyages, tu, soNgay, pxNgay, che = "ben", gon = 
           <div className="text-muted-foreground">Chọn vị trí mét: chuyển sang chế độ Theo mét</div>
         </div>); })()}
       {tro && !keo && <TheTau x={tro.x} cx={tro.cx} cy={tro.cy} />}
-      {xacNhan && (
-        <Dialog onOpenChange={(o) => !o && setXacNhan(null)} title={`Dời ${xacNhan.v.ten_tau}?`} description={`Bến ${noiHaiBen(xacNhan.patch.ben_ma, xacNhan.patch.ben_phu) || "—"} · cập ${ngayGio(xacNhan.patch.etb)} → rời ${ngayGio(xacNhan.patch.etd)}`}
-          footer={<><Button variant="outline" onClick={() => setXacNhan(null)}>Hủy</Button><Button variant={xacNhan.canh.some((c) => c.muc === "bad") ? "destructive" : "default"} onClick={() => { xacNhan.luu(); setXacNhan(null); }}>Vẫn dời</Button></>}>
-          <div className="grid gap-2 text-sm">
-            {xacNhan.canh.map((c, i) => <div key={i} className="flex gap-2"><MucIcon muc={c.muc} className="mt-0.5" />{c.nd}</div>)}
-          </div>
-        </Dialog>
-      )}
     </>
   );
 }
@@ -249,7 +236,17 @@ export function TheTau({ x, cx, cy }) {
       <D2 l="Hàng">{v.huong === "xuat" ? "Xuất" : "Nhập"} {v.loai_hang}{v.ten_hang && v.ten_hang !== v.loai_hang ? ` – ${v.ten_hang}` : ""}</D2>
       <D2 l="Khối lượng"><b>{so(v.khoi_luong)} t</b> · đã làm {so(cs.daLam)} t{cs.hoanTat != null ? ` (${so(cs.hoanTat * 100, 1)}%)` : ""} · còn {so(cs.conLai)} t</D2>
       {v.so_mang != null && <D2 l="Số máng">{v.so_mang} máng</D2>}
-      <D2 l="Cam kết">{+v.cam_ket ? `${so(v.cam_ket)} t/ngày` : v.cam_ket_ghi_chu || "—"}{cs.nangSuat != null ? ` · thực ${so(cs.nangSuat)} t/ngày` : ""}</D2>
+      <D2 l="Cam kết">{+v.cam_ket ? `${so(v.cam_ket)} t/ngày` : v.cam_ket_ghi_chu || TRONG}{cs.nangSuat != null ? ` · thực ${so(cs.nangSuat)} t/ngày` : ""}</D2>
+      <div className="mt-0.5 grid gap-1 border-t pt-1.5">
+        <D2 l="GEAR">{v.gear || TRONG}</D2>
+        <D2 l="DEM/day">{v.dem_day || TRONG}</D2>
+        <D2 l="Kho-Bãi">{(v.bai_kl || []).filter((b) => b?.bai).map((b) => `${b.bai}${b.khoi_luong != null ? ` - ${so(b.khoi_luong)}` : b.ghi_chu ? ` - ${b.ghi_chu}` : ""}`).join("; ") || TRONG}</D2>
+        <D2 l="PT. Vận chuyển">{dsGiaTri(v.pt_van_chuyen) || TRONG}</D2>
+        <D2 l="PT. Kho Bãi">{dsGiaTri(v.pt_kho_bai) || TRONG}</D2>
+        <D2 l="LAYTIME">{v.laytime_txt || TRONG}</D2>
+        <D2 l="LSD">{v.lsd || TRONG}</D2>
+        <D2 l="Ghi chú">{v.ghi_chu || TRONG}</D2>
+      </div>
       <div className="mt-0.5 border-t pt-1.5">{moc.map(([l, t]) => <D2 key={l} l={l}><span className="tabular-nums">{ngayGioNam(t)}</span></D2>)}</div>
       {cs.choNeo != null && <D2 l="Chờ bến">{thoiLuong(cs.choNeo)}</D2>}
       <div className="mt-0.5 border-t pt-1.5 grid gap-1.5">
