@@ -153,7 +153,7 @@ export default function GanttMet({ voyages, tu, soNgay, pxNgay, che = "ben", gon
                   aria-label={`${it.v.ten_tau}: ${TRANG_THAI[it.st].ten}`}>
                   {cs && <div className="absolute inset-y-0 left-0 bg-black/25" style={{ width: `${Math.min(100, (cs.hoanTat || 0) * 100)}%` }} />}
                   <span className="relative truncate">{it.uocTT ? "≈ " : ""}{it.v.uu_tien ? "★ " : ""}{it.v.ten_tau}</span>
-                  {h >= 26 && <span className="relative truncate opacity-85">{it.v._loaUoc ? "≈" : ""}{met(it.L)} m · {noiHaiBen(it.seg.ben, it.seg.phu)} {viTriChu(it.x, it.L)}</span>}
+                  {h >= 26 && <span className="relative truncate opacity-85">{it.v._loaUoc || it.thuNho ? "≈" : ""}{met(it.L)} m · {noiHaiBen(it.seg.ben, it.seg.phu)} {viTriChu(it.x, it.L)}</span>}
                 </div>
                 </Fragment>);
             })}

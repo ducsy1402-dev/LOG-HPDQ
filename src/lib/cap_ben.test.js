@@ -6,7 +6,7 @@ import { timBen } from "./checks";
 import { docDongTau } from "./danTau";
 import { doanBen } from "./linetime";
 import { datThuTuBen, tenBenChuyen, noiHaiBen } from "./tenBen";
-import { soMetCan, khoangCachD, khoangCachE, cacTuyen, tuyenCuaBen, benLienKe, laBenLienKe, benTheoViTri, xepTuyen } from "./capBen";
+import { soMetCan, khoangCachD, khoangCachE, cacTuyen, tuyenCuaBen, benLienKe, laBenLienKe, benTheoViTri, xepTuyen, viTriTrenLich } from "./capBen";
 
 const t = (d, h = 0) => new Date(2026, 10, d, h).getTime();
 const iso = (d, h = 0) => new Date(t(d, h)).toISOString();
@@ -130,5 +130,33 @@ describe("Dán nhanh và tên bến hai bến", () => {
     expect(tenBenChuyen({ ben_ma: "B08", ben_phu: "B07" })).toBe("B07/08");
     expect(tenBenChuyen({ ben_ma: "HH3", ben_phu: "HH2" })).toBe("HH2/3");
     expect(noiHaiBen("B05", "B03", (x) => x)).toBe("B03/05");
+  });
+});
+
+describe("Lịch theo mét: không vẽ tàu chồng lên nhau, không ra ngoài cụm bến", () => {
+  const NOW = t(3);
+  const tuyen = T("B03");
+  const trong = (r) => r.x >= tuyen.tu - 1e-6 && r.x + r.L <= tuyen.den + 1e-6;
+  const chong = (ds) => ds.some((p, i) => ds.some((q, j) => i < j && p.seg.a < q.seg.b && q.seg.a < p.seg.b && p.x < q.x + q.L - 1e-6 && q.x < p.x + p.L - 1e-6));
+  it("nhiều tàu cùng lúc ở một tuyến (có tàu thiếu LOA): không chồng, nằm trong tuyến", () => {
+    const ds = [
+      { id: 1, ten_tau: "A", loa: 190, ben_ma: "B03", atb: iso(1), etd: iso(8) },
+      { id: 2, ten_tau: "B", loa: 180, ben_ma: "B05", atb: iso(2), etd: iso(7) },
+      { id: 3, ten_tau: "C", loa: 225, ben_ma: "B10", atb: iso(2), etd: iso(9) },
+      { id: 4, ten_tau: "TBA", ben_ma: "B03", khoi_luong: 150000, etb: iso(3), etd: iso(6) }, // chưa có LOA: ước lớn, phải vẽ nhỏ lại cho vừa
+      { id: 5, ten_tau: "TBA2", ben_ma: "B05", etb: iso(3), etd: iso(5) },
+    ];
+    const r = viTriTrenLich(ds, BEN, () => [], t(1), t(12), NOW);
+    expect(r).toHaveLength(5);
+    expect(chong(r)).toBe(false);
+    expect(r.every(trong)).toBe(true);
+    expect(r.find((x) => x.v.id === 1).L).toBe(190); // tàu có LOA thật giữ nguyên
+    expect(r.filter((x) => x.thuNho).every((x) => x.v._loaUoc)).toBe(true); // chỉ tàu LOA ước bị vẽ nhỏ lại
+  });
+  it("tàu ghi vị trí mét giữ đúng chỗ khi còn trống; tàu không cùng lúc không ảnh hưởng nhau", () => {
+    const a = { id: 1, ten_tau: "A", loa: 150, ben_ma: "B05", vi_tri: 300, atb: iso(1), etd: iso(3) };
+    const b = { id: 2, ten_tau: "B", loa: 150, ben_ma: "B05", vi_tri: 300, atb: iso(4), etd: iso(6) };
+    const r = viTriTrenLich([a, b], BEN, () => [], t(1), t(12), NOW);
+    expect(r.map((x) => [x.x, x.coDinh])).toEqual([[300, true], [300, true]]);
   });
 });
