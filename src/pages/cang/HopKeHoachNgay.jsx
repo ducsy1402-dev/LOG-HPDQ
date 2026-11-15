@@ -6,12 +6,12 @@ import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Empty } from "@/components/common";
-import { so, soGon, plain, thangCua, tenThang, congThang } from "@/lib/format";
+import { so, soGon, plain, thangCua, tenThang, congThang, DAY } from "@/lib/format";
 import { docSo } from "@/lib/paste";
 import { ngayCuaThang } from "@/lib/sanLuongTT";
 import { dongHang } from "@/lib/sanLuong";
-import { klCanLam, trangThai, TRANG_THAI } from "@/lib/linetime";
-import { laBenLienKe } from "@/lib/capBen";
+import { klCanLam, trangThai, TRANG_THAI, doanBen } from "@/lib/linetime";
+import { xepHangBen } from "./Gantt";
 import { ngayCuaChuyen, chiaDeuTheoGio, thucTeNgay, ngayDia } from "@/lib/keHoachNgay";
 import { cn } from "@/lib/utils";
 import { useNhomHang } from "./useNhomHang";
@@ -118,11 +118,17 @@ export default function HopKeHoachNgay({ thang0, onClose, onLuu }) {
     return () => { huy = true; };
   }, [api, ngays, thang, lan]);
 
+  // Các ngày tàu CÓ MẶT ở bến: ngày giao với các đoạn chiếm bến (cùng đoạn bến mà Lịch cầu bến vẽ); rời đúng 0:00 thì ngày đó không tính
+  const ngayCuaDoan = (v) => {
+    const out = new Set();
+    for (const d of doanBen(v, D.stopsOf(v.id), D.now)) { const t0 = new Date(d.a); t0.setHours(0, 0, 0, 0); for (let t = t0.getTime(); t < Math.max(d.b, d.a + 1); t += DAY) out.add(ngayDia(t)); }
+    return [...out];
+  };
   const goc = useMemo(() => { const m = {}; for (const r of rows || []) m[`${r.voyage_id}|${String(r.ngay).slice(0, 10)}`] = +r.khoi_luong || 0; return m; }, [rows]);
   // Line tàu: chuyến chiếm bến trong tháng, theo giờ cập; lọc theo loại hàng (nhóm hàng) và hướng
   const tatCa = useMemo(() => {
     const t = new Set(ngays);
-    return D.voyages.filter((v) => !v.huy).map((v) => ({ v, ben: ngayCuaChuyen(v), dong: dongHang(v, nhomHang) }))
+    return D.voyages.filter((v) => !v.huy).map((v) => ({ v, ben: ngayCuaDoan(v), dong: dongHang(v, nhomHang) }))
       .filter((x) => x.ben.some((n) => t.has(n)) || ngays.some((n) => `${x.v.id}|${n}` in goc))
       .sort((a, b) => (new Date(a.v.atb || a.v.etb || a.v.eta).getTime() || 0) - (new Date(b.v.atb || b.v.etb || b.v.eta).getTime() || 0));
   }, [D.voyages, nhomHang, ngays, goc]);
@@ -151,29 +157,11 @@ export default function HopKeHoachNgay({ thang0, onClose, onLuu }) {
   const goiY = (v, n) => chiaDeuTheoGio(v).get(n) || 0;
   const oMo = (x, n) => x.ben.includes(n) || `${x.v.id}|${n}` in goc;
 
-  // ---- Line tàu xếp GIỐNG Linetime › Lịch cầu bến (theo bến), anh Sỹ chốt 15/11/2026: mỗi bến một dòng theo đúng thứ tự bến trong danh mục (kể cả bến trống);
-  // tàu một bến xếp từ trên xuống, tàu cập hai bến (3/5) chỉ nằm ở bến ĐỨNG TRƯỚC và xếp ở DƯỚI CÙNG dòng đó; tàu chưa có bến ở dòng "Chưa xếp bến" cuối cùng.
-  // Tàu cùng ngày thì xếp thành nhiều làn (theo ô ngày). ----
-  const nhom = useMemo(() => {
-    const thuBen = new Map(D.berths.map((b, i) => [String(b.ma), i]));
-    const g = new Map(D.berths.map((b) => [String(b.ma), { k: String(b.ma), ten: tenBen(b.ma), tau: [] }]));
-    for (const x of tau) {
-      const chinh = String(x.v.ben_ma || ""), phu = x.v.ben_phu && laBenLienKe(D.berths, chinh, x.v.ben_phu) ? String(x.v.ben_phu) : "";
-      const ma = phu && thuBen.get(phu) < (thuBen.get(chinh) ?? Infinity) ? phu : chinh, k = g.has(ma) ? ma : "_";
-      if (!g.has(k)) g.set(k, { k, ten: "Chưa xếp bến", tau: [] });
-      const idx = hien.map((n, i) => (oMo(x, n) ? i : -1)).filter((i) => i >= 0);
-      if (idx.length) g.get(k).tau.push({ ...x, s: idx[0], e: idx[idx.length - 1], hai: !!phu });
-    }
-    const chiaLan = (ds) => { const lanEnd = []; for (const x of ds.sort((a, b) => a.s - b.s || a.e - b.e)) { let i = lanEnd.findIndex((e) => e < x.s); if (i < 0) { i = lanEnd.length; lanEnd.push(-1); } lanEnd[i] = x.e; x.lan = i; } return lanEnd.length; };
-    return [...g.values()].filter((z) => z.k !== "_" || z.tau.length).map((z) => {
-      const don = z.tau.filter((x) => !x.hai), doi = z.tau.filter((x) => x.hai), nDon = chiaLan(don), nDoi = chiaLan(doi);
-      const h = !z.tau.length ? 30 : 8 + (nDon + nDoi) * LH + (!nDon ? 14 : 0); // dòng bến trống chỉ cao 30; chỉ có tàu hai bến thì chừa khoảng trên để tàu nằm sát đáy
-      for (const x of don) x.top = 4 + x.lan * LH;
-      for (const x of doi) x.top = h - 4 - (nDoi - x.lan) * LH;
-      return { ...z, tau: [...don, ...doi], h };
-    });
-  }, [tau, hien, D.berths, goc]); // eslint-disable-line react-hooks/exhaustive-deps
-  const thuTu = useMemo(() => new Map(nhom.flatMap((z) => z.tau).map((x, i) => [x.v.id, i])), [nhom]);
+  // ---- Line tàu là BẢN SAO của Linetime › Lịch cầu bến (theo bến): dùng đúng hàm xếp tàu vào dòng bến của lịch (xepHangBen), thanh tàu đặt theo GIỜ thật; mỗi ngày tàu ở bến là một ô số tấn. ----
+  const tuMs = new Date(hien[0] + "T00:00:00").getTime(), denMs = tuMs + hien.length * DAY;
+  const hang = useMemo(() => xepHangBen(D, loc2.map((x) => x.v), tuMs, denMs, "ben", { row: 30, lan: LH, top: 4 }), [D.voyages, D.berths, D.now, loc2, tuMs, denMs]); // eslint-disable-line react-hooks/exhaustive-deps
+  const xOf = (t) => ((t - tuMs) / DAY) * CW;
+  const thuTu = useMemo(() => new Map(hang.flatMap((r) => r.ds).reverse().map((x, i, a) => [x.v.id, a.length - i])), [hang]);
 
   const chiaDeu = (v) => {
     const m = chiaDeuTheoGio(v), moi = {};
@@ -245,41 +233,44 @@ export default function HopKeHoachNgay({ thang0, onClose, onLuu }) {
                       <div className="font-semibold tabular-nums">{n.slice(8)}/{n.slice(5, 7)}</div><div className={cn("text-[0.6875rem]", cn0 ? "text-bad" : "text-muted-foreground")}>{THU[d.getDay()]}{hn ? " · nay" : ""}</div></div>; })}
                 </div>
 
-                {/* Các cụm bến */}
-                {nhom.map((z) => (
-                  <div key={z.k} className="flex border-b">
+                {/* Các dòng bến, bản sao của Lịch cầu bến */}
+                {hang.map((r) => (
+                  <div key={r.ma || "_"} className="flex border-b">
                     <div className="sticky left-0 z-10 flex shrink-0 flex-col justify-center border-r bg-card px-2" style={{ width: LABEL }}>
-                      <span className="font-mono text-[0.8125rem] font-semibold leading-tight">{z.ten}</span>
-                      {z.tau.length > 0 && <span className="text-[0.6875rem] text-muted-foreground">{z.tau.length} tàu</span>}
+                      <span className="font-mono text-[0.8125rem] font-semibold leading-tight">{r.b ? tenBen(r.ma) : "Chưa xếp bến"}</span>
+                      {r.ds.length > 0 && <span className="text-[0.6875rem] text-muted-foreground">{new Set(r.ds.map((x) => x.v.id)).size} tàu</span>}
                     </div>
-                    <div className="relative shrink-0" style={{ width: W, height: z.h }}>
+                    <div className="relative shrink-0" style={{ width: W, height: r.h }}>
                       {luoi}
-                      {z.tau.map((x) => {
-                        const { v } = x, st = TRANG_THAI[trangThai(v, D.now)], kl = klCanLam(v), tong = tongTau(v), vuot = kl > 0 && tong > kl + 1;
-                        const cacO = hien.slice(x.s, x.e + 1);
+                      {r.ds.map((x) => {
+                        const { v } = x, st = TRANG_THAI[x.st], kl = klCanLam(v), tong = tongTau(v), vuot = kl > 0 && tong > kl + 1;
+                        const left = Math.max(0, xOf(x.a)), right = Math.min(W, xOf(x.b)), w = Math.max(6, right - left);
                         return (
-                          <div key={v.id} className="absolute overflow-hidden rounded-md text-white shadow-sm" style={{ left: x.s * CW + 1, width: (x.e - x.s + 1) * CW - 2, top: x.top, height: LH - 6, background: st.mau }}
-                            title={`${v.ten_tau} · ${v.huong === "xuat" ? "Xuất" : "Nhập"} · ${st.ten}\nBến ${v.ben_ma ? tenBen(v.ben_ma) : "chưa xếp"} · cập ${gio(v.atb || v.etb || v.eta)}\nKL tàu ${so(kl, 0)} t · KH tháng ${so(tong, 0)} t`}>
+                          <div key={`${v.id}:${x.a}`} className="absolute overflow-hidden rounded-md text-white shadow-sm" style={{ left: left + 1, width: w - 2, top: x.top, height: LH - 6, background: st.mau }}
+                            title={`${v.ten_tau} · ${v.huong === "xuat" ? "Xuất" : "Nhập"} · ${st.ten}\nBến ${v.ben_ma ? tenBen(v.ben_ma) : "chưa xếp"} · cập ${gio(x.a)} → rời ${gio(x.b)}\nKL tàu ${so(kl, 0)} t · KH tháng ${so(tong, 0)} t`}>
                             <div className="flex h-[19px] items-center gap-1.5 px-1.5 text-[0.6875rem] font-semibold leading-none">
                               <span className="truncate">{v.uu_tien ? "★ " : ""}{v.ten_tau}</span>
                               <span className="shrink-0 rounded bg-black/25 px-1 py-0.5 font-normal">{v.huong === "xuat" ? "Xuất" : "Nhập"}</span>
                               <span className={cn("ml-auto shrink-0 font-normal tabular-nums", vuot && "rounded bg-bad px-1 py-0.5 font-semibold")} title={vuot ? "Kế hoạch trong tháng vượt khối lượng tàu" : "Kế hoạch tháng / khối lượng tàu"}>KH {so(tong, 0)}/{so(kl, 0)} t</span>
                             </div>
-                            <div className="flex">
-                              {cacO.map((n, j) => {
-                                const mo = oMo(x, n), k = key(v, n), co = k in sua && sua[k].trim() !== fmt(goc[k]), val = giaTri(v, n);
-                                const noi = <span className={cn("block w-full px-1.5 text-right tabular-nums", val ? "font-semibold" : "opacity-50")}>{val ? soGon(val) : nhap ? "+" : ""}</span>;
-                                return !mo ? <div key={n} className="h-[25px] border-l border-white/10" style={{ width: CW }} />
-                                  : <button key={n} type="button" disabled={!nhap} onClick={(e) => moHop(e, { ngay: n, huong: null, vid: v.id })} aria-label={`${v.ten_tau} ngày ${n.slice(8)}`}
-                                    className={cn("flex h-[25px] items-center border-l border-white/15 bg-black/20", nhap && "cursor-pointer hover:bg-black/40", co && "ring-2 ring-inset ring-amber-300", pop?.ngay === n && pop?.vid === v.id && "bg-black/50")} style={{ width: CW }}>{noi}</button>;
-                              })}
-                            </div>
+                            {/* Mỗi ngày tàu ở bến một ô: nằm đúng phần của ngày đó trên thanh (ngày chỉ ở bến một phần thì ô hẹp hơn) */}
+                            {hien.map((n, i) => {
+                              const cL = Math.max(left, i * CW), cR = Math.min(right, (i + 1) * CW);
+                              if (cR - cL < 0.5) return null;
+                              const k = key(v, n), co = k in sua && sua[k].trim() !== fmt(goc[k]), val = giaTri(v, n);
+                              return (
+                                <button key={n} type="button" disabled={!nhap} onClick={(e) => moHop(e, { ngay: n, huong: null, vid: v.id })} aria-label={`${v.ten_tau} ngày ${n.slice(8)}`}
+                                  className={cn("absolute flex h-[25px] items-center border-l border-white/15 bg-black/20", nhap && "cursor-pointer hover:bg-black/40", co && "ring-2 ring-inset ring-amber-300", pop?.ngay === n && pop?.vid === v.id && "bg-black/50")}
+                                  style={{ left: cL - left - 1, width: cR - cL, top: 19 }}>
+                                  <span className={cn("block w-full truncate px-1 text-right tabular-nums", val ? "font-semibold" : "opacity-50")}>{val ? soGon(val) : nhap && cR - cL > 14 ? "+" : ""}</span>
+                                </button>);
+                            })}
                           </div>);
                       })}
                     </div>
                   </div>
                 ))}
-                {!nhom.some((z) => z.tau.length) && <div className="py-6 text-center text-muted-foreground">Không có chuyến nào trong các ngày này. Bấm ▶ để xem các ngày sau.</div>}
+                {!hang.some((r) => r.ds.length) && <div className="py-6 text-center text-muted-foreground">Không có chuyến nào trong các ngày này. Bấm ▶ để xem các ngày sau.</div>}
 
                 {/* Dòng cộng: kế hoạch (bấm để mở hộp nhỏ) và thực tế */}
                 <div className="sticky bottom-0 z-20 border-t-2 bg-card">

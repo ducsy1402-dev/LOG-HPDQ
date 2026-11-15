@@ -39,6 +39,44 @@ function chiaLan(ds) {
   return Math.max(1, lan.length);
 }
 
+// Xếp các chuyến vào dòng bến của lịch — DÙNG CHUNG cho Lịch cầu bến (Linetime) và hộp Kế hoạch ngày, để hai nơi LUÔN GIỐNG NHAU như bản sao (anh Sỹ chốt 15/11/2026):
+// mỗi bến một dòng theo thứ tự bến trong danh mục; mỗi đoạn tàu chiếm bến là một thanh; thanh trùng giờ xếp thành nhiều làn (tàu rời đúng lúc tàu khác cập thì nối tiếp cùng một làn);
+// tàu cập hai bến chỉ ở bến đứng trước và xếp dưới cùng dòng. K = { row, lan, top }: chiều cao tối thiểu một dòng, chiều cao một làn, lề trên.
+// Trả [{ ma, b, ds: [{ v, a, b, a0, la, st, uocTT, haiBen, lan, top, rowMa }], soLan, y, h }]
+export function xepHangBen(D, voyages, tu, den, che, K) {
+  const ROW = K.row;
+  const rows = [...D.berths.map((b) => ({ ma: b.ma, b })), { ma: "", b: null }];
+  const theoBen = new Map(rows.map((r) => [r.ma, []]));
+  for (const v of voyages) {
+    const k = khoangBen(v, D.now);
+    if (!k) continue;
+    // Toàn thời gian: đoạn chờ bến bắt đầu từ lúc đến neo (NOR); tàu chưa đến neo thì từ ETA dự kiến. Tàu đã cập mà không có NOR thì không có đoạn chờ
+    const choTu = choBatDau(v, che);
+    const a0 = choTu != null && choTu < k.a ? choTu : null, la = a0 ?? k.a;
+    if (k.b < tu || la > den) continue;
+    // Chuyển bến / ra neo: mỗi đoạn tàu chiếm một bến là một thanh riêng
+    doanBen(v, D.stopsOf(v.id), D.now).forEach((d, i) => {
+      if (d.b < tu || (i ? d.a : la) > den) return;
+      const phu = d.phu && laBenLienKe(D.berths, d.ben, d.phu) ? d.phu : "";
+      // Tàu cập hai bến (3/5): chỉ vẽ ở BẾN ĐỨNG TRƯỚC trong dãy bến; ghi "⇕ (B03/05)" trên thanh
+      const thuTu = (m) => D.berths.findIndex((b) => String(b.ma) === String(m));
+      for (const ma of [phu && thuTu(phu) >= 0 && thuTu(phu) < thuTu(d.ben) ? phu : d.ben || ""]) {
+        const row = theoBen.has(ma) ? ma : "";
+        theoBen.get(row).push({ v, a: d.a, b: d.b, uoc: d.uoc, a0: i ? null : a0, la: i ? d.a : la, st: trangThai(v, D.now), uocTT: laUoc(v, D.now), rowMa: row, haiBen: phu ? noiHaiBen(d.ben, phu) : null });
+      }
+    });
+  }
+  let y = 0;
+  return rows.filter((r) => r.ma || theoBen.get("").length).map((r) => {
+    const ds = theoBen.get(r.ma), don = ds.filter((x) => !x.haiBen), doi = ds.filter((x) => x.haiBen);
+    const nDon = don.length ? chiaLan(don) : 0, nDoi = doi.length ? chiaLan(doi) : 0, soLan = Math.max(1, nDon + nDoi), h = Math.max(ROW, soLan * K.lan + K.top * 2);
+    // Tàu một bến xếp từ trên xuống; tàu hai bến (3/5) luôn xếp ở DƯỚI CÙNG, sát mép cuối dòng bến chính, kể cả khi bến chính không có tàu nào
+    for (const x of don) x.top = K.top + x.lan * K.lan;
+    for (const x of doi) x.top = h - K.top - (nDoi - x.lan) * K.lan;
+    const out = { ...r, ds, soLan, y, h }; y += h; return out;
+  });
+}
+
 // Lịch cầu bến dạng Gantt: bến theo hàng, ngày theo cột. Kéo thả thanh tàu (chưa cập) để đổi bến hoặc giờ dự kiến.
 // che = "ben": chỉ thời gian chiếm bến; "toan": thêm đoạn chờ bến (màu đỏ: từ NOR, tàu chưa đến neo thì từ ETA, tới lúc cập), vạch NOR và làm hàng.
 // Mọi chế độ: khoảng dừng "Chờ hàng" / "Chờ bãi" (chờ đủ hàng, chờ có bãi nhập) vẽ màu xanh lá trên thanh tàu.
@@ -52,38 +90,7 @@ export default function Gantt({ voyages, tu, soNgay, pxNgay, che = "ben", gon = 
   const den = tu + soNgay * DAY, W = soNgay * pxNgay;
   const xOf = (t) => ((t - tu) / DAY) * pxNgay;
 
-  const hang = useMemo(() => {
-    const rows = [...D.berths.map((b) => ({ ma: b.ma, b })), { ma: "", b: null }];
-    const theoBen = new Map(rows.map((r) => [r.ma, []]));
-    for (const v of voyages) {
-      const k = khoangBen(v, D.now);
-      if (!k) continue;
-      // Toàn thời gian: đoạn chờ bến bắt đầu từ lúc đến neo (NOR); tàu chưa đến neo thì từ ETA dự kiến. Tàu đã cập mà không có NOR thì không có đoạn chờ
-      const choTu = choBatDau(v, che);
-      const a0 = choTu != null && choTu < k.a ? choTu : null, la = a0 ?? k.a;
-      if (k.b < tu || la > den) continue;
-      // Chuyển bến / ra neo: mỗi đoạn tàu chiếm một bến là một thanh riêng. Tàu cập hai bến (bến phụ): thanh ở cả hai dòng bến
-      doanBen(v, D.stopsOf(v.id), D.now).forEach((d, i) => {
-        if (d.b < tu || (i ? d.a : la) > den) return;
-        const phu = d.phu && laBenLienKe(D.berths, d.ben, d.phu) ? d.phu : "";
-        // Tàu cập hai bến (3/5): chỉ vẽ ở BẾN ĐỨNG TRƯỚC trong dãy bến (anh Sỹ chốt 15/11/2026); ghi "⇕ (B03/05)" trên thanh, không vẽ ở bến sau và không theo mét
-        const thuTu = (m) => D.berths.findIndex((b) => String(b.ma) === String(m));
-        for (const ma of [phu && thuTu(phu) >= 0 && thuTu(phu) < thuTu(d.ben) ? phu : d.ben || ""]) {
-          const row = theoBen.has(ma) ? ma : "";
-          theoBen.get(row).push({ v, a: d.a, b: d.b, uoc: d.uoc, a0: i ? null : a0, la: i ? d.a : la, st: trangThai(v, D.now), uocTT: laUoc(v, D.now), rowMa: row, haiBen: phu ? noiHaiBen(d.ben, phu) : null });
-        }
-      });
-    }
-    let y = 0;
-    return rows.filter((r) => r.ma || theoBen.get("").length).map((r) => {
-      const ds = theoBen.get(r.ma), don = ds.filter((x) => !x.haiBen), doi = ds.filter((x) => x.haiBen);
-      const nDon = don.length ? chiaLan(don) : 0, nDoi = doi.length ? chiaLan(doi) : 0, soLan = Math.max(1, nDon + nDoi), h = Math.max(ROW, soLan * K.lan + K.top * 2);
-      // Tàu một bến xếp từ trên xuống; tàu hai bến (3/5) luôn xếp ở DƯỚI CÙNG, sát mép cuối dòng bến chính, kể cả khi bến chính không có tàu nào (anh Sỹ chốt 15/11/2026)
-      for (const x of don) x.top = K.top + x.lan * K.lan;
-      for (const x of doi) x.top = h - K.top - (nDoi - x.lan) * K.lan;
-      const out = { ...r, ds, soLan, y, h }; y += h; return out;
-    });
-  }, [voyages, D.berths, D.now, tu, den, che, gon]); // eslint-disable-line react-hooks/exhaustive-deps
+  const hang = useMemo(() => xepHangBen(D, voyages, tu, den, che, K), [voyages, D.berths, D.now, tu, den, che, gon]); // eslint-disable-line react-hooks/exhaustive-deps
   const cao = hang.reduce((s, r) => s + r.h, 0);
 
   const benTaiY = (y) => hang.find((r) => y >= r.y && y < r.y + r.h)?.ma;

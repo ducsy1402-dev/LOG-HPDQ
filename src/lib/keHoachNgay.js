@@ -24,7 +24,7 @@ export function khoangLamHang(v) {
 export function ngayCuaChuyen(v) {
   const m = mocDuKien(v), a = m.cap ?? m.bd ?? m.eta, b = m.roi ?? m.kt ?? (a != null ? a + DAY : null);
   if (a == null || b == null) return [];
-  const out = []; for (let t = dauNgay(a); t <= Math.max(b, a); t += DAY) out.push(ngayDia(t));
+  const out = []; for (let t = dauNgay(a); t < Math.max(b, a + 1); t += DAY) out.push(ngayDia(t)); // tàu rời đúng 0:00 thì ngày đó không tính
   return [...new Set(out)];
 }
 // Chia khối lượng cần làm của chuyến theo giờ làm hàng vào từng ngày: Map ngày -> tấn (làm tròn tấn, phần dư dồn vào ngày nhiều nhất)
