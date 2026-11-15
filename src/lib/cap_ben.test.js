@@ -160,3 +160,26 @@ describe("Lịch theo mét: không vẽ tàu chồng lên nhau, không ra ngoài
     expect(r.map((x) => [x.x, x.coDinh])).toEqual([[300, true], [300, true]]);
   });
 });
+
+describe("Lịch theo mét: tàu một bến nằm trong bến, tàu hai bến vắt qua ranh giới", () => {
+  const NOW = t(3);
+  const tau = (id, ben, extra = {}) => ({ id, ten_tau: `T${id}`, loa: 100, ben_ma: ben, atb: iso(1), etd: iso(8), ...extra });
+  it("tàu B03 nằm trong bến B03 (0–200 m); tàu B03/05 vắt qua mét 200; một thời điểm chỉ một tàu vắt qua", () => {
+    const ds = [tau(1, "B03", { loa: 80 }), tau(2, "B03", { loa: 30 }), tau(3, "B03", { ben_phu: "B05", loa: 150 }), tau(4, "B03", { ben_phu: "B05", loa: 140 }), tau(5, "B05", { loa: 120 })];
+    const r = viTriTrenLich(ds, BEN, () => [], t(1), t(12), NOW), theo = (id) => r.find((x) => x.v.id === id);
+    expect(theo(1).x).toBeGreaterThanOrEqual(0); expect(theo(1).x + theo(1).L).toBeLessThanOrEqual(200 + 1e-6);
+    expect(theo(2).x + theo(2).L).toBeLessThanOrEqual(200 + 1e-6);
+    const vat = (x) => x.x < 200 && x.x + x.L > 200;
+    expect(vat(theo(3))).toBe(true); // tàu hai bến đầu tiên vắt qua ranh giới B03 | B05
+    expect(r.filter(vat).filter((x) => x.v.ben_phu).length).toBe(1); // tàu hai bến thứ hai không vắt qua được cùng lúc
+    const chong = r.some((p, i) => r.some((q, j) => i < j && p.x < q.x + q.L - 1e-6 && q.x < p.x + p.L - 1e-6));
+    expect(chong).toBe(false);
+  });
+  it("tàu B05 chiếm hết bến B05 thì tàu B05 khác mới lấn sang chỗ trống kế bên", () => {
+    const ds = [tau(1, "B05", { loa: 290 }), tau(2, "B05", { loa: 100 })];
+    const r = viTriTrenLich(ds, BEN, () => [], t(1), t(12), NOW);
+    expect(r.find((x) => x.v.id === 1).x).toBeGreaterThanOrEqual(200);
+    const p = r.find((x) => x.v.id === 2);
+    expect(p.x + p.L <= 200 + 1e-6 || p.x >= 500 - 1e-6).toBe(true); // lấn sang B03 hoặc B10, không chồng
+  });
+});

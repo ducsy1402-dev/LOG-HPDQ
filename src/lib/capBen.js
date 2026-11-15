@@ -164,12 +164,15 @@ const chuanHoa = (segs, berths) => segs.filter((s) => s.ben).map((s) => ({ ...s,
 export const loaUoc = (v) => (+v.loa > 0 ? v : { ...v, loa: uocThongSo(v).loa || 150, _loaUoc: true });
 const segsCuaChuyen = (v0, stopsOf, now) => { const v = loaUoc(v0); return doanBen(v, stopsOf(v.id), now).filter((d) => d.ben).map((d) => ({ v, a: d.a, b: d.b, ben: d.ben, phu: d.phu, viTri: d.viTri, nguon: d.nguon, cuoi: d.cuoi, dau: d.dau })); };
 
-// Lịch cầu bến theo mét: mỗi đoạn tàu chiếm bến trong [tu, den) (ms) kèm tuyến và mét đầu tàu — CHỈ ĐỂ VẼ, anh Sỹ chốt 15/11/2026: KHÔNG VẼ TÀU CHỒNG LÊN NHAU
-// và không vẽ ra ngoài cụm bến (tuyến). Cách vẽ (mỗi tuyến riêng, mỗi đoạn tàu giữ MỘT vị trí suốt thời gian ở bến):
-//   1. xếp thứ tự: tàu đã ghi vị trí mét (vi_tri) trước, rồi tàu có LOA thật, cuối cùng tàu chưa có LOA (LOA ước); mỗi nhóm theo giờ vào bến;
-//   2. mỗi đoạn tìm các chỗ trống trên tuyến so với những tàu ĐÃ vẽ mà cùng lúc ở bến (kể cả vào sau, rời trước), cách nhau KHE_VE mét;
-//   3. chọn chỗ đủ dài gần mét mong muốn nhất (vị trí đã ghi, không có thì mét đầu của bến chính); không có chỗ đủ dài thì VẼ NHỎ LẠI cho vừa chỗ trống
-//      lớn nhất (tối thiểu MIN_VE mét; tàu LOA ước được xếp sau cùng nên là tàu nhỏ lại trước). Hết chỗ hẳn mới đành chồng (rất hiếm).
+// Lịch cầu bến theo mét: mỗi đoạn tàu chiếm bến trong [tu, den) (ms) kèm tuyến và mét đầu tàu — CHỈ ĐỂ VẼ (anh Sỹ chốt 15/11/2026):
+//   • KHÔNG vẽ tàu chồng lên nhau, không vẽ ra ngoài cụm bến (tuyến);
+//   • tàu một bến (B03) ưu tiên nằm trong bến đó (mét của B03), chỉ khi bến đó hết chỗ mới lấn sang chỗ trống gần nhất của tuyến;
+//   • tàu hai bến (B03/05) nằm VẮT QUA ranh giới hai bến; một thời điểm chỉ một tàu vắt qua mỗi ranh giới (hai tàu cùng vắt qua một ranh giới thì chồng nhau nên tàu sau bị đẩy ra).
+// Cách vẽ (mỗi tuyến riêng, mỗi đoạn tàu giữ MỘT vị trí suốt thời gian ở bến):
+//   1. thứ tự: tàu đã ghi vị trí mét (vi_tri) → tàu hai bến → tàu có LOA thật → tàu chưa có LOA (LOA ước); mỗi nhóm theo giờ vào bến;
+//   2. tìm chỗ trống trên tuyến so với các tàu ĐÃ vẽ mà cùng lúc ở bến (cách nhau KHE_VE mét), trong phạm vi bến của tàu (tàu hai bến: hai bến, phải vắt qua ranh);
+//   3. chọn chỗ đủ dài gần mét mong muốn nhất (vị trí đã ghi; không có thì mét đầu bến, tàu hai bến thì giữa ranh giới);
+//   4. không có chỗ đủ dài trong bến: tàu LOA ước VẼ NHỎ LẠI cho vừa (tối thiểu MIN_VE mét); các tàu khác lấn sang chỗ trống gần nhất của tuyến; hết chỗ hẳn mới vẽ nhỏ / đành chồng.
 // Trả [{ v, seg, tuyen, L (mét VẼ), Lthat (LOA thật / ước), x, coDinh, thuNho }] (đoạn không thuộc tuyến nào có mét thì bỏ).
 // Tàu chưa có LOA (VD tàu TBA): LOA ước theo DWT / khối lượng / mớn (không có gì thì 150 m), v._loaUoc = true để vẽ khác.
 const MIN_VE = 20, KHE_VE = 2;
@@ -183,26 +186,47 @@ export function viTriTrenLich(voyages0, berths = [], stopsOf = () => [], tu = -I
   const out = [];
   for (const [t, ds] of theoTuyen) {
     const me = new Map(ds.map((s) => [s, tauTrenTuyen(t, s)]));
-    const uuTien = (s) => (me.get(s).x != null ? 0 : s.v._loaUoc ? 2 : 1);
+    const uuTien = (s) => (me.get(s).x != null ? 0 : me.get(s).vat ? 1 : s.v._loaUoc ? 3 : 2);
     const daDat = [];
     for (const s of [...ds].sort((p, q) => uuTien(p) - uuTien(q) || p.a - q.a)) {
-      const m = me.get(s), L0 = +s.v.loa;
+      const m = me.get(s), L0 = +s.v.loa, vat = m.vat, bens = t.bens;
+      const ranh = vat ? bens[m.k].den : null;                                  // ranh giới tàu hai bến phải vắt qua
+      const vung = vat ? [bens[m.k].tu, bens[m.k + 1].den] : [bens[m.k].tu, bens[m.k].den]; // phạm vi bến của tàu
+      const muon = m.x ?? (vat ? ranh - L0 / 2 : vung[0]);
       // Chỗ trống trên tuyến so với các tàu đã vẽ mà cùng lúc ở bến
       const chan = daDat.filter((o) => o.s.a < s.b && s.a < o.s.b).sort((p, q) => p.x - q.x);
       const trong = []; let cur = t.tu;
       for (const o of chan) { const g1 = o.x - KHE_VE; if (g1 - cur > 1e-6) trong.push([cur, g1]); cur = Math.max(cur, o.x + o.L + KHE_VE); }
       if (t.den - cur > 1e-6) trong.push([cur, t.den]);
-      const muon = m.x ?? t.bens.find((b) => b.ma === s.ben)?.tu ?? t.tu;
+      // Đặt tàu dài Lm trong [r0, r1] (và vắt qua rg nếu có), gần "muon" nhất
+      const tim = (Lm, r0, r1, rg) => {
+        let tot = null;
+        for (const [g0, g1] of trong) {
+          let lo = Math.max(g0, r0), hi = Math.min(g1, r1) - Lm;
+          if (rg != null) { lo = Math.max(lo, rg - Lm + 0.01); hi = Math.min(hi, rg - 0.01); }
+          if (hi < lo - 1e-6) continue;
+          const x = Math.min(Math.max(muon, lo), hi), d = Math.abs(x - muon);
+          if (!tot || d < tot.d) tot = { x, d };
+        }
+        return tot;
+      };
+      // Không đủ chỗ: vẽ nhỏ lại cho vừa khoảng trống rộng nhất trong [r0, r1] (tối thiểu MIN_VE; hai bến thì khoảng trống phải chứa ranh giới)
+      const timNho = (r0, r1, rg) => {
+        let tot = null;
+        for (const [g0, g1] of trong) {
+          const lo = Math.max(g0, r0), hi = Math.min(g1, r1), w = hi - lo;
+          if (w < MIN_VE || (rg != null && !(lo < rg - 0.5 && hi > rg + 0.5))) continue;
+          if (!tot || w > tot.w) tot = { w, lo };
+        }
+        return tot ? { x: tot.lo, L: Math.min(L0, tot.w), thuNho: true } : null;
+      };
       let chon = null;
-      for (const [g0, g1] of trong) if (g1 - g0 >= L0 - 1e-6) {
-        const x = Math.min(Math.max(muon, g0), g1 - L0), d = Math.abs(x - muon);
-        if (!chon || d < chon.d) chon = { x, L: L0, d };
-      }
-      if (!chon) {
-        const lon = [...trong].sort((p, q) => (q[1] - q[0]) - (p[1] - p[0]))[0];
-        chon = lon && lon[1] - lon[0] >= MIN_VE ? { x: lon[0], L: lon[1] - lon[0], thuNho: true }
-          : { x: Math.min(Math.max(muon, t.tu), t.den - MIN_VE), L: Math.min(L0, MIN_VE), thuNho: true }; // hết chỗ: vẽ nhỏ nhất, có thể chồng
-      }
+      const a = tim(L0, vung[0], vung[1], ranh);
+      if (a) chon = { x: a.x, L: L0 };                                              // đủ chỗ trong bến của tàu
+      if (!chon && s.v._loaUoc) chon = timNho(vung[0], vung[1], ranh);                // tàu LOA ước: vẽ nhỏ lại trong bến của nó
+      if (!chon) { const b = tim(L0, t.tu, t.den, null); if (b) chon = { x: b.x, L: L0 }; } // bến hết chỗ: lấn sang chỗ trống gần nhất của tuyến
+      if (!chon) chon = timNho(t.tu, t.den, null);                                    // cả tuyến không đủ chỗ dài: vẽ nhỏ lại
+      if (!chon) chon = { x: Math.min(Math.max(muon, t.tu), t.den - MIN_VE), L: Math.min(L0, MIN_VE), thuNho: true }; // hết chỗ hẳn: vẽ nhỏ nhất, có thể chồng
       daDat.push({ s, x: chon.x, L: chon.L });
       if (s.b >= tu && s.a <= den) out.push({ v: s.v, seg: s, tuyen: t, L: chon.L, Lthat: L0, x: chon.x, coDinh: m.x != null && Math.abs(chon.x - m.x) < 1e-6, thuNho: !!chon.thuNho });
     }
