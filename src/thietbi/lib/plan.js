@@ -288,10 +288,11 @@ export const byThuTu = (a, b) => (a.thu_tu ?? 1e9) - (b.thu_tu ?? 1e9) || a.id -
 
 // Lưới tự theo hôm nay (anh Sỹ 15/11/2026): tham số đã lưu có "Ngày bắt đầu lưới" và "Mốc còn lại" cũ thì lưới trượt khỏi các chuyến tàu hiện tại (không còn tàu nào trong lưới).
 // Mặc định lưới bắt đầu 00:00 hôm nay và mốc "còn lại" là giờ hiện tại; bỏ tick "Tự theo hôm nay" (p.bdTuDong = false) thì dùng đúng ngày giờ đã nhập.
+// Mốc "còn lại" không còn là tham số (anh Sỹ bỏ 15/11/2026): luôn là giờ hiện tại.
 export function luoiTuDong(params, nowMs = Date.now()) {
-  if (params.p.bdTuDong === false) return params;
   const d = new Date(nowMs), p2 = (n) => String(n).padStart(2, "0"), ngay = `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`;
-  return { ...params, p: { ...params.p, bd: `${ngay}T00:00`, moc: `${ngay}T${p2(d.getHours())}:${p2(d.getMinutes())}` } };
+  const moc = `${ngay}T${p2(d.getHours())}:${p2(d.getMinutes())}`;
+  return { ...params, p: { ...params.p, moc, ...(params.p.bdTuDong === false ? {} : { bd: `${ngay}T00:00` }) } };
 }
 // Lưới ca: ca N (ngày) bắt đầu lúc gioN, ca Đ (đêm) bắt đầu gioN + caLen.
 // Ca đầu tiên là ca bắt đầu đúng hoặc ngay sau "Ngày bắt đầu lưới" (VD 14/10 00:00 hoặc 08:00 -> N 14/10 08h; 14/10 20:00 -> Đ 14/10 20h).

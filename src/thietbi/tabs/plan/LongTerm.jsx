@@ -89,11 +89,8 @@ export default function LongTerm() {
           <div>
             <div className="sec-t">Thời gian & ca</div>
             <div className="form-grid" style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
-              <Field label="Lưới ca" className="full"><label className="row" style={{ gap: 6, cursor: "pointer" }}><input type="checkbox" checked={pp.p.bdTuDong !== false} onChange={(e) => setP("bdTuDong", e.target.checked)} /><span>Tự theo hôm nay (lưới từ 00:00 hôm nay, mốc "còn lại" = giờ hiện tại)</span></label></Field>
-              {pp.p.bdTuDong === false && <>
-                <Field label="Bắt đầu lưới"><DateTimeInput value={pp.p.bd} onChange={(v) => setP("bd", v)} /></Field>
-                <Field label="Mốc &quot;còn lại&quot;"><DateTimeInput value={pp.p.moc} onChange={(v) => setP("moc", v)} /></Field>
-              </>}
+              <Field label="Lưới ca" className="full"><label className="row" style={{ gap: 6, cursor: "pointer" }}><input type="checkbox" checked={pp.p.bdTuDong !== false} onChange={(e) => setP("bdTuDong", e.target.checked)} /><span>Tự theo hôm nay (lưới bắt đầu từ 00:00 hôm nay)</span></label></Field>
+              {pp.p.bdTuDong === false && <Field label="Bắt đầu lưới" className="full"><DateTimeInput value={pp.p.bd} onChange={(v) => setP("bd", v)} /></Field>}
               <Field label="Giờ bắt đầu ca N">{numIn(pp.p.gioN, (v) => setP("gioN", v ?? 8), { min: 0, max: 23, style: { width: "100%" } })}</Field>
               <Field label="Số ca hiển thị">{numIn(pp.p.nShifts, (v) => setP("nShifts", Math.max(2, Math.min(120, v || 60))), { min: 2, max: 120, style: { width: "100%" } })}</Field>
             </div>
