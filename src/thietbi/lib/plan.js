@@ -1,6 +1,7 @@
 // Logic Giai đoạn 2 – Kế hoạch & phân bổ xe (chuyển từ demo_tien_do.html đã duyệt)
 import { pad, plain } from "./utils";
 import { docSo } from "@/lib/format";
+import { docNgayGio } from "@/lib/paste";
 
 export const MIN = 60000;
 export const HOUR = 3600e3;
@@ -54,8 +55,9 @@ export function parseDT(v) {
   }
   const s = String(v || "").trim(); let m;
   if ((m = s.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{1,2}):(\d{2})/))) return new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]).getTime();
-  if ((m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})[ T](\d{1,2}):(\d{2})/))) return new Date(+m[3], +m[2] - 1, +m[1], +m[4], +m[5]).getTime();
-  return NaN;
+  if ((m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})[ T](\d{1,2}):(\d{2})/)) && +m[2] <= 12) return new Date(+m[3], +m[2] - 1, +m[1], +m[4], +m[5]).getTime();
+  const iso = docNgayGio(s); // mọi định dạng khác (mm/dd/yyyy, 15 Nov 2026 9:30 PM…)
+  return iso ? new Date(iso).getTime() : NaN;
 }
 // "50 tấn" -> {kl: 50, dvt: "Tấn"}
 export function parseKL(v) {

@@ -5,7 +5,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/input";
 import { MucIcon } from "@/components/common";
-import { tachBang, docSo, docNgayGio } from "@/lib/paste";
+import { tachBang, docSo, docNgayGio, doanThuTuNgay } from "@/lib/paste";
 import { plain, so } from "@/lib/format";
 import { ngayDia } from "@/lib/keHoachNgay";
 
@@ -57,6 +57,7 @@ export default function HopDanSL({ loai, nhom = "cang", thang, onApDung, onClose
     const can = tt ? ["ngay", "huong", "loai", "tan"] : ["huong", "loai", "tan"];
     const thieu = can.filter((k) => !cot.includes(k));
     if (thieu.length) return { loiCot: `Dòng đầu phải là tiêu đề cột. Chưa thấy cột: ${thieu.map((k) => ({ ngay: "Ngày", huong: vt ? "Hướng (phục vụ cảng / sản xuất)" : "Hướng (nhập / xuất)", loai: vt ? "Loại xe" : "Loại hàng", tan: tt ? "Sản lượng (t)" : "Mục tiêu (t)" })[k]).join(", ")}.` };
+    const thuTu = doanThuTuNgay(bang.slice(1).map((o) => o[cot.indexOf("ngay")])); // dd/mm hay mm/dd: theo cả cột Ngày
     const ds = bang.slice(1).filter((r) => r.some((x) => x !== "" && x != null)).map((o) => {
       const r = {}; cot.forEach((k, i) => { if (k) r[k] = o[i]; });
       const loi = [], huong = vt ? docHuongVT(r.huong) : docHuong(r.huong), loaiHang = String(r.loai ?? "").trim();
@@ -68,7 +69,7 @@ export default function HopDanSL({ loai, nhom = "cang", thang, onApDung, onClose
       if (v == null || !(v >= 0)) loi.push(`${tt ? "Sản lượng" : "Mục tiêu"} "${r.tan ?? ""}" không hợp lệ`);
       let ngay = null;
       if (tt) {
-        const t = docNgayGio(r.ngay); ngay = t ? ngayDia(new Date(t).getTime()) : null;
+        const t = docNgayGio(r.ngay, Date.now(), { thuTu }); ngay = t ? ngayDia(new Date(t).getTime()) : null;
         if (!ngay) loi.push(`Ngày "${r.ngay ?? ""}" không đọc được`); else if (thang && ngay.slice(0, 7) !== thang) loi.push(`Ngày ${ngay.slice(8)}/${ngay.slice(5, 7)} ngoài tháng ${thang.slice(5)}/${thang.slice(0, 4)}`);
       }
       return { huong, loai: loaiHang, donVi, hang: vt ? String(r.hang ?? "").trim() : "", tan: v, ngay, ghi_chu: String(r.ghi_chu ?? "").trim(), loi };

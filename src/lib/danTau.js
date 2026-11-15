@@ -10,7 +10,7 @@
 //   • Các cột còn lại giữ nguyên nội dung; ô trống hiện là "trống" (không ghi chữ "trống" vào CSDL, để NULL).
 //   • Số trong cột Khối lượng / DWT / Cam kết: dấu phẩy + đúng 3 chữ số là ngăn nghìn kiểu Excel ("3,500" = 3.500 t); Draft / LOA dùng cách đọc số thường (4.78, 14,6).
 import { plain, docSo, DAY } from "./format";
-import { docNgayGio } from "./paste";
+import { docNgayGio, doanThuTuNgay } from "./paste";
 
 // k: khóa; ten: tên cột hiển thị; bb: bắt buộc; bi: tiêu đề cột thường gặp (đã chuẩn hóa: bỏ dấu, chữ thường, bỏ dấu câu trừ "/")
 export const COT_TAU = [
@@ -89,20 +89,20 @@ export function tachDanhSach(x) {
 }
 
 // Ngày: ETA có thể ghi "18-19/11/2026" (lấy ngày sau dấu gạch ngang). Trả { trong } | { loi } | { iso }
-export function docNgayTau(x, { now = Date.now(), khoangNgay = false } = {}) {
+export function docNgayTau(x, { now = Date.now(), khoangNgay = false, thuTu } = {}) {
   if (rong(x)) return { trong: true };
   let t = x;
   if (khoangNgay && typeof x === "string") {
     const m = /^\s*\d{1,2}\s*[-–]\s*(\d{1,2}\s*[/.]\s*\d{1,2}(?:\s*[/.]\s*\d{2,4})?)(.*)$/.exec(x);
     if (m) t = m[1].replace(/\s+/g, "") + m[2];
   }
-  const iso = docNgayGio(t, now);
+  const iso = docNgayGio(t, now, { thuTu });
   return iso ? { iso } : { loi: true };
 }
 
 // Một dòng đã dán -> { v (bản ghi chuyến), loi: [chữ], trong: [khóa các ô chữ để trống] }; null nếu dòng không có tên tàu.
 // ctx: { berthOf(x) -> bến | null, now, nhomCua(tenHang) -> nhóm hàng }
-export function docDongTau(o, cot, { berthOf, now = Date.now(), nhomCua = () => null } = {}) {
+export function docDongTau(o, cot, { berthOf, now = Date.now(), nhomCua = () => null, thuTu } = {}) {
   const r = {}; cot.forEach((k, i) => { if (k) r[k] = o[i] ?? ""; });
   if (rong(r.ten_tau)) return null;
   const loi = [], trong = [], v = { ten_tau: chu(r.ten_tau).toUpperCase() };
@@ -188,7 +188,7 @@ export function docDongTau(o, cot, { berthOf, now = Date.now(), nhomCua = () => 
       continue;
     }
     if (!(k in r)) { thieu(k); continue; }
-    const d = docNgayTau(r[k], { now, khoangNgay: k === "eta" });
+    const d = docNgayTau(r[k], { now, khoangNgay: k === "eta", thuTu });
     if (d.trong) thieu(k); else if (d.loi) loi.push(`${TEN_COT[k]} "${chu(r[k])}" không phải ngày`); else v[k] = d.iso;
   }
 
@@ -199,3 +199,9 @@ export function docDongTau(o, cot, { berthOf, now = Date.now(), nhomCua = () => 
 export const cotThieu = (cot) => COT_TAU.filter((c) => c.bb && !cot.includes(c.k)).map((c) => c.ten)
   .concat(!cot.includes("hang_nhap") && !cot.includes("hang_xuat") ? ["HÀNG NHẬP hoặc HÀNG XUẤT"] : [])
   .concat(!cot.includes("etd") && !cot.includes("so_ngay") ? ["ETD (hoặc SỐ NGÀY LÀM HÀNG)"] : []);
+
+// Thứ tự ngày / tháng của cả bảng dán (dd/mm hay mm/dd): xét các cột ETA, ETB, ETD của mọi dòng
+export function thuTuNgayBangTau(dong, cot) {
+  const idx = cot.map((k, i) => (["eta", "etb", "etd"].includes(k) ? i : -1)).filter((i) => i >= 0);
+  return doanThuTuNgay(dong.flatMap((o) => idx.map((i) => o[i])));
+}

@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { MucIcon } from "@/components/common";
 import { useThietBi } from "@/thietbi/Host";
 import { tachBang } from "@/lib/paste";
-import { COT_TAU, MAU_BANG, nhanDienBang, docDongTau, cotThieu } from "@/lib/danTau";
+import { COT_TAU, MAU_BANG, nhanDienBang, docDongTau, cotThieu, thuTuNgayBangTau } from "@/lib/danTau";
 import { timBen } from "@/lib/checks";
 import { maChuyenMoi } from "@/lib/linetime";
 import { so, plain, ms } from "@/lib/format";
@@ -40,10 +40,10 @@ export default function DanNhanh({ onClose }) {
   // Nhóm hàng: danh mục hàng hóa; hàng chỉ có ở chuyến cũ thì lấy loại hàng của chuyến đó
   const nhomCua = (ten) => hangHoa.find((h) => plain(h.loai_hang) === plain(ten))?.nhom || D.voyages.find((x) => x.ten_hang && x.loai_hang && plain(x.ten_hang) === plain(ten))?.loai_hang || null;
   const ketQua = useMemo(() => {
-    const moi = [];
+    const moi = [], thuTu = thuTuNgayBangTau(dong, cot); // dd/mm hay mm/dd: theo cả cột
     return dong.map((o) => {
       if (o.every((c) => !String(c ?? "").trim())) return null;
-      const kq = docDongTau(o, cot, { berthOf: (x) => timBen(D.berths, x), now: D.now, nhomCua });
+      const kq = docDongTau(o, cot, { berthOf: (x) => timBen(D.berths, x), now: D.now, nhomCua, thuTu });
       if (!kq) return null; // không có tên tàu: bỏ qua
       const { v } = kq;
       if (!D.coSql28) delete v.ben_phu; // chưa chạy SQL 28: chưa lưu được bến phụ

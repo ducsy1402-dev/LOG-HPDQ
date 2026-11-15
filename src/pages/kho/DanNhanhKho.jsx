@@ -5,7 +5,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea, NativeSelect, Checkbox, Field } from "@/components/ui/input";
 import { MucIcon } from "@/components/common";
-import { tachBang, docSo, docNgayGio } from "@/lib/paste";
+import { tachBang, docSo, docNgayGio, doanThuTuNgay } from "@/lib/paste";
 import { LOAI_GD, ngayStr, khuNhan, goiYBai, khuChoPhepHang } from "@/lib/kho";
 import { so, plain } from "@/lib/format";
 
@@ -25,7 +25,7 @@ const TRUONG = [
 ];
 const doanCot = (c) => { const p = plain(c).replace(/[()]/g, " ").replace(/\s+/g, " ").trim(); if (!p) return ""; return TRUONG.find((t) => t.bi.includes(p))?.k || TRUONG.find((t) => t.bi.some((b) => b.length > 2 && p.startsWith(b)))?.k || ""; };
 const docLoai = (x, md) => { const p = plain(x); if (!p) return md; if (/dau ky|ton dau/.test(p)) return "dau_ky"; if (/kiem/.test(p)) return "kiem_ke"; if (/chuyen/.test(p)) return "dieu_chuyen"; if (/xuat/.test(p)) return "xuat"; if (/nhap/.test(p)) return "nhap"; return null; };
-const docNgay = (x) => { if (x == null || x === "") return ngayStr(Date.now()); const t = docNgayGio(x); return t ? ngayStr(new Date(t).getTime()) : null; };
+const docNgay = (x, thuTu) => { if (x == null || x === "") return ngayStr(Date.now()); const t = docNgayGio(x, Date.now(), { thuTu }); return t ? ngayStr(new Date(t).getTime()) : null; };
 
 // Dán nhanh / nhập Excel nhiều lượt nhập – xuất kho (cả tồn đầu kỳ). Mỗi dòng: ngày, ca, loại, bãi, gian/lô, hàng, số lượng, lô, chứng từ.
 // Chỉ BẮT BUỘC hàng và số lượng. Thiếu ngày = hôm nay; thiếu ca = để trống; thiếu loại = loại chọn trong hộp;
@@ -57,11 +57,12 @@ export default function DanNhanhKho({ loaiKho, kho, onClose }) {
   const dongKhoNay = kho.dong.filter((d) => d.loai === loaiKho && !d.saiBai);
   const baiDm = new Map(dongKhoNay.map((d) => [plain(d.ten_bai), d.ten_bai]));
   const dong = bang ? (coTieuDe ? bang.slice(1) : bang) : [];
+  const thuTuNgay = useMemo(() => doanThuTuNgay(dong.map((o) => o[cot.indexOf("ngay")])), [dong, cot]); // dd/mm hay mm/dd: theo cả cột Ngày
   const kq = useMemo(() => dong.map((o) => {
     if (o.every((c) => c === "" || c == null)) return null;
     const r = {}; cot.forEach((k, i) => { if (k) r[k] = o[i]; });
     const loi = [], canh = [];
-    const loai = docLoai(r.loai, loaiMD), ngay = docNgay(r.ngay), sl = typeof r.so_luong === "number" ? r.so_luong : docSo(r.so_luong);
+    const loai = docLoai(r.loai, loaiMD), ngay = docNgay(r.ngay, thuTuNgay), sl = typeof r.so_luong === "number" ? r.so_luong : docSo(r.so_luong);
     if (!loai) loi.push(`Không rõ loại "${r.loai}"`);
     if (!ngay) loi.push(`Ngày "${r.ngay}" không đọc được`);
     if (!String(r.hang ?? "").trim()) loi.push("Thiếu hàng");
