@@ -183,3 +183,16 @@ describe("Việc bãi nhập tay có giờ chính xác (tu / den, SQL 15)", () =
     expect(R.fixed[0].cnt).toEqual([0, 0, 3, 3, 3, 3]); // ca 0,1 = 01/11; ca 2.. = 02/11 N, 02/11 Đ, 03/11 N, 03/11 Đ
   });
 });
+
+describe("Lưới ca tự theo hôm nay", () => {
+  it("mặc định lưới bắt đầu 00:00 hôm nay, mốc còn lại = giờ hiện tại; bỏ tick thì giữ ngày đã nhập", async () => {
+    const { luoiTuDong, buildGrid } = await import("../thietbi/lib/plan");
+    const p = { bd: "2026-10-12T00:00", moc: "2026-10-12T08:00", gioN: 8, caLen: 12, nShifts: 4 };
+    const now = t(2026, 11, 15, 10, 30);
+    const a = luoiTuDong({ p }, now).p;
+    expect([a.bd, a.moc]).toEqual(["2026-11-15T00:00", "2026-11-15T10:30"]);
+    expect(buildGrid(a).shifts[0].st.getTime()).toBe(t(2026, 11, 15, 8)); // ca N 15/11 08h
+    expect(buildGrid(a).shifts.find((s) => s.now).st.getTime()).toBe(t(2026, 11, 15, 8));
+    expect(luoiTuDong({ p: { ...p, bdTuDong: false } }, now).p.bd).toBe("2026-10-12T00:00");
+  });
+});

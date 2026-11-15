@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight, Eraser, ExternalLink, Pencil, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Eraser, ExternalLink, Pencil, Plus, Rows4, Trash2 } from "lucide-react";
 import { useApp } from "../../store";
 import { useApp as useLogistics } from "@/store";
 import { cn } from "@/lib/utils";
@@ -19,7 +19,7 @@ import { pad } from "../../lib/utils";
 //   • Số xe từng ca TỰ CHẠY theo số xe của việc (và hệ số ca với tàu), hoặc SỬA TAY ca đó (xóa số / gõ lại đúng số tự tính thì ca chạy tự động lại).
 //   • Cột tiêu đề của việc cảng / bãi nhập tay có biểu tượng Sửa / Xóa; việc lấy từ Linetime có biểu tượng mở phiếu chuyến và "xóa số đã nhập".
 //   • Khối dòng tổng (tổng cầu, xe có, cân bằng cảng / bãi, kết luận) cố định ở đáy khung, tô màu theo nhóm, có nút ẩn cả khối. Lọc loại hàng chỉ lọc tàu / việc đang hiện, các dòng cộng luôn tính đủ.
-const LABEL = 168, LH = 50, DAY = 864e5;
+const DAY = 864e5;
 const MAU_CANG = "#0ea5e9", MAU_BAI = "#f59e0b", MAU_CHUNG = "#8b5cf6";
 const hhmm = (t) => (t ? fmtDT(new Date(t)) : "");
 const doc = (k, mac) => { try { return localStorage.getItem(k) ?? mac; } catch { return mac; } };
@@ -47,13 +47,16 @@ export default function TimelineCa({ R, doi, onJob }) {
 
   // Bộ lọc loại hàng (chọn nhiều), số ngày hiển thị, thu gọn Cảng / Bãi / khối tổng (nhớ trên máy)
   const [hangF, setHangF] = useState([]);
+  // Xem gọn (như Linetime › Gọn): dòng thấp, chữ nhỏ, cột hẹp để xem được nhiều tàu một lúc; nhớ trên máy
+  const [gon, setGon] = useState(() => doc("qltb-tl-gon", "0") === "1");
+  const LABEL = gon ? 138 : 168, LH = gon ? 36 : 50, TOP = gon ? 17 : 22;
   const [soNgay, setSoNgay] = useState(() => (["7", "14", "21", "99"].includes(doc("qltb-tl-ngay", "99")) ? +doc("qltb-tl-ngay", "99") : 99));
   const [batRaw, setBat] = useState(0);
   const [thu, setThu] = useState(() => ({ cang: doc("qltb-tl-thu-cang", "0") === "1", bai: doc("qltb-tl-thu-bai", "0") === "1", tong: doc("qltb-tl-thu-tong", "0") === "1" }));
   const doiThu = (k) => setThu((o) => { luu("qltb-tl-thu-" + k, o[k] ? "0" : "1"); return { ...o, [k]: !o[k] }; });
   const size = Math.min(soNgay, tongNgay), bat = Math.max(0, Math.min(batRaw, tongNgay - size));
   const i0 = bat * perDay, ca = shifts.slice(i0, i0 + size * perDay), nHien = ca.length;
-  const CWC = size <= 7 ? 72 : size <= 14 ? 54 : 46;
+  const CWC = (size <= 7 ? 72 : size <= 14 ? 54 : 46) - (gon ? 8 : 0);
   const tuMs = nHien ? ca[0].st.getTime() : 0, denMs = tuMs + nHien * caMs, W = nHien * CWC;
   const xOf = (t) => ((t - tuMs) / caMs) * CWC;
   const coHang = (h) => !hangF.length || hangF.some((x) => plain(x) === plain(h));
@@ -62,7 +65,7 @@ export default function TimelineCa({ R, doi, onJob }) {
   // Tàu của Linetime (có mã chuyến) và việc cảng nhập tay (không có mã chuyến); lọc theo loại hàng
   const tauLT = useMemo(() => new Map(ves.filter((r) => r.job.lt != null && coHang(r.hang)).map((r) => [String(r.job.lt), r])), [ves, hangF]); // eslint-disable-line react-hooks/exhaustive-deps
   const cangTay = ves.filter((r) => r.job.lt == null && coHang(r.hang));
-  const hang = useMemo(() => (LD?.berths && nHien ? xepHangBen(LD, (LD.voyages || []).filter((v) => tauLT.has(String(v.id))), tuMs, denMs, "ben", { row: 30, lan: LH, top: 4 }).filter((r) => r.ds.length) : []), [LD, tauLT, tuMs, denMs, nHien]);
+  const hang = useMemo(() => (LD?.berths && nHien ? xepHangBen(LD, (LD.voyages || []).filter((v) => tauLT.has(String(v.id))), tuMs, denMs, "ben", { row: 30, lan: LH, top: gon ? 3 : 4 }).filter((r) => r.ds.length) : []), [LD, tauLT, tuMs, denMs, nHien, LH, gon]);
   const baiHien = fixed.filter((f) => (!f.job.lt || f.cnt.some((c) => c > 0) || dongSoXeBai(D.plan.jobs, f.job.lt, doi)) && coHang(f.hang));
   const nTau = tauLT.size + cangTay.length;
 
@@ -126,12 +129,12 @@ export default function TimelineCa({ R, doi, onJob }) {
     const left = Math.max(0, xOf(a)), right = Math.min(W, xOf(b)), w = Math.max(10, right - left);
     return (
       <div key={kk} className="absolute overflow-hidden rounded-md text-white shadow-sm" style={{ left: left + 1, width: w - 2, top, height: h, background: mau }} title={title}>
-        <div className="flex h-[22px] items-center gap-1 px-1.5 text-[0.6875rem] font-semibold leading-none">{typeof tren === "function" ? tren(w) : tren}</div>
+        <div className="flex items-center gap-1 px-1.5 text-[0.6875rem] font-semibold leading-none" style={{ height: TOP }}>{typeof tren === "function" ? tren(w) : tren}</div>
         {ca.map((s, i) => {
           const cL = Math.max(left, i * CWC), cR = Math.min(right, (i + 1) * CWC);
           if (cR - cL < 0.5) return null;
           const g = i0 + i, v = cnt?.[g];
-          return <div key={i} className="absolute flex items-center justify-end border-l border-white/15 bg-black/20 tabular-nums" style={{ left: cL - left - 1, width: cR - cL, top: 22, height: h - 22 }}>{oCa ? oCa(i, g, v) : <span className={cn("px-1", v ? "font-semibold" : "opacity-40")}>{v || ""}</span>}</div>;
+          return <div key={i} className="absolute flex items-center justify-end border-l border-white/15 bg-black/20 tabular-nums" style={{ left: cL - left - 1, width: cR - cL, top: TOP, height: h - TOP }}>{oCa ? oCa(i, g, v) : <span className={cn("px-1", v ? "font-semibold" : "opacity-40")}>{v || ""}</span>}</div>;
         })}
       </div>
     );
@@ -140,7 +143,7 @@ export default function TimelineCa({ R, doi, onJob }) {
   const oNen = (it, tay, ph = "xe") => canWrite
     ? <input key={it.id + ":" + (soNen(it) ?? "")} type="number" min="0" inputMode="numeric" defaultValue={soNen(it) ?? ""} placeholder={ph} aria-label={`Số xe ${it.ten}`} title="Số xe của việc (nhập tay); các ca tự chạy theo số này"
         onClick={(e) => e.stopPropagation()} onFocus={(e) => e.target.select()} onBlur={(e) => luuNen(it, e.target.value)} onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-        className={cn("h-[18px] w-10 rounded border bg-black/30 px-1 text-center font-semibold tabular-nums text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-white/70 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none", "border-white/30")} />
+        className={cn(gon ? "h-[14px] w-9 text-[0.625rem]" : "h-[18px] w-10", "rounded border bg-black/30 px-1 text-center font-semibold tabular-nums text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-white/70 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none", "border-white/30")} />
     : <b className="rounded bg-black/25 px-1 py-0.5 tabular-nums">{soNen(it) ?? "–"} xe</b>;
   const oCaFn = (it) => (canWrite ? (i, g, v) => {
     const daSua = caHienCo(it)[shifts[g].st.toISOString()] != null;
@@ -184,7 +187,8 @@ export default function TimelineCa({ R, doi, onJob }) {
   return (
     <div className="grid gap-2">
       <div className="row" style={{ gap: 8 }}>
-        <MultiSelect prefix="Loại hàng" value={hangF} onChange={setHangF} options={dsHang} style={{ width: 220 }} />
+        <MultiSelect prefix="Loại hàng" value={hangF} onChange={setHangF} options={dsHang} className="sm" style={{ width: 150 }} />
+        <button type="button" className={"btn sm" + (gon ? " on-pin" : "")} aria-pressed={gon} title="Dòng thấp, chữ nhỏ: xem được nhiều tàu hơn" onClick={() => { setGon(!gon); luu("qltb-tl-gon", gon ? "0" : "1"); }}><Rows4 size={14} />Gọn</button>
         <Select className="inp sm" value={String(soNgay)} onChange={(v) => { setSoNgay(+v); luu("qltb-tl-ngay", v); }} options={[["7", "7 ngày"], ["14", "14 ngày"], ["21", "21 ngày"], ["99", `Cả lưới (${tongNgay} ngày)`]]} style={{ width: 150 }} aria-label="Số ngày hiển thị" />
         {size < tongNgay && (
           <span className="row" style={{ gap: 4 }}>
@@ -203,7 +207,7 @@ export default function TimelineCa({ R, doi, onJob }) {
           <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-4 rounded-sm" style={{ background: BAI_COLOR }} />việc bãi</span>
         </div>
         <div className="scroll-x max-h-[74vh] rounded-md border">
-          <div style={{ width: LABEL + W }} className="relative select-none text-xs">
+          <div style={{ width: LABEL + W }} className={cn("relative select-none", gon ? "text-[0.6875rem]" : "text-xs")}>
             {/* Tiêu đề ngày / ca */}
             <div className="sticky top-0 z-20 border-b bg-card">
               <div className="flex">

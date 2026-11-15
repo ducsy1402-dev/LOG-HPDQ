@@ -3,7 +3,7 @@ import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Referen
 import { SlidersHorizontal, BarChart3, GanttChart, Ship, Plus, Save, AlertTriangle, Anchor, Layers, RotateCcw, Trash2, GripVertical, Truck } from "lucide-react";
 import { useApp } from "../../store";
 import { Card, Kpi, Badge, Modal, Field, Select, Empty, DateInput, DateTimeInput, ConfirmButton, isoToLocal, localToIso, usePalette, MultiSelect } from "../../components/ui";
-import { calc12, cfgOf, capTinhOf, withCap, DOI_GOC, doiCuaViec, byThuTu, hangColor, HANG_COLOR, BAI_COLOR, fmtDT, fmtD } from "../../lib/plan";
+import { calc12, cfgOf, capTinhOf, withCap, DOI_GOC, doiCuaViec, byThuTu, hangColor, luoiTuDong, HANG_COLOR, BAI_COLOR, fmtDT, fmtD } from "../../lib/plan";
 import { pad, vn } from "../../lib/utils";
 import { useApp as useLogistics } from "@/store";
 import TimelineCa from "./TimelineCa";
@@ -36,7 +36,7 @@ export function tinhDaiHan(D, LD, pp, doi) {
     .map((j) => { const ov = dongSoXeBai(D.plan.jobs, j.lt, doi); return ov ? { ...j, ...(ov.so_xe_tay != null ? { xe_ngay: ov.so_xe_tay, xe_dem: ov.so_xe_tay, nguon_xe: "nhập tay" } : {}), xe_ca: ov.so_xe_doi?.ca || null } : j; });
   // Việc tàu nhập tay đời cũ bị bỏ (tàu lấy từ Linetime); việc Cảng nhập tay bằng nút "Thêm việc cảng" thì giữ
   const jobs = [...tauLT, ...baiLT, ...D.plan.jobs.filter((j) => (j.loai !== "tau" || laViecCangTay(j)) && !laDongSoXeBai(j))];
-  const R = calc12(withCap(pp, doi, capCang, capBai), jobs, doi);
+  const R = calc12(withCap(luoiTuDong(pp, LD?.now ?? Date.now()), doi, capCang, capBai), jobs, doi);
   return { cfg, goc, phanBo, tinh, ssDoi, capCang, capBai, trung, R };
 }
 
@@ -89,8 +89,11 @@ export default function LongTerm() {
           <div>
             <div className="sec-t">Thời gian & ca</div>
             <div className="form-grid" style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
-              <Field label="Bắt đầu lưới"><DateTimeInput value={pp.p.bd} onChange={(v) => setP("bd", v)} /></Field>
-              <Field label="Mốc &quot;còn lại&quot;"><DateTimeInput value={pp.p.moc} onChange={(v) => setP("moc", v)} /></Field>
+              <Field label="Lưới ca" className="full"><label className="row" style={{ gap: 6, cursor: "pointer" }}><input type="checkbox" checked={pp.p.bdTuDong !== false} onChange={(e) => setP("bdTuDong", e.target.checked)} /><span>Tự theo hôm nay (lưới từ 00:00 hôm nay, mốc "còn lại" = giờ hiện tại)</span></label></Field>
+              {pp.p.bdTuDong === false && <>
+                <Field label="Bắt đầu lưới"><DateTimeInput value={pp.p.bd} onChange={(v) => setP("bd", v)} /></Field>
+                <Field label="Mốc &quot;còn lại&quot;"><DateTimeInput value={pp.p.moc} onChange={(v) => setP("moc", v)} /></Field>
+              </>}
               <Field label="Giờ bắt đầu ca N">{numIn(pp.p.gioN, (v) => setP("gioN", v ?? 8), { min: 0, max: 23, style: { width: "100%" } })}</Field>
               <Field label="Số ca hiển thị">{numIn(pp.p.nShifts, (v) => setP("nShifts", Math.max(2, Math.min(120, v || 60))), { min: 2, max: 120, style: { width: "100%" } })}</Field>
             </div>

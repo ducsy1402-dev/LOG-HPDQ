@@ -29,7 +29,7 @@ const THU = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 const fmt = (n) => (n ? soGon(n) : "");
 const gio = (t) => (t ? new Date(t).toLocaleString("vi-VN", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "");
 const hDua = (v) => (v.huong === "xuat" ? "xuat" : "nhap");
-const LABEL = 118, LH = 50, MPX = 0.6, PAD_MET = 6; // MPX: pixel cho mỗi mét ở chế độ theo mét // bề rộng cột tên cụm bến, chiều cao một làn tàu
+const LABEL = 118, MPX = 0.6, PAD_MET = 6; // MPX: pixel cho mỗi mét ở chế độ theo mét // bề rộng cột tên cụm bến, chiều cao một làn tàu
 
 // Khung nhập theo ngày (hộp nhỏ): các tàu đang làm hàng trong một ngày, mỗi tàu một ô nhập số tấn. Số gõ vào ghi thẳng vào bảng nháp của hộp lớn (chưa lưu).
 // Khung nằm CẠNH line tàu (bên phải), không nổi lên trên: không bao giờ che line hay các dòng cộng, nên vừa gõ vừa thấy số tổng đổi.
@@ -107,6 +107,9 @@ export default function HopKeHoachNgay({ thang0, onClose, onLuu }) {
   const [truc, setTruc] = useState(() => { try { return (localStorage.getItem("lg-khn-truc") ?? localStorage.getItem("lg-gantt-truc")) === "met" ? "met" : "ben"; } catch { return "ben"; } });
   const doiTruc = (k) => { setPop(null); setTruc(k); try { localStorage.setItem("lg-khn-truc", k); } catch { /* bỏ qua */ } };
   // Ẩn / hiện thanh khối lượng ở dưới cùng (Kế hoạch / Thực nhập, xuất); nhớ trên máy
+  // Xem gọn (như Linetime › Gọn): thanh tàu thấp hơn (một dòng ô số), xem được nhiều tàu một lúc; nhớ trên máy
+  const [gon, setGon] = useState(() => { try { return localStorage.getItem("lg-khn-gon") === "1"; } catch { return false; } });
+  const LH = gon ? 34 : 50;
   const [anTong, setAnTong] = useState(() => { try { return localStorage.getItem("lg-khn-an-tong") === "1"; } catch { return false; } });
   const doiAnTong = () => setAnTong((v) => { try { localStorage.setItem("lg-khn-an-tong", v ? "0" : "1"); } catch { /* bỏ qua */ } return !v; });
   const ngays = useMemo(() => ngayCuaThang(thang), [thang]);
@@ -163,7 +166,7 @@ export default function HopKeHoachNgay({ thang0, onClose, onLuu }) {
 
   // ---- Line tàu là BẢN SAO của Linetime › Lịch cầu bến (theo bến): dùng đúng hàm xếp tàu vào dòng bến của lịch (xepHangBen), thanh tàu đặt theo GIỜ thật; mỗi ngày tàu ở bến là một ô số tấn. ----
   const tuMs = new Date(hien[0] + "T00:00:00").getTime(), denMs = tuMs + hien.length * DAY;
-  const hang = useMemo(() => xepHangBen(D, loc2.map((x) => x.v), tuMs, denMs, "ben", { row: 30, lan: LH, top: 4 }), [D.voyages, D.berths, D.now, loc2, tuMs, denMs]); // eslint-disable-line react-hooks/exhaustive-deps
+  const hang = useMemo(() => xepHangBen(D, loc2.map((x) => x.v), tuMs, denMs, "ben", { row: 30, lan: LH, top: 4 }), [D.voyages, D.berths, D.now, loc2, tuMs, denMs, LH]); // eslint-disable-line react-hooks/exhaustive-deps
   const xOf = (t) => ((t - tuMs) / DAY) * CW;
   // Theo mét (như GanttMet): mỗi tuyến bến một dải, tàu nằm đúng vị trí mét (viTriTrenLich: không chồng, tàu một bến trong bến, tàu hai bến vắt qua ranh giới); chiều cao thanh theo LOA
   const dai = useMemo(() => {
@@ -249,6 +252,8 @@ export default function HopKeHoachNgay({ thang0, onClose, onLuu }) {
               {[["ben", "Theo bến", "Mỗi bến một dòng"], ["met", "Theo mét", "Dọc theo mét từng tuyến bến: tàu nằm đúng vị trí mét"]].map(([k, t, mo]) => (
                 <Button key={k} size="xs" variant={truc === k ? "secondary" : "ghost"} className={cn(truc === k && "text-primary")} title={mo} aria-pressed={truc === k} onClick={() => doiTruc(k)}>{k === "met" ? <Ruler /> : <Rows4 />}{t}</Button>))}
             </div>
+            <Button size="xs" variant={gon ? "secondary" : "outline"} className={cn(gon && "text-primary")} aria-pressed={gon} title="Thanh tàu thấp, xem được nhiều tàu hơn"
+              onClick={() => { setPop(null); setGon(!gon); try { localStorage.setItem("lg-khn-gon", gon ? "0" : "1"); } catch { /* bỏ qua */ } }}><Rows4 />Gọn</Button>
             <div className="inline-flex items-center gap-1 rounded-md border px-1" title="Số ngày hiển thị">
               {[[7, "7 ngày"], [14, "14 ngày"], [31, "Cả tháng"]].map(([co, ten]) => <button key={co} type="button" onClick={() => doiCo(co)} className={cn("rounded px-1.5 py-0.5 text-xs", cua.co === co ? "bg-primary/15 font-semibold text-primary" : "text-muted-foreground hover:text-foreground")}>{ten}</button>)}
             </div>
