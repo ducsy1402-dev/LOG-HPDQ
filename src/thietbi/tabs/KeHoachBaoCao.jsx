@@ -1,23 +1,24 @@
 import { useState } from "react";
-import { Database, Hammer } from "lucide-react";
+import { Database } from "lucide-react";
 import { useApp } from "../store";
-import { Card, Seg } from "../components/ui";
+import { Seg } from "../components/ui";
 import ShortTerm from "./plan/ShortTerm";
 import LongTerm from "./plan/LongTerm";
 import { useApp as useAppChung } from "@/store";
 import MucTieuVanTai from "@/pages/cang/MucTieuVanTai";
+import ChienDich from "./chiendich/ChienDich";
 
 // Kế hoạch & báo cáo (Thiết bị cơ giới), 3 tab:
 //  · Kế hoạch ngày  = tab Ngắn hạn cũ (gán xe cho nhu cầu các ca tới)
 //  · Kế hoạch dài hạn = 2 tab nhỏ: Mục tiêu vận tải (tab cũ) và Linetime năng lực đáp ứng (tab Dài hạn cũ)
-//  · Chiến dịch = anh Sỹ sẽ thiết kế sau
+//  · Chiến dịch = chiến dịch vận chuyển: tính số xe, điểm xếp / dỡ, giãn cách, biểu đồ chạy xe, linetime khối lượng, thực tế (SQL 17)
 const doc = (k, mac) => { try { return localStorage.getItem(k) || mac; } catch { return mac; } };
 const luu = (k, v) => { try { localStorage.setItem(k, v); } catch { /* bỏ qua */ } };
 const TAB = [["ngay", "Kế hoạch ngày"], ["dai", "Kế hoạch dài hạn"], ["chien-dich", "Chiến dịch"]];
 const MO_TA = {
   ngay: "Kế hoạch chi tiết các ca tới theo file nhu cầu: gán xe, kiểm tra trùng giờ, xe hỏng, sai loại, xuất PDF trình ký.",
   dai: "Mục tiêu khai thác vận tải và năng lực đáp ứng theo tiến độ tàu, việc bãi từng ca.",
-  "chien-dich": "Chiến dịch: đang chờ thiết kế.",
+  "chien-dich": "Chiến dịch vận chuyển: từ khối lượng, quãng đường, tốc độ, năng suất xếp / vun… web tính số xe, số điểm xếp / dỡ, giãn cách chạy xe, vẽ biểu đồ từng chuyến và linetime khối lượng; nhập thực tế theo ca để so kế hoạch.",
 };
 
 const CanSql = () => (
@@ -53,11 +54,7 @@ export default function KeHoachBaoCao() {
         </>
       )}
 
-      {tab === "chien-dich" && (
-        <Card title="Chiến dịch" icon={Hammer}>
-          <div className="alert info"><Hammer size={16} /><span>Mục này đang chờ thiết kế. Khi có yêu cầu cụ thể sẽ bổ sung tại đây.</span></div>
-        </Card>
-      )}
+      {tab === "chien-dich" && <ChienDich />}
     </>
   );
 }

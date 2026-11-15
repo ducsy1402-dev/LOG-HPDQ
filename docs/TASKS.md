@@ -25,6 +25,12 @@
 - **Cần chạy `sql/13_ke_hoach_san_luong_ngay.sql` trong Supabase trước khi đẩy code** (nút Kế hoạch ngày cần bảng này).
 - Cần anh xác nhận: "tàu chờ trong 24h tới" đang tính là tàu chưa làm hàng mà giờ bắt đầu làm hàng dự kiến trong 24 giờ tới (hoặc đã quá giờ); Tàu thép thành phẩm không gồm HRC.
 
+## Thiết bị cơ giới › Kế hoạch & báo cáo › Chiến dịch (15/11/2026) — đã làm bản đầu, chờ anh Sỹ xem (nhánh chien-dich)
+- Anh gửi "File tính toán tham khảo.xlsx" (4 trường hợp ưu tiên: năng suất dỡ, năng suất xếp, số xe, thời gian). Web tính đúng như file (đã kiểm thử khớp số), phát triển thêm: thời gian chạy từ quãng đường / tốc độ, thời gian xếp từ năng suất điểm xếp (t/giờ, xe xúc / băng tải / cẩu bốc), xe vun ở điểm dỡ (t/giờ), làm tròn số xe / số điểm và tính lại theo nút thắt, giãn cách chạy xe, thử số xe, so sánh 4 ưu tiên, nhiều tuyến chạy cùng lúc, giờ nghỉ cùng lúc / luân phiên, biểu đồ chạy xe từng chuyến, linetime khối lượng, nhập thực tế theo ca, báo cáo + xuất Excel.
+- Anh trả lời (15/11): điểm xếp nhập tay năng suất t/giờ theo loại; xe vun / hạ ở điểm dỡ nhập t/giờ; giờ nghỉ linh hoạt (cùng lúc hoặc luân phiên); nhiều tuyến cùng lúc; lưu và so kế hoạch – thực tế; chưa cần đối chiếu đội xe thật (sau này sẽ làm).
+- **Cần chạy `sql/17_chien_dich.sql` trong Supabase (sau SQL 16) trước khi đẩy code.**
+- Sau này: đối chiếu số xe cần với xe sẵn sàng của đội; lấy năng suất xếp từ thông số xe xúc / định mức cẩu trong Danh mục.
+
 ## Còn mở
 - Cột "mái che" ở Danh mục › Khai báo kho / bãi (hiện đoán theo tên: "Kho …" = mái che, trừ "Kho hở").
 - Toạ độ thật của các khu vực / bãi lớn cho bản đồ định vị (hiện xếp đều theo thứ tự).

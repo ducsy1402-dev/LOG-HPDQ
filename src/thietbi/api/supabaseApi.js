@@ -154,5 +154,25 @@ export function supabaseApi() {
     upsertCaKip: async (rec) => ok(await sb.from("ca_kip").upsert(rec)),
     upsertHeadcount: async (rows) => ok(await sb.from("headcount").upsert(rows)),
     upsertHeadcountTo: async (rows) => ok(await sb.from("headcount_to").upsert(rows)),
+
+    // Chiến dịch vận chuyển (SQL 17). docChienDich trả null = chưa chạy SQL 17
+    async docChienDich() {
+      const r = await sb.from("chien_dich").select("*").order("bat_dau", { ascending: false });
+      return r.error ? null : r.data;
+    },
+    docThucTeCD: async (id) => ok(await sb.from("chien_dich_thuc_te").select("*").eq("chien_dich_id", id).order("ngay").order("ca")),
+    async luuChienDich(rec) {
+      const { id, created_at, updated_at, nguoi_tao, ...r } = rec;
+      if (id) return ok(await sb.from("chien_dich").update(r).eq("id", id).select().single());
+      return ok(await sb.from("chien_dich").insert(r).select().single());
+    },
+    xoaChienDich: async (id) => ok(await sb.from("chien_dich").delete().eq("id", id)),
+    // rows: [{chien_dich_id, tuyen_id, ngay, ca, khoi_luong, so_chuyen, so_xe, ghi_chu}]; dòng không còn số nào = xóa
+    async luuThucTeCD(rows) {
+      const trong = (r) => r.khoi_luong == null && r.so_chuyen == null && r.so_xe == null && !r.ghi_chu;
+      const ghi = rows.filter((r) => !trong(r)).map(({ id, updated_at, ...r }) => r);
+      if (ghi.length) ok(await sb.from("chien_dich_thuc_te").upsert(ghi, { onConflict: "chien_dich_id,tuyen_id,ngay,ca" }));
+      for (const r of rows.filter(trong)) ok(await sb.from("chien_dich_thuc_te").delete().eq("chien_dich_id", r.chien_dich_id).eq("tuyen_id", r.tuyen_id).eq("ngay", r.ngay).eq("ca", r.ca));
+    },
   };
 }

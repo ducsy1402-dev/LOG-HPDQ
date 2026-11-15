@@ -4,6 +4,7 @@
 import { today, addDays, diffDays } from "../lib/utils";
 import { DEMO_NHOM } from "../../config";
 import { buildDemands, mapLoaiPt, dungLoai, dungTaiTrong, rulesOf } from "../lib/plan";
+import { chienDichMau } from "../lib/chienDichMau";
 
 // Dữ liệu mẫu Book12 của demo đã duyệt (mốc gốc 13/10/2026, được dời theo ngày hiện tại)
 const GOC = "2026-10-13";
@@ -119,6 +120,10 @@ export async function demoApi() {
   const guard = (roles) => { if (!roles.includes(role)) throw new Error("Không có quyền (chế độ demo: " + role + ")"); };
   const W = ["nhap", "quan_tri"], A = ["quan_tri"];
 
+  // Chiến dịch mẫu: bắt đầu 08:00 hôm qua, 2 tuyến, thực tế các ca đã qua
+  const cdMau = chienDichMau();
+  const cd = { list: cdMau.list, thucTe: cdMau.thucTe, id: 100, tt: 1000 };
+
   return {
     demo: true,
     async getSession() { return { user: { id: "demo", email: "demo@local" } }; },
@@ -230,5 +235,23 @@ export async function demoApi() {
     async saveThietBiGan(list, them, dung) { guard(A); await wait(); db.meta.thietBiGan = clone(list); if (them) db.meta.thietBiGanThem = clone(them); if (dung) db.meta.thietBiGanDung = clone(dung); },
     async saveToTruong(list) { guard(A); await wait(); db.toTruong = { list: clone(list) }; },
     async saveMapPt(rules) { guard(A); await wait(); db.mapPt = clone(rules); },
+    async docChienDich() { await wait(); return clone(cd.list); },
+    async docThucTeCD(cid) { await wait(); return clone(cd.thucTe.filter((r) => r.chien_dich_id === +cid)); },
+    async luuChienDich(rec) {
+      guard(W); await wait();
+      const now = new Date().toISOString();
+      if (rec.id) { const i = cd.list.findIndex((x) => x.id === +rec.id); cd.list[i] = { ...cd.list[i], ...clone(rec), updated_at: now }; return clone(cd.list[i]); }
+      const moi = { ...clone(rec), id: ++cd.id, created_at: now, updated_at: now };
+      cd.list.unshift(moi); return clone(moi);
+    },
+    async xoaChienDich(cid) { guard(W); await wait(); cd.list = cd.list.filter((x) => x.id !== +cid); cd.thucTe = cd.thucTe.filter((r) => r.chien_dich_id !== +cid); },
+    async luuThucTeCD(rows) {
+      guard(W); await wait();
+      for (const r of rows) {
+        const i = cd.thucTe.findIndex((x) => x.chien_dich_id === r.chien_dich_id && x.tuyen_id === r.tuyen_id && x.ngay === r.ngay && +x.ca === +r.ca);
+        const trong = r.khoi_luong == null && r.so_chuyen == null && r.so_xe == null && !r.ghi_chu;
+        if (trong) { if (i >= 0) cd.thucTe.splice(i, 1); } else if (i >= 0) cd.thucTe[i] = { ...cd.thucTe[i], ...clone(r) }; else cd.thucTe.push({ ...clone(r), id: ++cd.tt });
+      }
+    },
   };
 }

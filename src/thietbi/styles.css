@@ -550,6 +550,38 @@ button.dd-it:hover { border-color: var(--accent); }
 .dd-dub .dd-c.ok { background: var(--ok-soft); }
 .dd-now-h { color: var(--accent); }
 
+/* ============ Chiến dịch vận chuyển (tabs/chiendich) ============ */
+.cd-dau { padding: 10px 14px; }
+.cd-chon { min-width: min(420px, 100%); max-width: 100%; }
+.cd-form { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px 12px; align-items: start; }
+.cd-o .inp { max-width: 100%; }
+.cd-o-v { display: flex; align-items: center; gap: 6px; }
+.cd-o-v em { font-style: normal; color: var(--mute); font-size: 0.7188rem; white-space: nowrap; }
+.cd-o small { font-size: 0.6875rem; font-weight: 400; }
+.cd-tuyen { border-top: 3px solid var(--mau, var(--accent)); }
+.cd-cham { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--mau, var(--accent)); margin-right: 2px; }
+.cd-tuyen-b { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 18px; }
+@media (max-width: 1100px) { .cd-tuyen-b { grid-template-columns: minmax(0, 1fr); } }
+.cd-nhap h4 { margin: 12px 0 6px; font-size: 0.7188rem; text-transform: uppercase; letter-spacing: 0.4px; color: var(--mute); font-weight: 650; }
+.cd-nhap h4:first-child { margin-top: 0; }
+.cd-kq { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.cd-bang-kq td:first-child { white-space: normal; }
+.cd-chiso { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; }
+.cd-chiso > div { background: var(--raise); border-radius: 9px; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.cd-chiso span { font-size: 0.6875rem; color: var(--mute); display: inline-flex; align-items: center; gap: 4px; }
+.cd-chiso b { font-size: 1.0625rem; font-variant-numeric: tabular-nums; }
+.cd-chiso small { font-size: 0.6875rem; color: var(--mute); }
+.cd-chiso .cd-loi b { color: var(--bad); }
+.cd-nutthat { display: flex; gap: 8px; align-items: flex-start; font-size: 0.7812rem; padding: 8px 10px; border-radius: 9px; background: var(--accent-soft); }
+.cd-nutthat svg { color: var(--accent); flex: none; margin-top: 2px; }
+.cd-sd { display: grid; grid-template-columns: 110px 1fr 44px; align-items: center; gap: 8px; font-size: 0.75rem; color: var(--ink2); }
+.cd-sd .track { height: 6px; background: var(--raise); border-radius: 4px; overflow: hidden; }
+.cd-sd .track i { display: block; height: 100%; border-radius: 4px; }
+.cd-sd b { text-align: right; font-weight: 600; }
+.t tr.cd-dong-chon td { background: var(--accent-soft); }
+.inp.cd-tay { border-color: var(--warn); }
+.cd-tt td { vertical-align: middle; }
+
 /* ============ In ============ */
 @media print {
   .topbar, .tabsbar, .toasts { display: none !important; }
