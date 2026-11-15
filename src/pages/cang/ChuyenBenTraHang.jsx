@@ -80,7 +80,7 @@ function ChuyenBen({ v }) {
           {D.coSql28 && f.ben_moi && <Field label="Bến phụ ở bến mới (tàu cập hai bến)">
             <NativeSelect value={f.ben_phu_moi} onChange={set("ben_phu_moi")} options={[["", "Không (một bến)"], ...benLienKe(D.berths, f.ben_moi).map((b) => [b.ma, noiHaiBen(f.ben_moi, b.ma)])]} />
           </Field>}
-          {D.coSql28 && f.ben_moi && <Field label="Vị trí ở bến mới (mét đầu tàu, trống = tự xếp)">
+          {D.coSql28 && f.ben_moi && <Field label="Vị trí ở bến mới (mét đầu tàu)">
             <Input className="num" inputMode="decimal" value={f.vi_tri_moi} onChange={set("vi_tri_moi")} placeholder="VD 230" />
           </Field>}
           <Field label="Do ai"><NativeSelect value={f.do_ai} onChange={set("do_ai")} options={Object.entries(DO_AI)} /></Field>

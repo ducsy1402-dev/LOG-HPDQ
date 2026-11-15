@@ -74,23 +74,24 @@ export default function Linetime() {
       </Card>
 
       <Tabs value={tab} onValueChange={doiTab}>
+        {/* Một dòng: các tab, vạch ngăn, rồi thanh công cụ của Lịch cầu bến. Toàn màn hình (chỉ ở Lịch cầu bến) phủ cả dòng này và lịch */}
+        <div className={cn(tab === "gantt" && toanMH && "fixed inset-0 z-[45] flex flex-col overflow-auto bg-background p-3")}>
+        <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-2">
         <TabsList>
           <TabsTrigger value="gantt"><CalendarRange />Lịch cầu bến</TabsTrigger>
           <TabsTrigger value="ben"><Rows3 />Tàu theo bến</TabsTrigger>
-          <TabsTrigger value="kh"><CalendarCheck />Kế hoạch ngày tới</TabsTrigger>
-          <TabsTrigger value="sap"><CalendarClock />Tàu sắp đến (7 ngày)</TabsTrigger>
-          <TabsTrigger value="ds"><List />Danh sách chuyến</TabsTrigger>
+          <TabsTrigger value="kh"><CalendarCheck />KH ngày tới</TabsTrigger>
+          <TabsTrigger value="sap" title="Tàu sắp đến trong 7 ngày tới"><CalendarClock />Tàu sắp đến</TabsTrigger>
+          <TabsTrigger value="ds" title="Danh sách chuyến"><List />Danh sách</TabsTrigger>
         </TabsList>
-
-        <TabsContent value="gantt">
-          {/* Lịch cầu bến có nút Toàn màn hình: thanh công cụ + lịch phủ kín màn hình */}
-          <div className={cn(toanMH && "fixed inset-0 z-[45] flex flex-col overflow-auto bg-background p-3")}>
-          <div className="mb-2 flex flex-wrap items-center gap-2">
+          {tab === "gantt" && <>
+            <span className="hidden h-6 w-px shrink-0 bg-border md:block" aria-hidden />
+            <div className="flex min-w-0 flex-wrap items-center gap-1.5" title={quyen.nhap ? (truc === "met" ? "Kéo ngang đổi giờ (tàu chưa cập, bước 30 phút), kéo dọc đặt vị trí mét / đổi bến." : "Kéo thanh tàu chưa cập bến để đổi bến / giờ dự kiến (bước 30 phút).") : undefined}>
             <Button size="sm" variant="outline" onClick={() => setTu(tu - 7 * DAY)} aria-label="Lùi 7 ngày"><ChevronLeft /></Button>
             <Button size="sm" variant="outline" onClick={() => setTu(homNay() - 3 * DAY)}>Hôm nay</Button>
             <Button size="sm" variant="outline" onClick={() => setTu(tu + 7 * DAY)} aria-label="Tới 7 ngày"><ChevronRight /></Button>
             <span className="text-sm tabular-nums">{ngayGio(tu).slice(0, 5)} → {ngayGio(tu + (soNgay - 1) * DAY).slice(0, 5)}</span>
-            <NativeSelect className="h-8 w-28" value={soNgay} onChange={(e) => setSoNgay(+e.target.value)} options={[[14, "14 ngày"], [30, "30 ngày"], [45, "45 ngày"], [60, "60 ngày"], [90, "90 ngày"]]} />
+            <NativeSelect className="h-8 w-[6.4rem] pl-2 pr-6" value={soNgay} onChange={(e) => setSoNgay(+e.target.value)} options={[[14, "14 ngày"], [30, "30 ngày"], [45, "45 ngày"], [60, "60 ngày"], [90, "90 ngày"]]} />
             <Button size="icon" variant="ghost" disabled={zoom === 0} onClick={() => setZoom(zoom - 1)} aria-label="Thu nhỏ"><ZoomOut /></Button>
             <Button size="icon" variant="ghost" disabled={zoom === ZOOM.length - 1} onClick={() => setZoom(zoom + 1)} aria-label="Phóng to"><ZoomIn /></Button>
             <div className="inline-flex rounded-md border p-0.5" role="group" aria-label="Trục dọc">
@@ -105,13 +106,15 @@ export default function Linetime() {
             </div>
             <Button size="xs" variant={gon ? "secondary" : "outline"} className={cn(gon && "text-primary")} aria-pressed={gon} title="Dòng thấp, chữ nhỏ: xem được nhiều bến hơn"
               onClick={() => { setGon(!gon); ghi("lg-gantt-gon", gon ? "0" : "1"); }}><Rows4 />Gọn</Button>
-            {quyen.nhap && <span className="text-xs text-muted-foreground">{truc === "met" ? "Kéo ngang đổi giờ (tàu chưa cập, bước 30 phút), kéo dọc đặt vị trí mét / đổi bến." : "Kéo thanh tàu chưa cập bến để đổi bến / giờ dự kiến (bước 30 phút)."}</span>}
-            <NutToanManHinh on={toanMH} onClick={doiToanMH} className="ml-auto" />
-          </div>
+              <NutToanManHinh on={toanMH} onClick={doiToanMH} />
+            </div>
+          </>}
+        </div>
+
+        <TabsContent value="gantt">
           {truc === "met"
             ? <GanttMet voyages={loc} tu={tu} soNgay={soNgay} pxNgay={ZOOM[zoom]} che={che} gon={gon} maxH={toanMH ? "calc(100dvh - 130px)" : undefined} />
             : <Gantt voyages={loc} tu={tu} soNgay={soNgay} pxNgay={ZOOM[zoom]} che={che} gon={gon} maxH={toanMH ? "calc(100dvh - 130px)" : undefined} />}
-          </div>
         </TabsContent>
 
         <TabsContent value="ben"><Card><CardContent className="pt-4"><BangTauBen /></CardContent></Card></TabsContent>
@@ -152,6 +155,7 @@ export default function Linetime() {
             ) : <Empty>Không có chuyến phù hợp bộ lọc.</Empty>}
           </CardContent></Card>
         </TabsContent>
+        </div>
       </Tabs>
       {them && <ChuyenForm onClose={() => setThem(false)} onSaved={(v) => v && setVoyageMo(v.id)} />}
       {dan && <DanNhanh onClose={() => setDan(false)} />}

@@ -3,15 +3,14 @@ import { useApp } from "@/store";
 import { khoangBen, doanBen, trangThai, laUoc, chiSo, TRANG_THAI, MAU_CHO } from "@/lib/linetime";
 import { choBatDau, kieuCho, PhanChoHang, ChuThichCho } from "./doanCho";
 import { laBenLienKe } from "@/lib/capBen";
-import { DAY, ngayGio, so, met, pad, iso, ms } from "@/lib/format";
+import { DAY, ngayGio, so, met, pad, iso, ms, tanK, pct } from "@/lib/format";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { MucIcon } from "@/components/common";
 import { cn } from "@/lib/utils";
 import { tenBen, tenBenChuyen, noiHaiBen } from "./BangTauBen";
 import { viTriChu } from "@/lib/tenBen";
-import { tenBai, moTaTB } from "@/lib/thietBi";
-import { thietBiChuyen, TRANG_THAI_PA } from "@/lib/phuongAn";
+import { thietBiChuyen } from "@/lib/phuongAn";
 import { dsGanCau } from "@/lib/thietBi";
 import { useCau } from "./useCau";
 import { MOC } from "@/lib/linetime";
@@ -80,7 +79,6 @@ export default function Gantt({ voyages, tu, soNgay, pxNgay, che = "ben", gon = 
     });
   }, [voyages, D.berths, D.now, tu, den, che, gon]); // eslint-disable-line react-hooks/exhaustive-deps
   const cao = hang.reduce((s, r) => s + r.h, 0);
-  const canhBaoCua = useMemo(() => new Map(D.alerts.map((a) => [a.voyage.id, a.muc === "bad" ? "bad" : a.muc])), [D.alerts]);
 
   const benTaiY = (y) => hang.find((r) => y >= r.y && y < r.y + r.h)?.ma;
   const onDown = (e, x) => {
@@ -153,7 +151,7 @@ export default function Gantt({ voyages, tu, soNgay, pxNgay, che = "ben", gon = 
                   const dangKeo = keo?.x.v.id === x.v.id && keo.moved && keo.coKeo;
                   const left = Math.max(0, xOf(x.a)), right = Math.min(W, xOf(x.b)), w = Math.max(6, right - left);
                   const cs = x.st === "lam_hang" ? chiSo(x.v, D.stopsOf(x.v.id), D.now) : null;
-                  const muc = canhBaoCua.get(x.v.id), mau = TRANG_THAI[x.st].mau;
+                  const mau = TRANG_THAI[x.st].mau;
                   const top = K.top + x.lan * K.lan, troVao = (e) => !keo && e.pointerType === "mouse" && setTro({ x, cx: e.clientX, cy: e.clientY });
                   const dsStops = D.stopsOf(x.v.id);
                   // Toàn thời gian: đoạn chờ bến (đến neo / NOR -> cập bến) và các vạch mốc
@@ -175,7 +173,7 @@ export default function Gantt({ voyages, tu, soNgay, pxNgay, che = "ben", gon = 
                       onPointerMove={troVao} onPointerLeave={() => setTro(null)}
                       className={cn("absolute z-10 flex items-center overflow-hidden rounded-md px-1.5 font-medium text-white shadow-sm", K.chu, coCho && "rounded-l-none",
                         KEO_DUOC.has(x.st) && quyen.nhap ? "cursor-grab" : "cursor-pointer", dangKeo && "z-30 cursor-grabbing opacity-90 ring-2 ring-white",
-                        muc === "bad" && "outline outline-2 outline-offset-1 outline-bad", muc === "warn" && "outline outline-2 outline-offset-1 outline-warn", x.uocTT && "border-2 border-dashed border-white/80", x.v.huy && "line-through opacity-50")}
+                        x.uocTT && "border-2 border-dashed border-white/80", x.v.huy && "line-through opacity-50")}
                       style={{ left: LABEL + left, width: w, top, height: K.bar, background: x.uoc ? `repeating-linear-gradient(135deg, ${mau}, ${mau} 8px, ${mau}cc 8px, ${mau}cc 12px)` : mau,
                         transform: dangKeo ? `translate(${keo.dx}px, ${keo.dy}px)` : undefined }}
                       aria-label={`${x.v.ten_tau}: ${TRANG_THAI[x.st].ten}`}>
@@ -194,7 +192,6 @@ export default function Gantt({ voyages, tu, soNgay, pxNgay, che = "ben", gon = 
         {Object.entries(TRANG_THAI).filter(([k]) => k !== "huy").map(([k, t]) => <span key={k} className="flex items-center gap-1"><i className="inline-block h-2.5 w-4 rounded-sm" style={{ background: t.mau }} />{t.ten}</span>)}
         <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-4 rounded-sm" style={{ background: "repeating-linear-gradient(135deg,#94a3b8,#94a3b8 4px,#94a3b8aa 4px,#94a3b8aa 6px)" }} />Giờ rời ước tính</span>
         <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-4 rounded-sm border-2 border-dashed border-slate-400" />≈ Trạng thái theo giờ dự kiến (chưa ghi mốc thực tế)</span>
-        <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-4 rounded-sm outline outline-2 outline-bad" />Có cảnh báo khẩn</span>
         <span className="flex items-center gap-1"><i className="inline-block h-3 w-0.5 bg-bad" />Hiện tại</span>
         <ChuThichCho toan={che === "toan"} />
         {che === "toan" && <span className="flex items-center gap-1"><i className="inline-block h-3 w-0.5 bg-white" />Vạch NOR, bắt đầu / kết thúc làm hàng</span>}
@@ -234,13 +231,16 @@ export function TheTau({ x, cx, cy }) {
       </div>
       <D2 l="Bến">{v.ben_ma ? `${tenBenChuyen(v)}${v.vi_tri != null ? " " + viTriChu(v.vi_tri, v.loa) : ""}` : "Chưa xếp"}{v.dwt ? ` · DWT ${so(v.dwt)}` : ""}{v.draft ? ` · mớn ${so(v.draft, 2)} m` : ""}{v.loa ? ` · LOA ${so(v.loa, 1)} m` : ""}</D2>
       <D2 l="Hàng">{v.huong === "xuat" ? "Xuất" : "Nhập"} {v.loai_hang}{v.ten_hang && v.ten_hang !== v.loai_hang ? ` – ${v.ten_hang}` : ""}</D2>
-      <D2 l="Khối lượng"><b>{so(v.khoi_luong)} t</b> · đã làm {so(cs.daLam)} t{cs.hoanTat != null ? ` (${so(cs.hoanTat * 100, 1)}%)` : ""} · còn {so(cs.conLai)} t</D2>
+      <D2 l="Khối lượng"><b>{tanK(v.khoi_luong)}</b> · đã làm {tanK(cs.daLam)}{cs.hoanTat != null ? ` (${pct(cs.hoanTat)})` : ""} · còn {tanK(cs.conLai)}</D2>
       {v.so_mang != null && <D2 l="Số máng">{v.so_mang} máng</D2>}
-      <D2 l="Cam kết">{+v.cam_ket ? `${so(v.cam_ket)} t/ngày` : v.cam_ket_ghi_chu || TRONG}{cs.nangSuat != null ? ` · thực ${so(cs.nangSuat)} t/ngày` : ""}</D2>
+      <D2 l="Cam kết">{+v.cam_ket ? `${tanK(v.cam_ket)}/ngày` : v.cam_ket_ghi_chu || TRONG}{cs.nangSuat != null ? ` · thực ${tanK(cs.nangSuat)}/ngày` : ""}</D2>
       <div className="mt-0.5 grid gap-1 border-t pt-1.5">
         <D2 l="GEAR">{v.gear || TRONG}</D2>
         <D2 l="DEM/day">{v.dem_day || TRONG}</D2>
-        <D2 l="Kho-Bãi">{(v.bai_kl || []).filter((b) => b?.bai).map((b) => `${b.bai}${b.khoi_luong != null ? ` - ${so(b.khoi_luong)}` : b.ghi_chu ? ` - ${b.ghi_chu}` : ""}`).join("; ") || TRONG}</D2>
+        <D2 l="Cẩu">{tb.cau.join(", ") || TRONG}{tb.bangTai ? ` · băng tải ${tb.bangTai}` : ""}</D2>
+        {tb.cauTau && (+tb.cauTau.so > 0 || +tb.cauTau.nang_suat > 0) && <D2 l="Cẩu tàu">{tb.cauTau.so ?? "?"} cẩu × {tb.cauTau.nang_suat ?? "?"} t/h</D2>}
+        {tb.cauGan.length > 0 && <D2 l="Gắn cẩu">{tb.cauGan.join(", ")}</D2>}
+        <D2 l={v.huong === "xuat" ? "Kho/Bãi xuất" : "Kho/Bãi nhận"}>{(v.bai_kl || []).filter((b) => b?.bai).map((b) => `${b.bai}${b.khoi_luong != null ? ` - ${tanK(b.khoi_luong)}` : b.ghi_chu ? ` - ${b.ghi_chu}` : ""}`).join("; ") || TRONG}</D2>
         <D2 l="PT. Vận chuyển">{dsGiaTri(v.pt_van_chuyen) || TRONG}</D2>
         <D2 l="PT. Kho Bãi">{dsGiaTri(v.pt_kho_bai) || TRONG}</D2>
         <D2 l="LAYTIME">{v.laytime_txt || TRONG}</D2>
@@ -249,16 +249,6 @@ export function TheTau({ x, cx, cy }) {
       </div>
       <div className="mt-0.5 border-t pt-1.5">{moc.map(([l, t]) => <D2 key={l} l={l}><span className="tabular-nums">{ngayGioNam(t)}</span></D2>)}</div>
       {cs.choNeo != null && <D2 l="Chờ bến">{thoiLuong(cs.choNeo)}</D2>}
-      <div className="mt-0.5 border-t pt-1.5 grid gap-1.5">
-        <div className="text-[0.6875rem] text-muted-foreground">{tb.plan ? `Theo phương án ${tb.plan.ten} (${TRANG_THAI_PA[tb.plan.trang_thai]?.ten.toLowerCase() || tb.plan.trang_thai})` : "Theo phiếu chuyến (chưa có phương án)"}</div>
-        <D2 l={tenBai(v)}>{tb.bai.map((b) => `${b.bai}${b.khu ? ` › ${b.khu}` : ""}${b.khoi_luong != null ? ` ${so(b.khoi_luong)} t` : ""}`).join("; ") || "—"}</D2>
-        <D2 l="Xe vận chuyển">{moTaTB(tb.xe) || "—"}</D2>
-        <D2 l="Hót vét / be hầm">{moTaTB(tb.hotVet) || "—"}</D2>
-        <D2 l={v.huong === "xuat" ? "Lên hàng" : "Vun hàng"}>{moTaTB(tb.vunHang) || "—"}</D2>
-        <D2 l="Cẩu">{tb.cau.join(", ") || "—"}{tb.bangTai ? ` · băng tải ${tb.bangTai}` : ""}</D2>
-        {tb.cauTau && (+tb.cauTau.so > 0 || +tb.cauTau.nang_suat > 0) && <D2 l="Cẩu tàu">{tb.cauTau.so ?? "?"} cẩu × {tb.cauTau.nang_suat ?? "?"} t/h</D2>}
-        {tb.cauGan.length > 0 && <D2 l="Gắn cẩu">{tb.cauGan.join(", ")}</D2>}
-      </div>
       {canh.length > 0 && <div className="mt-0.5 grid gap-1 border-t pt-1.5">{canh.map((a) => <div key={a.id} className="flex gap-1.5"><MucIcon muc={a.muc} className="h-3.5 w-3.5" />{a.nd}</div>)}</div>}
       <div className="text-[0.6875rem] text-muted-foreground">{KEO_DUOC.has(x.st) && quyen.nhap ? "Kéo để đổi bến / giờ dự kiến · bấm để mở phiếu" : "Bấm để mở phiếu chuyến"}</div>
     </div>

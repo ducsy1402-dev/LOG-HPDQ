@@ -14,6 +14,9 @@ export const so = (v, d) => (v == null || v === "" || Number.isNaN(+v) ? "" : (d
 export const pct = (v, d = 2) => (v == null || !Number.isFinite(v) ? "" : NF[Math.min(d, 2)].format(v * 100) + "%");
 // Làm tròn 2 chữ số (dữ liệu biểu đồ)
 export const soGon = (v) => (v == null || v === "" || Number.isNaN(+v) ? "" : NF[2].format(+v)); // tối đa 2 số lẻ, bỏ số 0 thừa (nhãn trục biểu đồ)
+// Khối lượng gọn (tấn): từ 1.000 t trở lên viết theo nghìn "3,2k t" (1k = 1.000 t, tối đa 3 số lẻ, bỏ số 0 thừa); dưới 1.000 t viết nguyên "850 t" (tối đa 2 số lẻ)
+const N3 = nf(0, 3);
+export const tanK = (v) => { if (v == null || v === "" || Number.isNaN(+v)) return ""; const n = +v; return Math.abs(n) >= 1000 ? `${N3.format(n / 1000)}k t` : `${NF[2].format(n)} t`; };
 export const met = (v) => (v == null || v === "" || Number.isNaN(+v) ? "" : NF[2].format(+v)); // số mét cầu bến / vị trí / LOA: nguyên văn, tối đa 2 số lẻ, không ép đủ 2 số
 export const r2 = (x) => (x == null || !Number.isFinite(+x) ? x : Math.round(+x * 100) / 100);
 // Đọc số người nhập theo cách phổ thông nhất ở Việt Nam: dấu phẩy là thập phân ("667,756" = 667,756), dấu chấm ngăn nghìn ("1.234,5", "110.680");

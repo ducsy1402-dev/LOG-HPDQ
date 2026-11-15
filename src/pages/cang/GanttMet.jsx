@@ -44,7 +44,6 @@ export default function GanttMet({ voyages, tu, soNgay, pxNgay, che = "ben", gon
 
   const tau = useMemo(() => viTriTrenLich(voyages, D.berths, D.stopsOf, tu, den, D.now).map((it) => ({ ...it, st: trangThai(it.v, D.now), uocTT: laUoc(it.v, D.now) })), [voyages, D.berths, D.stopsOf, tu, den, D.now]);
   const chuaXep = voyages.filter((v) => !v.huy && !v.ben_ma).length;
-  const canhBaoCua = useMemo(() => new Map(D.alerts.map((a) => [a.voyage.id, a.muc === "bad" ? "bad" : a.muc])), [D.alerts]);
 
   // Đổi giờ được khi tàu chưa cập và chuyến không có chuyển bến (một đoạn); đổi vị trí được với đoạn bến hiện tại
   const doiGioDuoc = (it) => KEO_DUOC.has(it.st) && it.seg.cuoi && !it.seg.nguon;
@@ -129,7 +128,7 @@ export default function GanttMet({ voyages, tu, soNgay, pxNgay, che = "ben", gon
               const left = Math.max(0, xOf(it.seg.a)), right = Math.min(W, xOf(it.seg.b)), w = Math.max(6, right - left);
               const top = yMet(d, it.x), h = Math.max(8, it.L * K.mPx);
               const cs = it.st === "lam_hang" ? chiSo(it.v, D.stopsOf(it.v.id), D.now) : null;
-              const muc = canhBaoCua.get(it.v.id), mau = TRANG_THAI[it.st].mau;
+              const mau = TRANG_THAI[it.st].mau;
               const keoDuoc = doiMetDuoc(it) || doiGioDuoc(it);
               const dsStops = D.stopsOf(it.v.id);
               // Toàn thời gian: đoạn chờ bến đỏ ngay trước thanh tàu (chỉ đoạn bến đầu của chuyến) và các vạch mốc
@@ -148,8 +147,7 @@ export default function GanttMet({ voyages, tu, soNgay, pxNgay, che = "ben", gon
                 <div onPointerDown={(e) => onDown(e, it)}
                   onPointerMove={(e) => !keo && e.pointerType === "mouse" && setTro({ x: it, cx: e.clientX, cy: e.clientY })} onPointerLeave={() => setTro(null)}
                   className={cn("absolute z-10 flex touch-none flex-col justify-center overflow-hidden rounded px-1.5 font-medium leading-tight text-white shadow-sm", K.chu,
-                    keoDuoc ? "cursor-grab" : "cursor-pointer", !it.coDinh && "border-2 border-dashed border-white/70",
-                    muc === "bad" && "outline outline-2 outline-offset-1 outline-bad", muc === "warn" && "outline outline-2 outline-offset-1 outline-warn",
+                    keoDuoc ? "cursor-grab" : "cursor-pointer",
                     dangKeo && "z-30 cursor-grabbing opacity-90 ring-2 ring-white")}
                   style={{ left: LABEL + left, width: w, top, height: h, background: mau, transform: dangKeo ? `translate(${doiGioDuoc(it) ? keo.dx : 0}px, ${doiMetDuoc(it) ? keo.dy : 0}px)` : undefined }}
                   aria-label={`${it.v.ten_tau}: ${TRANG_THAI[it.st].ten}`}>
@@ -175,10 +173,9 @@ export default function GanttMet({ voyages, tu, soNgay, pxNgay, che = "ben", gon
         {Object.entries(TRANG_THAI).filter(([k]) => k !== "huy").map(([k, t]) => <span key={k} className="flex items-center gap-1"><i className="inline-block h-2.5 w-4 rounded-sm" style={{ background: t.mau }} />{t.ten}</span>)}
         <ChuThichCho toan={che === "toan"} />
         {che === "toan" && <span className="flex items-center gap-1"><i className="inline-block h-3 w-0.5 bg-white" />Vạch NOR, bắt đầu / kết thúc làm hàng</span>}
-        <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-4 rounded-sm border-2 border-dashed border-slate-400" />Chưa ghi vị trí (web tự xếp)</span>
         <span className="flex items-center gap-1"><i className="inline-block h-3 w-4 border-t-2 border-warn" />Đầu góc vuông</span>
         <span>≈ trước tên tàu: trạng thái theo giờ dự kiến · ≈ trước số mét: LOA ước tính (tàu chưa có LOA)</span>
-        {chuaXep > 0 && <span>{chuaXep} chuyến chưa xếp bến (bấm "Tự xếp bến" ở trên để web xếp)</span>}
+        {chuaXep > 0 && <span>{chuaXep} chuyến chưa có bến (không vẽ trên lịch theo mét)</span>}
       </div>
       {tro && !keo && <TheTau x={tro.x} cx={tro.cx} cy={tro.cy} />}
     </>

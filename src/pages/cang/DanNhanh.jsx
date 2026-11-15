@@ -92,7 +92,7 @@ export default function DanNhanh({ onClose }) {
             <Button variant="ghost" onClick={() => { setText(MAU_BANG); doc(MAU_BANG); }}>Thử với dòng mẫu</Button>
           </div>
           <ul className="grid gap-0.5 text-xs text-muted-foreground">
-            <li><b>Cột:</b> {COT_TAU.map((c) => c.ten).join(" · ")}. <b>Bắt buộc:</b> Bến, Tên tàu, Hàng nhập hoặc Hàng xuất (không được cả hai), Khối lượng (số), ETA, ETB, ETD (ngày).</li>
+            <li><b>Cột:</b> {COT_TAU.map((c) => c.ten).join(" · ")}. <b>Bắt buộc:</b> Bến, Tên tàu, Hàng nhập hoặc Hàng xuất (không được cả hai), Khối lượng (số), ETA, ETB, ETD (ngày). <b>SỐ NGÀY LÀM HÀNG</b> không bắt buộc (số; <code>3-4</code> lấy số 4): ETD để trống thì ETD = ETB + số ngày.</li>
             <li><b>Hàng nhập / xuất, Kho-Bãi, PT. Vận chuyển, PT. Kho Bãi:</b> nhiều mục ngăn cách bằng dấu phẩy, dấu cộng hoặc dấu chấm phẩy; số sau dấu gạch ngang "-" là khối lượng của mục đó (VD <code>Cán 1-1221, Cán 2-1000</code>).</li>
             <li><b>ETA</b> dạng <code>18-19/11/2026</code> được hiểu là ngày sau dấu gạch ngang (19/11/2026). Số kiểu Excel <code>3,500</code> = 3.500. Dòng không có tên tàu bị bỏ qua; ô trống hiện "trống".</li>
           </ul>
@@ -117,6 +117,7 @@ export default function DanNhanh({ onClose }) {
                     {!kq ? <span className="text-muted-foreground">{trongDong ? "Dòng trống" : "Không có tên tàu: bỏ qua"}</span> : <>
                       <div className="flex flex-wrap items-center gap-1">{kq.goc ? <Badge tone="info">Cập nhật</Badge> : <Badge tone="ok">Thêm mới</Badge>}<b>{kq.v.ten_tau}</b></div>
                       <div className="text-[0.6875rem] text-muted-foreground">{kq.goc?.ma_chuyen || kq.v.ma_chuyen}{kq.v.ben_ma ? ` · ${tenBenChuyen(kq.v)}` : ""}{kq.v.khoi_luong != null ? ` · ${so(kq.v.khoi_luong)} t` : ""}</div>
+                      {(kq.ghiChu || []).map((nd, i) => <div key={"g" + i} className="text-[0.6875rem] text-muted-foreground">{nd}</div>)}
                       {kq.loi.map((nd, i) => <div key={i} className="flex gap-1 text-[0.6875rem] text-bad"><MucIcon muc="bad" className="h-3 w-3" />{nd}</div>)}
                     </>}
                   </td>

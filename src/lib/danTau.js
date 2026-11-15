@@ -1,13 +1,15 @@
 // Dán nhanh bảng tàu theo FORM MẪU (anh Sỹ chốt 14/11/2026), thay form cũ. Cột của bảng mẫu:
 //   BẾN · TÊN TÀU · DRAFT · LOA · DWT · GEAR · HÀNG NHẬP · HÀNG XUẤT · KHỐI LƯỢNG · CAM KẾT · DEM/day · PT. Vận chuyển · Kho-Bãi · PT. Kho Bãi · LAYTIME · LSD · Ghi chú · ETA · ETB · ETD
 // Quy tắc:
-//   • Hàng nhập / Hàng xuất, Kho-Bãi, PT. Vận chuyển, PT. Kho Bãi: nhiều mục ngăn cách bằng dấu phẩy, dấu cộng hoặc dấu chấm phẩy; số hoặc chữ sau dấu gạch ngang "-" là khối lượng
-//     (hoặc giá trị) của mục đó: "Cán 1-1221, Cán 2-1000" → bãi Cán 1: 1221, bãi Cán 2: 1000. Hàng thì khối lượng phải là số.
+//   • Hàng nhập / Hàng xuất, Kho-Bãi, PT. Vận chuyển, PT. Kho Bãi: nhiều mục ngăn cách bằng dấu phẩy, dấu cộng hoặc dấu chấm phẩy; số sau dấu gạch ngang "-" là khối lượng
+//     (hoặc giá trị) của mục đó: "Cán 1-1221, Cán 2-1000" → bãi Cán 1: 1221, bãi Cán 2: 1000. Chữ sau dấu gạch: bãi / PT thì là ghi chú, hàng thì là một phần của tên ("Xỉ hạt lò cao nghiền mịn - S95").
 //   • ETA dạng "18-19/11/2026" hiểu là ngày SAU dấu gạch ngang (19/11/2026); ETA, ETB, ETD không đọc được thành ngày thì báo lỗi.
-//   • Dòng không có tên tàu thì bỏ qua. Cột bắt buộc: Bến, Tên tàu, Hàng nhập hoặc Hàng xuất (không được cả hai), Khối lượng (phải là số), ETA, ETB, ETD.
+//   • Dòng không có tên tàu thì bỏ qua. Cột bắt buộc: Bến, Tên tàu, Hàng nhập hoặc Hàng xuất (có đúng một trong hai), Khối lượng (phải là số), ETA, ETB, ETD.
+//   • SỐ NGÀY LÀM HÀNG (không bắt buộc, phải là số; "3-4" = lấy số sau dấu gạch ngang = 4): ô ETD trống thì ETD = ETB + số ngày; có ETD thì giữ ETD. Không lưu số ngày vào CSDL.
+//   • Ô Hàng nhập / Hàng xuất chỉ có dấu gạch ("-", "--", "/") coi như trống.
 //   • Các cột còn lại giữ nguyên nội dung; ô trống hiện là "trống" (không ghi chữ "trống" vào CSDL, để NULL).
 //   • Số trong cột Khối lượng / DWT / Cam kết: dấu phẩy + đúng 3 chữ số là ngăn nghìn kiểu Excel ("3,500" = 3.500 t); Draft / LOA dùng cách đọc số thường (4.78, 14,6).
-import { plain, docSo } from "./format";
+import { plain, docSo, DAY } from "./format";
 import { docNgayGio } from "./paste";
 
 // k: khóa; ten: tên cột hiển thị; bb: bắt buộc; bi: tiêu đề cột thường gặp (đã chuẩn hóa: bỏ dấu, chữ thường, bỏ dấu câu trừ "/")
@@ -31,13 +33,15 @@ export const COT_TAU = [
   { k: "ghi_chu", ten: "Ghi chú", bi: ["ghi chu", "note"] },
   { k: "eta", ten: "ETA", bb: true, bi: ["eta"] },
   { k: "etb", ten: "ETB", bb: true, bi: ["etb"] },
-  { k: "etd", ten: "ETD", bb: true, bi: ["etd"] },
+  { k: "etd", ten: "ETD", bi: ["etd"] },  // bắt buộc, trừ khi có SỐ NGÀY LÀM HÀNG (khi đó ETD = ETB + số ngày)
+  { k: "so_ngay", ten: "SỐ NGÀY LÀM HÀNG", bi: ["so ngay lam hang", "ngay lam hang", "so ngay lam", "so ngay"] },
 ];
 export const TEN_COT = Object.fromEntries(COT_TAU.map((c) => [c.k, c.ten]));
-export const MAU_BANG = COT_TAU.map((c) => c.ten).join("\t") + "\nTL\tPHƯƠNG BÁCH 12\t4.78\t79.96\t3,558\t\t\tPhôi vuông, thép cuộn\t3,500\tCQD\tCQD\tĐầu kéo\tBãi xe LOG, bãi HRCE, AB cán 3\tCẦU TRỤC, cầu bãi\t\t\t\t12/11/2026 16:00\t14/11/2026\t15/11/2026";
+export const MAU_BANG = COT_TAU.map((c) => c.ten).join("\t") + "\nTL\tPHƯƠNG BÁCH 12\t4.78\t79.96\t3,558\t\t\tPhôi vuông, thép cuộn\t3,500\tCQD\tCQD\tĐầu kéo\tBãi xe LOG, bãi HRCE, AB cán 3\tCẦU TRỤC, cầu bãi\t\t\t\t12/11/2026 16:00\t14/11/2026\t15/11/2026\t2";
 
 const chuan = (s) => plain(s).replace(/[^a-z0-9/ ]+/g, " ").replace(/\s+/g, " ").trim();
 const rong = (x) => x == null || String(x).trim() === "";
+const rongHang = (x) => rong(x) || /^[\s\-–—./,;+]*$/.test(String(x)); // ô hàng chỉ có dấu gạch / chấm… cũng là trống
 const chu = (x) => String(x ?? "").trim();
 
 // Cột của một tiêu đề: so cả cụm đã chuẩn hóa
@@ -64,16 +68,23 @@ export function docSoTan(x) {
 // Số thường (Draft, LOA)
 const docSoThuong = (x) => { if (typeof x === "number") return Number.isFinite(x) ? x : null; const n = docSo(chu(x)); return n == null || Number.isNaN(n) ? null : n; };
 
-// Tách "A - 100, B - 200; C + D" thành các mục. Mục có dấu gạch ngang: phần sau dấu gạch CUỐI CÙNG là giá trị (số thì ghi số, chữ thì ghi chữ).
-// Trả [{ ten, so, chu }]: so = số sau dấu gạch (null nếu không phải số), chu = chữ sau dấu gạch (rỗng nếu không có)
+// Tách "A - 100, B - 200; C + D" thành các mục. Chỉ khi phần sau dấu gạch ngang CUỐI CÙNG là SỐ (1221, 1.221, 1,221, 1221 t, 1k = 1000) thì nó là khối lượng của mục đó.
+// Sau dấu gạch là chữ ("Xỉ hạt lò cao nghiền mịn - S95", "Đá 45-100mm") thì với hàng đó là một phần của TÊN (dùng tenDayDu), với bãi / PT đó là ghi chú (chu).
+// Trả [{ ten, tenDayDu, so, chu }]: so = số sau dấu gạch (null nếu không có / không phải số), chu = chữ sau dấu gạch (rỗng nếu không có)
+const SO_SAU_GACH = /^\d[\d.,]*\s*(?:t|tan|tấn|k)?$/i;
+function docSoSauGach(t) {
+  if (!SO_SAU_GACH.test(t)) return null;
+  const k = /k$/i.test(t), n = docSoTan(t.replace(/\s*(?:t|tan|tấn|k)$/i, ""));
+  return n == null ? null : k ? n * 1000 : n;
+}
 export function tachDanhSach(x) {
   return chu(x).split(/[,;+]/).map((m) => m.trim()).filter(Boolean).map((m) => {
     const i = m.lastIndexOf("-");
-    if (i <= 0 || i === m.length - 1) return { ten: m, so: null, chu: "" };
+    if (i <= 0 || i === m.length - 1) return { ten: m, tenDayDu: m, so: null, chu: "" };
     const ten = m.slice(0, i).trim(), sau = m.slice(i + 1).trim();
-    if (!ten || !sau) return { ten: m, so: null, chu: "" };
-    const so = docSoTan(sau.replace(/\s*(t|tan|tấn)$/i, ""));
-    return { ten, so, chu: so == null ? sau : "" };
+    if (!ten || !sau) return { ten: m, tenDayDu: m, so: null, chu: "" };
+    const so = docSoSauGach(sau);
+    return { ten, tenDayDu: m, so, chu: so == null ? sau : "" };
   });
 }
 
@@ -118,15 +129,15 @@ export function docDongTau(o, cot, { berthOf, now = Date.now(), nhomCua = () => 
   if (!rong(r.dwt)) { const n = docSoTan(r.dwt); if (n != null) v.dwt = n; }
 
   // Hàng: một trong hai cột
-  const coNhap = !rong(r.hang_nhap), coXuat = !rong(r.hang_xuat);
+  const coNhap = !rongHang(r.hang_nhap), coXuat = !rongHang(r.hang_xuat);
   if (coNhap && coXuat) loi.push("Vừa có Hàng nhập vừa có Hàng xuất");
   else if (!coNhap && !coXuat) loi.push("Thiếu Hàng nhập hoặc Hàng xuất");
   else {
     v.huong = coXuat ? "xuat" : "nhap";
     const ds = tachDanhSach(coXuat ? r.hang_xuat : r.hang_nhap), hangDs = [];
     for (const h of ds) {
-      if (h.chu) loi.push(`Khối lượng của hàng "${h.ten}" là "${h.chu}", không phải số`);
-      hangDs.push({ ten_hang: h.ten, loai_hang: nhomCua(h.ten) || h.ten, khoi_luong: h.so });
+      const ten = h.so != null ? h.ten : h.tenDayDu; // sau dấu gạch không phải số: là phần của tên hàng ("Xỉ hạt lò cao nghiền mịn - S95")
+      hangDs.push({ ten_hang: ten, loai_hang: nhomCua(ten) || ten, khoi_luong: h.so });
     }
     if (hangDs.length) {
       v.hang_ds = hangDs;
@@ -160,16 +171,31 @@ export function docDongTau(o, cot, { berthOf, now = Date.now(), nhomCua = () => 
     v.bai_hang = ds.map((m) => m.ten).join("; ");
   }
 
-  // ETA / ETB / ETD: bắt buộc, phải là ngày
+  // Số ngày làm hàng (không bắt buộc): "3-4" lấy số sau dấu gạch ngang
+  let soNgay = null;
+  if (!rong(r.so_ngay)) {
+    const m = /^\s*\d+(?:[.,]\d+)?\s*[-–]\s*(\d+(?:[.,]\d+)?)\s*$/.exec(chu(r.so_ngay));
+    soNgay = docSoThuong(m ? m[1] : r.so_ngay);
+    if (soNgay == null || soNgay < 0) { loi.push(`${TEN_COT.so_ngay} "${chu(r.so_ngay)}" không phải số`); soNgay = null; }
+  }
+  // ETA / ETB / ETD: bắt buộc, phải là ngày; ETD trống thì lấy ETB + số ngày làm hàng
+  const ghiChu = [];
   for (const k of ["eta", "etb", "etd"]) {
+    const co = k in r && !rong(r[k]);
+    if (k === "etd" && !co) {
+      if (soNgay != null && v.etb) { v.etd = new Date(new Date(v.etb).getTime() + soNgay * DAY).toISOString(); ghiChu.push(`ETD = ETB + ${soNgay} ngày`); }
+      else if (soNgay == null && !loi.some((x) => x.startsWith(TEN_COT.so_ngay))) loi.push(`Thiếu ${TEN_COT.etd} (hoặc ${TEN_COT.so_ngay})`);
+      continue;
+    }
     if (!(k in r)) { thieu(k); continue; }
     const d = docNgayTau(r[k], { now, khoangNgay: k === "eta" });
     if (d.trong) thieu(k); else if (d.loi) loi.push(`${TEN_COT[k]} "${chu(r[k])}" không phải ngày`); else v[k] = d.iso;
   }
 
-  return { v, loi, trong };
+  return { v, loi, trong, ghiChu };
 }
 
 // Cột bắt buộc không có trong bảng (cả bảng thiếu cột, khác với một ô trống)
-export const cotThieu = (cot) => COT_TAU.filter((c) => c.bb && c.k !== "hang_nhap" && !cot.includes(c.k)).map((c) => c.ten)
-  .concat(!cot.includes("hang_nhap") && !cot.includes("hang_xuat") ? ["HÀNG NHẬP hoặc HÀNG XUẤT"] : []);
+export const cotThieu = (cot) => COT_TAU.filter((c) => c.bb && !cot.includes(c.k)).map((c) => c.ten)
+  .concat(!cot.includes("hang_nhap") && !cot.includes("hang_xuat") ? ["HÀNG NHẬP hoặc HÀNG XUẤT"] : [])
+  .concat(!cot.includes("etd") && !cot.includes("so_ngay") ? ["ETD (hoặc SỐ NGÀY LÀM HÀNG)"] : []);

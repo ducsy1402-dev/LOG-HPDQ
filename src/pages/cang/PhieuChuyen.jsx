@@ -154,12 +154,10 @@ function MocGio({ v, moDieuKhoan }) {
   const { D, quyen, run, api, toast } = useApp();
   // Mốc dự kiến (chưa nhập thực tế): bắt đầu làm hàng = cập + 1 giờ, thủ tục = kết thúc làm hàng + 2 giờ, rời = thủ tục + 30 phút
   const dk = mocDuKien(v), DK = { atb: dk.cap, bd_lam_hang: dk.bd, kt_lam_hang: dk.kt, hoan_tat_tt: dk.thuTuc, atd: dk.roi };
-  // ETB luôn sau ETA: ETA đổi hoặc ETB nhập trước ETA thì web tự xếp lại ETB (gợi ý theo bến trống), ETD dời theo
   const luu = (k, val) => {
     const moi = fromLocalInput(val); if ((moi && ms(moi)) === (v[k] && ms(v[k]))) return;
     const patch = { [k]: moi };
-    const xep = patch.etb && patch.etb !== (k === "etb" ? moi : v.etb) && ms(patch.etb) !== ms(v.etb);
-    run(() => api.updateVoyage(v.id, patch), xep ? `Đã lưu; ETB tự xếp lại sau ETA: ${ngayGio(patch.etb)}` : "Đã lưu mốc giờ");
+    run(() => api.updateVoyage(v.id, patch), "Đã lưu mốc giờ");
   };
   const dong = (m, i) => (
     <div key={m.k} className="flex flex-wrap items-center gap-2 border-b py-1.5 last:border-0">
