@@ -1,5 +1,5 @@
 import { useEffect, useState, lazy, Suspense } from "react";
-import { LayoutDashboard, Ship, Warehouse, Boxes, Database, ShieldCheck, Bell, Sun, Moon, LogOut, LogIn, Menu, X, ShieldAlert, Download, UserRound, Anchor, RefreshCw, Wrench, Users, CalendarRange, FileSpreadsheet, FileText, BookOpen, MonitorDown, Target } from "lucide-react";
+import { LayoutDashboard, Ship, Warehouse, Boxes, Database, ShieldCheck, Bell, Sun, Moon, LogOut, LogIn, Menu, X, ShieldAlert, Download, UserRound, Anchor, RefreshCw, ClipboardList, Gauge, CalendarRange, FileSpreadsheet, FileText, BookOpen, MonitorDown, Target } from "lucide-react";
 import { AppProvider, useApp, useHash } from "./store";
 import { Toasts, MucIcon } from "./components/common";
 import { Dialog } from "./components/ui/dialog";
@@ -11,9 +11,9 @@ import { APP_NAME, VAI_TRO, DEMO } from "./config";
 import { cn } from "./lib/utils";
 import { saoLuuExcel } from "./lib/backup";
 import { ThietBiProvider, useThietBi, TB, TBCho, TBToanCuc } from "./thietbi/Host";
-import Events from "./thietbi/tabs/Events";
-import Staffing from "./thietbi/tabs/Staffing";
-import Plan from "./thietbi/tabs/Plan";
+import KhaiBao from "./thietbi/tabs/KhaiBao";
+import DieuDo from "./thietbi/tabs/DieuDo";
+import KeHoachBaoCao from "./thietbi/tabs/KeHoachBaoCao";
 import LookupDialog from "./thietbi/components/LookupDialog";
 import { exportExcel } from "./thietbi/lib/excel";
 import TongQuan from "./pages/TongQuan";
@@ -31,9 +31,9 @@ const MucTieu = lazy(() => import("./pages/cang/MucTieu"));
 const NAV = [
   { id: "tong-quan", ten: "Tổng quan", icon: LayoutDashboard },
   { nhom: "Thiết bị cơ giới", tb: true },
-  { id: "thiet-bi/su-kien", ten: "Tình trạng & sự kiện", icon: Wrench, tb: true },
-  { id: "thiet-bi/nhan-su", ten: "Nhân sự & quân số", icon: Users, tb: true },
-  { id: "thiet-bi/ke-hoach", ten: "Kế hoạch & phân bổ", icon: CalendarRange, tb: true },
+  { id: "thiet-bi/khai-bao", ten: "Khai báo", icon: ClipboardList, tb: true, alias: ["thiet-bi/su-kien", "thiet-bi/nhan-su"] }, // 2 tab: Tình trạng & sự kiện, Nhân sự & quân số (đường dẫn cũ vẫn mở đúng tab)
+  { id: "thiet-bi/dieu-do", ten: "Điều độ", icon: Gauge, tb: true },
+  { id: "thiet-bi/ke-hoach", ten: "Kế hoạch & báo cáo", icon: CalendarRange, tb: true }, // 3 tab: Kế hoạch ngày, Kế hoạch dài hạn, Chiến dịch
   { nhom: "Khai thác Cảng", cang: true },
   { id: "cang/linetime", ten: "Linetime tàu cập bến", icon: Ship, cang: true },
   { id: "cang/muc-tieu", ten: "Mục tiêu sản lượng", icon: Target, cang: true },
@@ -132,9 +132,11 @@ function Main() {
     </div>
   );
   const trang = () => {
-    if (route === "thiet-bi/su-kien") return <TBCho><Events /></TBCho>;
-    if (route === "thiet-bi/nhan-su") return <TBCho><Staffing /></TBCho>;
-    if (route === "thiet-bi/ke-hoach") return <TBCho><Plan /></TBCho>;
+    if (route === "thiet-bi/khai-bao") return <TBCho><KhaiBao /></TBCho>;
+    if (route === "thiet-bi/su-kien") return <TBCho><KhaiBao tab="su-kien" /></TBCho>;
+    if (route === "thiet-bi/nhan-su") return <TBCho><KhaiBao tab="quan-so" /></TBCho>;
+    if (route === "thiet-bi/dieu-do") return <TBCho><DieuDo /></TBCho>;
+    if (route === "thiet-bi/ke-hoach") return <TBCho><KeHoachBaoCao /></TBCho>;
     if (route.startsWith("cang/") && !quyen.coCang) return chuaCaiCang;
     if (route === "cang/linetime") return <Linetime />;
     if (route === "cang/muc-tieu") return <MucTieu />;
@@ -183,7 +185,7 @@ function Main() {
             : (
               <div key={i} className="relative flex items-center">
                 <button onClick={() => chon(n.id)} title={rong ? undefined : n.ten}
-                  className={cn("flex min-w-0 flex-1 items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm transition-colors", (n.id === "kho" ? route === "kho" || route.startsWith("kho/") : route === n.id) ? "bg-primary/15 font-medium text-primary" : "text-muted-foreground hover:bg-accent hover:text-foreground")}>
+                  className={cn("flex min-w-0 flex-1 items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm transition-colors", (n.id === "kho" ? route === "kho" || route.startsWith("kho/") : route === n.id || n.alias?.includes(route)) ? "bg-primary/15 font-medium text-primary" : "text-muted-foreground hover:bg-accent hover:text-foreground")}>
                   <n.icon className="h-4 w-4 shrink-0" /><span className={cn(nhan, "truncate")}>{n.ten}</span>{n.sau && <Badge tone="outline" className="ml-auto font-normal">{n.sau}</Badge>}
                 </button>
                 {/* Chuông cảnh báo đặt cạnh mục Tổng quan */}

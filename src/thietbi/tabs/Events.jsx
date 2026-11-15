@@ -23,9 +23,10 @@ const thuocNhom = (nhom) => (v) => (nhom === "cau" ? v?.doi === "Cẩu" : v && v
 
 function SuKien({ nhom, tab }) {
   const { D, api, run, canWrite, isAdmin, openVehicle } = useApp();
-  // Bộ lọc chọn nhiều: mảng rỗng = tất cả
+  // Bộ lọc chọn nhiều: mảng rỗng = tất cả. Bộ lọc Đội chỉ áp cho khối "Xem nhanh" (biểu đồ), không áp cho danh sách bên dưới.
   const [doi, setDoi] = useState([]);
   const [q, setQ] = useState("");
+  const [qXong, setQXong] = useState(""); // ô tìm riêng của bảng "Hoàn thành gần đây"
   const [loaiF, setLoaiF] = useState([]);
   const T = D.T;
   const thuoc = thuocNhom(nhom);
@@ -34,12 +35,13 @@ function SuKien({ nhom, tab }) {
   const has = (arr, x) => !arr.length || arr.includes(x);
   const vsDoi = D.vehicles.filter((v) => thuoc(v) && has(doi, v.doi));
   const sum = D.summarize(vsDoi);
-  const openAll = D.open.filter((e) => thuoc(D.vmap[e.ma_xe]) && has(doi, D.vmap[e.ma_xe]?.doi));
+  const openXN = D.open.filter((e) => thuoc(D.vmap[e.ma_xe]) && has(doi, D.vmap[e.ma_xe]?.doi)); // chỉ cho biểu đồ Xem nhanh
+  const openAll = D.open.filter((e) => thuoc(D.vmap[e.ma_xe]));
   const open = openAll.filter((e) => has(loaiF, e.loai) && matchQ(q, e.ma_xe, D.vmap[e.ma_xe]?.to_xe, e.loai, e.nhom, e.mo_ta, e.pic))
     .sort((a, b) => a.ngay_vao.localeCompare(b.ngay_vao));
-  const closed = D.events.filter((e) => e.ngay_xong && thuoc(D.vmap[e.ma_xe]) && has(doi, D.vmap[e.ma_xe]?.doi) && matchQ(q, e.ma_xe, e.loai, e.nhom, e.mo_ta))
+  const closed = D.events.filter((e) => e.ngay_xong && thuoc(D.vmap[e.ma_xe]) && matchQ(qXong, e.ma_xe, D.vmap[e.ma_xe]?.to_xe, e.loai, e.nhom, e.mo_ta))
     .sort((a, b) => b.ngay_xong.localeCompare(a.ngay_xong)).slice(0, 60);
-  const byNhom = Object.entries(countBy(openAll.filter((e) => e.loai !== "BD định kỳ"), (e) => e.nhom || "Khác")).sort((a, b) => b[1] - a[1]);
+  const byNhom = Object.entries(countBy(openXN.filter((e) => e.loai !== "BD định kỳ"), (e) => e.nhom || "Khác")).sort((a, b) => b[1] - a[1]);
   const maxNhom = Math.max(1, ...byNhom.map((x) => x[1]));
 
   const upd = (id, patch, msg) => run(() => api.updateEvent(id, patch), msg);
@@ -48,19 +50,16 @@ function SuKien({ nhom, tab }) {
 
   return (
     <>
-      <div className="page-h">
-        <div>
-          <h1>Tình trạng & sự kiện · {nhom === "cau" ? "Cẩu cảng" : "Thiết bị di động"}</h1>
-          <div className="sub">{nhom === "cau" ? "Cẩu bờ, cẩu xích, cầu trục… (đội Cẩu)." : "Xe ben, đầu kéo, xúc đào, xúc lật…"} Sẵn sàng = không hỏng, không BD chiến lược; đang BD định kỳ vẫn tính sẵn sàng. Mã xe sẵn sàng theo tổ xem ở Điều độ chung.</div>
-        </div>
-        <div className="tools">{tab}{doiNhom.length > 1 && <MultiSelect prefix="Đội" value={doi} onChange={setDoi} options={doiNhom} style={{ width: 230 }} />}</div>
-      </div>
+      <div className="row mb">{tab}</div>
 
       <div className="grid g-main mb">
         <Card title={nhom === "cau" ? "Ghi nhận cẩu hỏng / vào bảo dưỡng" : "Ghi nhận xe hỏng / vào bảo dưỡng"} icon={ClipboardPlus}>
           {canWrite ? <EventForm /> : <div className="alert info"><Eye size={16} /><span>Tài khoản của bạn chỉ có quyền xem. Người nhập liệu hoặc quản trị mới ghi nhận được sự kiện.</span></div>}
         </Card>
-        <Card title="Xem nhanh" icon={Activity} right={<Badge tone={rateTone(sum.rate, T)} plain>SS {pct(sum.rate, 1)}</Badge>}>
+        <Card title="Xem nhanh" icon={Activity} right={<>
+          <Badge tone={rateTone(sum.rate, T)} plain>SS {pct(sum.rate, 1)}</Badge>
+          {doiNhom.length > 1 && <MultiSelect prefix="Đội" value={doi} onChange={setDoi} options={doiNhom} className="sm" style={{ width: 130 }} />}
+        </>}>
           <div className="grid" style={{ gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 16, alignItems: "start" }}>
             <StatusDonut sum={sum} size={150} />
             <div>
@@ -116,7 +115,8 @@ function SuKien({ nhom, tab }) {
       </Card>
 
       <div className="grid g-2">
-        <Card title="Hoàn thành gần đây" icon={History} hint={`60 dòng mới nhất · lưu ${T.luu_thang} tháng`}>
+        <Card title="Hoàn thành gần đây" icon={History} hint={`60 dòng mới nhất · lưu ${T.luu_thang} tháng`}
+          right={<Search value={qXong} onChange={setQXong} placeholder="Tìm mã xe, tổ, nhóm…" style={{ width: 200 }} />}>
           {closed.length ? (
             <div className="tw short">
               <table className="t">
@@ -131,7 +131,7 @@ function SuKien({ nhom, tab }) {
                 ))}</tbody>
               </table>
             </div>
-          ) : <Empty />}
+          ) : <Empty>{qXong ? "Không tìm thấy sự kiện phù hợp." : "Không có dữ liệu."}</Empty>}
         </Card>
 
       </div>
@@ -201,13 +201,7 @@ function ThietBiGan({ tab }) {
   const luuSo = (x, k, val) => { const n = Math.max(0, Math.round(+val || 0)); if (n !== (+x[k] || 0)) run(() => api.saveTbGanSl({ id: x.id, [k]: n }), `Đã cập nhật ${x.ten}`); };
   return (
     <>
-      <div className="page-h">
-        <div>
-          <h1>Tình trạng & sự kiện · Thiết bị gắn</h1>
-          <div className="sub">Nhóp, mâm từ, búa, gầu ngoạm… theo dõi theo loại: sẵn sàng = tổng − hỏng. Cột "Dùng cho" tách thiết bị gắn của xúc đào, cẩu cảng.</div>
-        </div>
-        <div className="tools">{tab}</div>
-      </div>
+      <div className="row mb">{tab}</div>
       {ds == null ? (
         <div className="card"><div className="alert warn"><Database size={16} /><span>Chưa có bảng thiết bị gắn: quản trị cần chạy <b className="mono">sql/20_thiet_bi_gan_so_luong.sql</b> trong Supabase rồi tải lại trang.</span></div></div>
       ) : (

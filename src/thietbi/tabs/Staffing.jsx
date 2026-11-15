@@ -21,7 +21,7 @@ export default function Staffing() {
       <div className="page-h">
         <div>
           <h1>Nhân sự & quân số ca</h1>
-          <div className="sub">Mỗi xe sẵn sàng cần 1 người/ca · Xe đi ca: CA 1 (08h–20h), CA 2 (20h–08h) · Xe HC: CA HC (07h30–17h, thứ 2 – thứ 7) · Kíp tự tính theo lịch luân phiên. Cảnh báo quân số và biểu đồ người – xe xem ở Điều độ chung.</div>
+          <div className="sub">Mỗi xe sẵn sàng cần 1 người/ca · Xe đi ca: CA 1 (08h–20h), CA 2 (20h–08h) · Xe HC: CA HC (07h30–17h, thứ 2 – thứ 7) · Kíp tự tính theo lịch luân phiên. Cảnh báo quân số và cân đối người – xe xem ở Điều độ.</div>
         </div>
       </div>
 

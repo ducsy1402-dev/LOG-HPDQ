@@ -152,37 +152,63 @@ export function derive(raw) {
   const shiftLich = (sh) => (sh.hc ? "HC" : kipTheoLich(sh.ngay, sh.so));
   const shiftLabel = (sh) => (sh.hc ? "CA HC" : `CA ${sh.so}${shiftKip(sh)}`);
 
-  // Quân số một ca theo đội: định biên kíp, thực tế nhập, số xe sẵn sàng cần người, chênh lệch
+  // Quân số thực tế theo TỔ (bảng headcount_to, SQL 14). Chưa chạy SQL 14 thì raw.headcountTo = null: nhập theo đội như cũ.
+  const headcountTo = raw.headcountTo || [];
+  const coSql14 = Array.isArray(raw.headcountTo);
+  // Đội của một tổ = đội có nhiều xe nhất trong tổ (tổ chưa có xe thì theo nhân sự)
+  const doiCuaTo = (() => {
+    const dem = {};
+    for (const v of raw.vehicles) if (v.to_xe && v.doi) { const m = (dem[v.to_xe] ||= {}); m[v.doi] = (m[v.doi] || 0) + 1; }
+    for (const s of staffActive) if (s.to_xe && s.doi && !dem[s.to_xe]) dem[s.to_xe] = { [s.doi]: 1 };
+    return Object.fromEntries(Object.entries(dem).map(([to, m]) => [to, Object.entries(m).sort((a, b) => b[1] - a[1])[0][0]]));
+  })();
+
+  // Quân số một ca theo đội: định biên kíp, thực tế nhập, số xe sẵn sàng cần người, chênh lệch.
+  // Thực tế của đội = cộng các tổ đã nhập (SQL 14); đội chưa có tổ nào nhập thì lấy số nhập theo đội cũ.
   function shiftRows(sh) {
     const kip = shiftKip(sh);
     const cheDo = sh.hc ? "HC" : "Đi ca";
+    const hcTo = headcountTo.filter((x) => x.ngay === sh.ngay && x.ca === sh.ca && x.thuc_te != null);
     return doiList.map((doi) => {
       const xeCan = raw.vehicles.filter((v) => v.doi === doi && v.che_do === cheDo && isReady(v.ma)).length;
       const xeTong = raw.vehicles.filter((v) => v.doi === doi && v.che_do === cheDo).length;
       const dinhBien = kip ? laiXeActive.filter((s) => s.doi === doi && s.kip === kip).length : 0;
+      const tos = hcTo.filter((x) => (doiCuaTo[x.to_xe] || x.doi) === doi);
       const h = raw.headcount.find((x) => x.ngay === sh.ngay && x.ca === sh.ca && x.doi === doi);
-      const thucTe = h?.thuc_te ?? null;
-      return { doi, kip, xeCan, xeTong, dinhBien, thucTe, ghiChu: h?.ghi_chu || "", chenh: thucTe == null ? null : thucTe - xeCan };
+      const thucTe = tos.length ? tos.reduce((a, x) => a + (+x.thuc_te || 0), 0) : h?.thuc_te ?? null;
+      let chenh = thucTe == null ? null : thucTe - xeCan, toChua = 0;
+      if (tos.length) {
+        // Chênh lệch chỉ tính các tổ ĐÃ nhập (tổ chưa nhập không bị coi là thiếu người); toChua = số tổ có xe sẵn sàng mà chưa nhập
+        const xeCanTo = (to) => raw.vehicles.filter((v) => v.to_xe === to && v.doi === doi && v.che_do === cheDo && isReady(v.ma)).length;
+        const daNhap = new Set(tos.map((x) => x.to_xe));
+        chenh = tos.reduce((a, x) => a + (+x.thuc_te || 0) - xeCanTo(x.to_xe), 0);
+        toChua = uniq(raw.vehicles.filter((v) => v.doi === doi && v.to_xe && v.che_do === cheDo && isReady(v.ma)).map((v) => v.to_xe)).filter((to) => !daNhap.has(to)).length;
+      }
+      return { doi, kip, xeCan, xeTong, dinhBien, thucTe, ghiChu: h?.ghi_chu || "", chenh, theoTo: tos.length > 0, toChua };
     }).filter((r) => r.xeTong > 0 || r.dinhBien > 0 || r.thucTe != null);
   }
 
-  // Thông tin theo tổ (chỉ để xem): xe sẵn sàng cần người, định biên kíp
+  // Quân số một ca theo tổ: xe sẵn sàng cần người, định biên kíp, thực tế đã nhập (SQL 14), chênh lệch
   function shiftByTo(sh) {
     const kip = shiftKip(sh);
     const cheDo = sh.hc ? "HC" : "Đi ca";
     return toList.map((to) => {
       const vs = raw.vehicles.filter((v) => v.to_xe === to && v.che_do === cheDo);
+      const h = headcountTo.find((x) => x.ngay === sh.ngay && x.ca === sh.ca && x.to_xe === to);
+      const xeCan = vs.filter((v) => isReady(v.ma)).length;
+      const thucTe = h?.thuc_te ?? null;
       return {
-        to, xeTong: vs.length, xeCan: vs.filter((v) => isReady(v.ma)).length,
+        to, xeTong: vs.length, xeCan,
         dinhBien: kip ? laiXeActive.filter((s) => s.to_xe === to && s.kip === kip).length : 0,
-        doi: uniq(vs.map((v) => v.doi)).join(", "),
+        doi: uniq(vs.map((v) => v.doi)).join(", "), doiChinh: doiCuaTo[to] || "",
+        thucTe, ghiChu: h?.ghi_chu || "", chenh: thucTe == null ? null : thucTe - xeCan,
       };
-    }).filter((r) => r.xeTong > 0 || r.dinhBien > 0);
+    }).filter((r) => r.xeTong > 0 || r.dinhBien > 0 || r.thucTe != null);
   }
 
   return {
     ...raw, meta, T, today: t, vmap, open, state, stateOf, isReady, doiList, toList, dinhBienXe,
-    staffActive, laiXeActive, laLaiXe, specOf, flags, summarize, groupSummary, readinessTrend, caDef, upcomingShifts, shiftKip, shiftLich, shiftLabel, kipTheoLich, gioLam, shiftRows, shiftByTo,
+    staffActive, laiXeActive, laLaiXe, specOf, flags, summarize, groupSummary, readinessTrend, caDef, upcomingShifts, shiftKip, shiftLich, shiftLabel, kipTheoLich, gioLam, shiftRows, shiftByTo, headcountTo, coSql14, doiCuaTo,
     taiTrongList, taiTrongOf, thietBiGanList, thietBiGanOf, thietBiGanAll, thietBiGanCauList, thietBiGanDungOf,
     loaiList: meta.loai || ["Hỏng", "BD định kỳ", "BD chiến lược"],
     kipList: meta.kip || ["A", "B", "C", "HC"],

@@ -54,7 +54,7 @@ export function HopThietBi({ onClose, go }) {
   return (
     <HopTQ title="Quản lý Thiết bị" onClose={onClose}
       description={`Xe di động ${s.ready}/${s.tong} sẵn sàng (${pct(s.rate, 1)}) · cẩu cảng ${sc.ready}/${sc.tong} · số liệu ngày ${ngayNam(D.today)}`}
-      moTrang={[["Mở Tình trạng & sự kiện", () => go("thiet-bi/su-kien")], ["Mở Kế hoạch dài hạn", () => { try { localStorage.setItem("qltb-plan-sub", "dai"); } catch { /* bỏ qua */ } go("thiet-bi/ke-hoach"); }]]}>
+      moTrang={[["Mở Điều độ", () => go("thiet-bi/dieu-do")], ["Mở Tình trạng & sự kiện", () => go("thiet-bi/su-kien")], ["Mở Kế hoạch dài hạn", () => { try { localStorage.setItem("qltb-kh-tab", "dai"); localStorage.setItem("qltb-kh-dai", "linetime"); } catch { /* bỏ qua */ } go("thiet-bi/ke-hoach"); }]]}>
       <Tabs defaultValue="doi">
         <TabsList>
           <TabsTrigger value="doi">Theo đội</TabsTrigger>

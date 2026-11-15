@@ -72,6 +72,7 @@ export async function demoApi() {
   db.events.forEach((e) => { if (e.ngay_xong && e.ngay_xong > t) e.ngay_xong = t; });
   db.cakip = [];
   db.headcount = [];
+  db.headcountTo = [];
 
   // ---- Kế hoạch (Giai đoạn 2) ----
   const lech = diffDays(GOC, t);
@@ -138,7 +139,7 @@ export async function demoApi() {
       return clone({
         tbGanSl: db.tbGanSl, meta: db.meta, nguong: db.nguong, mapPt: { rules: db.mapPt }, nhaThau: db.nhaThau, toTruong: db.toTruong || null, plan, vehicles: db.vehicles, staff: db.staff, specs: db.specs, hanghoa: db.hanghoa,
         events: db.events.filter((e) => !e.ngay_xong || e.ngay_xong >= cutoff),
-        cakip: db.cakip.filter((x) => x.ngay >= from), headcount: db.headcount.filter((x) => x.ngay >= from),
+        cakip: db.cakip.filter((x) => x.ngay >= from), headcount: db.headcount.filter((x) => x.ngay >= from), headcountTo: db.headcountTo.filter((x) => x.ngay >= from),
       });
     },
     async insertEvent(rec) { guard(W); await wait(); db.events.push({ ...rec, id: ++id, created_at: t, updated_at: t }); },
@@ -160,6 +161,7 @@ export async function demoApi() {
     async deleteSampleStaff() { guard(A); await wait(); db.staff = db.staff.filter((s) => !s.ma.startsWith("MAU-")); },
     async upsertCaKip(rec) { guard(W); await wait(); upsert(db.cakip, [rec], ["ngay", "ca"]); },
     async upsertHeadcount(rows) { guard(W); await wait(); upsert(db.headcount, rows, ["ngay", "ca", "doi"]); },
+    async upsertHeadcountTo(rows) { guard(W); await wait(); upsert(db.headcountTo, rows, ["ngay", "ca", "to_xe"]); },
     async savePlanParams(pid, data) { guard(A); await wait(); plan.params[pid] = clone(data); },
     async insertPlanJob(rec) { guard(W); await wait(); plan.jobs.push({ ...rec, id: ++jid }); },
     async updatePlanJob(pid, patch) { guard(W); await wait(); Object.assign(plan.jobs.find((j) => j.id === +pid), patch); },

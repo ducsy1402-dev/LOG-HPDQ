@@ -41,7 +41,9 @@ export function supabaseApi() {
       const d = Object.fromEntries(dm.map((x) => [x.id, x.data]));
       // Thiết bị gắn theo loại (SQL 20). Chưa chạy SQL 20 thì null: tab Thiết bị gắn báo cần chạy SQL
       const tbGanSl = await sb.from("thiet_bi_gan_sl").select("*").order("thu_tu").order("id").then((r) => (r.error ? null : r.data));
-      return { meta: d.meta || {}, nguong: d.nguong || {}, mapPt: d.map_pt || null, nhaThau: d.nha_thau || null, toTruong: d.to_truong || null, vehicles, staff, events, cakip, headcount, specs, hanghoa, tbGanSl, plan: await this.loadPlan() };
+      // Quân số theo tổ (SQL 14). Chưa chạy SQL 14 thì null: tab Nhân sự & quân số báo cần chạy SQL và nhập theo đội như cũ
+      const headcountTo = await sb.from("headcount_to").select("*").gte("ngay", from).then((r) => (r.error ? null : r.data));
+      return { meta: d.meta || {}, nguong: d.nguong || {}, mapPt: d.map_pt || null, nhaThau: d.nha_thau || null, toTruong: d.to_truong || null, vehicles, staff, events, cakip, headcount, headcountTo, specs, hanghoa, tbGanSl, plan: await this.loadPlan() };
     },
 
     // Dữ liệu Giai đoạn 2. Chưa chạy file SQL 6 thì trả về null (tab Kế hoạch sẽ báo cần chạy SQL).
@@ -147,5 +149,6 @@ export function supabaseApi() {
     deleteSampleStaff: async () => ok(await sb.from("staff").delete().like("ma", "MAU-%")),
     upsertCaKip: async (rec) => ok(await sb.from("ca_kip").upsert(rec)),
     upsertHeadcount: async (rows) => ok(await sb.from("headcount").upsert(rows)),
+    upsertHeadcountTo: async (rows) => ok(await sb.from("headcount_to").upsert(rows)),
   };
 }
