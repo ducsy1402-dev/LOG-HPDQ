@@ -11,13 +11,13 @@ import { docSo } from "@/lib/paste";
 import { ngayCuaThang } from "@/lib/sanLuongTT";
 import { dongHang } from "@/lib/sanLuong";
 import { klCanLam, trangThai, TRANG_THAI } from "@/lib/linetime";
-import { cacTuyen, tenTuyen } from "@/lib/capBen";
+import { laBenLienKe } from "@/lib/capBen";
 import { ngayCuaChuyen, chiaDeuTheoGio, thucTeNgay, ngayDia } from "@/lib/keHoachNgay";
 import { cn } from "@/lib/utils";
 import { useNhomHang } from "./useNhomHang";
 import { tenBen } from "./BangTauBen";
 
-// Kế hoạch ngày (nút "Kế hoạch ngày" của Mục tiêu sản lượng › Khai thác cảng, SQL 13) — thiết kế lại 14/11/2026 theo ý anh Sỹ:
+// Kế hoạch ngày (nút "Kế hoạch ngày" của Mục tiêu sản lượng › Khai thác cảng, SQL 13) — thiết kế lại 14/11/2026 theo ý anh Sỹ (từ 15/11: xếp tàu GIỐNG Linetime › Lịch cầu bến theo bến, không còn theo cụm bến):
 // VỪA XEM LINE TÀU VỪA LẬP KẾ HOẠCH CHI TIẾT TỪNG TÀU.
 //   • Line tàu cập của tháng như Linetime: mỗi CỤM BẾN (tuyến bến B03 – B05 – B10…) một khối, tàu nằm trong khối theo ngày ở bến (tàu trùng ngày xếp thành nhiều làn),
 //     màu thanh theo trạng thái tàu; mỗi ngày tàu ở bến là một ô hiện số tấn kế hoạch của tàu trong ngày đó.
@@ -151,22 +151,26 @@ export default function HopKeHoachNgay({ thang0, onClose, onLuu }) {
   const goiY = (v, n) => chiaDeuTheoGio(v).get(n) || 0;
   const oMo = (x, n) => x.ben.includes(n) || `${x.v.id}|${n}` in goc;
 
-  // ---- Line tàu theo cụm bến: mỗi tuyến bến (hoặc bến lẻ, hoặc "chưa xếp bến") một khối; tàu trùng ngày xếp thành nhiều làn ----
+  // ---- Line tàu xếp GIỐNG Linetime › Lịch cầu bến (theo bến), anh Sỹ chốt 15/11/2026: mỗi bến một dòng theo đúng thứ tự bến trong danh mục (kể cả bến trống);
+  // tàu một bến xếp từ trên xuống, tàu cập hai bến (3/5) chỉ nằm ở bến ĐỨNG TRƯỚC và xếp ở DƯỚI CÙNG dòng đó; tàu chưa có bến ở dòng "Chưa xếp bến" cuối cùng.
+  // Tàu cùng ngày thì xếp thành nhiều làn (theo ô ngày). ----
   const nhom = useMemo(() => {
     const thuBen = new Map(D.berths.map((b, i) => [String(b.ma), i]));
-    const tuyenCua = new Map();
-    for (const t of cacTuyen(D.berths).values()) for (const b of t.bens) tuyenCua.set(b.ma, t);
-    const g = new Map();
+    const g = new Map(D.berths.map((b) => [String(b.ma), { k: String(b.ma), ten: tenBen(b.ma), tau: [] }]));
     for (const x of tau) {
-      const ma = String(x.v.ben_ma || ""), t = tuyenCua.get(ma), k = t ? `t:${t.ma}` : ma ? `b:${ma}` : "_";
-      if (!g.has(k)) g.set(k, { k, ten: t ? tenTuyen(t, tenBen) : ma ? tenBen(ma) : "Chưa xếp bến", ord: t ? Math.min(...t.bens.map((b) => thuBen.get(b.ma) ?? 99)) : ma ? thuBen.get(ma) ?? 99 : 1000, tau: [] });
+      const chinh = String(x.v.ben_ma || ""), phu = x.v.ben_phu && laBenLienKe(D.berths, chinh, x.v.ben_phu) ? String(x.v.ben_phu) : "";
+      const ma = phu && thuBen.get(phu) < (thuBen.get(chinh) ?? Infinity) ? phu : chinh, k = g.has(ma) ? ma : "_";
+      if (!g.has(k)) g.set(k, { k, ten: "Chưa xếp bến", tau: [] });
       const idx = hien.map((n, i) => (oMo(x, n) ? i : -1)).filter((i) => i >= 0);
-      if (idx.length) g.get(k).tau.push({ ...x, s: idx[0], e: idx[idx.length - 1] });
+      if (idx.length) g.get(k).tau.push({ ...x, s: idx[0], e: idx[idx.length - 1], hai: !!phu });
     }
-    return [...g.values()].filter((z) => z.tau.length).sort((a, b) => a.ord - b.ord).map((z) => {
-      const lanEnd = [], ds = z.tau.sort((a, b) => a.s - b.s || a.e - b.e);
-      for (const x of ds) { let i = lanEnd.findIndex((e) => e < x.s); if (i < 0) { i = lanEnd.length; lanEnd.push(-1); } lanEnd[i] = x.e; x.lan = i; }
-      return { ...z, tau: ds, soLan: Math.max(1, lanEnd.length) };
+    const chiaLan = (ds) => { const lanEnd = []; for (const x of ds.sort((a, b) => a.s - b.s || a.e - b.e)) { let i = lanEnd.findIndex((e) => e < x.s); if (i < 0) { i = lanEnd.length; lanEnd.push(-1); } lanEnd[i] = x.e; x.lan = i; } return lanEnd.length; };
+    return [...g.values()].filter((z) => z.k !== "_" || z.tau.length).map((z) => {
+      const don = z.tau.filter((x) => !x.hai), doi = z.tau.filter((x) => x.hai), nDon = chiaLan(don), nDoi = chiaLan(doi);
+      const h = !z.tau.length ? 30 : 8 + (nDon + nDoi) * LH + (!nDon ? 14 : 0); // dòng bến trống chỉ cao 30; chỉ có tàu hai bến thì chừa khoảng trên để tàu nằm sát đáy
+      for (const x of don) x.top = 4 + x.lan * LH;
+      for (const x of doi) x.top = h - 4 - (nDoi - x.lan) * LH;
+      return { ...z, tau: [...don, ...doi], h };
     });
   }, [tau, hien, D.berths, goc]); // eslint-disable-line react-hooks/exhaustive-deps
   const thuTu = useMemo(() => new Map(nhom.flatMap((z) => z.tau).map((x, i) => [x.v.id, i])), [nhom]);
@@ -204,7 +208,7 @@ export default function HopKeHoachNgay({ thang0, onClose, onLuu }) {
 
   return (
     <Dialog onOpenChange={(o) => !o && onClose()} className="max-w-[min(1500px,calc(100vw-24px))]" title="Kế hoạch sản lượng theo ngày"
-      description="Line tàu cập trong tháng theo cụm bến: bấm một ô ngày để mở khung nhập bên phải, nhập số tấn kế hoạch cho từng tàu đang làm hàng ngày đó.">
+      description="Line tàu cập trong tháng, xếp giống Linetime › Lịch cầu bến (mỗi bến một dòng): bấm một ô ngày để mở khung nhập bên phải, nhập số tấn kế hoạch cho từng tàu đang làm hàng ngày đó.">
       {rows === null ? <div className="rounded-md border border-warn/40 bg-warn/5 px-3 py-2 text-sm">Chưa có bảng kế hoạch ngày: quản trị cần chạy <b>sql/13_ke_hoach_san_luong_ngay.sql</b> trong Supabase.</div> : (
         <div className="grid gap-3">
           <div className="flex flex-wrap items-center gap-2">
@@ -235,7 +239,7 @@ export default function HopKeHoachNgay({ thang0, onClose, onLuu }) {
               <div style={{ width: LABEL + W }} className="relative select-none text-xs">
                 {/* Tiêu đề ngày */}
                 <div className="sticky top-0 z-20 flex border-b bg-card">
-                  <div className="sticky left-0 z-30 flex shrink-0 items-center border-r bg-card px-2 font-semibold text-muted-foreground" style={{ width: LABEL }}>Cụm bến</div>
+                  <div className="sticky left-0 z-30 flex shrink-0 items-center border-r bg-card px-2 font-semibold text-muted-foreground" style={{ width: LABEL }}>Bến</div>
                   {hien.map((n) => { const { cn0, hn, d } = cotNgay(n);
                     return <div key={n} className={cn("shrink-0 border-l py-1 text-center leading-tight", hn && "bg-primary/10", cn0 && !hn && "bg-muted/60", pop?.ngay === n && "bg-primary/25 ring-1 ring-inset ring-primary")} style={{ width: CW }}>
                       <div className="font-semibold tabular-nums">{n.slice(8)}/{n.slice(5, 7)}</div><div className={cn("text-[0.6875rem]", cn0 ? "text-bad" : "text-muted-foreground")}>{THU[d.getDay()]}{hn ? " · nay" : ""}</div></div>; })}
@@ -246,15 +250,15 @@ export default function HopKeHoachNgay({ thang0, onClose, onLuu }) {
                   <div key={z.k} className="flex border-b">
                     <div className="sticky left-0 z-10 flex shrink-0 flex-col justify-center border-r bg-card px-2" style={{ width: LABEL }}>
                       <span className="font-mono text-[0.8125rem] font-semibold leading-tight">{z.ten}</span>
-                      <span className="text-[0.6875rem] text-muted-foreground">{z.tau.length} tàu</span>
+                      {z.tau.length > 0 && <span className="text-[0.6875rem] text-muted-foreground">{z.tau.length} tàu</span>}
                     </div>
-                    <div className="relative shrink-0" style={{ width: W, height: z.soLan * LH + 8 }}>
+                    <div className="relative shrink-0" style={{ width: W, height: z.h }}>
                       {luoi}
                       {z.tau.map((x) => {
                         const { v } = x, st = TRANG_THAI[trangThai(v, D.now)], kl = klCanLam(v), tong = tongTau(v), vuot = kl > 0 && tong > kl + 1;
                         const cacO = hien.slice(x.s, x.e + 1);
                         return (
-                          <div key={v.id} className="absolute overflow-hidden rounded-md text-white shadow-sm" style={{ left: x.s * CW + 1, width: (x.e - x.s + 1) * CW - 2, top: 4 + x.lan * LH, height: LH - 6, background: st.mau }}
+                          <div key={v.id} className="absolute overflow-hidden rounded-md text-white shadow-sm" style={{ left: x.s * CW + 1, width: (x.e - x.s + 1) * CW - 2, top: x.top, height: LH - 6, background: st.mau }}
                             title={`${v.ten_tau} · ${v.huong === "xuat" ? "Xuất" : "Nhập"} · ${st.ten}\nBến ${v.ben_ma ? tenBen(v.ben_ma) : "chưa xếp"} · cập ${gio(v.atb || v.etb || v.eta)}\nKL tàu ${so(kl, 0)} t · KH tháng ${so(tong, 0)} t`}>
                             <div className="flex h-[19px] items-center gap-1.5 px-1.5 text-[0.6875rem] font-semibold leading-none">
                               <span className="truncate">{v.uu_tien ? "★ " : ""}{v.ten_tau}</span>
@@ -275,7 +279,7 @@ export default function HopKeHoachNgay({ thang0, onClose, onLuu }) {
                     </div>
                   </div>
                 ))}
-                {!nhom.length && <div className="py-6 text-center text-muted-foreground">Không có chuyến nào trong các ngày này. Bấm ▶ để xem các ngày sau.</div>}
+                {!nhom.some((z) => z.tau.length) && <div className="py-6 text-center text-muted-foreground">Không có chuyến nào trong các ngày này. Bấm ▶ để xem các ngày sau.</div>}
 
                 {/* Dòng cộng: kế hoạch (bấm để mở hộp nhỏ) và thực tế */}
                 <div className="sticky bottom-0 z-20 border-t-2 bg-card">

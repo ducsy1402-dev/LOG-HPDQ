@@ -11,6 +11,7 @@ import { chuoiKy, tongTheoNhom, khoangKy, kyTruoc, kySau } from "@/lib/bieuDoSan
 import { tuoiTon } from "@/lib/bieuDoKho";
 import { tienDoSanLuong, doiSoVoi, chiSoCauBen, tauTheoNgay, chiSoThietBi, taoVanDe, tone, toneDat, toneNang, NGUONG } from "@/lib/chiSoTQ";
 import GanttMet from "../cang/GanttMet";
+import Gantt from "../cang/Gantt";
 import { tenBen } from "../cang/BangTauBen";
 import { useKho } from "../kho/useKho";
 import { MAU } from "./khung";
@@ -56,6 +57,7 @@ function useGiaoDich(tu, den) {
 
 // ---------- Biểu đồ ----------
 // ---------- Trang ----------
+const NGAY_LICH = [5, 7, 10, 14, 21, 30, 45, 60, 90]; // số ngày chọn được ở Linetime của Tổng quan
 export default function TongQuanMoi({ onMo, go, tongCanhBao }) {
   const { D, quyen, setVoyageMo } = useApp();
   const tbCtx = useThietBi(), tb = tbCtx?.D;
@@ -91,10 +93,13 @@ export default function TongQuanMoi({ onMo, go, tongCanhBao }) {
   }, [coCang, thu["mang-cb"]]);
   // Linetime theo mét: chế độ (chiếm bến / toàn thời gian) và số ngày do người xem chọn, nhớ lại ở máy; bắt đầu từ 2 ngày trước hôm nay (kỳ này) hoặc đầu kỳ đang xem
   const [cheLich, setCheLich] = useState(() => (docLs("lg-tq-che", "toan") === "ben" ? "ben" : "toan"));
-  const [soNgayLich, setSoNgayLich] = useState(() => { const n = +docLs("lg-tq-ngay", 10); return [5, 7, 10, 14, 21, 30].includes(n) ? n : 10; });
+  const [soNgayLich, setSoNgayLich] = useState(() => { const n = +docLs("lg-tq-ngay", 10); return NGAY_LICH.includes(n) ? n : 10; });
+  // Hiển thị lại Lịch cầu bến của Khai thác Cảng › Linetime: cùng hai trục (theo bến / theo mét; mặc định như Linetime), thêm lọc hướng nhập / xuất, tới 90 ngày
+  const [trucLich, setTrucLich] = useState(() => (docLs("lg-tq-truc", docLs("lg-gantt-truc", "ben")) === "met" ? "met" : "ben"));
+  const [huongLich, setHuongLich] = useState(() => (["nhap", "xuat"].includes(docLs("lg-tq-huong", "")) ? docLs("lg-tq-huong", "") : ""));
   const pxNgay = Math.max(24, Math.floor((rongLich - 84) / soNgayLich));
   const tuLich = useMemo(() => { if (!laNay) return kyInfo.tu; const d = new Date(D.now); d.setHours(0, 0, 0, 0); return d.getTime() - 2 * DAY; }, [D.now, laNay, kyInfo.tu]);
-  const tauLich = useMemo(() => D.voyages.filter((v) => !v.huy), [D.voyages]);
+  const tauLich = useMemo(() => D.voyages.filter((v) => !v.huy && (!huongLich || (v.huong === "xuat" ? "xuat" : "nhap") === huongLich)), [D.voyages, huongLich]);
 
   // ===== Kho bãi =====
   const gd = useGiaoDich(useMemo(() => ngayStr(Math.min(new Date(kyT.ngays[0] + "T00:00:00").getTime(), D.now - 120 * DAY)), [kyT, D.now]), homNay);
@@ -218,16 +223,24 @@ export default function TongQuanMoi({ onMo, go, tongCanhBao }) {
             <TheChiSo icon={Package} ten="Tàu cập / rời đến nay" giaTri={`${cb.capDen} / ${cb.roiDen}`} doi={cbT ? doiSoVoi(cb.capDen, cbT.capDen) : undefined}
               phu={`Cùng thời gian kỳ trước: ${cbT?.capDen ?? "—"} cập / ${cbT?.roiDen ?? "—"} rời · cả kỳ theo kế hoạch ${cb.capTrongKy} / ${cb.roiTrongKy}`} />
           </>}>
-          <Khung ten="Linetime tàu cập bến theo mét" phu={`${soNgayLich} ngày từ ${ngayGio(tuLich).slice(0, 5)} · ${cheLich === "toan" ? "toàn thời gian (gồm chờ bến)" : "chiếm bến"}`} onChiTiet={() => onMo("tau")}
+          <Khung ten="Linetime tàu cập bến" phu={`${soNgayLich} ngày từ ${ngayGio(tuLich).slice(0, 5)} · ${trucLich === "met" ? "theo mét" : "theo bến"} · ${cheLich === "toan" ? "toàn thời gian (gồm chờ bến)" : "chiếm bến"}${huongLich ? ` · hàng ${huongLich === "xuat" ? "xuất" : "nhập"}` : ""}`} onChiTiet={() => onMo("tau")}
             bo={<div className="flex flex-wrap items-center gap-1.5">
+              <div className="inline-flex overflow-hidden rounded border border-border/70 text-[0.6875rem]" role="group" aria-label="Trục dọc">
+                {[["ben", "Theo bến"], ["met", "Theo mét"]].map(([k, t]) => <button key={k} type="button" aria-pressed={trucLich === k} onClick={() => { setTrucLich(k); luuLs("lg-tq-truc", k); }} className={cn("px-1.5 py-0.5", trucLich === k ? "bg-primary/20 font-semibold text-primary" : "text-muted-foreground hover:bg-accent")}>{t}</button>)}
+              </div>
+              <select value={huongLich} onChange={(e) => { setHuongLich(e.target.value); luuLs("lg-tq-huong", e.target.value); }} className="rounded border border-border/70 bg-transparent px-1 py-0.5 text-[0.6875rem] text-muted-foreground" aria-label="Lọc theo hướng">
+                <option value="">Nhập + xuất</option><option value="nhap">Hàng nhập</option><option value="xuat">Hàng xuất</option>
+              </select>
               <div className="inline-flex overflow-hidden rounded border border-border/70 text-[0.6875rem]" role="group" aria-label="Chế độ xem">
                 {[["ben", "Chiếm bến"], ["toan", "Toàn thời gian"]].map(([k, t]) => <button key={k} type="button" aria-pressed={cheLich === k} onClick={() => { setCheLich(k); luuLs("lg-tq-che", k); }} className={cn("px-1.5 py-0.5", cheLich === k ? "bg-primary/20 font-semibold text-primary" : "text-muted-foreground hover:bg-accent")}>{t}</button>)}
               </div>
               <select value={soNgayLich} onChange={(e) => { setSoNgayLich(+e.target.value); luuLs("lg-tq-ngay", e.target.value); }} className="rounded border border-border/70 bg-transparent px-1 py-0.5 text-[0.6875rem] text-muted-foreground" aria-label="Số ngày hiển thị">
-                {[5, 7, 10, 14, 21, 30].map((n) => <option key={n} value={n}>{n} ngày</option>)}
+                {NGAY_LICH.map((n) => <option key={n} value={n}>{n} ngày</option>)}
               </select>
             </div>}>
-            <div ref={khungLich} className="min-w-0"><GanttMet voyages={tauLich} tu={tuLich} soNgay={soNgayLich} pxNgay={pxNgay} che={cheLich} gon maxH="520px" /></div>
+            <div ref={khungLich} className="min-w-0">{trucLich === "met"
+              ? <GanttMet voyages={tauLich} tu={tuLich} soNgay={soNgayLich} pxNgay={pxNgay} che={cheLich} gon maxH="520px" />
+              : <Gantt voyages={tauLich} tu={tuLich} soNgay={soNgayLich} pxNgay={pxNgay} che={cheLich} gon maxH="520px" />}</div>
           </Khung>
           <div className="grid gap-2.5 lg:grid-cols-2">
             <Khung cao={CAO} ten="Chiếm bến từng bến" phu="cao nhất ở trên · vạch vàng 85%">
