@@ -76,7 +76,11 @@ export default function Gantt({ voyages, tu, soNgay, pxNgay, che = "ben", gon = 
     }
     let y = 0;
     return rows.filter((r) => r.ma || theoBen.get("").length).map((r) => {
-      const ds = theoBen.get(r.ma), soLan = chiaLan(ds), h = Math.max(ROW, soLan * K.lan + K.top * 2);
+      const ds = theoBen.get(r.ma), don = ds.filter((x) => !x.haiBen), doi = ds.filter((x) => x.haiBen);
+      const nDon = don.length ? chiaLan(don) : 0, nDoi = doi.length ? chiaLan(doi) : 0, soLan = Math.max(1, nDon + nDoi), h = Math.max(ROW, soLan * K.lan + K.top * 2);
+      // Tàu một bến xếp từ trên xuống; tàu hai bến (3/5) luôn xếp ở DƯỚI CÙNG, sát mép cuối dòng bến chính, kể cả khi bến chính không có tàu nào (anh Sỹ chốt 15/11/2026)
+      for (const x of don) x.top = K.top + x.lan * K.lan;
+      for (const x of doi) x.top = h - K.top - (nDoi - x.lan) * K.lan;
       const out = { ...r, ds, soLan, y, h }; y += h; return out;
     });
   }, [voyages, D.berths, D.now, tu, den, che, gon]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -99,7 +103,7 @@ export default function Gantt({ voyages, tu, soNgay, pxNgay, che = "ben", gon = 
   const tinhKeo = ({ x, dx, dy }) => {
     const lech = Math.round(((dx / pxNgay) * DAY) / SNAP) * SNAP;
     const rowCu = hang.find((r) => r.ma === x.rowMa) || hang.find((r) => r.ma === (x.v.ben_ma || ""));
-    const rowMoi = benTaiY(rowCu.y + x.lan * K.lan + K.top + dy + K.bar / 2) ?? rowCu.ma;
+    const rowMoi = benTaiY(rowCu.y + x.top + dy + K.bar / 2) ?? rowCu.ma;
     let benMoi = x.v.ben_ma || "", phuMoi = x.v.ben_phu || "";
     if (rowMoi !== rowCu.ma) {
       const thu = D.berths.map((b) => b.ma), lechDong = thu.indexOf(rowMoi) - thu.indexOf(rowCu.ma);
@@ -154,7 +158,7 @@ export default function Gantt({ voyages, tu, soNgay, pxNgay, che = "ben", gon = 
                   const left = Math.max(0, xOf(x.a)), right = Math.min(W, xOf(x.b)), w = Math.max(6, right - left);
                   const cs = x.st === "lam_hang" ? chiSo(x.v, D.stopsOf(x.v.id), D.now) : null;
                   const mau = TRANG_THAI[x.st].mau;
-                  const top = K.top + x.lan * K.lan, troVao = (e) => !keo && e.pointerType === "mouse" && setTro({ x, cx: e.clientX, cy: e.clientY });
+                  const top = x.top, troVao = (e) => !keo && e.pointerType === "mouse" && setTro({ x, cx: e.clientX, cy: e.clientY });
                   const dsStops = D.stopsOf(x.v.id);
                   // Toàn thời gian: đoạn chờ bến (đến neo / NOR -> cập bến) và các vạch mốc
                   const choL = x.a0 != null ? Math.max(0, xOf(x.a0)) : null, choR = x.a0 != null ? Math.min(W, xOf(x.a)) : null;
