@@ -602,6 +602,17 @@ button.dd-it:hover { border-color: var(--accent); }
 .cd-mp-tb { fill: var(--ink2); stroke: var(--ink2); opacity: 0.55; }
 .cd-mp-tb.chay { fill: var(--warn); stroke: var(--warn); opacity: 1; animation: cdmp-nhun 0.8s ease-in-out infinite; transform-box: fill-box; }
 @keyframes cdmp-nhun { 50% { opacity: 0.55; } }
+.cd-mp-dau { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-bottom: 8px; padding: 8px 12px; border-radius: 10px; background: var(--raise); }
+.cd-live { display: inline-flex; align-items: center; gap: 7px; font-size: 0.75rem; font-weight: 750; letter-spacing: 0.6px; color: var(--bad); }
+.cd-live i { width: 9px; height: 9px; border-radius: 50%; background: var(--bad); box-shadow: 0 0 0 0 var(--bad); animation: cd-nhip 1.6s ease-out infinite; }
+@keyframes cd-nhip { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--bad) 60%, transparent); } 100% { box-shadow: 0 0 0 9px transparent; } }
+.cd-mp-dongho { font-size: 1.5rem; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: 0.5px; }
+.cd-mp-ca { font-size: 0.8125rem; font-weight: 600; }
+.cd-mp-sk { background: var(--raise); border-radius: 10px; padding: 8px 12px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.cd-mp-sk h4 { margin: 0 0 2px; font-size: 0.7188rem; text-transform: uppercase; letter-spacing: 0.4px; color: var(--mute); font-weight: 650; }
+.cd-mp-sk > div { display: grid; grid-template-columns: 44px 72px 1fr; gap: 8px; align-items: center; font-size: 0.7812rem; }
+.cd-mp-sk > div i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; }
+.cd-mp-sk .cd-mp-tt { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); font-size: 0.75rem; }
 .cd-mp-tk { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; margin-top: 10px; }
 .cd-mp-tk > div { background: var(--raise); border-radius: 9px; padding: 7px 10px; display: flex; flex-direction: column; gap: 1px; }
 .cd-mp-tk span { font-size: 0.6875rem; color: var(--mute); }

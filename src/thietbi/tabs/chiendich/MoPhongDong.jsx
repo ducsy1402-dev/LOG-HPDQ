@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Play, Pause, SkipBack, Clock } from "lucide-react";
+import { Play, Pause, SkipBack, Clock, History, Radio } from "lucide-react";
 import { fmt } from "../../lib/utils";
-import { ngayGio, gio, tan } from "./chung";
+import { ngayGio, gio, tan, thoiLuong } from "./chung";
 
 // Mô phỏng chuyển động một tuyến: xe đứng ở điểm xếp, chạy có hàng tới điểm dỡ, dỡ, chạy về.
 // Vị trí từng xe tại thời điểm t lấy đúng lịch đã mô phỏng (mp.chuyen[].doan), nên khớp biểu đồ chạy xe.
@@ -10,6 +10,24 @@ import { ngayGio, gio, tan } from "./chung";
 const MAU_XE = ["#6366f1", "#f59e0b", "#14b8a6", "#ec4899", "#0ea5e9", "#22c55e", "#a78bfa", "#f97316", "#ef4444", "#84cc16", "#06b6d4", "#eab308"];
 const TOC_DO = [[1, "1× (giờ thực)"], [10, "10×"], [60, "1 phút / giây"], [300, "5 phút / giây"], [1200, "20 phút / giây"]];
 const TEN_TT = { doi: "Chờ xuất phát", cho_xep: "Chờ xếp", xep: "Đang xếp", phu: "Cân / thủ tục", di: "Chạy có hàng", cho_do: "Chờ dỡ", do: "Đang dỡ", ve: "Chạy về", nghi: "Nghỉ", xong: "Xong việc", dung: "Dừng (nghỉ / ngoài ca)" };
+
+const THU = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+const p2 = (n) => String(n).padStart(2, "0");
+const gioGiay = (ms) => { const d = new Date(ms); return `${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())}`; };
+// "còn 4:05" / "2:10 trước"
+const demNguoc = (ms) => { const s0 = Math.round(Math.abs(ms) / 1000), m = Math.floor(s0 / 60), txt = `${m}:${p2(s0 % 60)}`; return ms >= 0 ? `còn ${txt}` : `${txt} trước`; };
+const MO_TA = {
+  xep: (e) => `vào xếp ở điểm xếp ${e.c.diemXep + 1}`,
+  di: () => "chạy có hàng tới điểm dỡ",
+  cho_do: () => "tới điểm dỡ, phải chờ",
+  do: (e) => `dỡ ở điểm dỡ ${e.c.diemDo + 1}`,
+  ve: () => "chạy về điểm xếp",
+  cho_xep: () => "về tới bãi xếp, chờ điểm xếp trống",
+  nghi: () => "nghỉ luân phiên",
+};
+const SuKien = ({ e, tg }) => (
+  <div><b className="mono">{gio(e.bd)}</b><span className="mute small">{demNguoc(e.bd - tg)}</span><span><i style={{ background: MAU_XE[e.xe % MAU_XE.length] }} />Xe {e.xe + 1} {MO_TA[e.k]?.(e) || e.k}</span></div>
+);
 
 // Khung vẽ (đơn vị của viewBox)
 const W = 1000, HH = 360;
@@ -52,32 +70,43 @@ function trangThai(ds, t) {
   return { tt: v.k, f: 1, c: v.c, bd: v.bd, dung: true };
 }
 
-export default function MoPhongDong({ x, cd }) {
+export default function MoPhongDong({ x, cd, thucTe = [] }) {
   const { mp, pa, t } = x;
   const viec = useMemo(() => viecTheoXe(mp, pa.A), [mp, pa.A]);
   const tMin = mp.t0 - 5 * 60000, tMax = mp.ketThuc + 30 * 60000;
-  const [tg, setTg] = useState(() => (Date.now() > tMin && Date.now() < tMax ? Date.now() : mp.t0));
+  // Mặc định TRỰC TIẾP: bám đồng hồ, xe ở đâu ngay lúc này theo kế hoạch. "Xem lại / tua" là chế độ phụ.
+  const [che, setChe] = useState("truc_tiep");
+  const [tg, setTg] = useState(() => Date.now());
   const [chay, setChay] = useState(false);
   const [toc, setToc] = useState(60);
-  const [thuc, setThuc] = useState(false); // bám đồng hồ
-  const ref = useRef({ tg, toc, thuc });
-  ref.current.toc = toc; ref.current.thuc = thuc;
+  const ref = useRef({ tg, toc });
+  ref.current.toc = toc;
 
   useEffect(() => {
-    if (!chay && !thuc) return;
+    if (che !== "truc_tiep") return;
+    const cap = () => { ref.current.tg = Date.now(); setTg(ref.current.tg); };
+    cap();
+    const id = setInterval(cap, 200); // 5 lần / giây: xe nhích đều theo giờ thật
+    return () => clearInterval(id);
+  }, [che]);
+  useEffect(() => {
+    if (che !== "xem_lai" || !chay) return;
     let id, cuoi = performance.now(), ve = 0;
     const buoc = (now) => {
       const dt = now - cuoi; cuoi = now;
-      let moi = ref.current.thuc ? Date.now() : ref.current.tg + dt * ref.current.toc;
+      let moi = ref.current.tg + dt * ref.current.toc;
       if (moi >= tMax) { moi = tMax; setChay(false); }
       ref.current.tg = moi;
-      if (now - ve > 33) { ve = now; setTg(moi); } // ~30 hình / giây
+      if (now - ve > 33) { ve = now; setTg(moi); }
       id = requestAnimationFrame(buoc);
     };
     id = requestAnimationFrame(buoc);
     return () => cancelAnimationFrame(id);
-  }, [chay, thuc, tMax]);
-  const datTg = (v) => { ref.current.tg = v; setTg(v); setThuc(false); };
+  }, [che, chay, tMax]);
+  const datTg = (v) => { ref.current.tg = v; setTg(v); };
+  const xemLai = () => { setChe("xem_lai"); setChay(false); datTg(Math.min(tMax, Math.max(tMin, Date.now()))); };
+  const veTrucTiep = () => { setChay(false); setChe("truc_tiep"); };
+  const trucTiep = che === "truc_tiep";
 
   const L = mp.lich;
   const w = L.caCua(tg);
@@ -112,17 +141,44 @@ export default function MoPhongDong({ x, cd }) {
   const ptDo = new Set(xe.filter((v) => v.tt === "do").map((v) => v.c.diemDo));
   const nghiTatCa = !w || !!tenNghi;
 
+  // Việc sắp tới / vừa diễn ra (mốc bắt đầu các việc của mọi xe)
+  const moc = useMemo(() => viec.flatMap((ds, i) => ds.filter((v) => v.k !== "phu").map((v) => ({ xe: i, k: v.k, bd: v.bd, c: v.c }))).sort((a2, b2) => a2.bd - b2.bd), [viec]);
+  const sapToi = moc.filter((e) => e.bd > tg && e.bd <= tg + 30 * 60000).slice(0, 8);
+  const vuaXong = moc.filter((e) => e.bd <= tg && e.bd > tg - 30 * 60000).slice(-5).reverse();
+  // Thực tế đã nhập của tuyến so với kế hoạch tới hết ca cuối đã nhập
+  const soTT = useMemo(() => {
+    const ds = thucTe.filter((r) => r.tuyen_id === t.id && r.khoi_luong != null);
+    if (!ds.length) return null;
+    const cuoi = ds.reduce((m, r) => (`${r.ngay}|${r.ca}` > `${m.ngay}|${m.ca}` ? r : m));
+    const khoa = `${cuoi.ngay}|${cuoi.ca}`;
+    let kh = 0;
+    for (const c of mp.caKH) { kh += c.kl; if (c.key === khoa) break; }
+    return { tt: ds.reduce((a2, r) => a2 + +r.khoi_luong, 0), kh, ca: cuoi.ca, ngay: `${cuoi.ngay.slice(8, 10)}/${cuoi.ngay.slice(5, 7)}` };
+  }, [thucTe, t.id, mp.caKH]);
+
   return (
     <div className="cd-mp">
-      <div className="row" style={{ marginBottom: 8 }}>
-        <button type="button" className="btn sm pri" onClick={() => { setThuc(false); if (tg >= tMax) datTg(mp.t0); setChay(!chay); }}>{chay && !thuc ? <><Pause size={14} /> Dừng</> : <><Play size={14} /> Chạy</>}</button>
-        <button type="button" className="btn sm" onClick={() => { setChay(false); datTg(mp.t0); }} title="Về lúc bắt đầu"><SkipBack size={14} /></button>
-        <select className="inp sm" style={{ width: "auto" }} value={toc} onChange={(e) => { setToc(+e.target.value); setThuc(false); }} title="Tốc độ phát">{TOC_DO.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
-        <button type="button" className={"btn sm " + (thuc ? "pri" : "")} onClick={() => { setChay(false); setThuc(!thuc); }} title="Bám đồng hồ: xe ở đâu lúc này theo kế hoạch"><Clock size={14} /> Theo giờ thực</button>
-        <span className="cd-mp-gio"><b>{ngayGio(tg)}:{String(new Date(tg).getSeconds()).padStart(2, "0")}</b> <span className={nghiTatCa ? "warn" : "ok"}>{trangCa}</span></span>
+      <div className="cd-mp-dau">
+        {trucTiep ? <span className="cd-live"><i />TRỰC TIẾP</span> : <span className="badge b-warn">ĐANG XEM LẠI</span>}
+        <span className="cd-mp-dongho">{gioGiay(tg)}</span>
+        <span className="small mute">{THU[new Date(tg).getDay()]} {ngayGio(tg).slice(0, 5)}</span>
+        <span className={"cd-mp-ca " + (nghiTatCa ? "warn" : "ok")}>{trangCa}{w && !tenNghi ? ` · còn ${thoiLuong((w.e - tg) / 3600e3)} hết ca` : ""}</span>
+        <span style={{ flex: 1 }} />
+        {trucTiep
+          ? <button type="button" className="btn sm" onClick={xemLai} title="Tua nhanh / xem lại các ca khác"><History size={14} /> Xem lại / tua</button>
+          : <button type="button" className="btn sm pri" onClick={veTrucTiep}><Radio size={14} /> Về trực tiếp</button>}
       </div>
-      <input type="range" className="cd-mp-truot" min={tMin} max={tMax} step={1000} value={Math.min(tMax, Math.max(tMin, tg))} onChange={(e) => { setChay(false); datTg(+e.target.value); }} />
-      <div className="small mute" style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}><span>{ngayGio(mp.t0)}</span><span>{ngayGio(mp.ketThuc)}</span></div>
+      {trucTiep && tg < mp.t0 && <div className="alert info" style={{ marginBottom: 8 }}><Clock size={15} /><span>Tuyến chưa bắt đầu: xe đầu tiên vào xếp lúc <b>{ngayGio(mp.t0)}</b> (còn {thoiLuong((mp.t0 - tg) / 3600e3)}). Xe đang đứng ở khu chờ.</span></div>}
+      {trucTiep && tg > mp.ketThuc && <div className="alert ok" style={{ marginBottom: 8 }}><Clock size={15} /><span>Theo kế hoạch tuyến đã xong lúc <b>{ngayGio(mp.ketThuc)}</b>. Bấm "Xem lại / tua" để xem lại quá trình chạy.</span></div>}
+      {!trucTiep && <>
+        <div className="row" style={{ marginBottom: 6 }}>
+          <button type="button" className="btn sm" onClick={() => { if (tg >= tMax) datTg(mp.t0); setChay(!chay); }}>{chay ? <><Pause size={14} /> Dừng</> : <><Play size={14} /> Chạy</>}</button>
+          <button type="button" className="btn sm" onClick={() => { setChay(false); datTg(mp.t0); }} title="Về lúc bắt đầu"><SkipBack size={14} /></button>
+          <select className="inp sm" style={{ width: "auto" }} value={toc} onChange={(e) => setToc(+e.target.value)} title="Tốc độ tua">{TOC_DO.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
+        </div>
+        <input type="range" className="cd-mp-truot" min={tMin} max={tMax} step={1000} value={Math.min(tMax, Math.max(tMin, tg))} onChange={(e) => { setChay(false); datTg(+e.target.value); }} />
+        <div className="small mute" style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}><span>{ngayGio(mp.t0)}</span><span>{ngayGio(mp.ketThuc)}</span></div>
+      </>}
 
       <svg viewBox={`0 0 ${W} ${HH}`} className="cd-mp-svg" role="img" aria-label="Mô phỏng chuyển động xe">
         <defs>
@@ -176,7 +232,21 @@ export default function MoPhongDong({ x, cd }) {
           <div key={k}><span>{TEN_TT[k]}</span><b>{dem[k] || 0}</b><small>xe</small></div>
         ))}
       </div>
-      <div className="small mute" style={{ marginTop: 6 }}>Vị trí xe lấy đúng lịch mô phỏng từng chuyến (giãn cách, chờ, giờ nghỉ), khớp biểu đồ chạy xe. Thùng xe tô màu = có hàng. "Theo giờ thực" cho thấy xe đang ở đâu lúc này theo kế hoạch. Rê chuột lên xe để xem trạng thái.</div>
+      <div className="grid g-2" style={{ marginTop: 10 }}>
+        <div className="cd-mp-sk">
+          <h4>Sắp tới (30 phút)</h4>
+          {sapToi.length ? sapToi.map((e, k) => <SuKien key={k} e={e} tg={tg} />) : <div className="mute small">Không có việc nào trong 30 phút tới.</div>}
+        </div>
+        <div className="cd-mp-sk">
+          <h4>Vừa diễn ra</h4>
+          {vuaXong.length ? vuaXong.map((e, k) => <SuKien key={k} e={e} tg={tg} />) : <div className="mute small">Chưa có.</div>}
+          {soTT && <div className="cd-mp-tt">
+            <span>Thực tế đã nhập: <b>{tan(soTT.tt)} t</b> tới hết CA {soTT.ca} {soTT.ngay}</span>
+            <span>Kế hoạch tới hết ca đó: <b>{tan(soTT.kh)} t</b> · <b className={soTT.tt >= soTT.kh ? "ok" : "bad"}>{soTT.tt >= soTT.kh ? "+" : ""}{tan(soTT.tt - soTT.kh)} t</b></span>
+          </div>}
+        </div>
+      </div>
+      <div className="small mute" style={{ marginTop: 6 }}>Chưa có định vị xe nên vị trí là <b>theo kế hoạch</b>: lấy đúng lịch mô phỏng từng chuyến (giãn cách, chờ, giờ nghỉ), khớp biểu đồ chạy xe. Thùng xe tô màu = có hàng. Rê chuột lên xe để xem trạng thái. Khi có GPS có thể vẽ thêm vị trí xe thật lên sơ đồ này.</div>
     </div>
   );
 }

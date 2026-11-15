@@ -29,10 +29,11 @@ export function vungNghi(lich, cau_hinh, tu, den) {
   return out;
 }
 
-export default function BieuDoXe({ cd, kq }) {
+export default function BieuDoXe({ cd, kq, thucTe }) {
   const ok = kq.tuyen.filter((x) => x.mp);
   const [tid, setTid] = useState(ok[0]?.t.id);
-  const [kieu, setKieu] = useState("xe");
+  // Chiến dịch đang chạy (bây giờ nằm trong khoảng kế hoạch) thì mở thẳng chế độ Trực tiếp
+  const [kieu, setKieu] = useState(() => (kq.t0 != null && Date.now() >= kq.t0 - 3600e3 && Date.now() <= (kq.ketThuc || 0) ? "dong" : "xe"));
   const [cua, setCua] = useState("6");
   const [xe, setXe] = useState("");
   const x = ok.find((y) => y.t.id === tid) || ok[0];
@@ -44,13 +45,13 @@ export default function BieuDoXe({ cd, kq }) {
     <>
       <div className="row mb">
         {ok.length > 1 && <Seg value={x.t.id} onChange={setTid} options={ok.map((y) => [y.t.id, y.t.ten])} />}
-        <Seg value={kieu} onChange={setKieu} options={[["xe", "Theo từng xe"], ["qd", "Xe – thời gian – quãng đường"], ["dong", "Mô phỏng chuyển động"]]} />
+        <Seg value={kieu} onChange={setKieu} options={[["dong", "● Trực tiếp"], ["xe", "Theo từng xe"], ["qd", "Xe – thời gian – quãng đường"]]} />
         {kieu !== "dong" && <Seg value={cua} onChange={setCua} options={CUA_SO} />}
         {kieu !== "dong" && <span className="small mute">Kéo thanh dưới biểu đồ hoặc lăn chuột để xem đoạn khác.</span>}
       </div>
       <Card className="mb" title={`${t.ten}: ${pa.A} xe · ${pa.Cx} điểm xếp · ${pa.Cd} điểm dỡ`} icon={Truck}
         hint={`xuất phát cách nhau ${fmt(pa.gianCach, 1)} phút · ${fmt(mp.chuyen.length)} chuyến · xong ${ngayGio(mp.ketThuc)}`}>
-        {kieu === "xe" ? <GanttXe x={x} cd={cd} den={den} /> : kieu === "qd" ? <DoThiQD x={x} cd={cd} den={den} /> : <MoPhongDong key={x.t.id} x={x} cd={cd} />}
+        {kieu === "xe" ? <GanttXe x={x} cd={cd} den={den} /> : kieu === "qd" ? <DoThiQD x={x} cd={cd} den={den} /> : <MoPhongDong key={x.t.id} x={x} cd={cd} thucTe={thucTe} />}
         {kieu === "xe" && <div className="legend" style={{ marginTop: 6 }}>{KHAU.map(([k, l, c]) => <span key={k}><i style={{ background: c }} />{l}</span>)}<span><i style={{ background: "rgba(148,163,184,.25)" }} />Nghỉ / ngoài ca</span></div>}
       </Card>
       <BangXe x={x} />
