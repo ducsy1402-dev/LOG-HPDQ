@@ -23,7 +23,11 @@ export function supabaseApi() {
     async signIn(email, password) { return ok(await sb.auth.signInWithPassword({ email, password })).session; },
     signOut: () => sb.auth.signOut(),
     async getRole(userId) {
-      return ok(await sb.from("user_roles").select("vai_tro,ho_ten").eq("user_id", userId).maybeSingle());
+      const r = ok(await sb.from("user_roles").select("vai_tro,ho_ten").eq("user_id", userId).maybeSingle());
+      if (!r) return r;
+      // Nhóm quyền theo khu vực (SQL 16); chưa chạy SQL 16 thì không có nhóm
+      const nh = await sb.from("user_nhom").select("nhom").eq("user_id", userId);
+      return { ...r, nhom: nh.error ? [] : (nh.data || []).map((x) => x.nhom) };
     },
 
     async loadAll({ cutoff, from }) {

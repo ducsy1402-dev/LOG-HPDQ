@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { DEMO } from "./config";
+import { BAC, tinhQuyen, emailTuTenDangNhap } from "./lib/quyen";
 import { makeDemoApi } from "./api/demoApi";
 import { makeSupabaseApi } from "./api/supabaseApi";
 import { canhBaoMo, NGUONG_MAC_DINH } from "./lib/checks";
@@ -8,7 +9,6 @@ import { datThuTuBen } from "./lib/tenBen";
 
 const Ctx = createContext(null);
 export const useApp = () => useContext(Ctx);
-const BAC = { xem: 0, nhap: 1, quan_ly: 2, quan_tri: 3 };
 
 // Điều hướng bằng #/duong-dan để tải lại trang không lỗi (web chạy ở /logistics/)
 export function useHash() {
@@ -170,13 +170,10 @@ const GHI_NHE = new Set(["insertVoyages", "updateVoyage", "deleteVoyage", "addSt
     return { ...raw, voyages, traOf, bmap, vmap, stopsOf, tienOf, plansOf, alerts, nguong, now, coSql15: raw.plans != null && raw.khoTon != null, coSql17: (raw.khoBai || []).some((r) => "kieu_bai" in r), coSql18: raw.dmCot != null, coSql19: !!raw.coSql19, coSql24: !!raw.coSql24, coSql25: !!raw.coSql25, coSql26: !!raw.coSql26 && raw.traHang != null, coSql28: !!raw.coSql28, coCotDan: !!raw.coCotDan, coSql21: raw.mucTieu != null, coSql27: raw.khoKeHoach != null, coSql08: raw.dmBang != null };
   }, [raw, now]);
 
-  const bac = BAC[role?.cang] ?? -1;
-  // Quyền phần Cảng (xem / nhập / quản lý / quản trị); coCang = false khi chưa chạy SQL 13 hoặc chưa được cấp
-  const bk = BAC[role?.kho] ?? -1;
-  // kho: quyền phân hệ Khai thác kho bãi
-  const kho = { co: bk >= 0, nhap: bk >= 1, quanLy: bk >= 2, quanTri: bk >= 3 };
-  const quyen = { kho, coCang: bac >= 0, nhap: bac >= 1, quanLy: bac >= 2, quanTri: bac >= 3, chuaSql: role?.loi === "chua_sql", coThietBi: !!role?.thietBi, adminTB: role?.thietBi === "quan_tri" };
-  const signIn = async (email, pw) => { const s = await api.signIn(email, pw); await boot(s); };
+  // Quyền theo vai trò Cảng / Kho / Thiết bị (cũ) và nhóm quyền theo khu vực (SQL 16): xem src/lib/quyen.js
+  const quyen = tinhQuyen(role);
+  // Đăng nhập bằng email hoặc chỉ tên đăng nhập (web tự thêm đuôi, xem quyen.js)
+  const signIn = async (taiKhoan, pw) => { const s = await api.signIn(emailTuTenDangNhap(taiKhoan), pw); await boot(s); };
   const signOut = async () => { await api.signOut(); setRaw(null); setPhase("login"); };
 
   const value = { api, phase, user, role, quyen, D, busy, reload, run, toast, fail, toasts, signIn, signOut, theme, setTheme, voyageMo, setVoyageMo, tuThang, moRongKhoang, taiLuc, capNhatRef, cheDoRef };

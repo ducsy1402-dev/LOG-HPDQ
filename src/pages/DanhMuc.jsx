@@ -64,7 +64,7 @@ export default function DanhMuc() {
   const bangPhu = (key) => {
     const c = DM_BANG[key], k0 = c.cot[0][0], k1 = key === "cau_dm" ? c.cot[1]?.[0] : null;
     return {
-      ten: c.ten, khoa: "id", batBuoc: k0, coSua: quyen.quanTri || adminTB, ai: "quản trị", bang: "dm_" + key,
+      ten: c.ten, khoa: "id", batBuoc: k0, coSua: key === "bai_lon" ? quyen.suaDmKho : quyen.quanTri || quyen.suaDmThietBi, ai: "quản trị", bang: "dm_" + key,
       rows: (D.dmBang || []).filter((r) => r.bang === key).map((r) => ({ id: r.id, ...r.data })),
       cot: c.cot.map(([k, t, l]) => [k, t, l, l === "so" ? 100 : Math.min(220, Math.max(110, t.length * 7))]),
       mo: c.cot.length && !(D.dmBang || []).some((r) => r.bang === key) ? "Chưa có dữ liệu (sheet trong file mới có tiêu đề). Bấm Thêm hoặc Import để nhập." : null,
@@ -79,7 +79,7 @@ export default function DanhMuc() {
 
   const cotBen = [["ma", "Bến", "text", 70, ["ben", "ten ben", "ma ben"]], ["ten_khac", "Tên khác / mã cũ (;)", "mang", 150], ["dwt_max", "Tải trọng (DWT)", "so", 110, ["tai trong", "trong tai tau (dwt)", "dwt"]], ["mon_max", "Mớn (m)", "so", 80, ["mon", "mon tau load hang (m)"]], ["mon_cung", "Mớn cứng (≤)", "bool", 70], ["loa_max", "Chiều dài bến (m)", "so", 100, ["chieu dai ben"]], ["loai_hang", "Loại hàng thường làm (ưu tiên trái → phải)", "text", 300, ["loai hang", "hang chinh"]], ...(D.coSql19 ? [["bang_tai", "Băng tải làm hàng", "text", 130, ["bang tai"]]] : []), ["thu_tu", "Thứ tự trên lịch", "so", 60], ["ghi_chu", "Ghi chú", "text", 160]];
   const nguonBen = (ten, cot, mo) => ({
-    ten, khoa: "ma", rows: D.berths, coSua: quyen.quanTri, ai: "quản trị", mo, cot, bang: "ben",
+    ten, khoa: "ma", rows: D.berths, coSua: quyen.suaDmCauBen, ai: "quản trị", mo, cot, bang: "ben",
     chuyenNhap: (o, goc) => { const cung = /<=|≤/.test(String(goc.mon_max ?? "")); return { ...o, ma: String(o.ma).trim().toUpperCase(), ...(cung ? { mon_cung: true } : {}) }; },
     luu: (rows) => run(() => api.upsertRows("berths", rows, "ma"), `Đã lưu ${rows.length} bến`),
     xoa: (r) => run(() => api.deleteRow("berths", "ma", r.ma), `Đã xóa bến ${r.ma}`),
@@ -90,7 +90,7 @@ export default function DanhMuc() {
   const nguonHang = (loai) => {
     const roi = loai === "roi", ds = (tbD?.hanghoa || []).filter((h) => (roi ? h.loai_hh !== "thanh_pham" : h.loai_hh === "thanh_pham"));
     return {
-      ten: roi ? "Hàng rời" : "Hàng thành phẩm (hàng kiện)", khoa: "loai_hang", rows: ds, coSua: adminTB, ai: "quản trị", bang: "hang",
+      ten: roi ? "Hàng rời" : "Hàng thành phẩm (hàng kiện)", khoa: "loai_hang", rows: ds, coSua: quyen.suaDmHang, ai: "quản trị", bang: "hang",
       mo: roi ? "Tỷ khối đống (tấn/m³) dùng tính sức chứa bãi nguyên liệu, tra loại hàng của chuyến tàu." : "Đơn trọng: khối lượng một kiện (cuộn, bó, tấm…).",
       goiY: { nhom: [...new Set((tbD?.hanghoa || []).map((h) => h.nhom).filter(Boolean))] },
       cot: [["loai_hang", "Tên hàng", "text", 230, ["ten hang", "ten hang hoa"]], ["nhom", "Loại hàng (nhóm hàng)", "text", 150, ["loai hang", "nhom hang", "loai hang (nhom hang)"]],
@@ -107,7 +107,7 @@ export default function DanhMuc() {
   const nguonKho = (loai) => {
     const tp = loai === "thanh_pham";
     return {
-      ten: tp ? "Kho thành phẩm" : "Kho nguyên liệu", khoa: "id", batBuoc: "ten_bai", coSua: quyen.quanTri || adminTB, ai: "quản trị", bang: "kho", anCot: ["khu vuc"],
+      ten: tp ? "Kho thành phẩm" : "Kho nguyên liệu", khoa: "id", batBuoc: "ten_bai", coSua: quyen.suaDmKho, ai: "quản trị", bang: "kho", anCot: ["khu vuc"],
       rows: (D.khoBai || []).filter((r) => (tp ? r.loai_kho === "thanh_pham" : r.loai_kho !== "thanh_pham")),
       mo: `Mỗi dòng là một gian / lô trong kho / bãi lớn. Sức chứa khả dụng (tấn) là số web dùng; để trống thì web tự tính = sức chứa danh nghĩa × hệ số lưu chứa (chưa có hệ số thì = sức chứa danh nghĩa)${tp ? "" : "; sức chứa danh nghĩa để trống thì = diện tích × chiều cao đống × tỷ khối hàng"}. Kho / bãi khai báo "Cố định" thì mỗi gian / lô chỉ nhận đúng hàng của dòng; "Tự do" nhận mọi hàng (sửa ở tab Khai báo kho / bãi).`,
       cot: [["ten_bai", "Tên kho / bãi", "text", 150, ["ten kho/bai", "ten kho bai", "bai lon", "ten bai"]], ["ten_khu", "Gian / lô", "text", 140, ["gian/lo", "gian lo", "bai nho", "khu"]],

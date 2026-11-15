@@ -2,6 +2,7 @@
 // Dữ liệu xe/thông số/hàng hóa là dữ liệu thật; sự kiện và quân số được sinh ngẫu nhiên.
 // Mọi thay đổi chỉ nằm trong bộ nhớ, tải lại trang là mất.
 import { today, addDays, diffDays } from "../lib/utils";
+import { DEMO_NHOM } from "../../config";
 import { buildDemands, mapLoaiPt, dungLoai, dungTaiTrong, rulesOf } from "../lib/plan";
 
 // Dữ liệu mẫu Book12 của demo đã duyệt (mốc gốc 13/10/2026, được dời theo ngày hiện tại)
@@ -124,7 +125,8 @@ export async function demoApi() {
     onAuth() { return { unsubscribe() {} }; },
     async signIn() { return this.getSession(); },
     async signOut() { location.href = location.pathname; },
-    async getRole() { return { vai_tro: role, ho_ten: "Chế độ demo" }; },
+    // Tài khoản nhóm quyền (?demo=van_tai…): vai trò chung "xem" + nhóm; giao diện khóa nút ngoài khu vực của nhóm (tầng giả lập vẫn cho ghi)
+    async getRole() { return DEMO_NHOM ? { vai_tro: "xem", ho_ten: "Demo nhóm " + DEMO_NHOM, nhom: DEMO_NHOM === "chi_xem" ? [] : [DEMO_NHOM] } : { vai_tro: role, ho_ten: "Chế độ demo", nhom: [] }; },
     async loadAll({ cutoff, from }) {
       await wait();
       // Thiết bị gắn theo loại: tổng tạm = số xúc đào đang lắp, thêm thiết bị gắn của cẩu cảng

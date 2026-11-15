@@ -3,7 +3,7 @@
 import { chiaDeuTheoGio } from "../lib/keHoachNgay";
 import { klCanLam } from "../lib/linetime";
 import { demoData } from "../data/demoData";
-import { DEMO_ROLE } from "../config";
+import { DEMO_ROLE, DEMO_NHOM } from "../config";
 import { NHOM, khoaDong, tuDb } from "../lib/sanLuongTT";
 import { congThang } from "../lib/format";
 
@@ -47,6 +47,7 @@ export function makeDemoApi() {
     { user_id: "u2", email: "kehoach@local", ho_ten: "Nhân viên kế hoạch", vai_tro_cu: "nhap" },
     { user_id: "u3", email: "truongca@local", ho_ten: "Trưởng ca cảng", vai_tro_cu: "xem" },
   ];
+  const nhomDs = [{ user_id: "u4", nhom: "van_tai" }];
   const moduleRoles = [{ user_id: "u2", phan_he: "cang", vai_tro: "nhap" }, { user_id: "u3", phan_he: "cang", vai_tro: "quan_ly" }];
 
   return {
@@ -55,8 +56,13 @@ export function makeDemoApi() {
     onAuth() { return { unsubscribe() {} }; },
     async signIn() { return this.getSession(); },
     async signOut() { location.href = location.pathname + "?demo"; },
+    async doiMatKhau() { throw new Error("Chế độ demo không có mật khẩu"); },
     async dauVanTay() { return "demo"; }, // demo một người dùng: dữ liệu chỉ đổi qua chính thao tác của mình (đã tự tải lại)
-    async getRole() { return { cang: role, kho: role, ho_ten: "Chế độ demo", admin: role === "quan_tri", thietBi: role === "quan_ly" ? "nhap" : role }; },
+    async getRole() {
+      // Tài khoản nhóm quyền: vai trò chung "xem" + nhóm (giao diện khóa nút ngoài khu vực của nhóm)
+      if (DEMO_NHOM) return { cang: "xem", kho: "xem", ho_ten: "Demo nhóm " + DEMO_NHOM, admin: false, thietBi: "xem", nhom: DEMO_NHOM === "chi_xem" ? [] : [DEMO_NHOM] };
+      return { cang: role, kho: role, ho_ten: "Chế độ demo", admin: role === "quan_tri", thietBi: role === "quan_ly" ? "nhap" : role, nhom: [] };
+    },
 
     async loadAll({ xemTien }) {
       await wait();
@@ -200,6 +206,8 @@ export function makeDemoApi() {
 
     async listUsers() { can("quan_tri"); await wait(); return clone(users); },
     async listModuleRoles() { await wait(); return clone(moduleRoles); },
+    async listNhom() { await wait(); return clone(nhomDs); },
+    async setNhom(user_id, nhom) { can("quan_tri"); await wait(60); for (let i = nhomDs.length - 1; i >= 0; i--) if (nhomDs[i].user_id === user_id) nhomDs.splice(i, 1); for (const n of nhom) nhomDs.push({ user_id, nhom: n }); },
     async setModuleRole(user_id, phan_he, vai_tro) {
       can("quan_tri"); await wait(60);
       const i = moduleRoles.findIndex((x) => x.user_id === user_id && x.phan_he === phan_he);

@@ -103,7 +103,7 @@ function BangMucTieu({ nhom, thang, kyLoai = "thang", mucTieu, mucTieuThang = []
   const goiY = useLoaiGoiY(nhom, useMemo(() => [...new Set(thRows.map((r) => r.loai))], [thRows]));
   const goiYHang = useLoaiGoiY("cang", useMemo(() => [...new Set(thRows.map((r) => r.hang).filter(Boolean))], [thRows]));
   const dsDV = dsDonVi();
-  const sua = quyen.quanLy;
+  const sua = quyen.sl(nhom).datMucTieu; // đặt mục tiêu: quản lý trở lên, hoặc nhóm xuat_nhap (cảng) / van_tai (vận tải)
   const dong = useMemo(() => { const o = { ...f }; for (const k of xoa) delete o[k]; return o; }, [f, xoa]);
   const rong = { tan: "", ghi_chu: "" };
   const giong = (a, b) => (a?.tan || "").trim() === (b?.tan || "").trim() && (a?.ghi_chu || "").trim() === (b?.ghi_chu || "").trim();
@@ -274,7 +274,7 @@ const CA_NGAY = "CA 1", CA_BO = "CA 2";
 function BangThucTe({ nhom, thang, mucTieu, thucTe, loc, onLuu }) {
   const { D, quyen, api, run, toast } = useApp();
   const [thu, dao] = useThu(`lg-sl-thu-tt-${nhom}`);
-  const c = NHOM[nhom], nhap = quyen.nhap;
+  const c = NHOM[nhom], nhap = quyen.sl(nhom).nhapThucTe; // nhập thực tế: nhập liệu trở lên, hoặc nhóm nhap_lieu / xuat_nhap (cảng) / van_tai (vận tải)
   const ngays = useMemo(() => ngayCuaThang(thang), [thang]);
   const homNay = useMemo(() => { const d = new Date(D.now); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; }, [D.now]);
   const kOu = (ngay, k) => `${ngay}|${k}`; // khóa ô: ngày | khóa cột

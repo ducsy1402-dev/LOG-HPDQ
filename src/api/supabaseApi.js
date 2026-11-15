@@ -33,6 +33,13 @@ export function makeSupabaseApi() {
     onAuth(cb) { return sb.auth.onAuthStateChange((_e, s) => cb(s)).data.subscription; },
     async signIn(email, password) { return ok(await sb.auth.signInWithPassword({ email, password })).session; },
     signOut: () => sb.auth.signOut(),
+    // Đổi mật khẩu của chính mình: xác nhận mật khẩu hiện tại rồi đặt mật khẩu mới
+    async doiMatKhau(email, cu, moi) {
+      const kt = await sb.auth.signInWithPassword({ email, password: cu });
+      if (kt.error) throw new Error("Mật khẩu hiện tại không đúng");
+      const r = await sb.auth.updateUser({ password: moi });
+      if (r.error) throw new Error(/different from the old/i.test(r.error.message) ? "Mật khẩu mới phải khác mật khẩu hiện tại" : /at least|weak|short/i.test(r.error.message) ? "Mật khẩu mới quá yếu hoặc quá ngắn" : r.error.message);
+    },
 
     // Dấu vân tay dữ liệu Cảng / Kho (SQL 23): đổi nghĩa là có người sửa dữ liệu. null = chưa chạy SQL 23 hoặc lỗi tạm thời
     async dauVanTay() {
@@ -45,7 +52,9 @@ export function makeSupabaseApi() {
       const cu = await thu(sb.from("user_roles").select("vai_tro,ho_ten").eq("user_id", userId).maybeSingle());
       const r = await sb.rpc("vai_tro_phan_he", { p_phan_he: "cang" });
       const rk = await sb.rpc("vai_tro_phan_he", { p_phan_he: "kho" });
-      const chung = { ho_ten: cu?.ho_ten, admin: cu?.vai_tro === "quan_tri", thietBi: cu?.vai_tro || null };
+      // Nhóm quyền theo khu vực (SQL 16); chưa chạy SQL 16 thì không có nhóm nào
+      const nh = await sb.from("user_nhom").select("nhom").eq("user_id", userId);
+      const chung = { ho_ten: cu?.ho_ten, admin: cu?.vai_tro === "quan_tri", thietBi: cu?.vai_tro || null, nhom: nh.error ? [] : (nh.data || []).map((x) => x.nhom) };
       if (r.error) return { ...chung, cang: null, loi: "chua_sql" };
       return { ...chung, cang: r.data, kho: rk.error ? null : rk.data };
     },
@@ -226,6 +235,14 @@ export function makeSupabaseApi() {
     },
 
     listUsers: async () => ok(await sb.rpc("ds_nguoi_dung")),
+    // Nhóm quyền theo khu vực (SQL 16). null = chưa chạy SQL 16
+    listNhom: async () => { const r = await sb.from("user_nhom").select("*"); return r.error ? null : r.data; },
+    // Đặt nhóm của một tài khoản; tài khoản chưa có vai trò chung thì cấp "xem" (để xem được mọi phần)
+    async setNhom(user_id, nhom, coVaiTro) {
+      ok(await sb.from("user_nhom").delete().eq("user_id", user_id));
+      if (nhom.length) ok(await sb.from("user_nhom").insert(nhom.map((n) => ({ user_id, nhom: n }))));
+      if (nhom.length && !coVaiTro) ok(await sb.from("user_roles").upsert({ user_id, vai_tro: "xem" }));
+    },
     listModuleRoles: async () => ok(await sb.from("user_module_roles").select("*")),
     async setModuleRole(user_id, phan_he, vai_tro) {
       if (!vai_tro) return ok(await sb.from("user_module_roles").delete().eq("user_id", user_id).eq("phan_he", phan_he));

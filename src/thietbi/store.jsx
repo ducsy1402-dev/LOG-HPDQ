@@ -129,7 +129,8 @@ export function AppProvider({ children }) {
   const value = {
     api, phase, user, role, D, busy, reload, run, toast, fail, signIn, signOut, theme, setTheme,
     drawer, openVehicle: setDrawer, closeVehicle: () => setDrawer(null), toasts, loadedAt: loadedAt.current, capNhatRef, cheDoRef,
-    canWrite: vaiTro === "nhap" || vaiTro === "quan_tri", isAdmin: vaiTro === "quan_tri", demo: !!api?.demo,
+    // Nhóm van_tai (Kế hoạch vận tải) sửa / thêm / xóa được mọi thứ của Thiết bị cơ giới (CSDL: SQL 16); các nhóm khác chỉ xem phần này
+    nhom: role?.nhom || [], canWrite: vaiTro === "nhap" || vaiTro === "quan_tri" || !!role?.nhom?.includes("van_tai"), isAdmin: vaiTro === "quan_tri" || !!role?.nhom?.includes("van_tai"), demo: !!api?.demo,
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

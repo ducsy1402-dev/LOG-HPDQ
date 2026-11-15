@@ -94,7 +94,7 @@ function KhungNgay({ ngay, huong, ds, vid, giaTri, hienThi, datO, goiY, chiaDeu,
 
 export default function HopKeHoachNgay({ thang0, onClose, onLuu }) {
   const { D, api, quyen, run, toast } = useApp();
-  const nhomHang = useNhomHang(), nhap = quyen.nhap;
+  const nhomHang = useNhomHang(), nhap = quyen.keHoachNgay;
   const [thang, setThang] = useState(thang0 || thangCua(D.now));
   const [loc, setLoc] = useState({ nhom: "", huong: "" });
   const [rows, setRows] = useState(undefined); // kế hoạch đã lưu; undefined: đang tải · null: chưa chạy SQL 13

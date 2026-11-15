@@ -1,5 +1,5 @@
 import { useEffect, useState, lazy, Suspense } from "react";
-import { LayoutDashboard, Ship, Warehouse, Boxes, Database, ShieldCheck, Bell, Sun, Moon, LogOut, LogIn, Menu, X, ShieldAlert, Download, UserRound, Anchor, RefreshCw, ClipboardList, Gauge, CalendarRange, FileSpreadsheet, FileText, BookOpen, MonitorDown, Target } from "lucide-react";
+import { LayoutDashboard, Ship, Warehouse, Boxes, Database, ShieldCheck, Bell, Sun, Moon, LogOut, LogIn, Menu, X, ShieldAlert, Download, UserRound, Anchor, RefreshCw, KeyRound, ClipboardList, Gauge, CalendarRange, FileSpreadsheet, FileText, BookOpen, MonitorDown, Target } from "lucide-react";
 import { AppProvider, useApp, useHash } from "./store";
 import { Toasts, MucIcon } from "./components/common";
 import { Dialog } from "./components/ui/dialog";
@@ -9,6 +9,7 @@ import { Badge } from "./components/ui/badge";
 import { Popover, PopoverTrigger, PopoverContent, DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from "./components/ui/menu";
 import { APP_NAME, VAI_TRO, DEMO } from "./config";
 import { cn } from "./lib/utils";
+import { NHOM_QUYEN, tenDangNhap } from "./lib/quyen";
 import { saoLuuExcel } from "./lib/backup";
 import { ThietBiProvider, useThietBi, TB, TBCho, TBToanCuc } from "./thietbi/Host";
 import KhaiBao from "./thietbi/tabs/KhaiBao";
@@ -72,14 +73,14 @@ function Login() {
   const [email, setEmail] = useState(""), [pw, setPw] = useState(""), [msg, setMsg] = useState(""), [busy, setBusy] = useState(false);
   const submit = async (e) => {
     e.preventDefault(); setBusy(true); setMsg("");
-    try { await signIn(email.trim(), pw); } catch (err) { setMsg(/Invalid login/i.test(err.message) ? "Sai email hoặc mật khẩu." : err.message); setBusy(false); }
+    try { await signIn(email.trim(), pw); } catch (err) { setMsg(/Invalid login/i.test(err.message) ? "Sai tên đăng nhập (hoặc email) hoặc mật khẩu." : err.message); setBusy(false); }
   };
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
       <form onSubmit={submit} className="grid w-full max-w-sm gap-4 rounded-xl border bg-card p-6 shadow-lg">
         <Brand />
         <div><h1 className="text-lg font-semibold">Đăng nhập</h1><p className="text-xs text-muted-foreground">Dùng tài khoản do quản trị cấp. Hệ thống không cho tự đăng ký.</p></div>
-        <Field label="Email"><Input type="email" required autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
+        <Field label="Tên đăng nhập hoặc email"><Input type="text" required autoComplete="username" autoCapitalize="none" spellCheck={false} placeholder="VD: nhaplieulog" value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
         <Field label="Mật khẩu"><Input type="password" required autoComplete="current-password" value={pw} onChange={(e) => setPw(e.target.value)} /></Field>
         <Button disabled={busy}><LogIn />{busy ? "Đang đăng nhập…" : "Đăng nhập"}</Button>
         {msg && <div className="text-sm text-bad">{msg}</div>}
@@ -158,6 +159,7 @@ function Main() {
   const giuMo = (o) => setGiu((n) => Math.max(0, n + (o ? 1 : -1)));
   const rong = moMenu || reChuot || giu > 0;
   const chon = (id) => { go(id); setMoMenu(false); setReChuot(false); };
+  const [doiMK, setDoiMK] = useState(false);
   const [hdCai, setHdCai] = useState(null); // null = đóng; "da_cai" | "chua" = hộp hướng dẫn
   // Cài bằng PWA: trình duyệt đã sẵn sàng thì mở thẳng hộp Cài đặt của trình duyệt (tạo biểu tượng như một phần mềm).
   // Trình duyệt không mở được hộp đó khi máy ĐÃ CÀI phần mềm này (kể cả bản cũ tên khác) hoặc đã từ chối cài gần đây: lúc đó hướng dẫn gỡ bản cũ rồi cài lại.
@@ -202,11 +204,11 @@ function Main() {
           <DropdownMenu onOpenChange={giuMo}>
             <DropdownMenuTrigger asChild>
               <button className={dongMenu} aria-label="Tài khoản và thao tác" title={rong ? undefined : "Tài khoản và thao tác"}>
-                <UserRound className="h-4 w-4 shrink-0" /><span className={cn(nhan, "min-w-0 truncate")}>{role?.ho_ten || user?.email}</span>
+                <UserRound className="h-4 w-4 shrink-0" /><span className={cn(nhan, "min-w-0 truncate")}>{role?.ho_ten || tenDangNhap(user?.email)}</span>
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent side="right" align="end" className="w-64">
-              <DropdownMenuLabel>{role?.ho_ten || user?.email}<div className="text-[0.6875rem]">Thiết bị: {VAI_TRO[role?.thietBi] || "—"} · Cảng: {VAI_TRO[role?.cang] || "—"}</div></DropdownMenuLabel>
+              <DropdownMenuLabel>{role?.ho_ten || tenDangNhap(user?.email)}<div className="text-[0.6875rem]">Thiết bị: {VAI_TRO[role?.thietBi] || "—"} · Cảng: {VAI_TRO[role?.cang] || "—"}</div>{quyen.nhom?.length > 0 && <div className="text-[0.6875rem] font-normal">Nhóm quyền: {quyen.nhom.map((n) => NHOM_QUYEN[n]?.ten || n).join(", ")} (chỉ sửa ở khu vực này)</div>}</DropdownMenuLabel>
               {tb.D && <>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>Thiết bị cơ giới</DropdownMenuLabel>
@@ -217,6 +219,7 @@ function Main() {
               </>}
               <DropdownMenuSeparator />
               {quyen.coCang && <DropdownMenuItem onSelect={saoLuu}><Download />Sao lưu dữ liệu Cảng (Excel)</DropdownMenuItem>}
+              <DropdownMenuItem onSelect={() => setDoiMK(true)}><KeyRound />Đổi mật khẩu</DropdownMenuItem>
               <DropdownMenuItem onSelect={caiPhanMem}><MonitorDown />Cài phần mềm</DropdownMenuItem>
               <DropdownMenuItem onSelect={signOut}><LogOut />Đăng xuất</DropdownMenuItem>
             </DropdownMenuContent>
@@ -238,8 +241,34 @@ function Main() {
       </main>
       {voyageMo != null && D?.vmap.get(voyageMo) && <PhieuChuyen id={voyageMo} onClose={() => setVoyageMo(null)} />}
       {traCuu && tb.D && <TB><LookupDialog initial="specs" onClose={() => setTraCuu(false)} /></TB>}
+      {doiMK && <DoiMatKhau onClose={() => setDoiMK(false)} />}
       {hdCai && <HuongDanCai daCai={hdCai === "da_cai"} onClose={() => setHdCai(null)} />}
     </div>
+  );
+}
+
+// Đổi mật khẩu của chính mình (xác nhận mật khẩu hiện tại). Quản trị đặt lại mật khẩu cho người khác ở Supabase › Authentication › Users.
+function DoiMatKhau({ onClose }) {
+  const { api, user, toast } = useApp();
+  const [cu, setCu] = useState(""), [moi, setMoi] = useState(""), [lai, setLai] = useState(""), [msg, setMsg] = useState(""), [busy, setBusy] = useState(false);
+  const gui = async (e) => {
+    e.preventDefault(); setMsg("");
+    if (moi.length < 8) return setMsg("Mật khẩu mới cần ít nhất 8 ký tự.");
+    if (moi !== lai) return setMsg("Hai ô mật khẩu mới chưa giống nhau.");
+    if (moi === cu) return setMsg("Mật khẩu mới phải khác mật khẩu hiện tại.");
+    setBusy(true);
+    try { await api.doiMatKhau(user.email, cu, moi); toast("Đã đổi mật khẩu"); onClose(); } catch (err) { setMsg(err.message); setBusy(false); }
+  };
+  return (
+    <Dialog onOpenChange={(o) => !o && onClose()} title="Đổi mật khẩu" description={`Tài khoản ${tenDangNhap(user?.email)}. Nhập mật khẩu hiện tại, rồi mật khẩu mới (ít nhất 8 ký tự).`}>
+      <form onSubmit={gui} className="grid gap-3">
+        <Field label="Mật khẩu hiện tại"><Input type="password" required autoComplete="current-password" value={cu} onChange={(e) => setCu(e.target.value)} /></Field>
+        <Field label="Mật khẩu mới"><Input type="password" required minLength={8} autoComplete="new-password" value={moi} onChange={(e) => setMoi(e.target.value)} /></Field>
+        <Field label="Nhập lại mật khẩu mới"><Input type="password" required autoComplete="new-password" value={lai} onChange={(e) => setLai(e.target.value)} /></Field>
+        {msg && <div className="text-sm text-bad">{msg}</div>}
+        <div className="flex justify-end gap-2"><Button type="button" variant="ghost" onClick={onClose}>Hủy</Button><Button disabled={busy}>{busy ? "Đang đổi…" : "Đổi mật khẩu"}</Button></div>
+      </form>
+    </Dialog>
   );
 }
 
