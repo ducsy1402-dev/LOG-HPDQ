@@ -582,6 +582,32 @@ button.dd-it:hover { border-color: var(--accent); }
 .inp.cd-tay { border-color: var(--warn); }
 .cd-tt td { vertical-align: middle; }
 
+/* Chiến dịch › Mô phỏng chuyển động (MoPhongDong.jsx) */
+.cd-mp-gio { font-variant-numeric: tabular-nums; font-size: 0.8125rem; display: inline-flex; gap: 10px; align-items: baseline; }
+.cd-mp-truot { width: 100%; accent-color: var(--accent); }
+.cd-mp-svg { width: 100%; height: auto; display: block; background: var(--surface2); border: 1px solid var(--line); border-radius: 12px; color: var(--mute); }
+.cd-mp-khu { fill: var(--raise); stroke: var(--line2); }
+.cd-mp-khu.nghi { fill: transparent; stroke-dasharray: 4 4; }
+.cd-mp-nhan { fill: var(--mute); font-size: 11px; font-weight: 650; letter-spacing: 0.3px; }
+.cd-mp-so { fill: var(--mute); font-size: 10px; }
+.cd-mp-xe { fill: var(--ink); font-size: 10px; font-weight: 700; }
+.cd-mp-o { fill: var(--surface); stroke: var(--line2); }
+.cd-mp-o.on { stroke: var(--accent); fill: var(--accent-soft); }
+.cd-mp-duong { fill: color-mix(in srgb, var(--ink) 6%, transparent); stroke: var(--line2); }
+.cd-mp-vach { stroke: var(--mute); stroke-dasharray: 14 10; opacity: 0.5; }
+.cd-mp-mui { stroke: var(--mute); stroke-width: 1.2; opacity: 0.6; }
+.cd-mp-can { fill: none; stroke: var(--accent); stroke-dasharray: 3 2; }
+.cd-mp-dong { fill: #b45309; opacity: 0.55; }
+.cd-mp-banh { fill: var(--ink2); }
+.cd-mp-tb { fill: var(--ink2); stroke: var(--ink2); opacity: 0.55; }
+.cd-mp-tb.chay { fill: var(--warn); stroke: var(--warn); opacity: 1; animation: cdmp-nhun 0.8s ease-in-out infinite; transform-box: fill-box; }
+@keyframes cdmp-nhun { 50% { opacity: 0.55; } }
+.cd-mp-tk { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; margin-top: 10px; }
+.cd-mp-tk > div { background: var(--raise); border-radius: 9px; padding: 7px 10px; display: flex; flex-direction: column; gap: 1px; }
+.cd-mp-tk span { font-size: 0.6875rem; color: var(--mute); }
+.cd-mp-tk b { font-size: 1.0625rem; font-variant-numeric: tabular-nums; }
+.cd-mp-tk small { font-size: 0.6875rem; color: var(--mute); }
+
 /* ============ In ============ */
 @media print {
   .topbar, .tabsbar, .toasts { display: none !important; }

@@ -4,6 +4,7 @@ import { CustomChart } from "echarts/charts";
 import { DataZoomComponent, MarkAreaComponent } from "echarts/components";
 import { Truck, ListOrdered } from "lucide-react";
 import EChart from "@/components/EChart";
+import MoPhongDong from "./MoPhongDong";
 import { Card, Seg, Empty } from "../../components/ui";
 import { fmt } from "../../lib/utils";
 import { KHAU, TEN_KHAU, ngayGio, gio, phut, tan } from "./chung";
@@ -43,13 +44,13 @@ export default function BieuDoXe({ cd, kq }) {
     <>
       <div className="row mb">
         {ok.length > 1 && <Seg value={x.t.id} onChange={setTid} options={ok.map((y) => [y.t.id, y.t.ten])} />}
-        <Seg value={kieu} onChange={setKieu} options={[["xe", "Theo từng xe"], ["qd", "Xe – thời gian – quãng đường"]]} />
-        <Seg value={cua} onChange={setCua} options={CUA_SO} />
-        <span className="small mute">Kéo thanh dưới biểu đồ hoặc lăn chuột để xem đoạn khác.</span>
+        <Seg value={kieu} onChange={setKieu} options={[["xe", "Theo từng xe"], ["qd", "Xe – thời gian – quãng đường"], ["dong", "Mô phỏng chuyển động"]]} />
+        {kieu !== "dong" && <Seg value={cua} onChange={setCua} options={CUA_SO} />}
+        {kieu !== "dong" && <span className="small mute">Kéo thanh dưới biểu đồ hoặc lăn chuột để xem đoạn khác.</span>}
       </div>
       <Card className="mb" title={`${t.ten}: ${pa.A} xe · ${pa.Cx} điểm xếp · ${pa.Cd} điểm dỡ`} icon={Truck}
         hint={`xuất phát cách nhau ${fmt(pa.gianCach, 1)} phút · ${fmt(mp.chuyen.length)} chuyến · xong ${ngayGio(mp.ketThuc)}`}>
-        {kieu === "xe" ? <GanttXe x={x} cd={cd} den={den} /> : <DoThiQD x={x} cd={cd} den={den} />}
+        {kieu === "xe" ? <GanttXe x={x} cd={cd} den={den} /> : kieu === "qd" ? <DoThiQD x={x} cd={cd} den={den} /> : <MoPhongDong key={x.t.id} x={x} cd={cd} />}
         {kieu === "xe" && <div className="legend" style={{ marginTop: 6 }}>{KHAU.map(([k, l, c]) => <span key={k}><i style={{ background: c }} />{l}</span>)}<span><i style={{ background: "rgba(148,163,184,.25)" }} />Nghỉ / ngoài ca</span></div>}
       </Card>
       <BangXe x={x} />
