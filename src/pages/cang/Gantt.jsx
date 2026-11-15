@@ -66,7 +66,9 @@ export default function Gantt({ voyages, tu, soNgay, pxNgay, che = "ben", gon = 
       doanBen(v, D.stopsOf(v.id), D.now).forEach((d, i) => {
         if (d.b < tu || (i ? d.a : la) > den) return;
         const phu = d.phu && laBenLienKe(D.berths, d.ben, d.phu) ? d.phu : "";
-        for (const ma of phu ? [d.ben, phu] : [d.ben || ""]) {
+        // Tàu cập hai bến (3/5): chỉ vẽ ở BẾN ĐỨNG TRƯỚC trong dãy bến (anh Sỹ chốt 15/11/2026); ghi "⇕ (B03/05)" trên thanh, không vẽ ở bến sau và không theo mét
+        const thuTu = (m) => D.berths.findIndex((b) => String(b.ma) === String(m));
+        for (const ma of [phu && thuTu(phu) >= 0 && thuTu(phu) < thuTu(d.ben) ? phu : d.ben || ""]) {
           const row = theoBen.has(ma) ? ma : "";
           theoBen.get(row).push({ v, a: d.a, b: d.b, uoc: d.uoc, a0: i ? null : a0, la: i ? d.a : la, st: trangThai(v, D.now), uocTT: laUoc(v, D.now), rowMa: row, haiBen: phu ? noiHaiBen(d.ben, phu) : null });
         }
