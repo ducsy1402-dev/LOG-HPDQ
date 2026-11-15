@@ -15,7 +15,7 @@ import ThucTe from "./ThucTe";
 // Lưu ở bảng chien_dich / chien_dich_thuc_te (SQL 17). Công thức ở lib/chienDich.js.
 const doc = (k, mac) => { try { return localStorage.getItem(k) || mac; } catch { return mac; } };
 const luu = (k, v) => { try { localStorage.setItem(k, v); } catch { /* bỏ qua */ } };
-const TAB = [["tinh", "Thông số & tính toán"], ["xe", "Trực tiếp & biểu đồ chạy xe"], ["kl", "Linetime khối lượng"], ["tt", "Thực tế & báo cáo"]];
+const TAB = [["tinh", "Thông số & tính toán"], ["xe", "Biểu đồ chạy xe"], ["kl", "Linetime khối lượng"], ["tt", "Thực tế & báo cáo"]];
 const clone = (x) => JSON.parse(JSON.stringify(x));
 const TEN_TT = Object.fromEntries(TRANG_THAI_CD);
 const TONE_TT = { ke_hoach: "info", dang_chay: "ok", xong: "", huy: "bad" };

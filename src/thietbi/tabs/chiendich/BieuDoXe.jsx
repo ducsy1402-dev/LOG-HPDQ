@@ -5,6 +5,9 @@ import { DataZoomComponent, MarkAreaComponent } from "echarts/components";
 import { Truck, ListOrdered } from "lucide-react";
 import EChart from "@/components/EChart";
 import MoPhongDong from "./MoPhongDong";
+
+// Mô phỏng Trực tiếp + Xem lại / tua (MoPhongDong.jsx): anh Sỹ để GIAI ĐOẠN SAU (15/11/2026). Đổi thành true để hiện lại.
+const CO_TRUC_TIEP = false;
 import { Card, Seg, Empty } from "../../components/ui";
 import { fmt } from "../../lib/utils";
 import { KHAU, TEN_KHAU, ngayGio, gio, phut, tan } from "./chung";
@@ -32,8 +35,8 @@ export function vungNghi(lich, cau_hinh, tu, den) {
 export default function BieuDoXe({ cd, kq, thucTe }) {
   const ok = kq.tuyen.filter((x) => x.mp);
   const [tid, setTid] = useState(ok[0]?.t.id);
-  // Chiến dịch đang chạy (bây giờ nằm trong khoảng kế hoạch) thì mở thẳng chế độ Trực tiếp
-  const [kieu, setKieu] = useState(() => (kq.t0 != null && Date.now() >= kq.t0 - 3600e3 && Date.now() <= (kq.ketThuc || 0) ? "dong" : "xe"));
+  // Chiến dịch đang chạy (bây giờ nằm trong khoảng kế hoạch) thì mở thẳng chế độ Trực tiếp (khi bật CO_TRUC_TIEP)
+  const [kieu, setKieu] = useState(() => (CO_TRUC_TIEP && kq.t0 != null && Date.now() >= kq.t0 - 3600e3 && Date.now() <= (kq.ketThuc || 0) ? "dong" : "xe"));
   const [cua, setCua] = useState("6");
   const [xe, setXe] = useState("");
   const x = ok.find((y) => y.t.id === tid) || ok[0];
@@ -45,13 +48,13 @@ export default function BieuDoXe({ cd, kq, thucTe }) {
     <>
       <div className="row mb">
         {ok.length > 1 && <Seg value={x.t.id} onChange={setTid} options={ok.map((y) => [y.t.id, y.t.ten])} />}
-        <Seg value={kieu} onChange={setKieu} options={[["dong", "● Trực tiếp"], ["xe", "Theo từng xe"], ["qd", "Xe – thời gian – quãng đường"]]} />
+        <Seg value={kieu} onChange={setKieu} options={[...(CO_TRUC_TIEP ? [["dong", "● Trực tiếp"]] : []), ["xe", "Theo từng xe"], ["qd", "Xe – thời gian – quãng đường"]]} />
         {kieu !== "dong" && <Seg value={cua} onChange={setCua} options={CUA_SO} />}
         {kieu !== "dong" && <span className="small mute">Kéo thanh dưới biểu đồ hoặc lăn chuột để xem đoạn khác.</span>}
       </div>
       <Card className="mb" title={`${t.ten}: ${pa.A} xe · ${pa.Cx} điểm xếp · ${pa.Cd} điểm dỡ`} icon={Truck}
         hint={`xuất phát cách nhau ${fmt(pa.gianCach, 1)} phút · ${fmt(mp.chuyen.length)} chuyến · xong ${ngayGio(mp.ketThuc)}`}>
-        {kieu === "xe" ? <GanttXe x={x} cd={cd} den={den} /> : kieu === "qd" ? <DoThiQD x={x} cd={cd} den={den} /> : <MoPhongDong key={x.t.id} x={x} cd={cd} thucTe={thucTe} />}
+        {kieu === "xe" ? <GanttXe x={x} cd={cd} den={den} /> : kieu === "qd" ? <DoThiQD x={x} cd={cd} den={den} /> : CO_TRUC_TIEP ? <MoPhongDong key={x.t.id} x={x} cd={cd} thucTe={thucTe} /> : null}
         {kieu === "xe" && <div className="legend" style={{ marginTop: 6 }}>{KHAU.map(([k, l, c]) => <span key={k}><i style={{ background: c }} />{l}</span>)}<span><i style={{ background: "rgba(148,163,184,.25)" }} />Nghỉ / ngoài ca</span></div>}
       </Card>
       <BangXe x={x} />
