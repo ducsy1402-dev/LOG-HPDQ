@@ -68,27 +68,24 @@ describe("Dài hạn: phương án đã duyệt hoặc phiếu chuyến (Bãi & 
   const LD = { voyages: [v], plansOf: () => [plan], stopsOf: () => [], now: NOW };
   const opt = { now: NOW };
 
-  it("đã duyệt phương án: số lượng và thời gian theo phương án, cộng cả nhà thầu", () => {
-    expect(viecTauTuLinetime(LD, "Xe ben", opt).map((j) => [j.loai, j.so_xe_tay, j.nguon])).toEqual([["tau", 10, "PA A (đã duyệt)"]]); // 8 + 2 nhà thầu
-    expect(viecTauTuLinetime(LD, "Xúc đào", opt).map((j) => j.so_xe_tay)).toEqual([2]);
-    expect(viecTauTuLinetime(LD, "Xúc lật", opt)).toEqual([]); // phương án không có xúc lật hỗ trợ chung
+  it("đã duyệt phương án: thời gian theo phương án; số xe KHÔNG lấy từ phương án (nhập tay ở Timeline)", () => {
+    expect(viecTauTuLinetime(LD, "Xe ben", opt).map((j) => [j.loai, j.so_xe_tay, j.nguon])).toEqual([["tau", null, "PA A (đã duyệt)"]]);
+    expect(viecTauTuLinetime(LD, "Xúc đào", opt).map((j) => j.so_xe_tay)).toEqual([null]);
+    expect(viecTauTuLinetime(LD, "Xúc lật", opt).map((j) => j.so_xe_tay)).toEqual([null]); // mọi tàu đều có dòng, kể cả đội phương án không dùng
     const bai = viecBaiTuLinetime(LD, "Xúc lật", opt);
     expect(bai[0]).toMatchObject({ loai: "bai", lt: 7, xe_ngay: 4, vi_tri: "Bãi B", tu_ngay: "2026-11-01", den_ngay: "2026-11-02" });
     expect(new Date(bai[0].den).getTime()).toBe(t(2026, 11, 2, 8)); // 24.000 t ÷ 24.000 t/ngày = 1 ngày
   });
-  it("phương án chưa duyệt: theo phiếu chuyến › Bãi & Thiết bị, thời gian theo ETB / cam kết", () => {
+  it("phương án chưa duyệt: thời gian theo ETB / cam kết, số xe để trống; việc bãi vẫn theo phiếu chuyến › Bãi & Thiết bị", () => {
     const L = { ...LD, plansOf: () => [{ ...plan, trang_thai: "nhap" }] };
-    expect(viecTauTuLinetime(L, "Xe ben", opt).map((j) => [j.so_xe_tay, j.nguon])).toEqual([[9, "Bãi & thiết bị"]]); // 6 + 3 nhà thầu
-    expect(viecTauTuLinetime(L, "Xúc đào", opt).map((j) => j.so_xe_tay)).toEqual([1]);
-    expect(viecTauTuLinetime(L, "Xúc lật", opt).map((j) => j.so_xe_tay)).toEqual([1]); // chỉ phần hỗ trợ chung; hạ hàng thuộc bãi
+    expect(viecTauTuLinetime(L, "Xe ben", opt).map((j) => [j.so_xe_tay, j.nguon])).toEqual([[null, "Bãi & thiết bị"]]);
     const bai = viecBaiTuLinetime(L, "Xúc lật", opt);
     expect(bai[0]).toMatchObject({ xe_ngay: 3, vi_tri: "Bãi A", tu_ngay: "2026-11-01" }); // 2 + 1 nhà thầu
     expect(new Date(bai[0].den).getTime()).toBe(t(2026, 11, 3, 8)); // theo cam kết 12.000 t/ngày: 2 ngày
   });
-  it("chưa có phương án: theo phiếu chuyến (xe + hót vét → Cảng, vun hàng → bãi)", () => {
+  it("chưa có phương án: tàu không lấy số xe từ phiếu chuyến; vun hàng → bãi theo phiếu chuyến", () => {
     const L2 = { ...LD, plansOf: () => [], voyages: [{ ...v, xe_van_chuyen: [{ loai: "Xe ben", so: 4, don_vi: "hoa_phat" }], hot_vet: [{ loai: "Xúc đào", so: 1, don_vi: "hoa_phat" }], vun_hang: [{ loai: "Xúc lật", so: 3, don_vi: "hoa_phat" }] }] };
-    expect(viecTauTuLinetime(L2, "Xe ben", opt)[0].so_xe_tay).toBe(4);
-    expect(viecTauTuLinetime(L2, "Xúc lật", opt)).toEqual([]);
+    expect(viecTauTuLinetime(L2, "Xe ben", opt)[0].so_xe_tay).toBe(null);
     const bai = viecBaiTuLinetime(L2, "Xúc lật", opt);
     expect(bai[0].xe_ngay).toBe(3);
     expect(new Date(bai[0].den).getTime()).toBe(t(2026, 11, 3, 8)); // theo cam kết 12.000 t/ngày: 2 ngày
@@ -137,5 +134,52 @@ describe("Số xe tự tính ở phiếu chuyến và khung xem nhanh", () => {
     const tb = thietBiChuyen(v, [p], { cranes, now: NOW });
     expect(tb.xe[0].so).toBe(33);
     expect(tb.cauTau).toEqual({ so: 2, nang_suat: 500 });
+  });
+});
+
+describe("Hệ số ca (chỉ một số đội xe dùng, có ô tick Áp dụng)", () => {
+  const p = { bd: "2026-11-01T00:00", gioN: 8, caLen: 12, nShifts: 4, moc: "2026-11-01T00:00", ramp1: 0.5, ramp2: 0.5, ramp3: 0.5, capCang: 10, capBai: 0, flag: 1, daoTao: 1 };
+  const tau = { id: "lt-1", lt: 1, loai: "tau", ten: "T", hang: "Than", vi_tri: "B1", khoi_luong: 20000, nang_suat: 500, bat_dau: iso(2026, 11, 1, 8), so_xe_tay: 8, doi: "Xe ben" };
+  it("đội gốc Xúc đào mặc định áp dụng hệ số; đội khác mặc định không (mọi ca 100%)", () => {
+    const goc = calc12({ p, prod: [] }, [{ ...tau, doi: "Xúc đào" }], "Xúc đào");
+    expect(goc.ves[0].cnt[0]).toBe(4); // 8 xe × 50% ở ca đầu
+    const khac = calc12({ p, prod: [] }, [tau], "Xe ben");
+    expect(khac.ves[0].cnt[0]).toBe(8);
+  });
+  it("tick Áp dụng ở đội khác thì dùng hệ số; bỏ tick ở đội gốc thì 100%", () => {
+    const co = calc12({ p, prod: [], doi: { "Xe ben": { heSo: true } } }, [tau], "Xe ben");
+    expect(co.ves[0].cnt[0]).toBe(4);
+    const khong = calc12({ p: { ...p, heSo: false }, prod: [] }, [{ ...tau, doi: "Xúc đào" }], "Xúc đào");
+    expect(khong.ves[0].cnt[0]).toBe(8);
+  });
+});
+
+describe("Số xe sửa tay từng ca (xe_ca) cùng với số xe tự chạy", () => {
+  it("ca nào có số sửa tay thì dùng số đó, các ca khác vẫn tự tính; cntAuto giữ số tự tính", () => {
+    const p = { bd: "2026-11-01T00:00", gioN: 8, caLen: 12, nShifts: 4, moc: "2026-11-01T00:00", ramp1: 1, ramp2: 1, ramp3: 1, capCang: 10, capBai: 0, flag: 1, daoTao: 1 };
+    const tau = { id: "lt-1", lt: 1, loai: "tau", ten: "T", hang: "Than", vi_tri: "B1", khoi_luong: 20000, nang_suat: 500, bat_dau: iso(2026, 11, 1, 8), so_xe_tay: 6, doi: "Xe ben" };
+    const R0 = calc12({ p, prod: [] }, [tau], "Xe ben");
+    const ca1 = R0.shifts[1].st.toISOString();
+    const R = calc12({ p, prod: [] }, [{ ...tau, xe_ca: { [ca1]: 2 } }], "Xe ben");
+    expect(R0.ves[0].cnt.slice(0, 3)).toEqual([6, 6, 6]);
+    expect(R.ves[0].cnt.slice(0, 3)).toEqual([6, 2, 6]);
+    expect(R.ves[0].cntAuto.slice(0, 3)).toEqual([6, 6, 6]);
+    expect(R.shifts[1].cang).toBe(2);
+  });
+  it("tàu chưa có số xe nền vẫn nhận số xe nhập tay cho từng ca", () => {
+    const p = { bd: "2026-11-01T00:00", gioN: 8, caLen: 12, nShifts: 4, moc: "2026-11-01T00:00", ramp1: 1, ramp2: 1, ramp3: 1, capCang: 10, capBai: 0, flag: 1, daoTao: 1 };
+    const tau = { id: "lt-1", lt: 1, loai: "tau", ten: "T", hang: "Than", vi_tri: "B1", khoi_luong: 20000, nang_suat: 500, bat_dau: iso(2026, 11, 1, 8), so_xe_tay: null, doi: "Xe ben" };
+    const ca0 = calc12({ p, prod: [] }, [tau], "Xe ben").shifts[0].st.toISOString();
+    expect(calc12({ p, prod: [] }, [{ ...tau, xe_ca: { [ca0]: 3 } }], "Xe ben").ves[0].cnt[0]).toBe(3);
+  });
+});
+
+describe("Việc bãi nhập tay có giờ chính xác (tu / den, SQL 15)", () => {
+  it("chỉ các ca giao với khoảng giờ mới có số xe, không tròn theo ngày", () => {
+    const p = { bd: "2026-11-01T00:00", gioN: 8, caLen: 12, nShifts: 6, moc: "2026-11-01T00:00", ramp1: 1, ramp2: 1, ramp3: 1, capCang: 0, capBai: 9, flag: 1, daoTao: 1 };
+    // Tàu ở bến 02/11 08:00 → 04/11 03:12: ca N 02/11, Đ 02/11, N 03/11, Đ 03/11 (đến 08:00 04/11) có việc; N 04/11 08:00 thì không
+    const job = { id: 7, loai: "bai", ten: "T - Than - 1000 t", doi: "Xúc đào", xe_ngay: 3, xe_dem: 3, tu_ngay: "2026-11-02", den_ngay: "2026-11-04", tu: iso(2026, 11, 2, 8), den: iso(2026, 11, 4, 3, 12) };
+    const R = calc12({ p, prod: [] }, [job], "Xúc đào");
+    expect(R.fixed[0].cnt).toEqual([0, 0, 3, 3, 3, 3]); // ca 0,1 = 01/11; ca 2.. = 02/11 N, 02/11 Đ, 03/11 N, 03/11 Đ
   });
 });

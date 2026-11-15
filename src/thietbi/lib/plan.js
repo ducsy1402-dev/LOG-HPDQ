@@ -264,8 +264,9 @@ export const DOI_GOC = "Xúc đào";
 // Đội chưa đặt hệ số riêng thì lấy hệ số của đội gốc.
 export function cfgOf(params, doi) {
   const p = params.p, ramp = { ramp1: p.ramp1 ?? 0.6, ramp2: p.ramp2 ?? 0.85, ramp3: p.ramp3 ?? 0.6 };
-  if (!doi || doi === DOI_GOC) return { capCang: p.capCang, capBai: p.capBai, prod: params.prod || [], ...ramp };
-  return { capCang: 0, capBai: 0, prod: [], ...ramp, ...(params.doi?.[doi] || {}) };
+  if (!doi || doi === DOI_GOC) return { capCang: p.capCang, capBai: p.capBai, prod: params.prod || [], ...ramp, heSo: p.heSo ?? true };
+  // heSo: có áp dụng hệ số ca đầu / hai / cuối không (chỉ một số đội xe dùng: đội gốc mặc định có, đội khác mặc định không; tick ở Tham số)
+  return { capCang: 0, capBai: 0, prod: [], ...ramp, heSo: false, ...(params.doi?.[doi] || {}) };
 }
 // Số xe nhập tay của tàu (trống = lấy gợi ý). so_xe_doi là dữ liệu cũ khi tàu còn dùng chung nhiều đội.
 export const soXeTay = (j, doi) => num(j.so_xe_tay) ?? num(j.so_xe_doi?.[doi]);
@@ -305,13 +306,13 @@ export function buildGrid(p) {
 export function calc12(params, jobs, doi = DOI_GOC) {
   const p = params.p, cfg = cfgOf(params, doi), prod = cfg.prod || [];
   const { shifts, moc, caMs } = buildGrid(p);
-  const { ramp1, ramp2, ramp3 } = cfg; // hệ số ca của đội đang lập kế hoạch
+  const { ramp1, ramp2, ramp3 } = cfg.heSo === false ? { ramp1: 1, ramp2: 1, ramp3: 1 } : cfg; // hệ số ca của đội đang lập kế hoạch (không áp dụng = mọi ca 100%)
 
   const ves = jobs.filter((j) => j.loai === "tau" && doiCuaViec(j) === doi).sort(byThuTu).map((j) => {
     const v = { id: j.id, ten: j.ten, hang: j.hang, ben: j.vi_tri, kl: num(j.khoi_luong), conlai: num(j.con_lai), th: num(j.nang_suat), gioDung: num(j.gio_dung) || 0, nhapTay: soXeTay(j, doi) };
     const pr = prod.find((x) => x.hang === v.hang);
     const bd = j.bat_dau ? new Date(j.bat_dau) : null;
-    const goi = pr && v.th > 0 ? Math.min(pr.max, Math.max(pr.min, Math.ceil(r6(v.th / pr.ns)))) : null;
+    const goi = null; // đã bỏ gợi ý số xe theo năng suất hàng (15/11/2026): số xe lấy từ phiếu chuyến hoặc nhập tay ở cột "Số xe"
     const dung = v.nhapTay != null ? v.nhapTay : goi;
     const useCL = p.flag === 1 && v.conlai != null && v.th > 0;
     let kt = null;
@@ -321,13 +322,13 @@ export function calc12(params, jobs, doi = DOI_GOC) {
   });
   ves.forEach((r, i) => {
     if (!r.bd || !r.kt) r.canh = "Thiếu dữ liệu";
-    else if (r.dung == null || isNaN(r.dung)) r.canh = "Chưa có năng suất hàng";
+    else if (r.dung == null || isNaN(r.dung)) r.canh = "Chưa có số xe";
     else if (!r.ben) r.canh = "Thiếu bến";
     else if (ves.some((o, j) => j !== i && String(o.ben) === String(r.ben) && o.bd && o.kt && r.bd < o.kt && r.kt > o.bd)) r.canh = "Trùng bến";
     else if (r.kt < moc) r.canh = "Đã xong";
     else r.canh = "OK";
     // Hệ số: ca đầu ramp1, ca thứ hai ramp2, ca cuối (ca chứa giờ kết thúc) ramp3, còn lại 100%. Ca đầu được ưu tiên.
-    r.cnt = shifts.map((s) => {
+    r.cntAuto = shifts.map((s) => {
       if (!r.dung || isNaN(r.dung) || !r.bd || !r.kt) return 0;
       if (!(s.st < r.kt && s.en > r.bd)) return 0;
       const idx = Math.min(Math.max(0, Math.ceil(r6((s.st - r.bd) / caMs))), 2);
@@ -335,6 +336,9 @@ export function calc12(params, jobs, doi = DOI_GOC) {
       const ramp = idx === 0 ? ramp1 : cuoi ? ramp3 : idx === 1 ? ramp2 : 1;
       return Math.max(1, Math.round(r.dung * ramp));
     });
+    // Số xe sửa tay từng ca (job.xe_ca = { "<giờ bắt đầu ca ISO>": số xe }) thay số tự tính của ca đó; ca không sửa vẫn chạy tự động
+    const xc = r.job.xe_ca || r.job.so_xe_doi?.ca;
+    r.cnt = xc ? r.cntAuto.map((c, i) => { const o = xc[shifts[i].st.toISOString()]; return o != null && o !== "" ? Math.max(0, Math.round(+o) || 0) : c; }) : r.cntAuto;
   });
   shifts.forEach((s, i) => { s.cang = ves.reduce((a, r) => a + r.cnt[i], 0); });
 
@@ -345,11 +349,14 @@ export function calc12(params, jobs, doi = DOI_GOC) {
     const from = localDate(f.from), to = localDate(f.to);
     // Việc bãi lấy từ chuyến tàu (có tu / den: giờ chính xác): chỉ các ca giao với khoảng thời gian đó; việc nhập tay tính theo ngày
     const tu = j.tu ? new Date(j.tu) : null, den = j.den ? new Date(j.den) : null;
-    f.cnt = shifts.map((s) => {
+    f.cntAuto = shifts.map((s) => {
       if (off) return 0;
       if (tu || den) return (tu && s.en <= tu) || (den && s.st >= den) ? 0 : s.lab === "N" ? f.n : f.d;
       return (from && s.day < from) || (to && s.day > to) ? 0 : s.lab === "N" ? f.n : f.d;
     });
+    // Số xe sửa tay từng ca (xe_ca: việc từ Linetime; so_xe_doi.ca: việc nhập tay) thay số tự tính của ca đó
+    const xc = j.xe_ca || j.so_xe_doi?.ca;
+    f.cnt = xc ? f.cntAuto.map((c, i) => { const o = xc[shifts[i].st.toISOString()]; return o != null && o !== "" ? Math.max(0, Math.round(+o) || 0) : c; }) : f.cntAuto;
     return f;
   });
   shifts.forEach((s, i) => { s.bai = fixed.reduce((a, f) => a + f.cnt[i], 0); });
@@ -366,7 +373,7 @@ export function calc12(params, jobs, doi = DOI_GOC) {
     caThieuBai: shifts.filter((s) => s.balBai < 0).length,
     caTHIEU: shifts.filter((s) => s.tt === "THIẾU").length,
     cauCangMax: shifts.length ? Math.max(...shifts.map((s) => s.cang)) : 0,
-    tauCanhBao: ves.filter((r) => ["Trùng bến", "Thiếu bến", "Thiếu dữ liệu", "Chưa có năng suất hàng"].includes(r.canh)).length,
+    tauCanhBao: ves.filter((r) => ["Trùng bến", "Thiếu bến", "Thiếu dữ liệu", "Chưa có số xe"].includes(r.canh)).length,
     tauMoc: ves.filter((r) => r.bd && r.kt && r.bd <= moc && r.kt >= moc).length,
   };
   return { shifts, ves, fixed, kpi, moc, capCang, capBai };

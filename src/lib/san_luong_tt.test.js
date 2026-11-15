@@ -65,3 +65,22 @@ describe("Mục tiêu quý / năm", () => {
     expect(Math.round(m.get("nhap|Than").mt)).toBe(9200);
   });
 });
+
+describe("Đơn vị thực hiện (vận tải): chỉ Hòa Phát và Thuê ngoài", () => {
+  it("danh sách chọn chỉ có hai đơn vị; số liệu cũ theo nhà thầu vẫn đọc được", async () => {
+    const { dsDonVi, tenDonVi } = await import("./sanLuongTT");
+    expect(dsDonVi()).toEqual([["hoa_phat", "Hòa Phát"], ["nha_thau", "Thuê ngoài"]]);
+    expect(tenDonVi("nha_thau")).toBe("Thuê ngoài");
+    expect(tenDonVi("nt:NT Bảo Hưng")).toBe("Thuê ngoài · NT Bảo Hưng");
+  });
+});
+
+describe("Số xe nhập tay cho tàu của Linetime", () => {
+  it("tìm dòng plan_jobs theo mã chuyến và đội xe", async () => {
+    const { dongSoXeTau, DAU_SO_XE_TAU } = await import("./tauDaiHan");
+    const jobs = [{ id: 1, loai: "tau", ghi_chu: DAU_SO_XE_TAU + "7", doi: "Xe ben", so_xe_tay: 5 }, { id: 2, loai: "tau", ghi_chu: DAU_SO_XE_TAU + "7", so_xe_tay: 3 }];
+    expect(dongSoXeTau(jobs, 7, "Xe ben").id).toBe(1);
+    expect(dongSoXeTau(jobs, 7, "Xúc đào").id).toBe(2); // dòng không ghi đội = Xúc đào
+    expect(dongSoXeTau(jobs, 8, "Xe ben")).toBe(null);
+  });
+});

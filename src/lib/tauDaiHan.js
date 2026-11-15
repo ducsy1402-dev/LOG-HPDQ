@@ -31,29 +31,26 @@ function chuyenCuaKeHoach(LD, { cranes, now }) {
 }
 const nguonCua = (p) => (p ? `PA ${p.ten} (đã duyệt)` : "Bãi & thiết bị");
 
+// Mọi tàu còn trong kế hoạch, thời gian theo phương án đã duyệt hoặc phiếu chuyến (ETB, cam kết, ETD).
+// KHÔNG lấy số xe từ phiếu chuyến / phương án (anh Sỹ chốt 15/11/2026): số xe (so_xe_tay) để trống, do người lập kế hoạch nhập ở cột "Số xe" của Timeline theo ca.
 export function viecTauTuLinetime(LD, doi, { cranes = [], tenBen = (x) => x, now = Date.now() } = {}) {
   if (!LD?.voyages || !doi) return [];
-  const khop = khopDoi(doi);
   const out = [];
-  for (const { v, p, kq, pb } of chuyenCuaKeHoach(LD, { cranes, now })) {
-    let tb, th, gioDung = 0, bd = v.bd_lam_hang;
+  for (const { v, p, kq } of chuyenCuaKeHoach(LD, { cranes, now })) {
+    let th, gioDung = 0, bd = v.bd_lam_hang;
     if (p) {
-      tb = [...kq.xe.map((x) => ({ loai: x.loai, so: x.so, don_vi: x.don_vi })), ...kq.tbKhac];
       th = kq.tocDo > 0 ? kq.tocDo / 24 : null;
       gioDung = kq.dungGio || 0;
       bd = bd || p.bat_dau;
     } else {
-      tb = [...pb.xe, ...pb.hotVet]; // xe vận chuyển (số trống thì tự tính), be hầm / hót vét / hỗ trợ chung
       th = +v.cam_ket > 0 ? +v.cam_ket / 24 : null;
     }
-    const cua = tb.filter((t) => t && khop(t.loai));
-    if (!cua.length) continue;
-    const so = cua.reduce((s, t) => s + (+t.so || 0), 0), kl = klCanLam(v);
+    const kl = klCanLam(v);
     out.push({
       id: `lt-${v.id}`, lt: v.id, loai: "tau", doi, ten: v.ten_tau, hang: v.loai_hang || v.ten_hang || "", vi_tri: tenBen(v.ben_ma) || v.ben_ma || "",
       // Còn lại chỉ ghi khi tàu đã làm hàng; chưa làm thì tính từ giờ bắt đầu, không từ mốc hiện tại
       khoi_luong: kl || null, con_lai: kl && v.bd_lam_hang ? Math.max(0, kl - (+v.da_lam || 0)) : null, nang_suat: th, gio_dung: gioDung,
-      bat_dau: bd || v.atb || v.etb || null, so_xe_tay: so > 0 ? so : null, nguon: nguonCua(p),
+      bat_dau: bd || v.atb || v.etb || null, so_xe_tay: null, nguon: nguonCua(p),
     });
   }
   out.sort((x, y) => (ms(x.bat_dau) ?? 9e15) - (ms(y.bat_dau) ?? 9e15)).forEach((j, i) => { j.thu_tu = (i + 1) * 10; });
@@ -92,3 +89,12 @@ export function viecBaiTuLinetime(LD, doi, { cranes = [], now = Date.now() } = {
 // không có dấu nên vẫn bị bỏ qua, không hiện lại.
 export const DAU_VIEC_CANG = "viec_cang_tay";
 export const laViecCangTay = (j) => j?.loai === "tau" && j.ghi_chu === DAU_VIEC_CANG;
+
+// Số xe nhập tay cho một tàu của Linetime (Kế hoạch dài hạn › Linetime năng lực đáp ứng, cột "Số xe"): lưu một dòng plan_jobs
+// loại "tau", ghi_chu = "xe_lt:<mã chuyến>", cột doi = đội xe, so_xe_tay = số xe. Dòng này không phải việc cảng (laViecCangTay = false) nên không vào danh sách việc.
+export const DAU_SO_XE_TAU = "xe_lt:";
+// Việc bãi lấy từ Linetime cũng sửa số xe được: dòng plan_jobs loại "bai", ghi_chu = "xe_bai_lt:<mã chuyến>", doi = đội xe, so_xe_tay = số xe cả ngày lẫn đêm (trống = theo phiếu chuyến), so_xe_doi.ca = số xe sửa tay từng ca
+export const DAU_SO_XE_BAI = "xe_bai_lt:";
+export const dongSoXeBai = (jobs, lt, doi) => (jobs || []).find((j) => j.loai === "bai" && j.ghi_chu === DAU_SO_XE_BAI + lt && (j.doi || "Xúc đào") === doi) || null;
+export const laDongSoXeBai = (j) => j?.loai === "bai" && String(j.ghi_chu || "").startsWith(DAU_SO_XE_BAI);
+export const dongSoXeTau = (jobs, lt, doi) => (jobs || []).find((j) => j.loai === "tau" && j.ghi_chu === DAU_SO_XE_TAU + lt && (j.doi || "Xúc đào") === doi) || null;

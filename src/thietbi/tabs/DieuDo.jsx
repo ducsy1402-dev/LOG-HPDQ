@@ -173,7 +173,7 @@ function DuBao() {
   const pp = D.plan?.params?.dai_han;
   const ds = useMemo(() => {
     if (!D.plan || !pp) return null;
-    try { return D.doiList.filter((d) => d !== "Cẩu" && D.vehicles.some((v) => v.doi === d)).map((doi) => ({ doi, ...tinhDaiHan(D, LD, pp, doi) })).filter((x) => x.R.ves.length || x.R.fixed.length); } catch { return null; }
+    try { return D.doiList.filter((d) => d !== "Cẩu" && D.vehicles.some((v) => v.doi === d)).map((doi) => ({ doi, ...tinhDaiHan(D, LD, pp, doi) })).filter((x) => x.R.ves.some((r) => r.dung > 0) || x.R.fixed.length); } catch { return null; }
   }, [D, LD, pp]);
   if (!D.plan) return <Empty>CSDL chưa có bảng kế hoạch (Giai đoạn 2).</Empty>;
   if (!ds) return <Empty>Chưa tính được dự báo.</Empty>;

@@ -454,6 +454,24 @@ a.btn { text-decoration: none; }
 @media (max-width: 400px) { .brand-t { font-size: 0.8438rem; } }
 
 
+/* Timeline theo ca dạng Linetime tàu cập (Kế hoạch dài hạn › Linetime năng lực đáp ứng) */
+.t.tl-gantt .tl-lab { min-width: 210px; max-width: 210px; }
+.t.tl-gantt .tl-xe { position: sticky; left: 210px; z-index: 2; background: var(--surface); min-width: 66px; width: 66px; max-width: 66px; box-shadow: 1px 0 0 var(--line2); }
+.t.tl-gantt th.tl-xe { z-index: 3; background: var(--surface2); }
+.t.tl-gantt tr.tl-sec td.tl-xe, .t.tl-gantt tr.tl-ben td.tl-xe { background: var(--raise); }
+.t.tl-gantt tr.tl-ben td { background: var(--surface2); font-weight: 700; font-size: 0.6875rem; color: var(--ink2); }
+.t.tl-gantt tr.tl-ben td.tl-lab { background: var(--surface2); }
+.t.tl-gantt td.tl-xe .inp { width: 54px; height: 26px; padding: 0 4px; text-align: center; }
+.t.tl-gantt td.tl-xe .inp.tl-tay { border-color: var(--accent); color: var(--accent); font-weight: 700; }
+.t.tl-gantt td { min-width: 34px; }
+.t.tl-gantt td.tl-b { border: 0; border-top: 2px dashed; border-bottom: 2px dashed; padding: 3px 2px; color: #fff; font-weight: 700; font-family: "JetBrains Mono", monospace; background: transparent; }
+.t.tl-gantt td.tl-b.tl-b-xe { border-style: solid; }
+.t.tl-gantt td.tl-b-first { border-left: 2px dashed; border-radius: 6px 0 0 6px; }
+.t.tl-gantt td.tl-b-last { border-right: 2px dashed; border-radius: 0 6px 6px 0; }
+.t.tl-gantt td.tl-b-xe.tl-b-first, .t.tl-gantt td.tl-b-xe.tl-b-last { border-style: solid; }
+.t.tl-gantt td.tl-nowc { box-shadow: inset 1px 0 0 var(--accent), inset -1px 0 0 var(--accent); }
+.tl-leg-dash { background: transparent !important; border: 2px dashed var(--mute); }
+
 /* ============ Khai báo: thanh tab ============ */
 .kb-tabs { display: flex; gap: 6px; margin-bottom: 14px; padding: 4px; background: var(--input); border: 1px solid var(--line); border-radius: 12px; }
 .kb-tabs button { flex: 1 1 0; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 42px; padding: 8px 10px; border: 0; border-radius: 9px; background: none; color: var(--mute); font-weight: 600; font-size: 0.875rem; cursor: pointer; }

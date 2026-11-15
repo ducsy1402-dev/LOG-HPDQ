@@ -11,15 +11,7 @@ import { khoangKy, thangTrongKy, tenKy } from "@/lib/ky";
 import { docSo } from "@/lib/paste";
 import { cn } from "@/lib/utils";
 import { tinhThang, khoaLoai } from "@/lib/sanLuong";
-import { DON_VI, NHOM, tenDonVi, dsDonVi, khoaDong, khoaCua, tuDb, ngayCuaThang, tongTheoCot, khopDoiXe } from "@/lib/sanLuongTT";
-
-import { DEFAULT_NHA_THAU } from "@/thietbi/lib/plan";
-
-// Đơn vị thực hiện để chọn: Hòa Phát + các nhà thầu đang dùng trong Danh mục › Nhà thầu (+ đơn vị đã có số liệu)
-function useDonVi(daCo) {
-  const tb = useThietBi()?.D;
-  return useMemo(() => dsDonVi((tb?.nhaThau?.list?.length ? tb.nhaThau.list : DEFAULT_NHA_THAU).filter((x) => x.dang_dung !== false).map((x) => x.ten), daCo), [tb, daCo]);
-}
+import { DON_VI, NHOM, tenDonVi, dsDonVi, khoaDong, khoaCua, tuDb, ngayCuaThang, tongTheoCot } from "@/lib/sanLuongTT";
 
 const tenKyThuong = (kyLoai, ky) => (kyLoai === "thang" ? tenThang(ky) : tenKy(kyLoai, ky)).toLowerCase();
 import { useThietBi } from "@/thietbi/Host";
@@ -37,7 +29,6 @@ export default function SanLuongTab({ nhom, thang, kyLoai = "thang", che, onLuu 
   const { api } = useApp();
   const [lan, setLan] = useState(0);
   const [kq, setKq] = useState(undefined); // undefined: đang tải · null: chưa chạy SQL · { mucTieu, thucTe }
-  const [doiXe, setDoiXe] = useState(""); // bộ lọc đội xe (vận tải); "" = tất cả
   const tai = useCallback(() => { setLan((x) => x + 1); onLuu?.(); }, [onLuu]);
   useEffect(() => {
     let huy = false;
@@ -52,20 +43,11 @@ export default function SanLuongTab({ nhom, thang, kyLoai = "thang", che, onLuu 
     }
     return () => { huy = true; };
   }, [api, nhom, thang, kyLoai, lan]);
-  const loaiDaCo = useMemo(() => (nhom === "van_tai" && kq ? [...kq.mucTieu, ...kq.thucTe].map((r) => r.loai_xe) : []), [nhom, kq]);
-  const dsDoiXe = useLoaiGoiY("van_tai", loaiDaCo);
   if (kq === null) return <div className="rounded-md border border-warn/40 bg-warn/5 px-3 py-2 text-sm">Chưa có bảng sản lượng: quản trị cần chạy <b>sql/06_san_luong_thuc_te.sql</b>{kyLoai !== "thang" && <> và <b>sql/10_muc_tieu_quy_nam.sql</b></>} trong Supabase (sau 01 … 04).</div>;
   if (kq === undefined || (kq && kq.dau !== `${kyLoai}|${thang}`)) return <div className="flex items-center gap-2 py-6 text-sm text-muted-foreground"><RefreshCw className="h-4 w-4 animate-spin" />Đang tải số liệu {tenKyThuong(kyLoai, thang)}…</div>;
-  const loc = nhom === "van_tai" ? (r) => khopDoiXe(r, doiXe) : () => true;
+  const loc = () => true; // (đã bỏ bộ lọc đội xe của bảng vận tải 15/11/2026)
   return (
     <div className="grid gap-4">
-      {nhom === "van_tai" && (
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm text-muted-foreground">Đội xe</span>
-          <NativeSelect className="h-8 w-48" value={doiXe} onChange={(e) => setDoiXe(e.target.value)} options={[["", "Tất cả đội xe"], ...dsDoiXe.map((x) => [x, x])]} aria-label="Lọc theo đội xe" />
-          {doiXe && <Button size="sm" variant="ghost" onClick={() => setDoiXe("")}><X />Bỏ lọc</Button>}
-          {doiXe && <span className="text-xs text-muted-foreground">Cả hai bảng chỉ hiện {doiXe}; tổng và % Đạt tính theo đội xe đang lọc.</span>}
-        </div>)}
       {che !== "thucTe" && <Card><CardContent className="pt-4"><BangMucTieu key={`mt-${nhom}-${kyLoai}-${thang}-${lan}`} nhom={nhom} thang={thang} kyLoai={kyLoai} mucTieu={kq.mucTieu} mucTieuThang={kq.mucTieuThang} thucTe={kq.thucTe} loc={loc} onLuu={tai} /></CardContent></Card>}
       {che !== "mucTieu" && <Card><CardContent className="pt-4">{kyLoai === "thang"
         ? <BangThucTe key={`tt-${nhom}-${thang}-${lan}`} nhom={nhom} thang={thang} mucTieu={kq.mucTieu} thucTe={kq.thucTe} loc={loc} onLuu={tai} />
@@ -120,7 +102,7 @@ function BangMucTieu({ nhom, thang, kyLoai = "thang", mucTieu, mucTieuThang = []
   const tongThang = useMemo(() => { const m = new Map(); for (const x of mucTieuThang) { const r = tuDb(nhom, x), k = khoaCua(r), o = m.get(k) || { huong: r.huong, loai: r.loai, donVi: r.donVi, hang: r.hang, tan: 0 }; o.tan += +r.tan || 0; m.set(k, o); } return m; }, [mucTieuThang, nhom]);
   const goiY = useLoaiGoiY(nhom, useMemo(() => [...new Set(thRows.map((r) => r.loai))], [thRows]));
   const goiYHang = useLoaiGoiY("cang", useMemo(() => [...new Set(thRows.map((r) => r.hang).filter(Boolean))], [thRows]));
-  const dsDV = useDonVi(useMemo(() => [...new Set([...thRows, ...mucTieu.map((m) => tuDb(nhom, m))].map((r) => r.donVi).filter(Boolean))], [thRows, mucTieu, nhom]));
+  const dsDV = dsDonVi();
   const sua = quyen.quanLy;
   const dong = useMemo(() => { const o = { ...f }; for (const k of xoa) delete o[k]; return o; }, [f, xoa]);
   const rong = { tan: "", ghi_chu: "" };
@@ -147,7 +129,10 @@ function BangMucTieu({ nhom, thang, kyLoai = "thang", mucTieu, mucTieuThang = []
   // Dán nhanh / Excel (cảng): đưa số vào bảng, chưa ghi
   const apDungDan = (ds) => {
     const moi = { ...f }, bo = new Set(xoa);
-    for (const x of ds) { const k = khoaDong(x.huong, x.loai); moi[k] = { huong: x.huong, loai: x.loai, donVi: "", hang: "", tan: soGon(x.tan), ghi_chu: x.ghi_chu || moi[k]?.ghi_chu || "" }; bo.delete(k); }
+    for (const x of ds) {
+      const donVi = c.coDonVi ? x.donVi || DON_VI[0][0] : "", hang = c.coLoaiHang ? x.hang || "" : "", k = khoaDong(x.huong, x.loai, donVi, hang);
+      moi[k] = { huong: x.huong, loai: x.loai, donVi, hang, tan: soGon(x.tan), ghi_chu: x.ghi_chu || moi[k]?.ghi_chu || "" }; bo.delete(k);
+    }
     setF(moi); setXoa(bo);
   };
   const luu = async () => {
@@ -170,7 +155,7 @@ function BangMucTieu({ nhom, thang, kyLoai = "thang", mucTieu, mucTieuThang = []
         <TieuDeThu thu={thuMT} dao={daoMT}>Mục tiêu {tenK}</TieuDeThu>
         {sua && kyMode && tongThang.size > 0 && <Button size="sm" variant="outline" onClick={chepTruoc} title="Điền tổng mục tiêu các tháng trong kỳ vào các dòng còn trống"><Copy />Lấy tổng mục tiêu các tháng</Button>}
         {sua && !kyMode && dsTruoc?.length > 0 && <Button size="sm" variant="outline" onClick={chepTruoc} title="Điền mục tiêu tháng trước vào các dòng còn trống"><Copy />Chép mục tiêu {tenThang(truoc).toLowerCase()}</Button>}
-        {sua && nhom === "cang" && <Button size="sm" variant="outline" onClick={() => setDan(true)} title="Dán bảng từ Excel hoặc chọn file Excel"><ClipboardPaste />Dán nhanh / Excel</Button>}
+        {sua && <Button size="sm" variant="outline" onClick={() => setDan(true)} title="Dán bảng từ Excel hoặc chọn file Excel"><ClipboardPaste />Dán nhanh / Excel</Button>}
         <div className="ml-auto flex flex-wrap gap-x-5 gap-y-1 text-sm">
           {c.huong.map(([h, ten]) => <span key={h}><span className="text-muted-foreground">{ten}</span> <b className="tabular-nums">{so(tongMT(h))}</b></span>)}
           <span><span className="text-muted-foreground">cộng</span> <b className="tabular-nums text-primary">{so(tongAll(tongMT))} t</b></span>
@@ -224,7 +209,7 @@ function BangMucTieu({ nhom, thang, kyLoai = "thang", mucTieu, mucTieuThang = []
         <p className="flex-1 text-[0.6875rem] text-muted-foreground">{sua ? "Gõ số tấn (vd 400.000). Cột Thực hiện là tổng số đã nhập ở bảng thực tế bên dưới. Xóa số hoặc bấm x là bỏ mục tiêu dòng đó (bấm Lưu mới xóa hẳn). " : "Chỉ Quản lý / Quản trị đặt mục tiêu. Cột Thực hiện là tổng số đã nhập ở bảng thực tế bên dưới. "}{kyMode ? " Mục tiêu quý / năm nhập riêng; dòng nào chưa nhập thì Tổng quan cộng mục tiêu các tháng." : ""}</p>
         {sua && <Button size="sm" disabled={!doi.length} onClick={luu}><Save />Lưu mục tiêu{doi.length ? ` (${doi.length} dòng)` : ""}</Button>}
       </div></>}
-      {dan && <HopDanSL loai="muc_tieu" onApDung={apDungDan} onClose={() => setDan(false)} />}
+      {dan && <HopDanSL loai="muc_tieu" nhom={nhom} onApDung={apDungDan} onClose={() => setDan(false)} />}
     </div>
   );
 }
@@ -311,7 +296,7 @@ function BangThucTe({ nhom, thang, mucTieu, thucTe, loc, onLuu }) {
   }, [mucTieu, thucTe, extra, nhom, c.huong]);
   const cot = useMemo(() => cotTat.filter(loc), [cotTat, loc]); // các cột đang hiện (theo bộ lọc đội xe)
   const goiY = useLoaiGoiY(nhom, useMemo(() => cotTat.map((x) => x.loai), [cotTat]));
-  const dsDV = useDonVi(useMemo(() => [...new Set(cotTat.map((x) => x.donVi).filter(Boolean))], [cotTat]));
+  const dsDV = dsDonVi();
   const goiYHang = useLoaiGoiY("cang", useMemo(() => cotTat.map((x) => x.hang).filter(Boolean), [cotTat]));
   const giaTri = (key) => (key in sua ? docSo(sua[key]) || 0 : goc[key] || 0);
   const hienThi = (key) => (key in sua ? sua[key] : key in goc ? fmt(goc[key]) : "");

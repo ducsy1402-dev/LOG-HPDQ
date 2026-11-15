@@ -3,17 +3,13 @@
 import { plain, pad } from "./format";
 
 export const CA = ["CA 1", "CA 2"];
-// Đơn vị thực hiện (vận tải): "hoa_phat" = Hòa Phát; "nt:<tên>" = một nhà thầu trong Danh mục › Thiết bị cơ giới › Nhà thầu (SQL 11 bỏ giới hạn cột don_vi);
-// "nha_thau" là số liệu cũ ghi chung "Nhà thầu" trước khi chọn từng nhà thầu.
-export const DON_VI = [["hoa_phat", "Hòa Phát"], ["nha_thau", "Nhà thầu"]];
+// Đơn vị thực hiện (vận tải), anh Sỹ chốt 15/11/2026: chỉ "Hòa Phát" ("hoa_phat") và "Thuê ngoài" ("nha_thau"), không chọn từng nhà thầu.
+// Số liệu cũ ghi theo từng nhà thầu ("nt:<tên>", SQL 11) vẫn đọc được và hiện là "Thuê ngoài · <tên>".
+export const DON_VI = [["hoa_phat", "Hòa Phát"], ["nha_thau", "Thuê ngoài"]];
 export const TIEN_TO_NT = "nt:";
-export const tenDonVi = (k) => (k === "hoa_phat" ? "Hòa Phát" : k === "nha_thau" ? "Nhà thầu (chung)" : String(k || "").startsWith(TIEN_TO_NT) ? k.slice(TIEN_TO_NT.length) : k || "");
-// Danh sách chọn đơn vị: Hòa Phát, các nhà thầu (tên) và các đơn vị đã có số liệu (kể cả "Nhà thầu (chung)" cũ) -> [[giá trị, tên hiển thị]]
-export function dsDonVi(nhaThau = [], daCo = []) {
-  const ks = ["hoa_phat", ...nhaThau.filter(Boolean).map((t) => TIEN_TO_NT + t)];
-  for (const k of daCo) if (k && !ks.includes(k)) ks.push(k);
-  return ks.map((k) => [k, tenDonVi(k)]);
-}
+export const tenDonVi = (k) => (k === "hoa_phat" ? "Hòa Phát" : k === "nha_thau" ? "Thuê ngoài" : String(k || "").startsWith(TIEN_TO_NT) ? "Thuê ngoài · " + k.slice(TIEN_TO_NT.length) : k || "");
+// Danh sách chọn đơn vị: Hòa Phát và Thuê ngoài -> [[giá trị, tên hiển thị]]
+export const dsDonVi = () => DON_VI.map(([k, ten]) => [k, ten]);
 export const NHOM = {
   cang: {
     ten: "Mục tiêu khai thác cảng", huong: [["nhap", "Hàng nhập"], ["xuat", "Hàng xuất"]], nhanLoai: "Loại hàng", coDonVi: false, coLoaiHang: false,
