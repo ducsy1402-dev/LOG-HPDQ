@@ -28,18 +28,20 @@ const fmt = (n) => (n == null ? "" : soGon(n));
 export default function SanLuongTab({ nhom, thang, kyLoai = "thang", che, onLuu }) {
   const { api } = useApp();
   const [lan, setLan] = useState(0);
+  const [ban, setBan] = useState(0); // phiên bản số liệu đã tải: bảng chỉ dựng lại khi số liệu MỚI về (không dựng lại bằng số liệu cũ ngay sau khi lưu)
   const [kq, setKq] = useState(undefined); // undefined: đang tải · null: chưa chạy SQL · { mucTieu, thucTe }
+  const nap = (v) => { setKq(v); setBan((x) => x + 1); };
   const tai = useCallback(() => { setLan((x) => x + 1); onLuu?.(); }, [onLuu]);
   useEffect(() => {
     let huy = false;
     const dau = `${kyLoai}|${thang}`; // đánh dấu số liệu thuộc kỳ nào: đổi kỳ thì chờ tải xong, không dùng số liệu của kỳ trước
-    if (kyLoai === "thang") api.docSanLuongThang(nhom, thang).then((r) => { if (!huy) setKq(r && { ...r, dau }); }).catch(() => { if (!huy) setKq(null); });
+    if (kyLoai === "thang") api.docSanLuongThang(nhom, thang).then((r) => { if (!huy) nap(r && { ...r, dau }); }).catch(() => { if (!huy) nap(null); });
     else {
       // Quý / năm: mục tiêu riêng của kỳ (SQL 10) + mục tiêu và sản lượng thực tế của từng tháng trong kỳ
       const { tu, den } = khoangKy(kyLoai, thang), ts = thangTrongKy(tu, den).map((x) => x.thang);
       Promise.all([api.docMucTieuKy(nhom, thang), ...ts.map((t) => api.docSanLuongThang(nhom, t))])
-        .then(([rieng, ...rs]) => { if (!huy) setKq(rieng == null || rs.some((r) => !r) ? null : { dau, mucTieu: rieng, thucTe: rs.flatMap((r) => r.thucTe), mucTieuThang: rs.flatMap((r) => r.mucTieu), thangs: ts }); })
-        .catch(() => { if (!huy) setKq(null); });
+        .then(([rieng, ...rs]) => { if (!huy) nap(rieng == null || rs.some((r) => !r) ? null : { dau, mucTieu: rieng, thucTe: rs.flatMap((r) => r.thucTe), mucTieuThang: rs.flatMap((r) => r.mucTieu), thangs: ts }); })
+        .catch(() => { if (!huy) nap(null); });
     }
     return () => { huy = true; };
   }, [api, nhom, thang, kyLoai, lan]);
@@ -48,9 +50,9 @@ export default function SanLuongTab({ nhom, thang, kyLoai = "thang", che, onLuu 
   const loc = () => true; // (đã bỏ bộ lọc đội xe của bảng vận tải 15/11/2026)
   return (
     <div className="grid gap-4">
-      {che !== "thucTe" && <Card><CardContent className="pt-4"><BangMucTieu key={`mt-${nhom}-${kyLoai}-${thang}-${lan}`} nhom={nhom} thang={thang} kyLoai={kyLoai} mucTieu={kq.mucTieu} mucTieuThang={kq.mucTieuThang} thucTe={kq.thucTe} loc={loc} onLuu={tai} /></CardContent></Card>}
+      {che !== "thucTe" && <Card><CardContent className="pt-4"><BangMucTieu key={`mt-${nhom}-${kyLoai}-${thang}-${ban}`} nhom={nhom} thang={thang} kyLoai={kyLoai} mucTieu={kq.mucTieu} mucTieuThang={kq.mucTieuThang} thucTe={kq.thucTe} loc={loc} onLuu={tai} /></CardContent></Card>}
       {che !== "mucTieu" && <Card><CardContent className="pt-4">{kyLoai === "thang"
-        ? <BangThucTe key={`tt-${nhom}-${thang}-${lan}`} nhom={nhom} thang={thang} mucTieu={kq.mucTieu} thucTe={kq.thucTe} loc={loc} onLuu={tai} />
+        ? <BangThucTe key={`tt-${nhom}-${thang}-${ban}`} nhom={nhom} thang={thang} mucTieu={kq.mucTieu} thucTe={kq.thucTe} loc={loc} onLuu={tai} />
         : <BangTheoThang nhom={nhom} kyLoai={kyLoai} ky={thang} thangs={kq.thangs} mucTieu={kq.mucTieu} thucTe={kq.thucTe} loc={loc} />}</CardContent></Card>}
     </div>
   );

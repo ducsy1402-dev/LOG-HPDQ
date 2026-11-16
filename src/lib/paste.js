@@ -2,11 +2,33 @@
 import { docSo } from "./format";
 
 // Tách văn bản thành bảng: ưu tiên tab (Excel), không có tab thì tách bằng 2+ khoảng trắng hoặc dấu |
+// Dạng tab đọc theo quy tắc của Excel: ô có xuống dòng (Alt+Enter) hoặc có dấu " được Excel bao trong ngoặc kép ("...", "" là một dấu "),
+// nên xuống dòng TRONG ô không bị tách thành dòng mới (lỗi trước đây: ô Kho-Bãi nhiều dòng làm lệch cả bảng). Các dòng trong cùng một ô nối bằng "; ".
 export function tachBang(text) {
-  const dong = String(text || "").replace(/\r/g, "").split("\n").filter((l) => l.trim());
-  const coTab = dong.some((l) => l.includes("\t"));
-  const coDoc = !coTab && dong.some((l) => l.includes("|"));
-  return dong.map((l) => (coTab ? l.split("\t") : coDoc ? l.split("|") : l.trim().split(/\s{2,}/)).map((c) => c.trim()));
+  const t = String(text || "").replace(/\r\n?/g, "\n");
+  if (t.includes("\t")) return tachTab(t);
+  const dong = t.split("\n").filter((l) => l.trim());
+  const coDoc = dong.some((l) => l.includes("|"));
+  return dong.map((l) => (coDoc ? l.split("|") : l.trim().split(/\s{2,}/)).map((c) => c.trim()));
+}
+function tachTab(t) {
+  const rows = []; let row = [], i = 0;
+  const n = t.length, het = (k) => { while (k < n && t[k] !== "\t" && t[k] !== "\n") k++; return k; };
+  const xongDong = () => { if (row.some((c) => c.trim())) rows.push(row.map((c) => c.trim())); row = []; };
+  while (i < n) {
+    let cell;
+    if (t[i] === '"') {
+      let j = i + 1, s = "", dong = false;
+      while (j < n) { if (t[j] === '"') { if (t[j + 1] === '"') { s += '"'; j += 2; continue; } dong = true; j++; break; } s += t[j++]; }
+      if (dong && (j >= n || t[j] === "\t" || t[j] === "\n")) { cell = s.split("\n").map((x) => x.trim()).filter(Boolean).join("; "); i = j; }
+      else { const k = het(i); cell = t.slice(i, k); i = k; } // ngoặc kép không khép kín đúng kiểu Excel: đọc nguyên văn
+    } else { const k = het(i); cell = t.slice(i, k); i = k; }
+    row.push(cell);
+    if (i >= n) break;
+    if (t[i] === "\t") i++; else { i++; xongDong(); }
+  }
+  xongDong();
+  return rows;
 }
 
 // Đọc số: docSo ở format.js (dấu phẩy là thập phân, dấu chấm ngăn nghìn)
