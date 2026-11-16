@@ -43,7 +43,7 @@ export function ChonGo({ value, onChange, options = [], tuDo = true, placeholder
           className="z-[60] max-h-60 overflow-auto rounded-md border bg-popover p-1 text-sm text-popover-foreground shadow-lg">
           {hien.length ? hien.slice(0, 300).map((o, i) => (
             <div key={String(o.v)} onClick={() => chon(o)} onMouseEnter={() => setHl(i)}
-              className={cn("cursor-pointer rounded px-2 py-1.5", i === hl && "bg-accent", o.v === value && "font-medium text-primary")}>
+              className={cn("cursor-pointer rounded px-2 py-1.5", i === hl && "bg-primary/15", o.v === value && "font-medium text-primary")}>
               {o.l}{o.g && <span className="ml-1.5 text-xs text-muted-foreground">{o.g}</span>}
             </div>))
             : <div className="px-2 py-1.5 text-xs text-muted-foreground">{tuDo ? "Không có trong danh sách (giữ chữ đã gõ)" : "Không có dòng khớp"}</div>}
