@@ -54,7 +54,7 @@ export default function BieuDoKhoTQ({ kyInfo, kho, gd, tuoi }) {
             grid: { left: 4, right: 52, top: 6, bottom: 0, containLabel: true }, tooltip: { axisPointer: { type: "shadow" }, valueFormatter: (v) => `${so(v)} t` },
             xAxis: { type: "value", axisLabel: { fontSize: 10, formatter: nghin } }, yAxis: { type: "category", inverse: true, data: theoLoai.map((d) => d.ten), axisLabel: { fontSize: 10, width: 100, overflow: "truncate" } },
             series: [{ type: "bar", barMaxWidth: 14, itemStyle: { color: MAU_LOAI[loaiKho], opacity: 0.9 }, data: theoLoai.map((d) => r2(d.ton)), label: { show: true, position: "right", fontSize: 10, formatter: (p) => nghin(p.value) } }],
-          }} />) : <ChuaCo>{loaiKho === "thanh_pham" ? "Kho thành phẩm" : "Kho nguyên liệu"} chưa có tồn.</ChuaCo>}
+          }} />) : <ChuaCo>{loaiKho === "thanh_pham" ? TEN_KHO_KIEN : TEN_KHO_ROI} chưa có tồn.</ChuaCo>}
       </Khung>
       <Khung cao={CAO} ten="Lấp đầy theo bãi" phu={`theo khu vực · vạch vàng ${pct(NGUONG_KHO.vang)} · bấm bãi xem bãi nhỏ`}>
         {nhomKhu.length ? (
@@ -78,8 +78,8 @@ export default function BieuDoKhoTQ({ kyInfo, kho, gd, tuoi }) {
               </div>))}
           </div>) : <ChuaCo>Chưa có bãi nào.</ChuaCo>}
       </Khung>
-      <KhungKho cao={CAO} ten="Lũy kế xuất nhập tồn · kho thành phẩm" loai="thanh_pham" kho={kho} kyInfo={kyInfo} gd={gd || []} keHoach={keHoach} now={D.now} />
-      <KhungKho cao={CAO} ten="Lũy kế xuất nhập tồn · kho nguyên liệu" loai="nguyen_lieu" kho={kho} kyInfo={kyInfo} gd={gd || []} keHoach={keHoach} now={D.now} />
+      <KhungKho cao={CAO} ten="Lũy kế xuất nhập tồn · kho hàng kiện (thành phẩm)" loai="thanh_pham" kho={kho} kyInfo={kyInfo} gd={gd || []} keHoach={keHoach} now={D.now} />
+      <KhungKho cao={CAO} ten="Lũy kế xuất nhập tồn · kho hàng rời" loai="nguyen_lieu" kho={kho} kyInfo={kyInfo} gd={gd || []} keHoach={keHoach} now={D.now} />
       {moBai && kho.bai.some((b) => b.ten_bai === moBai) && <ChiTietBai b={kho.bai.find((b) => b.ten_bai === moBai)} kho={kho} onClose={() => setMoBai(null)} />}
     </div>
   );

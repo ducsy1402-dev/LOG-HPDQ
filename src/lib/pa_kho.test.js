@@ -77,7 +77,7 @@ describe("Kho bãi", () => {
   });
   it("tồn, lấp đầy, số ngày cấp, cảnh báo bãi đầy và tàu thiếu chỗ", () => {
     const now = t(2026, 11, 1, 12);
-    const khoBai = [{ id: 1, ten_bai: "Bãi A", dien_tich: 10000, chieu_cao: 5, hang: "Quặng vê viên" }];
+    const khoBai = [{ id: 1, ten_bai: "Bãi A", loai_kho: "nguyen_lieu", dien_tich: 10000, chieu_cao: 5, hang: "Quặng vê viên" }];
     const khoTon = [{ ten_bai: "Bãi A", hang: "Quặng vê viên", so_lo: "", ton: 100000 }];
     const giaoDich = Array.from({ length: 30 }, (_, i) => ({ ngay: ngayStr(t(2026, 11, 1) - i * 864e5), loai: "xuat", ten_bai: "Bãi A", hang: "Quặng vê viên", so_luong: 20000 }));
     const th = tongHopKho({ khoBai, khoTon, giaoDich, hangHoa: HH, now });
