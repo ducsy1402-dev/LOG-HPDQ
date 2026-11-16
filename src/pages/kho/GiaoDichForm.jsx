@@ -104,10 +104,10 @@ export default function GiaoDichForm({ loaiKho, loaiGD: loaiDau, kho, sua, onClo
   const tonLo = f.so_lo ? (loTon.find((l) => l.so_lo === f.so_lo)?.ton || 0) + (hoanLai && sua.so_lo === f.so_lo ? hoanLai : 0) : null;
   // Lỗi chặn lưu về bãi / hàng (hiện ngay dưới ô, bấm Lưu cũng báo)
   const loiBai = !f.ten_bai.trim() ? "Chọn bãi"
-    : !bai ? `Bãi "${f.ten_bai.trim()}" chưa có trong danh mục kho bãi ${tp ? "thành phẩm" : "nguyên liệu"}`
+    : !bai ? `Bãi "${f.ten_bai.trim()}" chưa quy hoạch ở ${tp ? "kho hàng kiện" : "kho hàng rời"} (Danh mục › Khai báo & quy hoạch)`
     : khuCuaBai(bai).length > 1 && !khuDi ? "Chọn bãi nhỏ"
     : dc && !f.den_bai.trim() ? "Chọn bãi đến"
-    : dc && !denBai ? `Bãi "${f.den_bai.trim()}" chưa có trong danh mục kho bãi ${tp ? "thành phẩm" : "nguyên liệu"}`
+    : dc && !denBai ? `Bãi "${f.den_bai.trim()}" chưa quy hoạch ở ${tp ? "kho hàng kiện" : "kho hàng rời"} (Danh mục › Khai báo & quy hoạch)`
     : dc && khuCuaBai(denBai).length > 1 && !khuDen ? "Chọn bãi nhỏ đến"
     : dc && denBai === bai && (!khuDi || !khuDen || khuDi.key === khuDen.key) ? "Bãi nhỏ đến phải khác bãi nhỏ đi"
     : khuChon && hang && !khuChoPhepHang(khuChon, hang, kho.hangHoa) ? `Bãi nhỏ ${khuChon.ten} không nhận ${hang}${khuChon.kieu === "co_dinh_hang" && khuChon.hang ? ` (cố định hàng ${khuChon.hang})` : khuChon.kieu === "co_dinh_nhom" ? " (cố định nhóm khác)" : ""}`
@@ -171,7 +171,7 @@ export default function GiaoDichForm({ loaiKho, loaiGD: loaiDau, kho, sua, onClo
   const nguon = NGUON_GD[loaiKho][loaiGD];
   const chonGoiY = (g) => setF((o) => (dc ? { ...o, den_bai: g.ten_bai, den_khu: g.khu.ten } : { ...o, ten_bai: g.ten_bai, ten_khu: g.khu.ten, hang: hang || o.hang }));
   return (
-    <Dialog onOpenChange={(o) => !o && onClose()} title={`${sua ? `Sửa ${TEN_GD[loaiGD].toLowerCase()}` : "Nhập liệu"} · ${tp ? "kho thành phẩm" : "kho nguyên liệu"}`} className="max-w-2xl"
+    <Dialog onOpenChange={(o) => !o && onClose()} title={`${sua ? `Sửa ${TEN_GD[loaiGD].toLowerCase()}` : "Nhập liệu"} · ${tp ? "kho hàng kiện (thành phẩm)" : "kho hàng rời"}`} className="max-w-2xl"
       footer={<><Button variant="outline" onClick={onClose}>Hủy</Button>
         {!sua && onDan && <Button variant="outline" className="mr-auto" onClick={onDan} title="Nạp nhiều lượt cùng lúc từ bảng Excel (dán hoặc chọn file)"><ClipboardPaste />Dán nhanh / Excel</Button>}
         {!sua && <Button variant="outline" onClick={themDong} title="Đưa dòng đang điền vào danh sách chờ, điền tiếp lượt khác (nhập / xuất / điều chuyển)"><Plus />Thêm dòng</Button>}

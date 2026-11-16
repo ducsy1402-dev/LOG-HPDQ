@@ -71,13 +71,13 @@ export default function DanNhanhKho({ loaiKho, kho, onClose }) {
     const den = baiDm.get(plain(r.den_bai)), hang = String(r.hang ?? "").trim(), baiGhi = String(r.ten_bai ?? "").trim(), gianGhi = String(r.ten_khu ?? "").trim();
     let chuaBai = false, bai = baiDm.get(plain(baiGhi));
     const thieuBai = (m) => { loi.push(m); chuaBai = true; };
-    if (baiGhi && !bai) thieuBai(`Bãi "${baiGhi}" chưa có trong danh mục kho bãi ${loaiKho === "thanh_pham" ? "thành phẩm" : "nguyên liệu"}`);
+    if (baiGhi && !bai) thieuBai(`Bãi "${baiGhi}" chưa quy hoạch ở ${loaiKho === "thanh_pham" ? "kho hàng kiện" : "kho hàng rời"} (Danh mục › Khai báo & quy hoạch)`);
     if (!baiGhi) {
       // Không ghi bãi: suy ra từ Gian/lô, không có thì theo hàng
       const vao = loai === "nhap" || loai === "dau_ky";
       if (gianGhi) {
         const ds = dongKhoNay.filter((d) => plain(d.ten) === plain(gianGhi)), ok = hang ? ds.filter((d) => khuChoPhepHang(d, hang, kho.hangHoa)) : ds, bs = [...new Set((ok.length ? ok : ds).map((d) => d.ten_bai))];
-        if (!ds.length) thieuBai(`Gian/lô "${gianGhi}" chưa có trong danh mục kho bãi ${loaiKho === "thanh_pham" ? "thành phẩm" : "nguyên liệu"}`);
+        if (!ds.length) thieuBai(`Gian/lô "${gianGhi}" chưa quy hoạch ở ${loaiKho === "thanh_pham" ? "kho hàng kiện" : "kho hàng rời"} (Danh mục › Khai báo & quy hoạch)`);
         else if (bs.length === 1) bai = bs[0];
         else loi.push(`Gian/lô "${gianGhi}" có ở ${bs.length} bãi (${bs.join(", ")}): thêm cột Bãi`);
       } else if (hang) {

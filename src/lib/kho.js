@@ -180,7 +180,7 @@ export function tongHopKho({ khoBai = [], khoTon = [], khoLo = [], giaoDich = []
       const w = co.reduce((s, c) => s + c.ton, 0);
       if (w > 0) { const tt = co.reduce((s, c) => s + c.ton * c.tt, 0) / w; sc = { tan: +r.dien_tich * +r.chieu_cao * tt, cach: `${r.dien_tich} m² × ${r.chieu_cao} m × ${so(tt)} t/m³ (bình quân hàng đang chứa)` }; }
     }
-    const loai = r.loai_kho || (r.hang ? loaiKhoTuHang(r.hang, hangHoa) : chua[0] ? loaiKhoTuHang(chua[0].hang, hangHoa) : "nguyen_lieu");
+    const loai = r.loai_kho || "trong"; // quy hoạch chứa Trống: không thuộc tab kho nào
     const tieuThu = r.hang ? (+r.tieu_thu_ngay > 0 ? +r.tieu_thu_ngay : (xuat30.get(plain(r.hang)) || 0) / 30) : 0;
     const tonCaHang = tonHang.get(plain(r.hang)) || 0;
     return { ...r, key, ten: tenKhu(r), kieu, nhomBai: kieu === "co_dinh_nhom" ? r.nhom_bai || nhomCua(r.hang, hangHoa) : null, loai, chua, sucChua: sc.tan, cachTinh: sc.cach, ton,
@@ -456,30 +456,60 @@ export function soSanhKhoTheoKhu({ dong = [], keHoach = [], giaoDich = [], gan, 
   return { rows, matKH: kh.mat, dangDienRa };
 }
 
-// ---------- Trang Khai thác kho bãi: 4 tab (12–13/11/2026, anh Sỹ chốt) ----------
-// Overview = sơ đồ mọi kho / bãi theo khu vực; ba tab kho chia theo loại hàng:
-//   Kho HRC          = thành phẩm thuộc nhóm HRC (hàng có chữ HRC: "Thép cuộn HRC");
-//   Kho Thanh/Cuộn   = các thành phẩm còn lại (thép thanh, thép cuộn, cuộn CLC, phôi, slab, hàng bao…);
-//   Kho Nguyên liệu  = mọi kho / bãi nguyên liệu.
-// Muốn đổi cách chia thì sửa laHRC / TAB_KHO tại đây.
+// ---------- Trang Khai thác kho bãi: 3 tab (16/11/2026, anh Sỹ chốt: bỏ Kho HRC / Thanh-Cuộn / Nguyên liệu) ----------
+// Overview = sơ đồ mọi kho / bãi theo khu vực; hai tab kho chia theo QUY HOẠCH của gian / lô (Danh mục › Khai báo & quy hoạch, cột loai_kho):
+//   Kho hàng kiện (thành phẩm) = gian / lô quy hoạch chứa Hàng kiện (loai_kho = thanh_pham);
+//   Kho hàng rời               = gian / lô quy hoạch chứa Hàng rời (loai_kho = nguyen_lieu).
+// Muốn đổi tên tab thì sửa hai hằng TEN_KHO_KIEN / TEN_KHO_ROI.
+export const TEN_KHO_KIEN = "Kho hàng kiện (thành phẩm)";
+export const TEN_KHO_ROI = "Kho hàng rời";
 export const TAB_KHO = [
   { id: "overview", ten: "Overview" },
-  { id: "hrc", ten: "Kho HRC", loai: "thanh_pham", kieu: "hrc" },
-  { id: "thanh-cuon", ten: "Kho Thanh/Cuộn", loai: "thanh_pham", kieu: "khac" },
-  { id: "nguyen-lieu", ten: "Kho Nguyên liệu", loai: "nguyen_lieu" },
+  { id: "hang-kien", ten: TEN_KHO_KIEN, loai: "thanh_pham" },
+  { id: "hang-roi", ten: TEN_KHO_ROI, loai: "nguyen_lieu" },
 ];
+// Đường dẫn cũ (kho/hrc, kho/thanh-cuon, kho/nguyen-lieu) vẫn mở đúng tab mới
+export const TAB_KHO_CU = { hrc: "hang-kien", "thanh-cuon": "hang-kien", "nguyen-lieu": "hang-roi" };
+// Quy hoạch chứa của gian / lô: Hàng rời = kho nguyên liệu, Hàng kiện = kho thành phẩm
+export const QUY_HOACH_CHUA = [["nguyen_lieu", "Hàng rời"], ["thanh_pham", "Hàng kiện"]];
+export const tenQuyHoach = (loai) => (loai === "thanh_pham" ? "Hàng kiện" : loai === "nguyen_lieu" ? "Hàng rời" : "Trống"); // Trống = loai_kho null: chưa hiện ở hai tab kho
+// Loại quy hoạch của một dòng kho_bai: thanh_pham | nguyen_lieu | "trong" (loai_kho trống)
+export const loaiQuyHoach = (r) => r.loai_kho || "trong";
+
+// Kiểm tra khi khai báo / quy hoạch (trả chuỗi lỗi, không lỗi = null):
+//   • Tên kho / bãi không trùng nhau (so không dấu, bỏ ký tự đặc biệt);
+//   • Gian / lô trong cùng một kho / bãi không trùng nhau;
+//   • Tổng diện tích phân bổ của các gian / lô không vượt diện tích kho / bãi (bãi chưa khai báo diện tích thì không kiểm).
+const sat = (a, b) => Math.abs(a - b) < 1e-6;
+export function kiemTraTenBai(ten, dsBai, idBo) {
+  const t = String(ten || "").trim();
+  if (!t) return "Chưa nhập tên kho / bãi";
+  const trung = dsBai.find((x) => x.id !== idBo && khoaTenBai(x.ten) === khoaTenBai(t));
+  return trung ? `Tên kho / bãi "${t}" đã được khai báo (không cho trùng)` : null;
+}
+export function kiemTraGianLo(r, dongBai, dienTichBai) {
+  const ten = String(r.ten_khu || "").trim();
+  if (!ten) return "Chưa nhập tên gian / lô";
+  const khac = dongBai.filter((x) => x.id == null || x.id !== r.id);
+  if (khac.some((x) => plain(tenKhu(x)) === plain(ten))) return `Gian / lô "${ten}" đã quy hoạch trong kho / bãi này (không cho trùng)`;
+  const dt = +r.dien_tich || 0;
+  if (dt < 0) return "Diện tích phân bổ không được âm";
+  if (dienTichBai > 0) {
+    const da = khac.reduce((s, x) => s + (+x.dien_tich || 0), 0);
+    if (da + dt > dienTichBai && !sat(da + dt, dienTichBai)) return `Vượt diện tích kho / bãi: các gian / lô khác đã phân bổ ${so(da)} m², thêm ${so(dt)} m² là ${so(da + dt)} m² > ${so(dienTichBai)} m² (còn trống ${so(Math.max(0, dienTichBai - da))} m²)`;
+  }
+  return null;
+}
+// Hàng HRC (dùng ở kế hoạch ngày của cảng để chia thẻ tàu HRC)
 export const laHRC = (hang, hangHoa = []) => /\bhrc\b/.test(plain(nhomCua(hang, hangHoa) || "")) || /\bhrc\b/.test(plain(hang));
 // Bản sao của kho tổng hợp chỉ gồm gian / lô, tồn, lô của một tab (các thành phần biểu đồ / hộp thao tác dùng nguyên không cần sửa).
 // Gian / lô chưa có hàng nào (bãi tự do còn trống) hiện ở mọi tab cùng loại kho.
 export function locKhoTheoTab(kho, tab) {
   if (!kho || !tab?.loai) return kho;
-  const hh = kho.hangHoa || [];
-  const khop = (hang) => !tab.kieu || laHRC(hang, hh) === (tab.kieu === "hrc");
-  const dongOk = (d) => { const hs = [d.hang, ...(d.chua || []).map((c) => c.hang)].filter(Boolean); return !hs.length || hs.some(khop); };
-  const dong = kho.dong.filter((d) => d.loai === tab.loai && dongOk(d)), key = new Set(dong.map((d) => d.key));
+  const dong = kho.dong.filter((d) => d.loai === tab.loai), key = new Set(dong.map((d) => d.key));
   return {
     ...kho, dong, dongAll: kho.dong, // dongAll: mọi gian / lô (để biết dòng kế hoạch thuộc tab khác, không báo nhầm "bãi đã xóa")
-    cap: kho.cap.filter((c) => c.loai === tab.loai && (key.has(c.key) || khop(c.hang)) && khop(c.hang)),
-    lo: kho.lo.filter((l) => khop(l.hang)),
+    cap: kho.cap.filter((c) => c.loai === tab.loai && key.has(c.key)),
+    lo: kho.lo.filter((l) => key.has(kho.gan(l.ten_bai, l.hang, l.ten_khu))),
   };
 }

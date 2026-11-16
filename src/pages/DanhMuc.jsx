@@ -1,5 +1,5 @@
-import { useRef, useState } from "react";
-import { Truck, Users, Anchor, Package, Warehouse, HardHat, Plus, Save, Upload, Download, Pencil, Database, Wrench, Construction, Columns3, Trash2, Gauge, ListOrdered, Boxes, Route, MapPinned, Layers } from "lucide-react";
+import { Fragment, useRef, useState } from "react";
+import { Truck, Users, Anchor, Package, Warehouse, HardHat, Plus, Save, Upload, Download, Pencil, Database, Wrench, Construction, Columns3, Trash2, Gauge, ListOrdered, Boxes, Route, MapPinned, Layers, LayoutGrid } from "lucide-react";
 import { useApp } from "@/store";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageHead } from "@/components/common";
@@ -13,7 +13,8 @@ import { DanhSachNhanSu } from "@/thietbi/tabs/Staffing";
 import { DEFAULT_NHA_THAU } from "@/thietbi/lib/plan";
 import DM_BANG from "@/data/dmBang.json";
 import CotThem from "@/components/CotThem";
-import { tuTinhSucChua } from "@/lib/kho";
+import { tuTinhSucChua, khoaTenBai, kiemTraTenBai, loaiQuyHoach, TEN_KHO_KIEN, TEN_KHO_ROI } from "@/lib/kho";
+import QuyHoachBai from "@/pages/kho/QuyHoachBai";
 
 // Danh mục dùng chung cho cả web. Mỗi danh sách cùng giao diện Danh mục xe: Thêm, Import, Xuất Excel; Sửa / Xóa ở từng dòng (sửa trong hộp riêng).
 // Cột: [khóa, tên cột, loại (text | so | bool | mang), độ rộng, tên cột khác khi nhập Excel]
@@ -103,32 +104,73 @@ export default function DanhMuc() {
     };
   };
 
-  // Kho bãi: mỗi dòng một gian / lô (bãi nhỏ) của kho / bãi lớn; tab thành phẩm và tab nguyên liệu
+  // Khai báo & quy hoạch (16/11/2026): khai báo kho / bãi (bảng danh_muc_bang "bai_lon") rồi bấm biểu tượng Quy hoạch ở từng dòng để chia gian / lô
+  // (mỗi gian / lô là một dòng kho_bai: Gian/lô, Diện tích phân bổ, Thiết bị bãi, Quy hoạch chứa = Hàng rời / Hàng kiện).
+  const dsHang = tbD?.hanghoa || [];
+  const nguonKhaiBao = () => {
+    const goc = bangPhu("bai_lon"), kT = DM_BANG.bai_lon.cot[0][0], kDT = DM_BANG.bai_lon.cot[1][0];
+    const dongCua = (ten) => (D.khoBai || []).filter((r) => khoaTenBai(r.ten_bai) === khoaTenBai(ten));
+    const daKhaiBao = new Set(goc.rows.map((r) => khoaTenBai(r[kT])));
+    const chuaKhaiBao = [...new Set((D.khoBai || []).map((r) => r.ten_bai).filter((t) => t && !daKhaiBao.has(khoaTenBai(t))))];
+    // Kiểm tra trước khi lưu: tên không trùng, không đổi tên kho / bãi đã quy hoạch, diện tích không nhỏ hơn đã phân bổ
+    const kiemTra = (rows) => {
+      const sau = new Map(goc.rows.map((r) => [r.id, r[kT]]));
+      let tam = -1;
+      for (const r of rows) {
+        const e = kiemTraTenBai(r[kT], [...sau].map(([id, ten]) => ({ id, ten })), r.id);
+        if (e) return e;
+        const cu = r.id != null ? sau.get(r.id) : null;
+        if (cu && khoaTenBai(cu) !== khoaTenBai(r[kT]) && dongCua(cu).length) return `Kho / bãi "${cu}" đã quy hoạch ${dongCua(cu).length} gian / lô nên không đổi tên được (xóa quy hoạch trước)`;
+        const dt = +r[kDT] || 0, da = dongCua(r[kT]).reduce((x, d) => x + (+d.dien_tich || 0), 0);
+        if (dt > 0 && da > dt + 1e-6) return `Diện tích "${r[kT]}" (${so(dt)} m²) nhỏ hơn diện tích đã phân bổ cho các gian / lô (${so(da)} m²)`;
+        sau.set(r.id ?? tam--, r[kT]);
+      }
+      return null;
+    };
+    const chanXoa = (rs) => { const co = rs.find((r) => dongCua(r[kT]).length); if (!co) return false; toast(`"${co[kT]}" đã quy hoạch ${dongCua(co[kT]).length} gian / lô: xóa quy hoạch các gian / lô trước rồi mới xóa được kho / bãi`, "bad"); return true; };
+    return {
+      ...goc, ten: "Khai báo & quy hoạch", tenNutThem: "Khai báo", gonNut: true, mo: null,
+      moDau: <>Khai báo kho / bãi (tên, diện tích, khu vực, loại), rồi bấm biểu tượng <b>Quy hoạch</b> ở từng dòng để chia gian / lô: diện tích phân bổ, thiết bị bãi, quy hoạch chứa (Hàng rời / Hàng kiện). Chỉ gian / lô đã quy hoạch mới hiện ở hai tab <b>{TEN_KHO_ROI}</b> và <b>{TEN_KHO_KIEN}</b>. Không trùng tên kho / bãi, không trùng gian / lô trong cùng kho / bãi, tổng diện tích phân bổ không vượt diện tích kho / bãi.
+        {chuaKhaiBao.length > 0 && <div style={{ marginTop: 6, color: "var(--warn)" }}>Có {chuaKhaiBao.length} kho / bãi đã có gian / lô nhưng chưa khai báo ở đây: {chuaKhaiBao.join(", ")}. Bấm Khai báo để thêm (giữ đúng tên).</div>}</>,
+      luu: (rows) => { const e = kiemTra(rows); if (e) { toast(e, "bad"); return false; } return goc.luu(rows); },
+      xoa: (r) => (chanXoa([r]) ? false : goc.xoa(r)),
+      xoaNhieu: (rs) => (chanXoa(rs) ? false : goc.xoaNhieu(rs)),
+      nutDong: (r, { mo, bam }) => { const n = dongCua(r[kT]).length; return (
+        <button type="button" className={"btn sm" + (mo ? " pri" : "")} title="Quy hoạch gian / lô" aria-label={`Quy hoạch gian / lô của ${r[kT]}`} onClick={bam}><LayoutGrid size={13} />{n > 0 && <span style={{ marginLeft: 2 }}>{n}</span>}</button>); },
+      moRong: (r) => (
+        <QuyHoachBai bai={{ ten: r[kT], dienTich: r[kDT] }} dong={dongCua(r[kT])} hangHoa={dsHang} coSua={quyen.suaDmKho} toast={toast}
+          onLuu={(row, moi) => run(() => api.upsertRows("kho_bai", [row], "id"), moi ? `Đã quy hoạch gian / lô ${row.ten_khu}` : `Đã sửa quy hoạch ${row.ten_khu}`)}
+          onXoa={(row) => run(() => api.deleteRow("kho_bai", "id", row.id), `Đã xóa quy hoạch ${row.ten_khu || row.hang || ""}`)} />),
+    };
+  };
+
+  // Kho hàng kiện (thành phẩm) / Kho hàng rời: các gian / lô ĐÃ quy hoạch (tab Khai báo & quy hoạch) và thông tin của từng gian / lô:
+  // hàng đang chứa, sức chứa danh nghĩa, hệ số lưu chứa, sức chứa khả dụng, số lớp xếp (hàng kiện) / chiều cao đống (hàng rời)…
   const nguonKho = (loai) => {
     const tp = loai === "thanh_pham";
     return {
-      ten: tp ? "Kho thành phẩm" : "Kho nguyên liệu", khoa: "id", batBuoc: "ten_bai", coSua: quyen.suaDmKho, ai: "quản trị", bang: "kho", anCot: ["khu vuc"],
-      rows: (D.khoBai || []).filter((r) => (tp ? r.loai_kho === "thanh_pham" : r.loai_kho !== "thanh_pham")),
-      mo: `Mỗi dòng là một gian / lô trong kho / bãi lớn. Sức chứa khả dụng (tấn) là số web dùng; để trống thì web tự tính = sức chứa danh nghĩa × hệ số lưu chứa (chưa có hệ số thì = sức chứa danh nghĩa)${tp ? "" : "; sức chứa danh nghĩa để trống thì = diện tích × chiều cao đống × tỷ khối hàng"}. Kho / bãi khai báo "Cố định" thì mỗi gian / lô chỉ nhận đúng hàng của dòng; "Tự do" nhận mọi hàng (sửa ở tab Khai báo kho / bãi).`,
+      ten: tp ? TEN_KHO_KIEN : TEN_KHO_ROI, khoa: "id", batBuoc: "ten_bai", coSua: quyen.suaDmKho, ai: "quản trị", bang: "kho", anCot: ["khu vuc"], chiSua: true,
+      rows: (D.khoBai || []).filter((r) => loaiQuyHoach(r) === loai),
+      khoaDoc: ["ten_bai", "ten_khu", "dien_tich", "thiet_bi"],
+      mo: `Chỉ hiện các gian / lô đã quy hoạch ${tp ? "Hàng kiện" : "Hàng rời"} (thêm, sửa, xóa ở tab Khai báo & quy hoạch › biểu tượng Quy hoạch). Ở đây khai báo thông tin của từng gian / lô. Sức chứa khả dụng (tấn) là số web dùng; để trống thì web tự tính = sức chứa danh nghĩa × hệ số lưu chứa (chưa có hệ số thì = sức chứa danh nghĩa)${tp ? "" : "; sức chứa danh nghĩa để trống thì = diện tích × chiều cao đống × tỷ khối hàng"}. Kho / bãi khai báo "Cố định" thì mỗi gian / lô chỉ nhận đúng hàng của dòng; "Tự do" nhận mọi hàng (sửa ở tab Khai báo & quy hoạch).`,
       cot: [["ten_bai", "Tên kho / bãi", "text", 150, ["ten kho/bai", "ten kho bai", "bai lon", "ten bai"]], ["ten_khu", "Gian / lô", "text", 140, ["gian/lo", "gian lo", "bai nho", "khu"]],
         ["dien_tich", "Diện tích phân bổ (m²)", "so", 100, ["dien tich phan bo", "dien tich"]],
         ...(tp ? (khoMoi ? [["so_lop", "Số lớp xếp khả dụng", "so", 90, ["so lop xep kha dung", "so lop"]]] : []) : [["chieu_cao", "Chiều cao đống (m)", "so", 90, ["chieu cao dong", "chieu cao"]]]),
         ["hang", "Hàng đang chứa", "text", 200, ["ten hang", "ten hang (hang dang chua)", "hang hoa"]],
         ...(khoMoi ? [["suc_chua_dn", "Sức chứa danh nghĩa (t)", "so", 110, ["suc chua danh nghia"]], ["he_so_luu_chua", "Hệ số lưu chứa", "so", 80, ["he so luu chua"]]] : []),
         ["suc_chua_tay", "Sức chứa khả dụng (t)", "so", 110, ["suc chua kha dung", "suc chua nhap tay"]],
-        ...(tp ? [] : [["tieu_thu_ngay", "Tiêu thụ / ngày (t)", "so", 100, ["tieu thu"]]]),
-        ["thiet_bi", "Thiết bị tại kho / bãi", "text", 140, ["thiet bi tai kho/bai", "thiet bi"]], ["ghi_chu", "Ghi chú", "text", 180]],
-      ph: { ten_khu: "Trống = tên hàng", suc_chua_tay: "Trống = danh nghĩa × hệ số lưu chứa", ...(tp ? {} : { suc_chua_dn: "Trống = diện tích × cao × tỷ khối" }) },
-      goiY: { ten_bai: [...new Set((D.khoBai || []).map((r) => r.ten_bai).filter(Boolean))], hang: (tbD?.hanghoa || []).map((h) => h.loai_hang) },
-      khop: (o, rows) => rows.find((x) => x.ten_bai === o.ten_bai && (x.ten_khu || "") === (o.ten_khu || "") && (x.hang || "") === (o.hang || ""))?.id,
+
+        ["thiet_bi", "Thiết bị bãi", "text", 140, ["thiet bi tai kho/bai", "thiet bi bai", "thiet bi"]], ["ghi_chu", "Ghi chú", "text", 180]],
+      ph: { suc_chua_tay: "Trống = danh nghĩa × hệ số lưu chứa", ...(tp ? {} : { suc_chua_dn: "Trống = diện tích × cao × tỷ khối" }) },
+      goiY: { hang: dsHang.map((h) => h.loai_hang) },
+      // Chỉ cập nhật gian / lô đã quy hoạch (khớp tên kho / bãi + gian / lô); import không tạo gian / lô mới
+      khop: (o, rows) => rows.find((x) => khoaTenBai(x.ten_bai) === khoaTenBai(o.ten_bai) && String(x.ten_khu || x.hang || "").trim().toLowerCase() === String(o.ten_khu || "").trim().toLowerCase())?.id,
       luu: (rows) => {
-        // Sức chứa để trống thì tự tính (danh nghĩa × hệ số lưu chứa; kho nguyên liệu: danh nghĩa = diện tích × cao × tỷ khối)
-        const tt = tuTinhSucChua(rows, loai, tbD?.hanghoa || [], khoMoi);
+        // Sức chứa để trống thì tự tính (danh nghĩa × hệ số lưu chứa; kho hàng rời: danh nghĩa = diện tích × cao × tỷ khối)
+        const tt = tuTinhSucChua(rows, loai, dsHang, khoMoi);
         if (tt.thieuHeSo) toast(tt.thieuHeSo === 1 ? "Chưa điền hệ số lưu chứa: lấy sức chứa khả dụng = sức chứa danh nghĩa." : `${tt.thieuHeSo} dòng chưa điền hệ số lưu chứa: lấy sức chứa khả dụng = sức chứa danh nghĩa.`);
-        return run(() => api.upsertRows("kho_bai", tt.rows.map((r) => ({ ...r, loai_kho: loai, ...(D.coSql17 ? { ten_khu: String(r.ten_khu || "").trim() || null } : {}) })), "id"), `Đã lưu ${rows.length} dòng kho bãi${tt.tuTinh ? " (đã tự tính sức chứa để trống)" : ""}`);
+        return run(() => api.upsertRows("kho_bai", tt.rows.map((r) => ({ ...r, loai_kho: loai, ...(D.coSql17 ? { ten_khu: String(r.ten_khu || "").trim() || null } : {}) })), "id"), `Đã lưu ${rows.length} gian / lô${tt.tuTinh ? " (đã tự tính sức chứa để trống)" : ""}`);
       },
-      xoa: (r) => run(() => api.deleteRow("kho_bai", "id", r.id), `Đã xóa ${r.ten_bai}${r.ten_khu ? ` › ${r.ten_khu}` : ""}`),
-      xoaNhieu: (rs) => run(() => api.deleteRows("kho_bai", "id", rs.map((r) => r.id)), `Đã xóa ${rs.length} dòng`),
     };
   };
 
@@ -176,9 +218,9 @@ export default function DanhMuc() {
       ["thanh-pham", "Hàng thành phẩm (kiện)", Boxes, <BangSua nguon={nguonHang("thanh_pham")} icon={Boxes} />],
     ]} /> : <TBCho />],
     ["kho", "Danh mục kho bãi", Warehouse, canCang || <TabNho key="kb" khoa="kho" ds={[
-      ["khai-bao", "Khai báo kho / bãi", MapPinned, bangPhuO("bai_lon", MapPinned)],
-      ["thanh-pham", "Kho thành phẩm", Boxes, <BangSua nguon={nguonKho("thanh_pham")} icon={Boxes} />],
-      ["nguyen-lieu", "Kho nguyên liệu", Warehouse, <BangSua nguon={nguonKho("nguyen_lieu")} icon={Warehouse} />],
+      ["khai-bao", "Khai báo & quy hoạch", MapPinned, canSql08 || <BangSua key="kbqh" nguon={nguonKhaiBao()} icon={MapPinned} />],
+      ["thanh-pham", TEN_KHO_KIEN, Boxes, <BangSua nguon={nguonKho("thanh_pham")} icon={Boxes} />],
+      ["nguyen-lieu", TEN_KHO_ROI, Warehouse, <BangSua nguon={nguonKho("nguyen_lieu")} icon={Warehouse} />],
     ]} />],
     ["ben", "Danh mục cầu bến", Anchor, canCang || <TabNho key="cb" khoa="ben" ds={[
       ["ds", "Danh sách bến", Anchor, <BangSua nguon={nguonBen("Cầu bến", cotBen, "Mã bến theo file danh mục: TL (bến tàu lai), B01…B11, HH2, HH3, 6CTH, 7CTH; cột Tên khác giữ mã cũ (1A, 1…11) để dán / nhập kiểu cũ vẫn nhận. Mớn ghi ≤ là giới hạn cứng khi kiểm tra tàu – bến.")} icon={Anchor} />],
@@ -214,6 +256,7 @@ function BangSua({ nguon, icon }) {
   const [q, setQ] = useState("");
   const [nhap, setNhap] = useState(null);
   const [sua, setSua] = useState(null); // "moi" = thêm, dòng = sửa
+  const [moRong, setMoRong] = useState(null); // khóa dòng đang mở bảng con (cfg.moRong)
   const fileRef = useRef();
   const tenCot = (k) => cfg.cot.find((c) => c[0] === k)?.[1] || k;
   const sach = (r) => {
@@ -258,7 +301,7 @@ function BangSua({ nguon, icon }) {
       const hi = aoa.findIndex((r) => r.filter((c) => khopCot(c)).length >= Math.min(2, cfg.cot.length));
       if (hi < 0) return toast(`Không thấy dòng tiêu đề. Cần các cột như: ${cfg.cot.map((c) => c[1]).join(", ")}`, "bad");
       const map = aoa[hi].map(khopCot);
-      const out = []; let truoc = {};
+      const out = []; let truoc = {}, boQua = 0;
       for (const r of aoa.slice(hi + 1)) {
         if (r.every((c) => c === "" || c == null)) continue;
         const thoi = {};
@@ -269,8 +312,10 @@ function BangSua({ nguon, icon }) {
         if (cfg.chuyenNhap) o = cfg.chuyenNhap(o, thoi);
         if (!String(o[khoaNhap] ?? "").trim()) continue;
         if (cfg.khop) { const id = cfg.khop(o, goc); if (id != null) o.id = id; }
+        if (cfg.chiSua && o.id == null) { boQua++; continue; } // danh mục chỉ cập nhật dòng đã có
         out.push(o);
       }
+      if (boQua) toast(`${boQua} dòng không khớp gian / lô đã quy hoạch nên bị bỏ qua (quy hoạch gian / lô ở tab Khai báo & quy hoạch trước).`, "bad");
       setNhap({ file: `${file.name} · sheet ${ten}`, rows: out, cot: [...new Set(map.filter(Boolean))] });
     } catch (e) { fail(e); }
   };
@@ -294,10 +339,10 @@ function BangSua({ nguon, icon }) {
             <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" style={{ display: "none" }} onChange={(e) => { if (e.target.files[0]) docFile(e.target.files[0]); e.target.value = ""; }} />
             <button className="btn sm" onClick={() => fileRef.current.click()}><Upload size={14} />Import</button>
             {quyen.quanTri && <button className="btn sm" onClick={() => (coThem ? setMoCot(true) : toast("Cần chạy SQL 18 trong Supabase trước khi thêm cột", "bad"))} title="Thêm / đổi tên / xóa cột tự đặt của bảng này"><Columns3 size={14} />Thêm cột</button>}
-            <button className="btn sm pri" onClick={() => setSua("moi")}><Plus size={14} />Thêm</button>
+            {!cfg.chiSua && <button className="btn sm pri" onClick={() => setSua("moi")}><Plus size={14} />{cfg.tenNutThem || "Thêm"}</button>}
           </>}
         </>}>
-        {(cfg.mo || !coSua) && <div className="small mute mb">{cfg.mo}{!coSua && ` Chỉ ${cfg.ai} sửa được danh mục này.`}</div>}
+        {(cfg.mo || cfg.moDau || !coSua) && <div className="small mute mb">{cfg.moDau || cfg.mo}{!coSua && ` Chỉ ${cfg.ai} sửa được danh mục này.`}</div>}
         {coSua && cfg.xoaNhieu && <ThanhChon c={c} keys={keysHien} onXoa={xoaChon} />}
         {hien.length ? (
           <div className="tw">
@@ -306,22 +351,26 @@ function BangSua({ nguon, icon }) {
                 {cfg.cot.map(([k, t, loai]) => <th key={k} className={loai === "so" ? "n" : undefined}>{t}
                   {k[0] === "$" && quyen.quanTri && coThem && <button type="button" className="ico-x" onClick={() => setXoaCot(cotThem.find((x) => "$" + x.ma === k))} title={`Xóa cột "${t}"`} aria-label={`Xóa cột ${t}`}
                     style={{ marginLeft: 4, border: 0, background: "none", color: "var(--muted)", cursor: "pointer", padding: 0, verticalAlign: "middle" }}><Trash2 size={12} /></button>}</th>)}
-                {coSua && <th className="act"></th>}</tr></thead>
+                {(coSua || cfg.nutDong) && <th className="act"></th>}</tr></thead>
               <tbody>{hien.map((r, i) => (
-                <tr key={idKhoa ? r.id ?? i : r[cfg.khoa] ?? i} style={c.chon.has(khoaDong(r)) ? { background: "color-mix(in srgb, var(--bad) 6%, transparent)" } : undefined}>
-                  {coSua && cfg.xoaNhieu && <OTick c={c} k={khoaDong(r)} ten={o(r, k0, l0)} />}
-                  {cfg.cot.map(([k, , loai, w], j) => (j === 0
-                    ? <td key={k}>{coSua ? <button className="ma" onClick={() => setSua(r)} title="Sửa">{o(r, k, loai)}</button> : <span className="ma" style={{ cursor: "default" }}>{o(r, k, loai)}</span>}</td>
-                    : <td key={k} className={loai === "so" ? "n" : undefined} title={loai === "text" && w >= 160 ? r[k] || undefined : undefined}
-                        style={loai === "text" && w >= 160 ? { maxWidth: w + 80, overflow: "hidden", textOverflow: "ellipsis" } : undefined}>{o(r, k, loai)}</td>))}
-                  {coSua && <td className="act"><div className="row" style={{ gap: 4, flexWrap: "nowrap" }}>
-                    <button className="btn sm" onClick={() => setSua(r)}><Pencil size={13} />Sửa</button>
-                    <TConfirm onConfirm={() => cfg.xoa(r)} title={`Xóa ${o(r, k0, l0)} khỏi danh mục`} />
-                  </div></td>}
-                </tr>))}</tbody>
+                <Fragment key={idKhoa ? r.id ?? i : r[cfg.khoa] ?? i}>
+                  <tr style={c.chon.has(khoaDong(r)) ? { background: "color-mix(in srgb, var(--bad) 6%, transparent)" } : undefined}>
+                    {coSua && cfg.xoaNhieu && <OTick c={c} k={khoaDong(r)} ten={o(r, k0, l0)} />}
+                    {cfg.cot.map(([k, , loai, w], j) => (j === 0
+                      ? <td key={k}>{coSua ? <button className="ma" onClick={() => setSua(r)} title="Sửa">{o(r, k, loai)}</button> : <span className="ma" style={{ cursor: "default" }}>{o(r, k, loai)}</span>}</td>
+                      : <td key={k} className={loai === "so" ? "n" : undefined} title={loai === "text" && w >= 160 ? r[k] || undefined : undefined}
+                          style={loai === "text" && w >= 160 ? { maxWidth: w + 80, overflow: "hidden", textOverflow: "ellipsis" } : undefined}>{o(r, k, loai)}</td>))}
+                    {(coSua || cfg.nutDong) && <td className="act"><div className="row" style={{ gap: 4, flexWrap: "nowrap" }}>
+                      {cfg.nutDong?.(r, { mo: moRong === khoaDong(r), bam: () => setMoRong((x) => (x === khoaDong(r) ? null : khoaDong(r))) })}
+                      {coSua && <button className="btn sm" onClick={() => setSua(r)} title="Sửa" aria-label="Sửa">{cfg.gonNut ? <Pencil size={13} /> : <><Pencil size={13} />Sửa</>}</button>}
+                      {coSua && cfg.xoa && <TConfirm onConfirm={() => cfg.xoa(r)} title={`Xóa ${o(r, k0, l0)} khỏi danh mục`} confirmText={cfg.gonNut ? "Xóa?" : "Xác nhận"}>{cfg.gonNut ? <Trash2 size={13} /> : "Xóa"}</TConfirm>}
+                    </div></td>}
+                  </tr>
+                  {cfg.moRong && moRong === khoaDong(r) && <tr><td colSpan={cfg.cot.length + 1 + (coSua && cfg.xoaNhieu ? 1 : 0)} style={{ background: "color-mix(in srgb, var(--accent, #6366f1) 4%, transparent)" }}>{cfg.moRong(r)}</td></tr>}
+                </Fragment>))}</tbody>
             </table>
           </div>
-        ) : <TEmpty>{goc.length ? "Không có dòng khớp." : `Chưa có dữ liệu.${coSua ? " Bấm Import để nạp từ Excel hoặc Thêm để nhập tay." : ""}`}</TEmpty>}
+        ) : <TEmpty>{goc.length ? "Không có dòng khớp." : `Chưa có dữ liệu.${cfg.chiSua ? " Gian / lô hiện ở đây sau khi quy hoạch ở tab Khai báo & quy hoạch (biểu tượng Quy hoạch trên từng kho / bãi)." : coSua ? " Bấm Import để nạp từ Excel hoặc Thêm để nhập tay." : ""}`}</TEmpty>}
       </TCard>
       {xoaCot && (
         <Modal title={`Xóa cột "${xoaCot.ten}"?`} onClose={() => setXoaCot(null)} width={480}
@@ -361,7 +410,7 @@ function FormDong({ cfg, r, onClose, onLuu }) {
       {cfg.mo && <div className="small mute mb">{cfg.mo}</div>}
       <div className="form-grid">
         {cfg.cot.map(([k, t, loai, w]) => {
-          const khoaCu = !moi && !idKhoa && k === cfg.khoa;
+          const khoaCu = !moi && ((!idKhoa && k === cfg.khoa) || !!cfg.khoaDoc?.includes(k));
           const chon = cfg.chon?.[k];
           const goiY = cfg.goiY?.[k];
           return (
@@ -370,7 +419,7 @@ function FormDong({ cfg, r, onClose, onLuu }) {
                 : chon ? <TSelect value={f[k]} onChange={(v) => set(k, v)} options={chon} blank={cfg.chonTrong?.[k] ?? "—"} />
                 : <>
                   <input className={"inp" + (loai === "so" ? " num" : "") + (k === khoaNhap ? " mono" : "")} value={f[k]} readOnly={khoaCu} inputMode={loai === "so" ? "decimal" : undefined}
-                    title={khoaCu ? "Không đổi khóa của dòng đã lưu (xóa rồi thêm mới nếu cần)" : undefined} list={goiY ? tenDl(k) : undefined}
+                    title={khoaCu ? (cfg.khoaDoc ? "Sửa ở tab Khai báo & quy hoạch" : "Không đổi khóa của dòng đã lưu (xóa rồi thêm mới nếu cần)") : undefined} list={goiY ? tenDl(k) : undefined}
                     placeholder={cfg.ph?.[k] ?? (loai === "mang" ? "Cách nhau dấu ;" : "")} onChange={(e) => set(k, e.target.value)} autoFocus={moi && k === khoaNhap} />
                   {goiY && <datalist id={tenDl(k)}>{goiY.map((x) => <option key={x} value={x} />)}</datalist>}
                 </>}

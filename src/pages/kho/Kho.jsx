@@ -1,26 +1,27 @@
 import { useEffect, useMemo, useState } from "react";
-import { Bell, CalendarRange, Eye, PenLine, History, Layers, MoreHorizontal, Package, Network, Warehouse, Boxes } from "lucide-react";
+import { Bell, CalendarRange, Eye, PenLine, Layers, Network, Warehouse, Boxes } from "lucide-react";
 import { useApp } from "@/store";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/menu";
+
 import { PageHead, Empty, MucIcon } from "@/components/common";
 import { so, pct } from "@/lib/format";
-import { NGUONG_KHO, TAB_KHO, locKhoTheoTab, khaiBaoBai } from "@/lib/kho";
+import { NGUONG_KHO, TAB_KHO, TAB_KHO_CU, locKhoTheoTab, khaiBaoBai } from "@/lib/kho";
 import { cn } from "@/lib/utils";
 import { KIEU_TONE, KIEU_NGAN, Chi, Thanh, NgayDay, ThongQua, LuuBai, T_NGAY_DAY, T_LUU_BAI, T_THONG_QUA, T_NHAP_XUAT } from "./khoUi";
 import SoDoKhoBai from "./SoDoKhoBai";
 import BieuDoTon from "./BieuDoTon";
 import { useKho } from "./useKho";
 import GiaoDichForm, { SuaKiemKe } from "./GiaoDichForm";
+import NhapXuatBang from "./NhapXuatBang";
 import DanNhanhKho from "./DanNhanhKho";
 import KeHoachKho from "./KeHoachKho";
 import PhanLoaiTon from "./PhanLoaiTon";
 import XemKeHoach from "./XemKeHoach";
-import { LichSuKho, BangLo } from "./BangKho";
+import { LichSuKho } from "./BangKho";
 
 // Chi tiết một bãi lớn: từng bãi nhỏ với kiểu, hàng đang chứa, tồn / sức chứa, lưu lượng, dự kiến đầy, lưu bãi, thông qua
 export function ChiTietBai({ b, kho, onClose }) {
@@ -99,9 +100,9 @@ function NutKho({ icon: Ic, ngan, title, onClick, disabled, chinh }) {
 // Một tab kho (HRC, Thanh/Cuộn, Nguyên liệu): 5 nút thao tác (mỗi nút mở một hộp) và 3 biểu đồ (tồn theo bãi nhỏ, nhập / xuất kế hoạch – thực tế, dự báo tồn)
 function KhoTab({ tab, kho }) {
   const { quyen } = useApp();
-  const [mo, setMo] = useState(null); // ke-hoach | xem-kh | nhap | lich-su | phan-loai | kiem-ke | dan | lo | ton
+  const [mo, setMo] = useState(null); // ke-hoach | xem-kh | nhap (gồm lịch sử) | phan-loai | dan
   const [sua, setSua] = useState(null); // lượt đang sửa (mở từ Lịch sử)
-  const loai = tab.loai, tp = loai === "thanh_pham", nhap = quyen.kho.nhap;
+  const loai = tab.loai, nhap = quyen.kho.nhap;
   const tenBai = useMemo(() => new Set(kho.dong.map((d) => d.ten_bai)), [kho]);
   const dong = () => { setMo(null); };
   // Gọi như HÀM (không đặt thành thẻ <Hop>): định nghĩa component ngay trong KhoTab sẽ là kiểu mới sau mỗi lần dữ liệu cập nhật,
@@ -114,15 +115,8 @@ function KhoTab({ tab, kho }) {
         <NutKho icon={CalendarRange} ngan="Kế hoạch" title="Kế hoạch xuất/nhập kho (đặt kế hoạch theo tháng)" onClick={() => setMo("ke-hoach")} />
         <NutKho icon={Eye} ngan="Xem KH" title="Xem kế hoạch (so với thực tế)" onClick={() => setMo("xem-kh")} />
         <NutKho icon={PenLine} ngan="Nhập / Xuất" title={nhap ? "Xuất/nhập kho" : "Xuất/nhập kho (cần quyền nhập liệu)"} onClick={() => setMo("nhap")} disabled={!nhap} chinh />
-        <NutKho icon={History} ngan="Lịch sử" title="Lịch sử xuất/nhập kho" onClick={() => setMo("lich-su")} />
+
         <NutKho icon={Layers} ngan="Phân loại" title="Phân loại tồn (cần giải phóng / đầu cơ)" onClick={() => setMo("phan-loai")} />
-        {tp && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild><Button size="sm" variant="ghost" title="Thao tác khác" aria-label="Thao tác khác"><MoreHorizontal /></Button></DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              <DropdownMenuItem onSelect={() => setMo("lo")}><Package />Lô thành phẩm ({kho.lo.length})</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>)}
         <span className="ml-auto text-xs text-muted-foreground">{tab.ten}: {kho.dong.length} gian / lô · tồn {so(kho.dong.reduce((s, d) => s + d.ton, 0), 0)} t</span>
       </div>
 
@@ -130,22 +124,25 @@ function KhoTab({ tab, kho }) {
 
       {hop("ke-hoach", `Kế hoạch xuất/nhập kho · ${tab.ten}`, "Kế hoạch nhập / xuất của các bãi nhỏ theo ngày, tuần, tháng, năm.", <KeHoachKho loai={loai} kho={kho} nhan={tab.ten} />)}
       {hop("xem-kh", `Xem kế hoạch · ${tab.ten}`, "Kế hoạch so với thực tế theo sổ nhập – xuất.", <XemKeHoach kho={kho} />)}
-      {hop("lich-su", `Lịch sử xuất/nhập kho · ${tab.ten}`, undefined, <LichSuKho kho={kho} loai={loai} onSua={(g) => { setMo(null); setSua(g); }} />)}
+
       {hop("phan-loai", `Phân loại tồn · ${tab.ten}`, undefined, <PhanLoaiTon loai={loai} kho={kho} />)}
-      {hop("lo", "Lô thành phẩm", `${kho.lo.length} lô còn tồn`, <BangLo kho={kho} />)}
-      {mo === "nhap" && <GiaoDichForm loaiKho={loai} loaiGD="nhap" kho={kho} onClose={dong} onDan={() => setMo("dan")} />}
+
+      {hop("nhap", `Nhập / xuất / điều chuyển kho · ${tab.ten}`, "Phần trên: nhập liệu (mỗi dòng một gian / lô, Lưu ghi tất cả một lần). Phần dưới: lịch sử các lượt đã ghi, có ô tìm kiếm.",
+        <div className="grid gap-4"><NhapXuatBang loaiKho={loai} kho={kho} onDan={() => setMo("dan")} onXong={dong} />
+          <section className="grid gap-2 border-t pt-3"><h3 className="text-sm font-semibold">Lịch sử xuất / nhập / điều chuyển</h3><LichSuKho kho={kho} loai={loai} onSua={(g) => { setMo(null); setSua(g); }} /></section></div>)}
       {mo === "dan" && <DanNhanhKho loaiKho={loai} kho={kho} onClose={dong} />}
       {sua && (sua.loai === "kiem_ke" ? <SuaKiemKe g={sua} onClose={() => setSua(null)} /> : <GiaoDichForm key={sua.id} loaiKho={loai} loaiGD={sua.loai} sua={sua} kho={kho} onClose={() => setSua(null)} />)}
     </div>
   );
 }
 
-const IC_TAB = { overview: Network, hrc: Warehouse, "thanh-cuon": Warehouse, "nguyen-lieu": Boxes };
-const tabTheoRoute = (r) => TAB_KHO.find((t) => `kho/${t.id}` === r)?.id || "overview";
+const IC_TAB = { overview: Network, "hang-kien": Boxes, "hang-roi": Warehouse };
+// Đường dẫn cũ (kho/hrc, kho/thanh-cuon, kho/nguyen-lieu) vẫn mở đúng tab mới
+const tabTheoRoute = (r) => TAB_KHO.find((t) => `kho/${t.id}` === r)?.id || TAB_KHO_CU[String(r).replace(/^kho\//, "")] || "overview";
 
-// Khai thác kho bãi (anh Sỹ chốt 13/11/2026, thay hai trang Kho thành phẩm / Kho nguyên liệu): 4 tab
+// Khai thác kho bãi (anh Sỹ chốt 16/11/2026): 3 tab
 //   Overview: sơ đồ mọi kho mái che và bãi lộ thiên theo khu vực (bãi nhỏ xếp số tăng dần, chữ A–Z);
-//   Kho HRC, Kho Thanh/Cuộn, Kho Nguyên liệu: 3 biểu đồ + 5 nút thao tác. Cách chia hàng cho tab: TAB_KHO ở lib/kho.js.
+//   Kho hàng kiện (thành phẩm), Kho hàng rời: gian / lô đã quy hoạch ở Danh mục › Khai báo & quy hoạch; 3 biểu đồ + 5 nút thao tác. Cách chia tab: TAB_KHO ở lib/kho.js.
 export default function Kho({ route = "kho" }) {
   const { D, quyen } = useApp();
   const kho = useKho();
@@ -160,7 +157,7 @@ export default function Kho({ route = "kho" }) {
 
   return (
     <>
-      <PageHead title="Khai thác kho bãi" desc={`Tồn luôn tính từ sổ nhập – xuất. Sức chứa = sức chứa khả dụng của gian / lô ở Danh mục › Kho bãi (để trống thì web tự tính). Vàng từ ${pct(NGUONG_KHO.vang)}, đỏ từ ${pct(NGUONG_KHO.do)} lấp đầy.`} />
+      <PageHead title="Khai thác kho bãi" desc={`Tồn luôn tính từ sổ nhập – xuất. Sức chứa = sức chứa khả dụng của gian / lô đã quy hoạch ở Danh mục › Kho bãi (để trống thì web tự tính). Vàng từ ${pct(NGUONG_KHO.vang)}, đỏ từ ${pct(NGUONG_KHO.do)} lấp đầy.`} />
       <Tabs value={tabId} onValueChange={setTabId} className="mt-2">
         <div className="flex items-center gap-2">
           <TabsList className="h-8 p-0.5">

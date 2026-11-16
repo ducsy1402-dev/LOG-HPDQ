@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Search } from "lucide-react";
 import { useApp } from "@/store";
 import { Input } from "@/components/ui/input";
-import { so, pct, plain, soGon } from "@/lib/format";
+import { so, pct, plain } from "@/lib/format";
 import { NGUONG_KHO, khaiBaoBai, khoaTenBai, tiTrong } from "@/lib/kho";
 import DM_BANG from "../../data/dmBang.json";
 import { mucDay } from "./khoUi";
@@ -14,7 +14,7 @@ import BanDoDinhVi from "./BanDoDinhVi";
 //   • Thể tích (m³): đang chứa = Σ tồn ÷ tỉ trọng hàng; tối đa = diện tích × chiều cao chất đống (không có thì sức chứa ÷ tỉ trọng). Bãi lớn = tổng các bãi nhỏ.
 // Kho / bãi có mái che: lấy cột "mái che" ở Danh mục › Khai báo kho / bãi nếu có; chưa có thì đoán theo tên (tên bắt đầu bằng "Kho", trừ "Kho hở" → có mái che).
 // BS / SM: tỉ lệ biểu tượng lớn / nhỏ; TX: cột chữ của bãi lớn; SX: trục ngoặc; XC: chỗ bắt đầu bãi nhỏ; SLOT: ô một bãi nhỏ
-const VB = 1480, PAD = 16, BGAP = 20, ROW = 66, SM = 0.44, BS = 0.72, BG_H = 100, TX = 150, SX = 296, XC = 316, SLOT = 232, BW = XC + SLOT, CW_GON = 292, GON_H = 108, KHOANG = 16;
+const VB = 1480, PAD = 16, BGAP = 20, ROW = 72, SM = 0.44, BS = 0.72, BG_H = 100, TX = 150, SX = 296, XC = 316, SLOT = 232, BW = XC + SLOT, CW_GON = 292, GON_H = 108, KHOANG = 16;
 const VIEN = { ok: "#9ad7ff", warn: "#fcd34d", bad: "#fb7185", xam: "#9ad7ff" };
 const CHU = { ok: "#86efac", warn: "#fcd34d", bad: "#fda4af", xam: "#9fb7d9" };
 const FILL = { ok: "#34d399", warn: "#fbbf24", bad: "#f43f5e", xam: "#64748b" };
@@ -45,9 +45,9 @@ function chiTieu(d, hh) {
   const lop = +d.so_lop > 0 ? +d.so_lop : null;
   return { vMax, dt: +d.dien_tich > 0 ? +d.dien_tich : null, lopMin: lop, lopMax: lop };
 }
-const chuLop = (t) => (t?.lopMin == null ? "— lớp" : t.lopMin === t.lopMax ? `${soGon(t.lopMin)} lớp` : `${soGon(t.lopMin)}–${soGon(t.lopMax)} lớp`);
-const chuCT = (t, tp) => (tp ? `${t?.dt ? `${so(t.dt, 0)} m²` : "— m²"} · ${chuLop(t)}` : `${t?.vMax ? so(t.vMax, 0) : "—"} m³`);
-const nhanCT = (tp) => (tp ? "Diện tích · số lớp" : "Thể tích tối đa");
+// Bãi lớn chỉ ghi DIỆN TÍCH (không ghi thể tích / số lớp, anh Sỹ chốt 16/11/2026)
+const chuCT = (t) => `${t?.dt ? so(t.dt, 0) : "—"} m²`;
+const nhanCT = () => "Diện tích";
 
 // ---------- Hiệu ứng mực đầy: khối màu mặt sóng, dâng từ đáy tới mức f ----------
 function MucDay({ clip, x, w, day, cao, f, muc }) {
@@ -90,23 +90,28 @@ function BaiLoThien({ id, dong, lap, muc }) {
       {ds[1] != null && <Vom id={`${id}-1`} cx={138} cy={88} rx={22 + 22 * ds[1]} h={42 * (0.75 + 0.25 * ds[1])} f={lap} muc={muc} />}
     </g>);
 }
-// Kho có mái che: bán trụ nằm ngang (vòm trước bên trái, vòm sau bên phải), mực đầy bên trong
+// Kho có mái che: khối hộp nằm ngang giữ nguyên (mặt trước bên trái, mặt sau bên phải, mực đầy bên trong); MÁI là vòm CHỮ NHẬT BO TRÒN có ĐỈNH (nóc) cao vừa phải ở giữa (anh Sỹ chốt 16/11/2026)
 function KhoMaiChe({ id, lap, muc }) {
-  const R = 27, H = 46, L = 136, s = 13, yb = 94, x0 = 2;
-  const than = `M${x0 + R},${yb - H} L${x0 + R + L},${yb - H - s} A${R} ${H} 0 0 1 ${x0 + 2 * R + L},${yb - s} L${x0 + 2 * R},${yb} A${R} ${H} 0 0 0 ${x0 + R},${yb - H} Z`;
-  const mat = `M${x0},${yb} A${R} ${H} 0 0 1 ${x0 + 2 * R},${yb} Z`;
+  const W = 54, H = 40, L = 136, s = 13, yb = 94, x0 = 2, rc = 11, pk = 9; // pk = độ cao đỉnh nóc so với vai mái
+  // Mặt cắt (chữ nhật, hai góc trên bo tròn, nóc nhô lên giữa) đặt tại (dx, dy); k thu nhỏ theo bề ngang
+  const mc = (dx, dy, k = 1, h = H) => { const w = W * k, r = rc * k, x = x0 + dx + (W - w) / 2, y = yb + dy, t = y - h; return `M${x},${y} V${t + r} Q${x},${t} ${x + r},${t} L${x + w / 2},${t - pk * k} L${x + w - r},${t} Q${x + w},${t} ${x + w},${t + r} V${y}`; };
+  const cx = x0 + W / 2, tp = yb - H; // tp = cao độ vai mái mặt trước
+  const than = `M${x0},${yb} V${tp + rc} Q${x0},${tp} ${x0 + rc},${tp} L${cx},${tp - pk} L${cx + L},${tp - pk - s} L${x0 + W - rc + L},${tp - s} Q${x0 + W + L},${tp - s} ${x0 + W + L},${tp - s + rc} V${yb - s} L${x0 + W},${yb} Z`;
+  const mat = `${mc(0, 0)} Z`;
   return (
     <g>
       <defs><clipPath id={id}><path d={than} /><path d={mat} /></clipPath></defs>
       <path d={than} fill="url(#kb-than)" />
-      <MucDay clip={id} x={x0} w={2 * R + L} day={yb} cao={H + s} f={lap} muc={muc} />
+      <MucDay clip={id} x={x0} w={W + L} day={yb} cao={H + pk + s} f={lap} muc={muc} />
       <g filter="url(#kb-sang)">
         <path d={than} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-        <line x1={x0 + 2 * R - 3} y1={yb - H * 0.5} x2={x0 + 2 * R + L - 3} y2={yb - H * 0.5 - s} stroke="currentColor" strokeOpacity="0.45" strokeWidth="1" />
-        <path d={`M${x0 + L},${yb - s} A${R} ${H} 0 0 1 ${x0 + 2 * R + L},${yb - s}`} fill="none" stroke="currentColor" strokeWidth="1.4" />
-        <path d={mat} fill="url(#kb-mat)" fillOpacity="0.55" stroke="currentColor" strokeWidth="1.8" />
-        <path d={`M${x0 + R * 0.26},${yb} A${R * 0.74} ${H * 0.8} 0 0 1 ${x0 + 2 * R - R * 0.26},${yb}`} fill="none" stroke="currentColor" strokeOpacity="0.85" strokeWidth="1.2" />
-        <line x1={x0} y1={yb} x2={x0 + 2 * R} y2={yb} stroke="currentColor" strokeWidth="1.4" />
+        <line x1={x0 + W - rc} y1={tp} x2={x0 + W - rc + L} y2={tp - s} stroke="currentColor" strokeOpacity="0.45" strokeWidth="1" />
+        <line x1={cx} y1={tp - pk} x2={x0 + W - rc} y2={tp} stroke="currentColor" strokeOpacity="0.35" strokeWidth="1" />
+        <line x1={x0 + W} y1={yb - H * 0.5} x2={x0 + W + L} y2={yb - H * 0.5 - s} stroke="currentColor" strokeOpacity="0.45" strokeWidth="1" />
+        <path d={mc(L, -s)} fill="none" stroke="currentColor" strokeWidth="1.4" />
+        <path d={mat} fill="url(#kb-mat)" fillOpacity="0.55" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+        <path d={mc(0, 0, 0.74, H * 0.8)} fill="none" stroke="currentColor" strokeOpacity="0.85" strokeWidth="1.2" strokeLinejoin="round" />
+        <line x1={x0} y1={yb} x2={x0 + W} y2={yb} stroke="currentColor" strokeWidth="1.4" />
       </g>
     </g>);
 }
@@ -155,8 +160,8 @@ const soCot = (b, m) => hangCua(b, m).reduce((t, h) => Math.max(t, h.ds.length),
 const slotCua = (b, m) => (xepNgang(b, m) && soCot(b, m) > 1 ? SLOT_N : SLOT);
 const caoCay = (b, m) => Math.max(BG_H, hangCua(b, m).length * ROW);
 // Cột chữ bên phải biểu tượng: tên, dòng phụ, tồn · %, sức chứa (m³ hoặc m² · lớp)
-function CotChu({ x, y, ten, phu, ton, lap, muc, them, ct, lon, chuaPB }) {
-  const c = lon ? [20, 40, 60, 80] : [16, 33, 50];
+function CotChu({ x, y, ten, phu, ton, lap, muc, them, ct, lon, chuaPB, ll }) {
+  const c = lon ? [20, 40, 60, 80] : [14, 29, 44, 58];
   return (
     <g>
       <text x={x} y={y + c[0]} fontSize={lon ? 14 : 12} fontWeight="700" fill="#e6f2ff">{ten}</text>
@@ -164,27 +169,29 @@ function CotChu({ x, y, ten, phu, ton, lap, muc, them, ct, lon, chuaPB }) {
         ? <><text x={x} y={y + c[1]} fontSize="11" fill="#8fb4dc">{phu}</text>
           <text x={x} y={y + c[2]} fontSize="12.5" fontWeight="700" fill={CHU[muc]}>{chuaPB ? "Chưa phân bổ" : `${so(ton, 0)} t · ${lap != null ? pct(lap) : "—"}`}</text>
           <text x={x} y={y + c[3]} fontSize="11.5" fill="#9fc3ea">{ct}</text></>
-        : <><text x={x} y={y + c[1]} fontSize="11.5" fontWeight="700" fill={CHU[muc]}>{so(ton, 0)} t · {lap != null ? pct(lap) : "—"}{them}</text>
-          <text x={x} y={y + c[2]} fontSize="10.5" fill="#9fc3ea">{ct}</text></>}
+        : <><text x={x} y={y + c[1]} fontSize="10.5" fill="#9fc3ea">{ct}</text>
+          <text x={x} y={y + c[2]} fontSize="11.5" fontWeight="700" fill={CHU[muc]}>{so(ton, 0)} t · {lap != null ? pct(lap) : "—"}{them}</text>
+          <text x={x} y={y + c[3]} fontSize="9.5" fill="#8fb4dc">{ll ? `Nhập ${so(ll.nhap, 0)} · Xuất ${so(ll.xuat, 0)} t/ng` : ""}</text></>}
     </g>);
 }
-function KhoiCay({ b, mai, x, y, onMo, uid, tp, tt, ttDong, nhay }) {
+function KhoiCay({ b, mai, x, y, onMo, uid, tp, tt, ttDong, nhay, luuLuong }) {
   const n = b.dong.length, cols = soCot(b, mai), SL = slotCua(b, mai), hang = hangCua(b, mai), rows = hang.length, H = caoCay(b, mai), bigTop = (H - BG_H) / 2, conTop = (H - rows * ROW) / 2, muc = mucDay(b.lapDay);
   const yBig = bigTop + 84, yy = (r) => conTop + r * ROW, yCon = (r) => yy(r) + 6 + 32, xCon = (c) => XC + c * SL, yBus = (r) => conTop + r * ROW + 1;
   // Bãi nhỏ trùng tên trong cùng bãi lớn (cùng gian, khác hàng): dòng thứ 3 ghi tên hàng thay cho diện tích / số lớp
   const dem = new Map(); for (const d of b.dong) dem.set(d.ten, (dem.get(d.ten) || 0) + 1);
   const tenO = (d) => (dem.get(d.ten) > 1 && d.hang ? `${d.ten} · ${d.hang}` : d.ten);
-  const dong3 = (d, t) => (dem.get(d.ten) > 1 && d.hang ? cat(d.hang, 24) : chuCT(t, tp));
+  // Dòng 2 của gian / lô: diện tích · hàng (hàng đang chứa, không có thì hàng quy hoạch)
+  const dong3 = (d) => { const h = (d.chua || []).filter((c) => c.ton > 0).map((c) => c.hang).join(", ") || d.hang || "", dt = +d.dien_tich > 0 ? `${so(d.dien_tich, 0)} m²` : "— m²"; return h ? `${dt} · ${cat(h, 17)}` : dt; };
   const v1 = Math.min(yBig, cols > 1 ? yBus(0) : yCon(0)), v2 = Math.max(yBig, cols > 1 ? yBus(rows - 1) : yCon(rows - 1));
   const dongLon = tiLeHang(b.dong.flatMap((d) => d.chua || []));
   return (
     <g transform={`translate(${x},${y})`} id={`kb-blk-${khoaTenBai(b.ten_bai)}`}>
       {nhay && <Nhay x={-8} y={-6} w={(cols > 1 ? XC + cols * SL : BW) + 8} h={H + 12} />}
       <g onClick={() => onMo(b.ten_bai)} style={{ cursor: "pointer" }} className="kb-nut">
-        <title>{`${b.ten_bai} (${tenLoai(mai)}): tồn ${so(b.ton)} t${b.sucChua ? ` / ${so(b.sucChua)} t` : ""}${b.lapDay != null ? ` · ${pct(b.lapDay)}` : ""} · ${nhanCT(tp).toLowerCase()} ${chuCT(tt, tp)} · ${n} bãi nhỏ\nBấm để mở bảng chi tiết`}</title>
+        <title>{`${b.ten_bai} (${tenLoai(mai)}): tồn ${so(b.ton)} t${b.sucChua ? ` / ${so(b.sucChua)} t` : ""}${b.lapDay != null ? ` · ${pct(b.lapDay)}` : ""} · ${nhanCT().toLowerCase()} ${chuCT(tt)} · ${n} bãi nhỏ\nBấm để mở bảng chi tiết`}</title>
         <rect x="-4" y={bigTop} width={SX - 8} height={BG_H} rx="10" fill="#7cc4ff" className="kb-nen" />
         <BieuTuong mai={mai} id={`${uid}-l`} lap={b.lapDay} dong={dongLon} muc={muc} x={0} y={bigTop + 16} s={BS} />
-        <CotChu lon x={TX} y={bigTop} ten={cat(b.ten_bai, 17)} phu={`${tenLoai(mai)} · ${n} bãi nhỏ`} ton={b.ton} lap={b.lapDay} muc={muc} ct={chuCT(tt, tp)} />
+        <CotChu lon x={TX} y={bigTop} ten={cat(b.ten_bai, 17)} phu={`${tenLoai(mai)} · ${n} bãi nhỏ`} ton={b.ton} lap={b.lapDay} muc={muc} ct={chuCT(tt)} />
       </g>
       <g stroke="#6b9be0" strokeWidth="2.2" fill="none" strokeLinecap="round">
         <line x1={TX + 132} y1={yBig} x2={SX} y2={yBig} /><line x1={SX} y1={v1} x2={SX} y2={v2} />
@@ -198,10 +205,10 @@ function KhoiCay({ b, mai, x, y, onMo, uid, tp, tt, ttDong, nhay }) {
         const m = d.saiBai ? "bad" : mucDay(d.lapDay), cap = !tp && d.ngayCap != null, t = ttDong.get(d.key), x0 = xCon(c), y0 = yy(r);
         return (
           <g key={d.key} onClick={() => onMo(b.ten_bai)} style={{ cursor: "pointer" }} className="kb-nut">
-            <title>{`${b.ten_bai} › ${tenO(d)}${d.chua?.length ? ` (${d.chua.map((c) => c.hang).join(", ")})` : ""}: tồn ${so(d.ton)} t${d.sucChua ? ` / ${so(d.sucChua)} t` : ""}${d.lapDay != null ? ` · ${pct(d.lapDay)}` : ""} · ${nhanCT(tp).toLowerCase()} ${chuCT(t, tp)}\nBấm để mở bảng chi tiết`}</title>
+            <title>{`${b.ten_bai} › ${tenO(d)}${d.chua?.length ? ` (${d.chua.map((c) => c.hang).join(", ")})` : ""}: tồn ${so(d.ton)} t${d.sucChua ? ` / ${so(d.sucChua)} t` : ""}${d.lapDay != null ? ` · ${pct(d.lapDay)}` : ""} · ${nhanCT().toLowerCase()} ${chuCT(t)}\nBấm để mở bảng chi tiết`}</title>
             <rect x={x0 - 2} y={y0 + 2} width={SL - 12} height={ROW - 6} rx="8" fill="#7cc4ff" className="kb-nen" />
             <BieuTuong mai={mai} id={`${uid}-${r}-${c}`} lap={d.lapDay} dong={tiLeHang(d.chua)} muc={m} x={x0} y={y0 + 6} s={SM} />
-            <CotChu x={x0 + 94} y={y0 + 4} ten={cat(d.ten, 20)} ton={d.ton} lap={d.lapDay} muc={m} ct={dong3(d, t)}
+            <CotChu x={x0 + 94} y={y0 + 4} ten={cat(d.ten, 20)} ton={d.ton} lap={d.lapDay} muc={m} ct={dong3(d)} ll={luuLuong?.get(d.key)}
               them={cap ? <tspan fill={d.ngayCap < NGUONG_KHO.ngayCapDo ? CHU.bad : d.ngayCap < NGUONG_KHO.ngayCapVang ? CHU.warn : "#8fb4dc"}> · cấp {so(d.ngayCap, 1)} ng</tspan> : null} />
           </g>);
       }))}
@@ -214,11 +221,11 @@ function KhoiGon({ b, mai, x, y, onMo, uid, tt, tp, nhay }) {
   const ctPB = tt?.dt ? `${so(tt.dt, 0)} m²` : "—"; // bãi chưa phân bổ: chỉ có diện tích nếu đã khai báo
   return (
     <g transform={`translate(${x},${y})`} id={`kb-blk-${khoaTenBai(b.ten_bai)}`} onClick={pb ? undefined : () => onMo(b.ten_bai)} style={pb ? { opacity: 0.6 } : { cursor: "pointer" }} className={pb ? undefined : "kb-nut"}>
-      <title>{pb ? `${b.ten_bai} (${tenLoai(mai)}): đã khai báo ở Khai báo kho / bãi nhưng chưa phân bổ gian / lô nào (thêm ở Danh mục › Kho bãi)` : `${b.ten_bai} (${tenLoai(mai)})${hang ? ` · ${hang}` : ""}: tồn ${so(b.ton)} t${b.sucChua ? ` / ${so(b.sucChua)} t` : ""}${b.lapDay != null ? ` · ${pct(b.lapDay)}` : ""} · ${nhanCT(tp).toLowerCase()} ${chuCT(tt, tp)}\nBấm để mở bảng chi tiết`}</title>
+      <title>{pb ? `${b.ten_bai} (${tenLoai(mai)}): đã khai báo nhưng chưa quy hoạch gian / lô nào (Danh mục › Khai báo & quy hoạch, biểu tượng Quy hoạch)` : `${b.ten_bai} (${tenLoai(mai)})${hang ? ` · ${hang}` : ""}: tồn ${so(b.ton)} t${b.sucChua ? ` / ${so(b.sucChua)} t` : ""}${b.lapDay != null ? ` · ${pct(b.lapDay)}` : ""} · ${nhanCT().toLowerCase()} ${chuCT(tt)}\nBấm để mở bảng chi tiết`}</title>
       {!pb && <rect x="-4" y="0" width={CW_GON - 12} height={GON_H - 10} rx="10" fill="#7cc4ff" className="kb-nen" />}
       {nhay && <Nhay x={-6} y={-2} w={CW_GON - 8} h={GON_H - 6} />}
       <BieuTuong mai={mai} id={`${uid}-g`} lap={b.lapDay} dong={tiLeHang(d?.chua)} muc={muc} x={0} y={14} s={BS} />
-      <CotChu lon x={TX} y={0} ten={cat(b.ten_bai, 16)} phu={`${tenLoai(mai)} · ${pb ? "chưa phân bổ" : cat(hang || "chưa có hàng", 14)}`} ton={b.ton} lap={b.lapDay} muc={muc} ct={pb ? ctPB : chuCT(tt, tp)} chuaPB={pb} />
+      <CotChu lon x={TX} y={0} ten={cat(b.ten_bai, 16)} phu={`${tenLoai(mai)} · ${pb ? "chưa phân bổ" : cat(hang || "chưa có hàng", 14)}`} ton={b.ton} lap={b.lapDay} muc={muc} ct={pb ? ctPB : chuCT(tt)} chuaPB={pb} />
     </g>);
 }
 
@@ -269,7 +276,7 @@ export default function SoDoKhoBai({ bai: baiGoc, kho, onMo, ten, tp: tpEp }) {
       const ds = bai.filter((b) => khuCua(b) === k && khop(b)).sort((a, b) => a.ten_bai.localeCompare(b.ten_bai, "vi", { numeric: true }));
       if (!ds.length) continue;
       const all = bai.filter((b) => khuCua(b) === k), ton = all.reduce((s, b) => s + b.ton, 0), suc = all.reduce((s, b) => s + (b.sucChua || 0), 0);
-      const soMai = all.filter((b) => mai.get(b.ten_bai)?.mai).length, vDt = all.filter(laTP).reduce((s, b) => s + (ttBai.get(b.ten_bai)?.dt || 0), 0), vTt = all.filter((b) => !laTP(b)).reduce((s, b) => s + (ttBai.get(b.ten_bai)?.vMax || 0), 0);
+      const soMai = all.filter((b) => mai.get(b.ten_bai)?.mai).length, vDt = all.reduce((s, b) => s + (ttBai.get(b.ten_bai)?.dt || 0), 0);
       const yHead = y; y += 40;
       // Trong mỗi khu vực: kho có mái che xếp TRÊN, bãi lộ thiên xếp DƯỚI (anh Sỹ chốt 13/11); mỗi nhóm xếp bãi theo thứ tự tên, bãi lớn có nhiều bãi nhỏ chiếm cả bề ngang
       const dat = [], vach = [];
@@ -299,7 +306,7 @@ export default function SoDoKhoBai({ bai: baiGoc, kho, onMo, ten, tp: tpEp }) {
       xepNhom(maiDs);
       if (maiDs.length && loDs.length) { y += 4; vach.push(y); y += 16; } // vạch mờ ngăn kho mái che với bãi lộ thiên
       xepNhom(loDs);
-      phan.push({ k, yHead, dat, vach, ton, suc, vDt, vTt, soMai, soLo: all.length - soMai, soNho: all.reduce((s, b) => s + b.dong.length, 0), n: all.length });
+      phan.push({ k, yHead, dat, vach, ton, suc, vDt, soMai, soLo: all.length - soMai, soNho: all.reduce((s, b) => s + b.dong.length, 0), n: all.length });
       y += 18;
     }
     return { phan, cao: Math.max(y, 120) };
@@ -333,21 +340,21 @@ export default function SoDoKhoBai({ bai: baiGoc, kho, onMo, ten, tp: tpEp }) {
               <text x={PAD} y={p.yHead + 20} fontSize="17" fontWeight="700" fill="#e6f2ff">{p.k}
                 <tspan fontSize="12" fontWeight="400" fill="#8fb4dc">{`   ${p.n} bãi lớn · ${p.soNho} bãi nhỏ · ${p.soMai} kho mái che · ${p.soLo} bãi lộ thiên · tồn `}</tspan>
                 <tspan fontSize="12" fontWeight="700" fill={CHU[mucDay(p.suc ? p.ton / p.suc : null)]}>{so(p.ton, 0)} t{p.suc ? ` (${pct(p.ton / p.suc)})` : ""}</tspan>
-                <tspan fontSize="12" fontWeight="400" fill="#8fb4dc">{`${p.vDt ? ` · ${so(p.vDt, 0)} m²` : ""}${p.vTt ? ` · ${so(p.vTt, 0)} m³` : ""}`}</tspan>
+                <tspan fontSize="12" fontWeight="400" fill="#8fb4dc">{p.vDt ? ` · ${so(p.vDt, 0)} m²` : ""}</tspan>
               </text>
               <line x1={PAD} y1={p.yHead + 30} x2={VB - PAD} y2={p.yHead + 30} stroke="#3b6fc0" strokeOpacity="0.6" />
               {p.vach.map((v) => <line key={v} x1={PAD} y1={v} x2={VB - PAD} y2={v} stroke="#3b6fc0" strokeOpacity="0.35" strokeDasharray="4 7" />)}
               {p.dat.map((o, i) => {
                 const m = mai.get(o.b.ten_bai)?.mai, uid = `kb-${khoaTenBai(o.b.ten_bai)}-${i}`, nh = nhay?.t === o.b.ten_bai;
                 return o.loai === "cay"
-                  ? <KhoiCay key={o.b.ten_bai} b={o.b} mai={m} x={o.x} y={o.y} onMo={onMo} uid={uid} tp={laTP(o.b)} tt={ttBai.get(o.b.ten_bai)} ttDong={ttDong} nhay={nh} />
+                  ? <KhoiCay key={o.b.ten_bai} b={o.b} mai={m} x={o.x} y={o.y} onMo={onMo} uid={uid} tp={laTP(o.b)} tt={ttBai.get(o.b.ten_bai)} ttDong={ttDong} luuLuong={kho?.luuLuong?.khu} nhay={nh} />
                   : <KhoiGon key={o.b.ten_bai} b={o.b} mai={m} x={o.x} y={o.y} onMo={onMo} uid={uid} tt={ttBai.get(o.b.ten_bai)} tp={laTP(o.b)} nhay={nh} />;
               })}
             </g>))}
           {!bd.phan.length && <text x={VB / 2} y="64" textAnchor="middle" fontSize="14" fill="#8fb4dc">Không có bãi nào khớp bộ lọc.</text>}
         </svg>
       </div>
-      <p className="text-[0.6875rem] text-muted-foreground">Mái vòm = kho có mái che · đống vòm = bãi lộ thiên. Khối màu có mặt sóng bên trong = mức lấp đầy: xanh bình thường, vàng từ {pct(NGUONG_KHO.vang)}, đỏ từ {pct(NGUONG_KHO.do)} (nhấp nháy).{" Kho thành phẩm: diện tích (m²) · số lớp xếp khả dụng. Kho nguyên liệu: số m³ = thể tích tối đa (diện tích × chiều cao chất đống; không có thì sức chứa ÷ tỉ trọng hàng)."} Bấm một bãi để mở bảng chi tiết. Bãi mờ ghi "Chưa phân bổ" = đã khai báo ở Danh mục › Khai báo kho / bãi nhưng chưa có gian / lô trong Danh mục › Kho bãi.{doan ? " Kho / bãi có mái che đang đoán theo tên (chưa có cột mái che ở Danh mục › Khai báo kho / bãi)." : ""}</p>
+      <p className="text-[0.6875rem] text-muted-foreground">Mái vòm chữ nhật bo tròn = kho có mái che · đống vòm = bãi lộ thiên. Khối màu có mặt sóng bên trong = mức lấp đầy: xanh bình thường, vàng từ {pct(NGUONG_KHO.vang)}, đỏ từ {pct(NGUONG_KHO.do)} (nhấp nháy).{" Bãi lớn: tên, tồn · %, diện tích. Gian / lô: tên, diện tích · hàng, tồn · %, nhập / xuất bình quân mỗi ngày (30 ngày gần nhất)."} Bấm một bãi để mở bảng chi tiết. Bãi mờ ghi "Chưa phân bổ" = đã khai báo nhưng chưa quy hoạch gian / lô nào (Danh mục › Khai báo & quy hoạch).{doan ? " Kho / bãi có mái che đang đoán theo tên (chưa có cột mái che ở Danh mục › Khai báo & quy hoạch)." : ""}</p>
       <BanDoDinhVi nhom={nhomMap} ten={ten} onDi={diToi} onToanKho={() => { dauRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); }}
         onKhu={(k) => { setQ(""); requestAnimationFrame(() => document.getElementById(`kb-khu-${khoaTenBai(k)}`)?.scrollIntoView({ behavior: "smooth", block: "start" })); }} />
     </div>

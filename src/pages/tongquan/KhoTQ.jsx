@@ -9,7 +9,7 @@ import { NativeSelect } from "@/components/ui/input";
 import { Empty, MucIcon } from "@/components/common";
 import EChart from "@/components/EChart";
 import { so, pct, r2, ngayNam, DAY } from "@/lib/format";
-import { NGUONG_KHO, tonTheoNgay, ngayStr, khuVucKho, soSanhKhoTheoKhu } from "@/lib/kho";
+import { NGUONG_KHO, tonTheoNgay, ngayStr, khuVucKho, soSanhKhoTheoKhu, TEN_KHO_KIEN, TEN_KHO_ROI } from "@/lib/kho";
 import { TEN_LOAI_KY, khoaKy, khoangKy, tenKy, dsKy } from "@/lib/ky";
 import { cn } from "@/lib/utils";
 import { useKho } from "../kho/useKho";
@@ -71,7 +71,7 @@ export function HopKho({ onClose, go }) {
   return (
     <HopTQ title="Quản lý kho bãi" onClose={onClose}
       description={`Tồn ${so(ton)} t${suc ? ` / ${so(suc)} t (${pct(lapDay)})` : ""} · ${kho.bai.length} bãi lớn · ${kho.canh.length} cảnh báo`}
-      moTrang={[["Mở Kho HRC", () => go("kho/hrc")], ["Mở Kho Thanh/Cuộn", () => go("kho/thanh-cuon")], ["Mở Kho Nguyên liệu", () => go("kho/nguyen-lieu")]]}>
+      moTrang={[[`Mở ${TEN_KHO_KIEN}`, () => go("kho/hang-kien")], [`Mở ${TEN_KHO_ROI}`, () => go("kho/hang-roi")]]}>
       <Tabs value={tab} onValueChange={setTab}>
         <div className="flex flex-wrap items-center gap-2">
           <TabsList>
@@ -82,7 +82,7 @@ export function HopKho({ onClose, go }) {
           </TabsList>
           {(tab === "bai" || tab === "ton") && (
             <div className="ml-auto inline-flex rounded-md border p-0.5" role="group" aria-label="Loại kho">
-              {[["", "Cả hai kho"], ["thanh_pham", "Kho thành phẩm"], ["nguyen_lieu", "Kho nguyên liệu"]].map(([k, t]) => <Button key={k} size="xs" variant={loaiKho === k ? "secondary" : "ghost"} className={cn(loaiKho === k && "text-primary")} aria-pressed={loaiKho === k} onClick={() => setLoaiKho(k)}>{t}</Button>)}
+              {[["", "Cả hai kho"], ["thanh_pham", TEN_KHO_KIEN], ["nguyen_lieu", TEN_KHO_ROI]].map(([k, t]) => <Button key={k} size="xs" variant={loaiKho === k ? "secondary" : "ghost"} className={cn(loaiKho === k && "text-primary")} aria-pressed={loaiKho === k} onClick={() => setLoaiKho(k)}>{t}</Button>)}
             </div>)}
         </div>
         <TabsContent value="bai"><LapDay key={loaiKho} kho={khoLoc} /></TabsContent>
@@ -264,7 +264,7 @@ function TonDuBao({ kho }) {
         {chon.length > 0 && <Button size="xs" variant="ghost" onClick={() => setChon([])}>Bỏ chọn</Button>}
       </div>
       <EChart option={opt} height={340} />
-      <p className="mt-1 text-[0.6875rem] text-muted-foreground">Chưa chọn bãi: hai đường kho thành phẩm và kho nguyên liệu. Nét liền: tồn cuối ngày 30 ngày qua; nét đứt: dự báo 7 ngày theo nhập − xuất bình quân 30 ngày; nét chấm: sức chứa.</p>
+      <p className="mt-1 text-[0.6875rem] text-muted-foreground">Chưa chọn bãi: hai đường kho hàng kiện (thành phẩm) và kho hàng rời. Nét liền: tồn cuối ngày 30 ngày qua; nét đứt: dự báo 7 ngày theo nhập − xuất bình quân 30 ngày; nét chấm: sức chứa.</p>
     </div>
   );
 }
@@ -272,7 +272,7 @@ function TonDuBao({ kho }) {
 // Nhập / xuất / tồn cuối kỳ của các bãi nhỏ: kế hoạch (bảng Kế hoạch Xuất/Nhập tồn ở trang Kho) so với thực tế (sổ kho), xem theo ngày / tháng / quý
 const LOAI_KHO = ["ngay", "thang", "quy"];
 const CHI_SO = { nhap: "Nhập", xuat: "Xuất", ton: "Tồn cuối kỳ" };
-const LOAI_KHO_LOC = [["", "Cả hai kho"], ["nguyen_lieu", "Kho nguyên liệu"], ["thanh_pham", "Kho thành phẩm"]];
+const LOAI_KHO_LOC = [["", "Cả hai kho"], ["nguyen_lieu", TEN_KHO_ROI], ["thanh_pham", TEN_KHO_KIEN]];
 function KeHoachThucTe({ kho }) {
   const { D, api } = useApp();
   const [loai, setLoai] = useState("ngay");

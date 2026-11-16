@@ -39,7 +39,7 @@ const NAV = [
   { id: "cang/linetime", ten: "Linetime tàu cập bến", icon: Ship, cang: true },
   { id: "cang/muc-tieu", ten: "Mục tiêu sản lượng", icon: Target, cang: true },
   { nhom: "Kho bãi", kho: true },
-  { id: "kho", ten: "Khai thác kho bãi", icon: Warehouse, kho: true }, // 4 tab: Overview, Kho HRC, Kho Thanh/Cuộn, Kho Nguyên liệu (route kho, kho/hrc, kho/thanh-cuon, kho/nguyen-lieu)
+  { id: "kho", ten: "Khai thác kho bãi", icon: Warehouse, kho: true }, // 3 tab: Overview, Kho hàng kiện (thành phẩm), Kho hàng rời (route kho, kho/hang-kien, kho/hang-roi; đường dẫn cũ kho/hrc… vẫn mở đúng tab)
   { nhom: "Hệ thống" },
   { id: "danh-muc", ten: "Danh mục", icon: Database },
   { id: "phan-quyen", ten: "Phân quyền", icon: ShieldCheck, quanTri: true },

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { tuTinhSucChua, sucChua, heSoLuuChua, locKhoTheoTab, TAB_KHO, laHRC } from "./kho";
+import { tuTinhSucChua, sucChua, heSoLuuChua, locKhoTheoTab, TAB_KHO, TAB_KHO_CU, laHRC, kiemTraTenBai, kiemTraGianLo } from "./kho";
 
 // Hộp thêm kho: sức chứa để trống thì web tự tính (13/11/2026)
 const HH = [{ loai_hang: "Phế", nhom: "Phế", ti_trong: 0.6 }, { loai_hang: "Thép cuộn HRC", nhom: "HRC" }, { loai_hang: "Thép thanh", nhom: "Thép thanh" }];
@@ -60,16 +60,40 @@ describe("chia kho theo tab (Khai thác kho bãi)", () => {
     { key: "4", ten_bai: "Bãi A", loai: "nguyen_lieu", hang: "Phế", chua: [{ hang: "Phế", ton: 9 }], ton: 9 },
   ];
   const cap = dong.flatMap((d) => d.chua.map((c) => ({ key: d.key, ten_bai: d.ten_bai, hang: c.hang, ton: c.ton, loai: d.loai })));
-  const kho = { dong, cap, lo: [{ hang: "Thép cuộn HRC" }, { hang: "Thép thanh" }], hangHoa: HH };
+  const gan = (bai) => dong.find((d) => d.ten_bai === bai).key;
+  const kho = { dong, cap, lo: [{ ten_bai: "Kho nóng HRC1", hang: "Thép cuộn HRC" }, { ten_bai: "Kho thanh", hang: "Thép thanh" }], hangHoa: HH, gan };
   const tab = (id) => TAB_KHO.find((t) => t.id === id);
   it("nhận diện hàng HRC", () => { expect(laHRC("Thép cuộn HRC", HH)).toBe(true); expect(laHRC("Thép thanh", HH)).toBe(false); });
-  it("tab HRC: gian HRC và gian còn trống", () => { expect(locKhoTheoTab(kho, tab("hrc")).dong.map((d) => d.key)).toEqual(["1", "3"]); });
-  it("tab Thanh/Cuộn: thành phẩm khác HRC và gian còn trống", () => { expect(locKhoTheoTab(kho, tab("thanh-cuon")).dong.map((d) => d.key)).toEqual(["2", "3"]); });
-  it("tab Nguyên liệu: chỉ kho nguyên liệu", () => { expect(locKhoTheoTab(kho, tab("nguyen-lieu")).dong.map((d) => d.key)).toEqual(["4"]); });
+  it("tab Kho hàng kiện: mọi gian / lô quy hoạch hàng kiện (cả HRC và thanh / cuộn, cả gian còn trống)", () => { expect(locKhoTheoTab(kho, tab("hang-kien")).dong.map((d) => d.key)).toEqual(["1", "2", "3"]); });
+  it("tab Kho hàng rời: chỉ gian / lô quy hoạch hàng rời", () => { expect(locKhoTheoTab(kho, tab("hang-roi")).dong.map((d) => d.key)).toEqual(["4"]); });
   it("tồn và lô chỉ của tab", () => {
-    const k = locKhoTheoTab(kho, tab("hrc"));
-    expect(k.cap.map((c) => c.hang)).toEqual(["Thép cuộn HRC"]);
-    expect(k.lo.length).toBe(1);
+    const k = locKhoTheoTab(kho, tab("hang-roi"));
+    expect(k.cap.map((c) => c.hang)).toEqual(["Phế"]);
+    expect(k.lo.length).toBe(0);
+    expect(locKhoTheoTab(kho, tab("hang-kien")).lo.length).toBe(2);
     expect(k.dongAll.length).toBe(4);
+  });
+  it("đường dẫn cũ mở đúng tab mới", () => { expect(TAB_KHO_CU.hrc).toBe("hang-kien"); expect(TAB_KHO_CU["nguyen-lieu"]).toBe("hang-roi"); });
+});
+
+describe("kiểm tra khai báo / quy hoạch kho bãi", () => {
+  const bai = [{ id: 1, ten: "Kho G - CTH" }, { id: 2, ten: "Bãi A" }];
+  it("không cho trùng tên kho / bãi (so không dấu, bỏ ký tự đặc biệt)", () => {
+    expect(kiemTraTenBai("kho g cth", bai, undefined)).toMatch(/đã được khai báo/);
+    expect(kiemTraTenBai("Bãi B", bai, undefined)).toBeNull();
+    expect(kiemTraTenBai("Bãi A", bai, 2)).toBeNull(); // sửa chính nó
+    expect(kiemTraTenBai("  ", bai)).toMatch(/Chưa nhập/);
+  });
+  const dong = [{ id: 10, ten_khu: "Gian 1", dien_tich: 600 }, { id: 11, ten_khu: "Gian 2", dien_tich: 300 }];
+  it("không cho trùng gian / lô trong cùng kho / bãi", () => {
+    expect(kiemTraGianLo({ ten_khu: "gian 1", dien_tich: 10 }, dong, 2000)).toMatch(/không cho trùng/);
+    expect(kiemTraGianLo({ id: 10, ten_khu: "Gian 1", dien_tich: 600 }, dong, 2000)).toBeNull();
+    expect(kiemTraGianLo({ ten_khu: "", dien_tich: 10 }, dong, 2000)).toMatch(/Chưa nhập/);
+  });
+  it("không cho vượt diện tích kho / bãi", () => {
+    expect(kiemTraGianLo({ ten_khu: "Gian 3", dien_tich: 100 }, dong, 1000)).toBeNull(); // vừa đủ 1000
+    expect(kiemTraGianLo({ ten_khu: "Gian 3", dien_tich: 101 }, dong, 1000)).toMatch(/Vượt diện tích/);
+    expect(kiemTraGianLo({ id: 10, ten_khu: "Gian 1", dien_tich: 800 }, dong, 1000)).toMatch(/Vượt diện tích/); // sửa: không tính số cũ của chính nó
+    expect(kiemTraGianLo({ ten_khu: "Gian 3", dien_tich: 99999 }, dong, null)).toBeNull(); // chưa khai báo diện tích kho / bãi
   });
 });
