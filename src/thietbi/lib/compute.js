@@ -155,6 +155,9 @@ export function derive(raw) {
   // Quân số thực tế theo TỔ (bảng headcount_to, SQL 14). Chưa chạy SQL 14 thì raw.headcountTo = null: nhập theo đội như cũ.
   const headcountTo = raw.headcountTo || [];
   const coSql14 = Array.isArray(raw.headcountTo);
+  // Thông tin đầu / cuối ca theo xe (SQL 18). Chưa chạy SQL 18 thì raw.thongTinCa = null
+  const thongTinCa = raw.thongTinCa || [];
+  const coSql18 = Array.isArray(raw.thongTinCa);
   // Đội của một tổ = đội có nhiều xe nhất trong tổ (tổ chưa có xe thì theo nhân sự)
   const doiCuaTo = (() => {
     const dem = {};
@@ -173,7 +176,7 @@ export function derive(raw) {
       const xeCan = raw.vehicles.filter((v) => v.doi === doi && v.che_do === cheDo && isReady(v.ma)).length;
       const xeTong = raw.vehicles.filter((v) => v.doi === doi && v.che_do === cheDo).length;
       const dinhBien = kip ? laiXeActive.filter((s) => s.doi === doi && s.kip === kip).length : 0;
-      const tos = hcTo.filter((x) => (doiCuaTo[x.to_xe] || x.doi) === doi);
+      const tos = hcTo.filter((x) => (x.doi || doiCuaTo[x.to_xe]) === doi); // quân số của đội = cộng các tổ ghi riêng cho đội này (SQL 19)
       const h = raw.headcount.find((x) => x.ngay === sh.ngay && x.ca === sh.ca && x.doi === doi);
       const thucTe = tos.length ? tos.reduce((a, x) => a + (+x.thuc_te || 0), 0) : h?.thuc_te ?? null;
       let chenh = thucTe == null ? null : thucTe - xeCan, toChua = 0;
@@ -188,19 +191,30 @@ export function derive(raw) {
     }).filter((r) => r.xeTong > 0 || r.dinhBien > 0 || r.thucTe != null);
   }
 
-  // Quân số một ca theo tổ: xe sẵn sàng cần người, định biên kíp, thực tế đã nhập (SQL 14), chênh lệch
+  // Quân số một ca theo TỔ, tách theo ĐỘI (anh Sỹ chốt 16/11/2026): một tổ có xe của nhiều đội (VD tổ PVC: 34 xe Xúc đào + 9 xe Xúc lật)
+  // thì mỗi đội một dòng riêng, chỉ đếm xe của đội đó; quân số nhập riêng từng (đội, tổ) — cột doi của headcount_to, SQL 19.
+  // Dòng quân số cũ chưa ghi đội (doi trống) tính cho đội chính của tổ (doiCuaTo).
+  // Mỗi dòng: xe sẵn sàng cần người, định biên kíp (nhân sự của đội đó trong tổ), thực tế đã nhập, chênh lệch.
   function shiftByTo(sh) {
     const kip = shiftKip(sh);
     const cheDo = sh.hc ? "HC" : "Đi ca";
-    return toList.map((to) => {
-      const vs = raw.vehicles.filter((v) => v.to_xe === to && v.che_do === cheDo);
-      const h = headcountTo.find((x) => x.ngay === sh.ngay && x.ca === sh.ca && x.to_xe === to);
+    const KEY = (doi, to) => doi + "|" + to;
+    const doiHc = (h) => h.doi || doiCuaTo[h.to_xe] || "";
+    const doiNs = (s) => s.doi || doiCuaTo[s.to_xe] || "";
+    const cap = new Map();
+    const them = (doi, to) => { if (to && !cap.has(KEY(doi, to))) cap.set(KEY(doi, to), { doi, to }); };
+    for (const v of raw.vehicles) if (v.che_do === cheDo) them(v.doi || "", v.to_xe);
+    if (kip) for (const s of laiXeActive) if (s.kip === kip) them(doiNs(s), s.to_xe);
+    for (const h of headcountTo) if (h.ngay === sh.ngay && h.ca === sh.ca) them(doiHc(h), h.to_xe);
+    const thuTuTo = (to) => { const i = toList.indexOf(to); return i < 0 ? 999 : i; };
+    return [...cap.values()].sort((a, b) => thuTuTo(a.to) - thuTuTo(b.to) || String(a.doi).localeCompare(String(b.doi), "vi")).map(({ doi, to }) => {
+      const vs = raw.vehicles.filter((v) => v.to_xe === to && (v.doi || "") === doi && v.che_do === cheDo);
+      const h = headcountTo.find((x) => x.ngay === sh.ngay && x.ca === sh.ca && x.to_xe === to && doiHc(x) === doi);
       const xeCan = vs.filter((v) => isReady(v.ma)).length;
       const thucTe = h?.thuc_te ?? null;
       return {
-        to, xeTong: vs.length, xeCan,
-        dinhBien: kip ? laiXeActive.filter((s) => s.to_xe === to && s.kip === kip).length : 0,
-        doi: uniq(vs.map((v) => v.doi)).join(", "), doiChinh: doiCuaTo[to] || "",
+        to, doi, doiChinh: doi, key: KEY(doi, to), xeTong: vs.length, xeCan,
+        dinhBien: kip ? laiXeActive.filter((s) => s.to_xe === to && s.kip === kip && doiNs(s) === doi).length : 0,
         thucTe, ghiChu: h?.ghi_chu || "", chenh: thucTe == null ? null : thucTe - xeCan,
       };
     }).filter((r) => r.xeTong > 0 || r.dinhBien > 0 || r.thucTe != null);
@@ -208,7 +222,7 @@ export function derive(raw) {
 
   return {
     ...raw, meta, T, today: t, vmap, open, state, stateOf, isReady, doiList, toList, dinhBienXe,
-    staffActive, laiXeActive, laLaiXe, specOf, flags, summarize, groupSummary, readinessTrend, caDef, upcomingShifts, shiftKip, shiftLich, shiftLabel, kipTheoLich, gioLam, shiftRows, shiftByTo, headcountTo, coSql14, doiCuaTo,
+    staffActive, laiXeActive, laLaiXe, specOf, flags, summarize, groupSummary, readinessTrend, caDef, upcomingShifts, shiftKip, shiftLich, shiftLabel, kipTheoLich, gioLam, shiftRows, shiftByTo, headcountTo, coSql14, thongTinCa, coSql18, doiCuaTo,
     taiTrongList, taiTrongOf, thietBiGanList, thietBiGanOf, thietBiGanAll, thietBiGanCauList, thietBiGanDungOf,
     loaiList: meta.loai || ["Hỏng", "BD định kỳ", "BD chiến lược"],
     kipList: meta.kip || ["A", "B", "C", "HC"],

@@ -47,7 +47,9 @@ export function supabaseApi() {
       const tbGanSl = await sb.from("thiet_bi_gan_sl").select("*").order("thu_tu").order("id").then((r) => (r.error ? null : r.data));
       // Quân số theo tổ (SQL 14). Chưa chạy SQL 14 thì null: tab Nhân sự & quân số báo cần chạy SQL và nhập theo đội như cũ
       const headcountTo = await sb.from("headcount_to").select("*").gte("ngay", from).then((r) => (r.error ? null : r.data));
-      return { meta: d.meta || {}, nguong: d.nguong || {}, mapPt: d.map_pt || null, nhaThau: d.nha_thau || null, toTruong: d.to_truong || null, vehicles, staff, events, cakip, headcount, headcountTo, specs, hanghoa, tbGanSl, plan: await this.loadPlan() };
+      // Thông tin đầu / cuối ca (SQL 18). Chưa chạy SQL 18 thì null: tab Thông tin đầu/cuối ca báo cần chạy SQL
+      const thongTinCa = await sb.from("thong_tin_ca").select("*").gte("ngay", from).then((r) => (r.error ? null : r.data));
+      return { meta: d.meta || {}, nguong: d.nguong || {}, mapPt: d.map_pt || null, nhaThau: d.nha_thau || null, toTruong: d.to_truong || null, vehicles, staff, events, cakip, headcount, headcountTo, thongTinCa, specs, hanghoa, tbGanSl, plan: await this.loadPlan() };
     },
 
     // Dữ liệu Giai đoạn 2. Chưa chạy file SQL 6 thì trả về null (tab Kế hoạch sẽ báo cần chạy SQL).
@@ -153,6 +155,11 @@ export function supabaseApi() {
     deleteSampleStaff: async () => ok(await sb.from("staff").delete().like("ma", "MAU-%")),
     upsertCaKip: async (rec) => ok(await sb.from("ca_kip").upsert(rec)),
     upsertHeadcount: async (rows) => ok(await sb.from("headcount").upsert(rows)),
+    // Thông tin đầu / cuối ca: xoa = [{ ngay, ca, loai, ma_xe }] là các dòng bỏ khỏi bảng
+    saveThongTinCa: async (rows, xoa = []) => {
+      for (const r of xoa) ok(await sb.from("thong_tin_ca").delete().eq("ngay", r.ngay).eq("ca", r.ca).eq("loai", r.loai).eq("ma_xe", r.ma_xe));
+      if (rows.length) ok(await sb.from("thong_tin_ca").upsert(rows));
+    },
     upsertHeadcountTo: async (rows) => ok(await sb.from("headcount_to").upsert(rows)),
 
     // Chiến dịch vận chuyển (SQL 17). docChienDich trả null = chưa chạy SQL 17

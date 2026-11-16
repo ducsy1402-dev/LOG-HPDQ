@@ -11,7 +11,8 @@ import { khoangKy, thangTrongKy, tenKy } from "@/lib/ky";
 import { docSo } from "@/lib/paste";
 import { cn } from "@/lib/utils";
 import { tinhThang, khoaLoai } from "@/lib/sanLuong";
-import { DON_VI, NHOM, tenDonVi, dsDonVi, khoaDong, khoaCua, tuDb, ngayCuaThang, tongTheoCot } from "@/lib/sanLuongTT";
+import { DON_VI, NHOM, tenDonVi, dsDonVi, khoaDong, khoaCua, tuDb, ngayCuaThang, tongTheoCot, nhomDongVT } from "@/lib/sanLuongTT";
+import BangMucTieuVT from "./BangMucTieuVT";
 
 const tenKyThuong = (kyLoai, ky) => (kyLoai === "thang" ? tenThang(ky) : tenKy(kyLoai, ky)).toLowerCase();
 import { useThietBi } from "@/thietbi/Host";
@@ -119,6 +120,25 @@ function BangMucTieu({ nhom, thang, kyLoai = "thang", mucTieu, mucTieuThang = []
     if (!dong[k]) { setF({ ...f, [k]: { huong, loai, donVi, hang, tan: "", ghi_chu: "" } }); setXoa((o) => { const n = new Set(o); n.delete(k); return n; }); }
     setThem({ ...them, [huong]: { ...t, loai: "", hang: "" } });
   };
+  // Vận tải: bảng theo form Excel (Loại hàng · Hướng · Loại xe · ĐVT · Tổng · Hòa Phát · Thuê ngoài · Ghi chú), mỗi dòng gộp hai dòng CSDL (hai đơn vị)
+  const vt = !!c.coDonVi;
+  const nhomVT = useMemo(() => (vt ? nhomDongVT(Object.fromEntries(Object.entries(dong).filter(([, r]) => loc(r))), c.huong.map(([h]) => h)) : []), [vt, dong, loc, c.huong]);
+  const [themV, setThemV] = useState({});
+  const khoaSlot = (o, slot) => o[slot] || khoaDong(o.huong, o.loai, slot === "hp" ? "hoa_phat" : o.donViTN, o.hang);
+  const datO = (o, slot, val) => {
+    const k = khoaSlot(o, slot);
+    setF((x) => ({ ...x, [k]: { ...(x[k] || { huong: o.huong, loai: o.loai, donVi: slot === "hp" ? "hoa_phat" : o.donViTN, hang: o.hang, tan: "", ghi_chu: [o.hp, o.tn].map((q) => x[q]?.ghi_chu).find(Boolean) || "" }), tan: val } }));
+    setXoa((q) => { if (!q.has(k)) return q; const n = new Set(q); n.delete(k); return n; });
+  };
+  const datGhiChu = (o, val) => setF((x) => { const n = { ...x }; for (const k of [o.hp, o.tn]) if (k && n[k]) n[k] = { ...n[k], ghi_chu: val }; return n; });
+  const xoaNhom = (o) => { for (const k of [o.hp, o.tn, ...o.khac]) if (k) xoaDong(k); };
+  const themNhom = () => {
+    const loai = (themV.loai || "").trim(); if (!loai) return;
+    const huong = themV.huong || c.huong[0][0], hang = (themV.hang || "").trim();
+    const moi = {}; for (const dv of ["hoa_phat", "nha_thau"]) { const k = khoaDong(huong, loai, dv, hang); if (!dong[k]) moi[k] = { huong, loai, donVi: dv, hang, tan: "", ghi_chu: "" }; }
+    setF((x) => ({ ...x, ...moi })); setXoa((q) => { const n = new Set(q); for (const k of Object.keys(moi)) n.delete(k); return n; });
+    setThemV({ ...themV, loai: "", hang: "" });
+  };
   const truoc = congThang(thang, -1);
   const [dsTruoc, setDsTruoc] = useState(null);
   useEffect(() => { let huy = false; if (sua && !kyMode) api.docSanLuongThang(nhom, truoc).then((r) => { if (!huy) setDsTruoc(r?.mucTieu || []); }).catch(() => {}); return () => { huy = true; }; }, [api, nhom, truoc, sua, kyMode]);
@@ -163,7 +183,8 @@ function BangMucTieu({ nhom, thang, kyLoai = "thang", mucTieu, mucTieuThang = []
           <span><span className="text-muted-foreground">cộng</span> <b className="tabular-nums text-primary">{so(tongAll(tongMT))} t</b></span>
         </div>
       </div>
-      {!thuMT && <><div className="grid items-start gap-3 lg:grid-cols-2">
+      {!thuMT && <>{vt ? <BangMucTieuVT ds={nhomVT} dong={dong} th={th} kyMode={kyMode} tongThang={tongThang} sua={sua} doi={doi} datO={datO} datGhiChu={datGhiChu} xoaNhom={xoaNhom} them={themV} setThem={setThemV} themNhom={themNhom} goiY={goiY} goiYHang={goiYHang} />
+      : <div className="grid items-start gap-3 lg:grid-cols-2">
         {c.huong.map(([huong, ten]) => {
           const ds = Object.entries(dong).filter(([, r]) => r.huong === huong && loc(r)).sort((a, b) => (docSo(b[1].tan) || 0) - (docSo(a[1].tan) || 0) || a[1].loai.localeCompare(b[1].loai, "vi") || a[1].hang.localeCompare(b[1].hang, "vi"));
           const mtT = tongMT(huong), thT = tongTH(huong), t = them[huong] || {};
@@ -206,7 +227,7 @@ function BangMucTieu({ nhom, thang, kyLoai = "thang", mucTieu, mucTieuThang = []
                 </div>)}</>}
             </div>);
         })}
-      </div>
+      </div>}
       <div className="flex flex-wrap items-center gap-2">
         <p className="flex-1 text-[0.6875rem] text-muted-foreground">{sua ? "Gõ số tấn (vd 400.000). Cột Thực hiện là tổng số đã nhập ở bảng thực tế bên dưới. Xóa số hoặc bấm x là bỏ mục tiêu dòng đó (bấm Lưu mới xóa hẳn). " : "Chỉ Quản lý / Quản trị đặt mục tiêu. Cột Thực hiện là tổng số đã nhập ở bảng thực tế bên dưới. "}{kyMode ? " Mục tiêu quý / năm nhập riêng; dòng nào chưa nhập thì Tổng quan cộng mục tiêu các tháng." : ""}</p>
         {sua && <Button size="sm" disabled={!doi.length} onClick={luu}><Save />Lưu mục tiêu{doi.length ? ` (${doi.length} dòng)` : ""}</Button>}

@@ -77,6 +77,7 @@ export function tinhDieuDo(D, now = new Date()) {
       doi, tong: s.tong, ready: s.ready, hong: s.hong, bdcl: s.bdcl, rate: s.rate, tone: rateTone(s.rate, T),
       xeCan: r?.xeCan ?? xeCa.length, dinhBien: r?.dinhBien ?? 0, thucTe: r?.thucTe ?? null, chenh: r?.chenh ?? null,
       daGan, ranh: daGan == null ? null : Math.max(0, xeCa.length - daGan),
+      xeRanh: daGan == null ? null : xeCa.filter((v) => !xeGan.has(v.ma)).map((v) => ({ ma: v.ma, to: v.to_xe, state: D.stateOf(v.ma) })), // mã xe rảnh (bấm số xe rảnh để xem)
       can: nhuCau ? nc.reduce((a, x) => a + x.can, 0) : null, thieuXe: nhuCau ? nc.reduce((a, x) => a + x.thieu, 0) : null,
     };
   });

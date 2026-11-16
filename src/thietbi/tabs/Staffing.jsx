@@ -183,7 +183,7 @@ function ShiftCard({ sh, kip, rows, tag }) {
             <table className="t compact">
               <thead><tr><th>Tổ</th><th className="n">Xe SS</th><th className="n">ĐB kíp</th></tr></thead>
               <tbody>{byTo.map((r) => (
-                <tr key={r.to}><td>{shortTo(r.to)}<div className="small mute">{r.doi}</div></td><td className="n">{r.xeCan}<span className="mute small">/{r.xeTong}</span></td><td className="n">{r.dinhBien}</td></tr>
+                <tr key={r.key}><td>{shortTo(r.to)}<div className="small mute">{r.doi}</div></td><td className="n">{r.xeCan}<span className="mute small">/{r.xeTong}</span></td><td className="n">{r.dinhBien}</td></tr>
               ))}</tbody>
             </table>
           </div>

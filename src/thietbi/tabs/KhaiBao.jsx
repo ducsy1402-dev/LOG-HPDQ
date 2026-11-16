@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
-import { Wrench, Users } from "lucide-react";
+import { Wrench, Users, ClipboardCheck } from "lucide-react";
 import Events from "./Events";
 import QuanSoTo from "./QuanSoTo";
+import ThongTinCa from "./ThongTinCa";
 
-// Khai báo (Thiết bị cơ giới): nơi nhập số liệu hằng ngày, 2 tab
+// Khai báo (Thiết bị cơ giới): nơi nhập số liệu hằng ngày, 3 tab
 //  · Tình trạng & sự kiện (giữ nguyên như trước)
 //  · Nhân sự & quân số (nhập quân số theo từng tổ trong mỗi ca, dùng được trên điện thoại)
-const TAB = [["su-kien", "Tình trạng & sự kiện", Wrench], ["quan-so", "Nhân sự & quân số", Users]];
+//  · Thông tin đầu/cuối ca (từng tổ khai mã xe · tình trạng sẵn sàng / hỏng · vị trí / BPSD ở đầu và cuối ca, SQL 18)
+const TAB = [["su-kien", "Tình trạng & sự kiện", Wrench], ["quan-so", "Nhân sự & quân số", Users], ["dau-cuoi-ca", "Thông tin đầu/cuối ca", ClipboardCheck]];
 const doc = () => { try { return localStorage.getItem("qltb-kb-tab"); } catch { return null; } };
 
 // tab: đường dẫn cũ (thiet-bi/su-kien, thiet-bi/nhan-su) mở thẳng đúng tab
@@ -21,7 +23,7 @@ export default function KhaiBao({ tab }) {
           <button key={k} type="button" role="tab" aria-selected={t === k} className={t === k ? "on" : ""} onClick={() => chon(k)}><Icon size={16} />{ten}</button>
         ))}
       </div>
-      {t === "su-kien" ? <Events /> : <QuanSoTo />}
+      {t === "su-kien" ? <Events /> : t === "quan-so" ? <QuanSoTo /> : <ThongTinCa />}
     </>
   );
 }

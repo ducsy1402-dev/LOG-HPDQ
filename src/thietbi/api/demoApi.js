@@ -75,6 +75,7 @@ export async function demoApi() {
   db.cakip = [];
   db.headcount = [];
   db.headcountTo = [];
+  db.thongTinCa = [];
 
   // ---- Kế hoạch (Giai đoạn 2) ----
   const lech = diffDays(GOC, t);
@@ -146,7 +147,7 @@ export async function demoApi() {
       return clone({
         tbGanSl: db.tbGanSl, meta: db.meta, nguong: db.nguong, mapPt: { rules: db.mapPt }, nhaThau: db.nhaThau, toTruong: db.toTruong || null, plan, vehicles: db.vehicles, staff: db.staff, specs: db.specs, hanghoa: db.hanghoa,
         events: db.events.filter((e) => !e.ngay_xong || e.ngay_xong >= cutoff),
-        cakip: db.cakip.filter((x) => x.ngay >= from), headcount: db.headcount.filter((x) => x.ngay >= from), headcountTo: db.headcountTo.filter((x) => x.ngay >= from),
+        cakip: db.cakip.filter((x) => x.ngay >= from), headcount: db.headcount.filter((x) => x.ngay >= from), headcountTo: db.headcountTo.filter((x) => x.ngay >= from), thongTinCa: db.thongTinCa.filter((x) => x.ngay >= from),
       });
     },
     async insertEvent(rec) { guard(W); await wait(); db.events.push({ ...rec, id: ++id, created_at: t, updated_at: t }); },
@@ -168,7 +169,9 @@ export async function demoApi() {
     async deleteSampleStaff() { guard(A); await wait(); db.staff = db.staff.filter((s) => !s.ma.startsWith("MAU-")); },
     async upsertCaKip(rec) { guard(W); await wait(); upsert(db.cakip, [rec], ["ngay", "ca"]); },
     async upsertHeadcount(rows) { guard(W); await wait(); upsert(db.headcount, rows, ["ngay", "ca", "doi"]); },
-    async upsertHeadcountTo(rows) { guard(W); await wait(); upsert(db.headcountTo, rows, ["ngay", "ca", "to_xe"]); },
+    // Thông tin đầu / cuối ca (SQL 18): ghi các dòng, xóa các dòng bỏ ra (xoa = [{ ngay, ca, loai, ma_xe }])
+    async saveThongTinCa(rows, xoa = []) { guard(W); await wait(); const k = (r) => [r.ngay, r.ca, r.loai, r.ma_xe].join("|"), bo = new Set(xoa.map(k)); db.thongTinCa = db.thongTinCa.filter((r) => !bo.has(k(r))); upsert(db.thongTinCa, rows, ["ngay", "ca", "loai", "ma_xe"]); },
+    async upsertHeadcountTo(rows) { guard(W); await wait(); upsert(db.headcountTo, rows, ["ngay", "ca", "to_xe", "doi"]); },
     async savePlanParams(pid, data) { guard(A); await wait(); plan.params[pid] = clone(data); },
     async insertPlanJob(rec) { guard(W); await wait(); plan.jobs.push({ ...rec, id: ++jid }); },
     async updatePlanJob(pid, patch) { guard(W); await wait(); Object.assign(plan.jobs.find((j) => j.id === +pid), patch); },

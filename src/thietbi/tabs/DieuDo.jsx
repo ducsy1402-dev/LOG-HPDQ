@@ -1,17 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
-import { Gauge, Truck, Users, ClipboardList, BellRing, Wrench, Grid3x3, Activity, AlertTriangle, Info, ChevronRight, Clock } from "lucide-react";
+import { Gauge, Users, BellRing, Wrench, Grid3x3, Activity, AlertTriangle, Info, ChevronRight, Clock } from "lucide-react";
 import { useApp } from "../store";
 import { useApp as useLogistics, useHash } from "@/store";
-import { Card, Kpi, Badge, Empty, StateBadge } from "../components/ui";
+import { Card, Badge, Empty, StateBadge } from "../components/ui";
 import { tinhDieuDo } from "../lib/dieuDo";
 import { tinhDaiHan } from "./plan/LongTerm";
 import { chenhTone, chenhLabel, rateTone } from "../lib/compute";
 import { fmtD } from "../lib/plan";
 import { pct, vn, diffDays, thu, vnShort, shortTo } from "../lib/utils";
+import { TauLamHang, ThietBiGan, TonKhoBai, GiaoCa, HopXeRanh, useTauLamHang } from "./dieudo/KhoiDieuDo";
 
 // Điều độ: nhìn bao quát thiết bị, nhân sự và năng lực đáp ứng của ca để quyết định điều tiết kế hoạch trong ca.
-// Từ trên xuống: ca đang diễn ra · chỉ số chính · việc cần quyết định · thiết bị đang dừng · năng lực theo đội ·
-// quân số các ca · dự báo xe các ca tới (theo Linetime). Mọi số lấy từ dữ liệu đã có (khai báo, kế hoạch ngày, kế hoạch dài hạn), không nhập thêm.
+// Từ trên xuống (anh Sỹ chỉnh 16/11/2026, bỏ 5 thẻ chỉ số): ca đang diễn ra · năng lực đáp ứng theo đội (bấm số xe rảnh xem mã xe) · việc cần quyết định · thiết bị đang dừng ·
+// giao ca · tàu đang làm hàng · thiết bị gắn xe xúc đào · tồn kho các bãi · quân số các ca · dự báo xe các ca tới (theo Linetime). Các khối mới ở dieudo/KhoiDieuDo.jsx. Mọi số lấy từ dữ liệu đã có (khai báo, kế hoạch ngày, kế hoạch dài hạn), không nhập thêm.
 const luu = (k, v) => { try { localStorage.setItem(k, v); } catch { /* bỏ qua */ } };
 const gioPhut = (ms) => { const p = Math.round(ms / 60000), h = Math.floor(p / 60); return h ? `${h} giờ ${p % 60 ? (p % 60) + " phút" : ""}`.trim() : `${p} phút`; };
 
@@ -21,6 +22,8 @@ export default function DieuDo() {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => { const id = setInterval(() => setNow(new Date()), 60000); return () => clearInterval(id); }, []);
   const X = useMemo(() => tinhDieuDo(D, now), [D, now]);
+  const tau = useTauLamHang(now);
+  const [ranh, setRanh] = useState(null); // dòng đội đang xem xe rảnh
   const { caNay, sXe, sCau, doiBang, canhBao, dung, quanSo, nhuCau } = X;
 
   const mo = (v) => {
@@ -60,13 +63,28 @@ export default function DieuDo() {
         </section>
       )}
 
-      <div className="grid g-kpi dd-kpi mb">
-        <Kpi icon={Truck} label="Xe sẵn sàng" value={`${sXe.ready}/${sXe.tong}`} foot={`${pct(sXe.rate, 1)} · hỏng ${sXe.hong} · BD CL ${sXe.bdcl}`} tone={rateTone(sXe.rate, D.T)} meter={sXe.rate} />
-        <Kpi icon={Wrench} label="Cẩu cảng sẵn sàng" value={sCau.tong ? `${sCau.ready}/${sCau.tong}` : "–"} foot={sCau.tong ? `${pct(sCau.rate, 1)} · hỏng ${sCau.hong}` : "Chưa có cẩu"} tone={sCau.tong ? rateTone(sCau.rate, D.T) : ""} meter={sCau.tong ? sCau.rate : undefined} />
-        <Kpi icon={Users} label="Quân số ca này" value={tongNay.co ? `${tongNay.tt}/${tongNay.xe}` : `–/${tongNay.xe}`} foot={`Cân đối: ${canDoi == null ? "chưa nhập" : canDoi === 0 ? "đủ" : canDoi > 0 ? "thừa " + canDoi : "thiếu " + -canDoi}`} tone={canDoi == null ? "" : canDoi < 0 ? "bad" : "ok"} onClick={() => mo({ tab: "quan-so" })} />
-        <Kpi icon={ClipboardList} label="Nhu cầu xe ca này" value={nh ? `${nh.tongGan}/${nh.tongCan}` : "–"} foot={nh ? (nh.tongThieu ? `thiếu ${nh.tongThieu} xe · ${nh.soThieu} nhu cầu` : "đã đủ xe") : nhuCau ? "Ca này chưa có nhu cầu" : "Chưa có kế hoạch ngày"} tone={nh ? (nh.tongThieu ? "bad" : "ok") : ""} onClick={() => mo({ kh: "ngay" })} />
-        <Kpi icon={BellRing} label="Việc cần quyết định" value={canhBao.length} foot={nBad ? `${nBad} khẩn` : canhBao.length ? "không khẩn" : "ổn"} tone={nBad ? "bad" : canhBao.length ? "warn" : "ok"} alert={nBad > 0} />
-      </div>
+      <Card className="mb" title="Năng lực đáp ứng theo đội · ca này" icon={Gauge}
+        hint={nh ? `nhu cầu theo ${nh.label}` : "chưa có nhu cầu trong kế hoạch ngày"}>
+        {doiBang.length ? (
+          <div className="tw">
+            <table className="t dd-doi">
+              <thead><tr><th>Đội</th><th>Sẵn sàng</th><th className="n">Hỏng</th><th className="n">BDCL</th><th className="n" title="Người có mặt / xe sẵn sàng cần người của ca">Người / xe cần</th><th className="n" title="Số xe đã gán / số xe nhu cầu yêu cầu">Nhu cầu (gán/cần)</th><th className="n" title="Xe sẵn sàng của ca chưa gán việc: có thể điều tiết">Xe rảnh</th></tr></thead>
+              <tbody>{doiBang.map((d) => (
+                <tr key={d.doi}>
+                  <td><b>{d.doi}</b></td>
+                  <td><div className="bar-cell"><div className="track"><i style={{ width: pct(d.rate), background: `var(--c-${d.tone === "ok" ? "ok" : d.tone === "warn" ? "warn" : "bad"})` }} /></div><span className={"mono small " + d.tone}>{d.ready}/{d.tong}</span></div></td>
+                  <td className="n bad">{d.hong || ""}</td>
+                  <td className="n warn">{d.bdcl || ""}</td>
+                  <td className={"n " + chenhTone(d.chenh)} title={chenhLabel(d.chenh)}>{d.thucTe == null ? <span className="mute">–</span> : d.thucTe}<span className="mute small">/{d.xeCan}</span></td>
+                  <td className={"n " + (d.thieuXe > 0 ? "bad" : "")}>{d.can == null ? <span className="mute">–</span> : d.can ? <>{d.can - d.thieuXe}<span className="mute small">/{d.can}</span></> : <span className="mute">0</span>}</td>
+                  <td className={"n " + (d.ranh > 0 ? "ok" : "")}>{d.ranh == null ? <span className="mute">–</span> : d.ranh > 0 ? <button type="button" className="ma" onClick={() => setRanh(d)} title="Xem mã xe rảnh"><b>{d.ranh}</b></button> : <b>{d.ranh}</b>}</td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+        ) : <Empty>Chưa có đội xe.</Empty>}
+        <div className="small mute" style={{ marginTop: 8 }}>Xe rảnh = xe sẵn sàng của ca chưa được gán vào nhu cầu nào trong Kế hoạch ngày. Đội thiếu xe mà đội khác còn xe rảnh thì cân nhắc điều tiết.</div>
+      </Card>
 
       <div className="grid g-2 mb">
         <Card title={`Việc cần quyết định (${canhBao.length})`} icon={BellRing} hint="đỏ trước, vàng sau">
@@ -80,7 +98,7 @@ export default function DieuDo() {
           </div>
         </Card>
 
-        <Card title={`Thiết bị đang dừng (${dung.length})`} icon={Wrench} hint="hỏng / BD chiến lược" right={<button type="button" className="btn sm" onClick={() => mo({ tab: "su-kien" })}>Mở Khai báo</button>}>
+        <Card title={`Thiết bị đang dừng (${dung.length})`} icon={Wrench} hint="hỏng / BD chiến lược">
           {dung.length ? (
             <div className="tw" style={{ maxHeight: 330 }}>
               <table className="t compact">
@@ -104,36 +122,23 @@ export default function DieuDo() {
         </Card>
       </div>
 
-      <Card className="mb" title="Năng lực đáp ứng theo đội · ca này" icon={Gauge}
-        hint={nh ? `nhu cầu theo ${nh.label}` : "chưa có nhu cầu trong kế hoạch ngày"}>
-        {doiBang.length ? (
-          <div className="tw">
-            <table className="t dd-doi">
-              <thead><tr><th>Đội</th><th>Sẵn sàng</th><th className="n">Hỏng</th><th className="n">BDCL</th><th className="n" title="Người có mặt / xe sẵn sàng cần người của ca">Người / xe cần</th><th className="n" title="Số xe đã gán / số xe nhu cầu yêu cầu">Nhu cầu (gán/cần)</th><th className="n" title="Xe sẵn sàng của ca chưa gán việc: có thể điều tiết">Xe rảnh</th></tr></thead>
-              <tbody>{doiBang.map((d) => (
-                <tr key={d.doi}>
-                  <td><b>{d.doi}</b></td>
-                  <td><div className="bar-cell"><div className="track"><i style={{ width: pct(d.rate), background: `var(--c-${d.tone === "ok" ? "ok" : d.tone === "warn" ? "warn" : "bad"})` }} /></div><span className={"mono small " + d.tone}>{d.ready}/{d.tong}</span></div></td>
-                  <td className="n bad">{d.hong || ""}</td>
-                  <td className="n warn">{d.bdcl || ""}</td>
-                  <td className={"n " + chenhTone(d.chenh)} title={chenhLabel(d.chenh)}>{d.thucTe == null ? <span className="mute">–</span> : d.thucTe}<span className="mute small">/{d.xeCan}</span></td>
-                  <td className={"n " + (d.thieuXe > 0 ? "bad" : "")}>{d.can == null ? <span className="mute">–</span> : d.can ? <>{d.can - d.thieuXe}<span className="mute small">/{d.can}</span></> : <span className="mute">0</span>}</td>
-                  <td className={"n " + (d.ranh > 0 ? "ok" : "")}>{d.ranh == null ? <span className="mute">–</span> : <b>{d.ranh}</b>}</td>
-                </tr>
-              ))}</tbody>
-            </table>
-          </div>
-        ) : <Empty>Chưa có đội xe.</Empty>}
-        <div className="small mute" style={{ marginTop: 8 }}>Xe rảnh = xe sẵn sàng của ca chưa được gán vào nhu cầu nào trong Kế hoạch ngày. Đội thiếu xe mà đội khác còn xe rảnh thì cân nhắc điều tiết.</div>
-      </Card>
+      <GiaoCa X={X} now={now} tau={tau} />
 
-      <Card className="mb" title="Quân số các ca tới" icon={Users} hint="có mặt / xe sẵn sàng cần người" right={<button type="button" className="btn sm" onClick={() => mo({ tab: "quan-so" })}>Nhập quân số</button>}>
+      <TauLamHang now={now} ds={tau} />
+
+      <div className="grid g-2 mb">
+        <ThietBiGan />
+        <TonKhoBai />
+      </div>
+
+      <Card className="mb" title="Quân số các ca tới" icon={Users} hint="có mặt / xe sẵn sàng cần người">
         <MaTranQuanSo quanSo={quanSo} />
       </Card>
 
       <Card className="mb" title="Dự báo thừa / thiếu xe các ca tới" icon={Grid3x3} hint="theo Linetime tàu và kế hoạch dài hạn · có − cần">
         <DuBao />
       </Card>
+      {ranh && <HopXeRanh doi={ranh.doi} xe={ranh.xeRanh || []} onClose={() => setRanh(null)} />}
     </>
   );
 }

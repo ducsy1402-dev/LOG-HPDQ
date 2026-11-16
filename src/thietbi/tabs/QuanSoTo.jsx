@@ -46,20 +46,20 @@ export default function QuanSoTo() {
 
 function CaQuanSo({ sh }) {
   const { D, api, run, canWrite } = useApp();
-  const [mo, setMo] = useState(null); // tên tổ đang mở hộp nhập
+  const [mo, setMo] = useState(null); // khóa (đội|tổ) đang mở hộp nhập
   const tos = D.shiftByTo(sh);
 
   // Nhóm theo đội: thứ tự đội như trang khác, tổ không rõ đội để cuối
   const nhom = useMemo(() => {
     const m = new Map();
-    for (const r of tos) { const k = r.doiChinh || "Khác"; if (!m.has(k)) m.set(k, []); m.get(k).push(r); }
+    for (const r of tos) { const k = r.doi || "Khác"; if (!m.has(k)) m.set(k, []); m.get(k).push(r); }
     const vt = (d) => (D.doiList.indexOf(d) < 0 ? 999 : D.doiList.indexOf(d));
     return [...m.entries()].sort(([a], [b]) => vt(a) - vt(b));
   }, [tos, D]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const daNhap = tos.filter((r) => r.thucTe != null);
   const tong = daNhap.reduce((a, r) => ({ tt: a.tt + r.thucTe, can: a.can + r.xeCan, thieu: a.thieu + (r.chenh < 0 ? -r.chenh : 0) }), { tt: 0, can: 0, thieu: 0 });
-  const dangMo = tos.find((r) => r.to === mo);
+  const dangMo = tos.find((r) => r.key === mo);
 
   return (
     <>
@@ -90,8 +90,8 @@ function CaQuanSo({ sh }) {
                   </>
                 );
                 return canWrite
-                  ? <button key={r.to} type="button" className={"qs-tile " + (r.thucTe == null ? "chua" : ct)} onClick={() => setMo(r.to)}>{noiDung}</button>
-                  : <div key={r.to} className={"qs-tile " + (r.thucTe == null ? "chua" : ct)}>{noiDung}</div>;
+                  ? <button key={r.key} type="button" className={"qs-tile " + (r.thucTe == null ? "chua" : ct)} onClick={() => setMo(r.key)}>{noiDung}</button>
+                  : <div key={r.key} className={"qs-tile " + (r.thucTe == null ? "chua" : ct)}>{noiDung}</div>;
               })}
             </div>
           </section>
@@ -101,7 +101,7 @@ function CaQuanSo({ sh }) {
       {dangMo && (
         <HopNhap sh={sh} r={dangMo} onClose={() => setMo(null)}
           onLuu={async (tt, gc) => {
-            const ok = await run(() => api.upsertHeadcountTo([{ ngay: sh.ngay, ca: sh.ca, to_xe: dangMo.to, doi: dangMo.doiChinh || null, thuc_te: tt, ghi_chu: gc || null }]), `Đã lưu ${shortTo(dangMo.to)}: ${tt ?? "xóa số"} người · ${D.shiftLabel(sh)}`);
+            const ok = await run(() => api.upsertHeadcountTo([{ ngay: sh.ngay, ca: sh.ca, to_xe: dangMo.to, doi: dangMo.doi || "", thuc_te: tt, ghi_chu: gc || null }]), `Đã lưu ${shortTo(dangMo.to)}: ${tt ?? "xóa số"} người · ${D.shiftLabel(sh)}`);
             if (ok) setMo(null);
           }} />
       )}
@@ -123,7 +123,7 @@ function HopNhap({ sh, r, onClose, onLuu }) {
     <Modal title={`${shortTo(r.to)} · ${D.shiftLabel(sh)}`} onClose={onClose} width={380}
       footer={<><button type="button" className="btn" onClick={onClose}>Hủy</button><button type="button" className="btn pri" onClick={ghi} disabled={luu}><Save size={15} />{luu ? "Đang lưu…" : "Lưu"}</button></>}>
       <div className="qs-hop">
-        <div className="small mute">Đội {r.doiChinh || "–"} · Xe sẵn sàng <b>{r.xeCan}</b>/{r.xeTong}</div>
+        <div className="small mute">Đội {r.doi || "–"} · Xe sẵn sàng <b>{r.xeCan}</b>/{r.xeTong}</div>
         <div className="qs-hop-l">Số người có mặt</div>
         <div className="qs-step">
           <button type="button" className="qs-b" onClick={() => doi(-1)} aria-label="Giảm"><Minus size={22} /></button>

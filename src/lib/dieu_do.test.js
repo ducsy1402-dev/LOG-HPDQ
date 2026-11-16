@@ -45,6 +45,31 @@ describe("Quân số theo tổ", () => {
     expect(to.find((x) => x.to === "Tổ 2")).toMatchObject({ thucTe: 1, chenh: -1 });
     expect(to.find((x) => x.to === "Tổ 3").thucTe).toBe(null);
   });
+  it("tổ dùng chung nhiều đội: mỗi đội một dòng, chỉ đếm xe của đội đó, quân số nhập riêng từng đội", () => {
+    const ca = "CA 1 (08h–20h)";
+    const D = derive(raw({
+      vehicles: [xe("D1", "Xúc đào", "PVC"), xe("D2", "Xúc đào", "PVC"), xe("D3", "Xúc đào", "PVC"), xe("L1", "Xúc lật", "PVC"), xe("L2", "Xúc lật", "PVC")],
+      staff: [], meta: { doi: ["Xúc đào", "Xúc lật"], to: ["PVC"] },
+      headcountTo: [{ ngay: HOM_NAY, ca, to_xe: "PVC", doi: "Xúc đào", thuc_te: 3 }, { ngay: HOM_NAY, ca, to_xe: "PVC", doi: "Xúc lật", thuc_te: 1 }],
+    }));
+    const to = D.shiftByTo(caNay(D));
+    expect(to.length).toBe(2);
+    expect(to.find((x) => x.doi === "Xúc đào")).toMatchObject({ to: "PVC", xeTong: 3, xeCan: 3, thucTe: 3, chenh: 0 });
+    expect(to.find((x) => x.doi === "Xúc lật")).toMatchObject({ to: "PVC", xeTong: 2, xeCan: 2, thucTe: 1, chenh: -1 });
+    const r = D.shiftRows(caNay(D));
+    expect(r.find((x) => x.doi === "Xúc đào")).toMatchObject({ thucTe: 3, chenh: 0 });
+    expect(r.find((x) => x.doi === "Xúc lật")).toMatchObject({ thucTe: 1, chenh: -1 });
+  });
+  it("dòng quân số tổ cũ chưa ghi đội tính cho đội chính của tổ", () => {
+    const ca = "CA 1 (08h–20h)";
+    const D = derive(raw({
+      vehicles: [xe("D1", "Xúc đào", "PVC"), xe("D2", "Xúc đào", "PVC"), xe("L1", "Xúc lật", "PVC")], staff: [], meta: { doi: ["Xúc đào", "Xúc lật"], to: ["PVC"] },
+      headcountTo: [{ ngay: HOM_NAY, ca, to_xe: "PVC", doi: "", thuc_te: 2 }],
+    }));
+    const to = D.shiftByTo(caNay(D));
+    expect(to.find((x) => x.doi === "Xúc đào").thucTe).toBe(2);
+    expect(to.find((x) => x.doi === "Xúc lật").thucTe).toBe(null);
+  });
   it("tổ nhập 0 người vẫn tính là đã nhập (thiếu), khác tổ chưa nhập", () => {
     const ca = "CA 1 (08h–20h)";
     const D = derive(raw({ headcountTo: [{ ngay: HOM_NAY, ca, to_xe: "Tổ 1", thuc_te: 0 }] }));

@@ -8,6 +8,7 @@ import { MucIcon } from "@/components/common";
 import { tachBang, docSo, docNgayGio, doanThuTuNgay } from "@/lib/paste";
 import { plain, so } from "@/lib/format";
 import { ngayDia } from "@/lib/keHoachNgay";
+import HopDanVT from "./HopDanVT";
 
 // Dán nhanh / nhập Excel cho hai hộp của Mục tiêu sản lượng › Khai thác cảng (anh Sỹ yêu cầu 13/11/2026):
 //   • Đặt mục tiêu: mỗi dòng Hướng · Loại hàng · Mục tiêu (t) · Ghi chú;
@@ -36,7 +37,11 @@ export const docHuongVT = (x) => { const p = plain(x); return /san xuat|\bsx\b/.
 export const docDonVi = (x) => { const p = plain(x); return !p || /hoa phat|\bhp\b/.test(p) ? "hoa_phat" : /thue|nha thau|\bnt\b/.test(p) ? "nha_thau" : null; };
 
 // loai: "muc_tieu" | "thuc_te"; thang (thực tế): chỉ nhận ngày trong tháng này
-export default function HopDanSL({ loai, nhom = "cang", thang, onApDung, onClose }) {
+// Mục tiêu vận tải dùng form riêng theo bảng Excel (Loại hàng · Hướng · Loại xe · ĐVT · Tổng · Hòa Phát · Thuê ngoài · Ghi chú): HopDanVT
+export default function HopDanSL(props) {
+  return props.nhom === "van_tai" && props.loai !== "thuc_te" ? <HopDanVT onApDung={props.onApDung} onClose={props.onClose} /> : <HopDanSLChung {...props} />;
+}
+function HopDanSLChung({ loai, nhom = "cang", thang, onApDung, onClose }) {
   const { toast, fail } = useApp();
   const tt = loai === "thuc_te", vt = nhom === "van_tai";
   const [text, setText] = useState("");

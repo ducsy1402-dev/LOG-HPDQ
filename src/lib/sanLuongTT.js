@@ -43,3 +43,21 @@ export function tongTheoCot(nhom, thucTe) {
 }
 // Bộ lọc đội xe (chỉ vận tải): "" = tất cả
 export const khopDoiXe = (r, doiXe) => !doiXe || plain(r.loai) === plain(doiXe);
+
+// ---------- Mục tiêu vận tải: một dòng = (loại hàng, hướng, loại xe) với hai ô Hòa Phát / Thuê ngoài (anh Sỹ chốt 16/11/2026, theo bảng Excel) ----------
+// CSDL vẫn lưu mỗi đơn vị một dòng (don_vi = hoa_phat | nha_thau), nên không đổi SQL. Tổng = Hòa Phát + Thuê ngoài.
+export const HUONG_NGAN = { phuc_vu_cang: "PVC", phuc_vu_san_xuat: "PVSX" };
+// dong: { khóa: { huong, loai (loại xe), donVi, hang, tan, ghi_chu } } -> [{ g, huong, loai, hang, hp, tn, khac, donViTN }]
+// hp / tn: khóa dòng Hòa Phát / Thuê ngoài (null = chưa có); khac: các dòng thuê ngoài cũ ghi theo từng nhà thầu (nt:<tên>) — tính vào tổng, không sửa ở đây
+export function nhomDongVT(dong, thuTuHuong = []) {
+  const m = new Map();
+  for (const [k, r] of Object.entries(dong)) {
+    const g = `${r.huong}|${plain(r.loai)}|${plain(r.hang)}`;
+    const o = m.get(g) || { g, huong: r.huong, loai: r.loai, hang: r.hang || "", hp: null, tn: null, khac: [], donViTN: "nha_thau" };
+    if (r.donVi === "hoa_phat") o.hp = k;
+    else if (r.donVi === "nha_thau" || o.tn == null) { if (o.tn != null) o.khac.push(o.tn); o.tn = k; o.donViTN = r.donVi || "nha_thau"; }
+    else o.khac.push(k);
+    m.set(g, o);
+  }
+  return [...m.values()].sort((a, b) => thuTuHuong.indexOf(a.huong) - thuTuHuong.indexOf(b.huong) || a.hang.localeCompare(b.hang, "vi") || a.loai.localeCompare(b.loai, "vi"));
+}
