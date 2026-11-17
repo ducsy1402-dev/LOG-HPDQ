@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
-import { Boxes, TrendingUp, ArrowLeftRight } from "lucide-react";
+import { Boxes, TrendingUp, ArrowLeftRight, LineChart } from "lucide-react";
 import { useApp } from "@/store";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { NativeSelect } from "@/components/ui/input";
 import EChart from "@/components/EChart";
-import { so, pct, r2, plain, thangCua, tenThang, congThang } from "@/lib/format";
+import { so, pct, r2, plain } from "@/lib/format";
 import { khuCuaKeHoach, ngayStr, khaiBaoBai, khoaTenBai } from "@/lib/kho";
-import { chuoiKho } from "@/lib/bieuDoKho";
+import { chuoiKho, chuoiTonKho } from "@/lib/bieuDoKho";
+import { khoaKy, dsKy, tenKy, khoangKy as khoangKhoa } from "@/lib/ky";
 import { khoangKy } from "@/lib/bieuDoSanLuong";
 import { ngayCuaKeHoach } from "@/lib/keHoachKy";
 import { mucDay } from "./khoUi";
@@ -21,30 +22,56 @@ const MAU = { ok: "#10b981", warn: "#f59e0b", bad: "#f43f5e", xam: "#64748b" };
 const MAU_NHAP = "#6366f1", MAU_XUAT = "#38bdf8";
 const DAY = 864e5;
 
-function NhapXuatKeHoach({ kho, loai }) {
-  const { D, api } = useApp();
-  const [thang, setThang] = useState(() => thangCua(D.now));
-  const [gd, setGd] = useState(null);
+// Chọn kỳ Tháng / Quý / Năm cho biểu đồ (mỗi biểu đồ một bộ riêng, nhớ kỳ đã chọn của từng loại)
+const KY_KHO = [["thang", "Tháng"], ["quy", "Quý"], ["nam", "Năm"]];
+function useKyKho() {
+  const { D } = useApp();
   const homNay = ngayStr(D.now);
-  const thangs = useMemo(() => Array.from({ length: 14 }, (_, i) => congThang(thangCua(D.now), i - 3)), [D.now]);
-  const kyInfo = useMemo(() => khoangKy("thang", `${thang}-01`, homNay), [thang, homNay]);
+  const [kyLoai, setKyLoai] = useState("thang");
+  const [chon, setChon] = useState(() => ({ thang: khoaKy("thang", D.now), quy: khoaKy("quy", D.now), nam: khoaKy("nam", D.now) }));
+  const hienTai = useMemo(() => ({ thang: khoaKy("thang", D.now), quy: khoaKy("quy", D.now), nam: khoaKy("nam", D.now) }), [D.now]);
+  const dsChon = useMemo(() => ({ thang: dsKy("thang", D.now, 11, 2), quy: dsKy("quy", D.now, 7, 1), nam: dsKy("nam", D.now, 3, 1) }), [D.now]);
+  const khoa = chon[kyLoai];
+  const kyInfo = useMemo(() => khoangKy(kyLoai, ngayStr(khoangKhoa(kyLoai, khoa).tu), homNay), [kyLoai, khoa, homNay]);
+  return { kyLoai, setKyLoai, khoa, kyInfo, homNay, dat: (v) => setChon((o) => ({ ...o, [kyLoai]: v })), dsChon: dsChon[kyLoai].map((x) => [x, tenKy(kyLoai, x) + (x === hienTai[kyLoai] ? " (này)" : "")]) };
+}
+// Hàng điều khiển: kho / bãi, Tháng / Quý / Năm, kỳ. Nằm trong thân khung (không trong tiêu đề) để khỏi chen chữ khi khung hẹp.
+function HangLoc({ k, dsBai, bai, setBai, nhanBai = "Tất cả kho / bãi" }) {
+  return (
+    <div className="mb-1 flex flex-wrap items-center gap-1.5">
+      <NativeSelect className="h-7 w-44 text-xs" value={bai} onChange={(e) => setBai(e.target.value)} placeholder={nhanBai} options={dsBai} aria-label="Lọc kho / bãi" />
+      <div className="inline-flex gap-0.5 rounded-md bg-muted p-0.5 text-xs" role="tablist" aria-label="Kỳ">
+        {KY_KHO.map(([x, ten]) => (
+          <button key={x} type="button" role="tab" aria-selected={k.kyLoai === x} onClick={() => k.setKyLoai(x)}
+            className={`rounded px-2.5 py-1 font-medium transition-colors ${k.kyLoai === x ? "bg-card text-foreground shadow-sm dark:bg-accent" : "text-muted-foreground hover:text-foreground"}`}>{ten}</button>))}
+      </div>
+      <NativeSelect className="h-7 w-44 text-xs" value={k.khoa} onChange={(e) => k.dat(e.target.value)} options={k.dsChon} aria-label="Kỳ" />
+    </div>
+  );
+}
+
+function NhapXuatKeHoach({ kho, loai, dsBai }) {
+  const { D, api } = useApp();
+  const k = useKyKho(), kyInfo = k.kyInfo;
+  const [bai, setBai] = useState("");
+  const [gd, setGd] = useState(null);
   useEffect(() => {
     let huy = false; setGd(null);
     api.loadGiaoDichKhoang(kyInfo.ngays[0], kyInfo.ngays[kyInfo.ngays.length - 1]).then((r) => { if (!huy) setGd(r || []); }).catch(() => { if (!huy) setGd([]); });
     return () => { huy = true; };
   }, [api, kyInfo, D.giaoDich]);
-  const c = useMemo(() => gd && chuoiKho(kyInfo, { kho, loai, keHoach: D.khoKeHoach || [], giaoDich: gd, now: D.now }), [gd, kyInfo, kho, loai, D.khoKeHoach, D.now]);
-  const duong = (name, data, color, net) => ({ name, type: "line", showSymbol: false, data, itemStyle: { color }, lineStyle: { width: net ? 1.6 : 2.4, type: net ? "dashed" : "solid", color } });
+  const baiOk = dsBai.includes(bai) ? bai : "";
+  const c = useMemo(() => gd && chuoiKho(kyInfo, { kho, loai, bai: baiOk, keHoach: D.khoKeHoach || [], giaoDich: gd, now: D.now }), [gd, kyInfo, kho, loai, baiOk, D.khoKeHoach, D.now]);
+  const duong = (name, data, color, net) => ({ name, type: "line", showSymbol: kyInfo.ky !== "thang", symbolSize: 4, data, itemStyle: { color }, lineStyle: { width: net ? 1.6 : 2.4, type: net ? "dashed" : "solid", color } });
   const tom = (tt, kh) => `${so(tt, 0)} t${kh > 0 ? ` / KH ${so(kh, 0)} t (${pct(tt / kh, 0)})` : ""}`;
   return (
     <Card>
-      <CardHeader><CardTitle><ArrowLeftRight />Nhập / xuất kho · kế hoạch / thực tế</CardTitle>
-        <NativeSelect className="ml-auto h-7 w-40 text-xs" value={thang} onChange={(e) => setThang(e.target.value)} options={thangs.map((x) => [x, tenThang(x) + (x === thangCua(D.now) ? " (này)" : "")])} aria-label="Tháng" />
-      </CardHeader>
+      <CardHeader><CardTitle><ArrowLeftRight />Nhập / xuất kho · kế hoạch / thực tế</CardTitle></CardHeader>
       <CardContent>
+        <HangLoc k={k} dsBai={dsBai} bai={baiOk} setBai={setBai} />
         {c ? (
           <>
-            <EChart height={290} option={{
+            <EChart height={260} option={{
               tooltip: { trigger: "axis", valueFormatter: (v) => (v == null ? "—" : `${so(v)} t`) },
               legend: { itemWidth: 12, itemHeight: 6, textStyle: { fontSize: 10 } },
               xAxis: { type: "category", data: c.diem.map((o) => o.nhan), axisLabel: { fontSize: 10, hideOverlap: true } }, yAxis: { type: "value", axisLabel: { fontSize: 10 } },
@@ -54,12 +81,62 @@ function NhapXuatKeHoach({ kho, loai }) {
               ],
             }} />
             <div className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-muted-foreground">
+              <span>{kyInfo.nhan}{baiOk ? ` · ${baiOk}` : " · tất cả kho / bãi"}</span>
               <span>Nhập: <b className="text-foreground">{tom(c.tongNhapTT, c.tongNhapKH)}</b></span>
               <span>Xuất: <b className="text-foreground">{tom(c.tongXuatTT, c.tongXuatKH)}</b></span>
-              {!c.coKeHoach && <span>Chưa có kế hoạch tháng này (nút "Kế hoạch xuất/nhập kho").</span>}
+              {!c.coKeHoach && <span>Chưa có kế hoạch kỳ này (nút "Kế hoạch xuất/nhập kho").</span>}
             </div>
           </>
         ) : <p className="py-8 text-center text-sm text-muted-foreground">Đang tải…</p>}
+      </CardContent>
+    </Card>
+  );
+}
+
+// Biểu đồ đường TỒN của tất cả kho / bãi theo kỳ (anh Sỹ 17/11/2026): mỗi kho / bãi một đường + đường Tổng; chọn một kho / bãi thì mỗi gian / lô của nó một đường.
+// Tồn cuối mỗi điểm tính ngược từ tồn hiện tại theo sổ nhập – xuất; điểm chưa tới để trống.
+const MAU_DUONG = ["#6366f1", "#14b8a6", "#38bdf8", "#f59e0b", "#a855f7", "#ec4899", "#84cc16", "#f97316", "#06b6d4", "#e11d48", "#8b5cf6", "#22c55e"];
+function TonCacKho({ kho, loai, dsBai }) {
+  const { D, api } = useApp();
+  const k = useKyKho(), kyInfo = k.kyInfo;
+  const [bai, setBai] = useState("");
+  const [gd, setGd] = useState(null);
+  const dau = kyInfo.ngays[0];
+  useEffect(() => {
+    let huy = false; setGd(null);
+    if (dau > k.homNay) { setGd([]); return undefined; }
+    api.loadGiaoDichKhoang(dau, k.homNay).then((r) => { if (!huy) setGd(r || []); }).catch(() => { if (!huy) setGd([]); });
+    return () => { huy = true; };
+  }, [api, dau, k.homNay, D.giaoDich]);
+  const baiOk = dsBai.includes(bai) ? bai : "";
+  const c = useMemo(() => gd && chuoiTonKho(kyInfo, { kho, loai, bai: baiOk, giaoDich: gd, now: D.now }), [gd, kyInfo, kho, loai, baiOk, D.now]);
+  const series = c ? [
+    ...c.ds.map((x, i) => ({ name: x.ten, type: "line", showSymbol: kyInfo.ky !== "thang", symbolSize: 4, data: x.ton, itemStyle: { color: MAU_DUONG[i % MAU_DUONG.length] }, lineStyle: { width: 1.8, color: MAU_DUONG[i % MAU_DUONG.length] } })),
+    ...(c.ds.length > 1 ? [{ name: "Tổng (trục phải)", type: "line", yAxisIndex: 1, showSymbol: false, data: c.tong, itemStyle: { color: "#94a3b8" }, lineStyle: { width: 2.4, type: "dashed", color: "#94a3b8" } }] : []),
+  ] : [];
+  const cuoi = c ? c.tong.filter((v) => v != null).slice(-1)[0] : null;
+  return (
+    <Card>
+      <CardHeader><CardTitle><LineChart />Tồn kho · các kho / bãi theo {kyInfo.buoc === "ngay" ? "ngày" : kyInfo.buoc === "tuan" ? "tuần" : "tháng"}</CardTitle></CardHeader>
+      <CardContent>
+        <HangLoc k={k} dsBai={dsBai} bai={baiOk} setBai={setBai} />
+        {c ? (c.ds.length ? (
+          <>
+            <EChart height={340} option={{
+              tooltip: { trigger: "axis", valueFormatter: (v) => (v == null ? "—" : `${so(v)} t`) },
+              legend: { type: "scroll", itemWidth: 12, itemHeight: 6, textStyle: { fontSize: 10 } },
+              grid: { left: 4, right: c.ds.length > 1 && !baiOk ? 8 : 12, top: 40, bottom: 0, containLabel: true },
+              xAxis: { type: "category", boundaryGap: false, data: c.diem.map((o) => o.nhan), axisLabel: { fontSize: 10, hideOverlap: true } },
+              yAxis: [{ type: "value", axisLabel: { fontSize: 10, formatter: (v) => (Math.abs(v) >= 1000 ? `${r2(v / 1000)}k` : v) } },
+                ...(c.ds.length > 1 ? [{ type: "value", position: "right", splitLine: { show: false }, axisLabel: { fontSize: 10, color: "#94a3b8", formatter: (v) => (Math.abs(v) >= 1000 ? `${r2(v / 1000)}k` : v) } }] : [])],
+              series,
+            }} />
+            <div className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-muted-foreground">
+              <span>{kyInfo.nhan}{baiOk ? ` · ${baiOk} (từng gian / lô)` : " · từng kho / bãi lớn"}</span>
+              <span>Tồn hiện tại: <b className="text-foreground">{so(c.tongHT, 0)} t</b>{cuoi != null && !kyInfo.ngays.includes(k.homNay) ? <> · cuối kỳ: <b className="text-foreground">{so(cuoi, 0)} t</b></> : ""}</span>
+              <span>Đơn vị: tấn (k = nghìn tấn). Đường Tổng nét đứt đọc theo trục phải. Tính ngược từ tồn hiện tại theo sổ nhập – xuất.</span>
+            </div>
+          </>) : <p className="py-8 text-center text-sm text-muted-foreground">Chưa có kho / bãi.</p>) : <p className="py-8 text-center text-sm text-muted-foreground">Đang tải…</p>}
       </CardContent>
     </Card>
   );
@@ -148,8 +225,9 @@ export default function BieuDoTon({ loai, kho }) {
             }} /></div> : <p className="py-8 text-center text-sm text-muted-foreground">Chưa có bãi nhỏ.</p>}
           </CardContent>
         </Card>
-        <NhapXuatKeHoach kho={kho} loai={loai} />
+        <NhapXuatKeHoach kho={kho} loai={loai} dsBai={dsBaiLon} />
       </div>
+      <TonCacKho kho={kho} loai={loai} dsBai={dsBaiLon} />
       <Card>
         <CardHeader><CardTitle><TrendingUp />Dự báo tồn kho</CardTitle>
           <NativeSelect className="ml-auto h-7 w-48 text-xs" value={hangDB} onChange={(e) => setHangDB(e.target.value)} placeholder="6 hàng tồn nhiều nhất" options={duBao.ds.map((x) => [x.k, x.ten])} />
