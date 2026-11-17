@@ -227,6 +227,7 @@ export default function BieuDoTon({ loai, kho }) {
         </Card>
         <NhapXuatKeHoach kho={kho} loai={loai} dsBai={dsBaiLon} />
       </div>
+      <div className="grid gap-3 lg:grid-cols-2">
       <TonCacKho kho={kho} loai={loai} dsBai={dsBaiLon} />
       <Card>
         <CardHeader><CardTitle><TrendingUp />Dự báo tồn kho</CardTitle>
@@ -234,7 +235,7 @@ export default function BieuDoTon({ loai, kho }) {
           <NativeSelect className="h-7 w-28 text-xs" value={String(soNgay)} onChange={(e) => setSoNgay(+e.target.value)} options={[["15", "15 ngày"], ["30", "30 ngày"], ["60", "60 ngày"], ["90", "90 ngày"]]} />
         </CardHeader>
         <CardContent className="grid gap-2">
-          {hien.length ? <EChart height={320} option={{
+          {hien.length ? <EChart height={340} option={{
             tooltip: { trigger: "axis", valueFormatter: (v) => `${so(v)} t` },
             legend: { type: "scroll" },
             xAxis: { type: "category", boundaryGap: false, data: duBao.ngays.map(nhanNgay), axisLabel: { fontSize: 10 } },
@@ -251,6 +252,7 @@ export default function BieuDoTon({ loai, kho }) {
           <p className="text-[0.6875rem] text-muted-foreground">Mỗi ngày: tồn + nhập − xuất. Nhập / xuất lấy kế hoạch tháng (nút Kế hoạch xuất/nhập kho, chia đều theo ngày) nếu có, không có thì lấy bình quân 30 ngày gần nhất theo sổ nhập – xuất. Tồn không xuống dưới 0.</p>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }
