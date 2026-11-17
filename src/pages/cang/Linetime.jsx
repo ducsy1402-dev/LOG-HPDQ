@@ -7,7 +7,7 @@ import { Input, NativeSelect } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageHead, TrangThaiBadge, TienDo, Empty, MucIcon } from "@/components/common";
 import { cn } from "@/lib/utils";
-import { trangThai, chiSo, khoangBen, TRANG_THAI } from "@/lib/linetime";
+import { trangThai, chiSo, khoangBen, TRANG_THAI, TRANG_THAI_HIEN } from "@/lib/linetime";
 import { so, ngayGio, matchQ, DAY, thangCua, tenThang, congThang } from "@/lib/format";
 import { useToanManHinh, NutToanManHinh } from "@/components/ui/toanManHinh";
 import Gantt from "./Gantt";
@@ -45,7 +45,7 @@ export default function Linetime() {
 
   const loc = useMemo(() => D.voyages.filter((v) => {
     const st = trangThai(v);
-    if (f.st ? st !== f.st : st === "huy") return false;
+    if (f.st ? (st === "cap_ben" || st === "xong_hang" ? "lam_hang" : st) !== f.st : st === "huy") return false;
     if (f.ben && (f.ben === "_" ? !!v.ben_ma : v.ben_ma !== f.ben && v.ben_phu !== f.ben)) return false; // lọc bến: kể cả tàu có bến phụ là bến đó
     if (f.huong && v.huong !== f.huong) return false;
     if (f.thang) { const k = khoangBen(v, D.now); if (!k || thangCua(k.a) !== f.thang) return false; }
@@ -66,7 +66,7 @@ export default function Linetime() {
         <CardContent className="flex flex-wrap items-center gap-2 pt-4">
           <Input className="w-56" placeholder="Tìm tàu, mã chuyến, hàng, đại lý, cẩu…" value={f.q} onChange={(e) => setF({ ...f, q: e.target.value })} />
           <NativeSelect className="w-36" value={f.ben} onChange={(e) => setF({ ...f, ben: e.target.value })} placeholder="Mọi bến" options={[...D.berths.map((b) => [b.ma, tenBen(b.ma)]), ["_", "Chưa xếp bến"]]} />
-          <NativeSelect className="w-40" value={f.st} onChange={(e) => setF({ ...f, st: e.target.value })} placeholder="Mọi trạng thái (trừ hủy)" options={Object.entries(TRANG_THAI).map(([k, t]) => [k, t.ten])} />
+          <NativeSelect className="w-40" value={f.st} onChange={(e) => setF({ ...f, st: e.target.value })} placeholder="Mọi trạng thái (trừ hủy)" options={[...TRANG_THAI_HIEN, ["huy", TRANG_THAI.huy]].map(([k, t]) => [k, t.ten])} />
           <NativeSelect className="w-28" value={f.huong} onChange={(e) => setF({ ...f, huong: e.target.value })} placeholder="Nhập + xuất" options={[["nhap", "Nhập"], ["xuat", "Xuất"]]} />
           {tab === "ds" && <NativeSelect className="w-40" value={f.thang} onChange={(e) => chonThang(e.target.value)} placeholder="Mọi tháng đang tải" options={thangs.map((t) => [t, tenThang(t)])} />}
           <span className="ml-auto text-xs text-muted-foreground">{loc.length} chuyến</span>

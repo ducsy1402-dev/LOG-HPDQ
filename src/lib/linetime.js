@@ -31,6 +31,12 @@ export const TRANG_THAI = {
   da_roi: { ten: "Đã rời", tone: "default", mau: "#64748b" },
   huy: { ten: "Hủy", tone: "default", mau: "#94a3b8" },
 };
+// Bỏ hai màu trạng thái "Đã cập, chờ làm hàng" và "Xong hàng" (anh Sỹ 17/11/2026): tàu đã cập tới khi rời (ATD) đều hiện màu VÀNG như đang làm hàng;
+// logic trạng thái (trangThai) giữ nguyên để các chỉ số vẫn tính đúng. Chú thích / bộ lọc dùng TRANG_THAI_HIEN (không liệt kê hai trạng thái đã gộp).
+TRANG_THAI.cap_ben = TRANG_THAI.lam_hang;
+TRANG_THAI.xong_hang = TRANG_THAI.lam_hang;
+export const TRANG_THAI_HIEN = Object.entries(TRANG_THAI).filter(([k]) => !["huy", "cap_ben", "xong_hang"].includes(k));
+export const trangThaiHien = (v, now) => { const s = trangThai(v, now); return s === "cap_ben" || s === "xong_hang" ? "lam_hang" : s; }; // trạng thái theo cách hiển thị (đã gộp)
 export const MAU_CHO = { ben: "#ef4444", hang: "#22c55e" };
 // Khoảng dừng có lý do này là thời gian tàu chờ CẬP BẾN do chưa đủ hàng / chưa có bãi nhập (vẽ màu xanh lá trong đoạn chờ bến).
 // Không phải thời gian dừng làm hàng: không tính vào giờ dừng, laytime, trống máng.

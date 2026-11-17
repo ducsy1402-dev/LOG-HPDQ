@@ -1,7 +1,7 @@
 import { Fragment, useContext, useMemo, useState } from "react";
 import { PhongToCtx } from "@/components/EChart";
 import { useApp } from "@/store";
-import { trangThai, laUoc, chiSo, TRANG_THAI } from "@/lib/linetime";
+import { trangThai, laUoc, chiSo, TRANG_THAI, TRANG_THAI_HIEN } from "@/lib/linetime";
 import { cacTuyen, viTriTrenLich, benTheoViTri, tenTuyen } from "@/lib/capBen";
 import { DAY, ngayGio, met, pad, iso, ms, thoiLuong } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -170,7 +170,7 @@ export default function GanttMet({ voyages, tu, soNgay, pxNgay, che = "ben", gon
           {!doiMetDuoc(keo.it) && <div className="text-muted-foreground">{D.coSql28 ? "Chỉ đổi giờ" : "Chạy SQL 28 để đổi vị trí mét"}</div>}
         </div>)}
       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[0.6875rem] text-muted-foreground">
-        {Object.entries(TRANG_THAI).filter(([k]) => k !== "huy").map(([k, t]) => <span key={k} className="flex items-center gap-1"><i className="inline-block h-2.5 w-4 rounded-sm" style={{ background: t.mau }} />{t.ten}</span>)}
+        {TRANG_THAI_HIEN.map(([k, t]) => <span key={k} className="flex items-center gap-1"><i className="inline-block h-2.5 w-4 rounded-sm" style={{ background: t.mau }} />{t.ten}</span>)}
         <ChuThichCho toan={che === "toan"} />
         {che === "toan" && <span className="flex items-center gap-1"><i className="inline-block h-3 w-0.5 bg-white" />Vạch NOR, bắt đầu / kết thúc làm hàng</span>}
         <span className="flex items-center gap-1"><i className="inline-block h-3 w-4 border-t-2 border-warn" />Đầu góc vuông</span>

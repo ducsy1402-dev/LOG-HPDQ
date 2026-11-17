@@ -4,7 +4,7 @@ import { useApp } from "../../store";
 import { useApp as useLogistics } from "@/store";
 import { cn } from "@/lib/utils";
 import { plain } from "@/lib/format";
-import { trangThai, TRANG_THAI, doanBen } from "@/lib/linetime";
+import { trangThai, TRANG_THAI, TRANG_THAI_HIEN, doanBen } from "@/lib/linetime";
 import { xepHangBen } from "@/pages/cang/Gantt";
 import { tenBen } from "@/pages/cang/BangTauBen";
 import { dongSoXeTau, dongSoXeBai, DAU_SO_XE_TAU, DAU_SO_XE_BAI } from "@/lib/tauDaiHan";
@@ -203,7 +203,7 @@ export default function TimelineCa({ R, doi, onJob }) {
 
       <div className="khong-ttb grid gap-2">
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-[0.6875rem] text-muted-foreground">
-          {Object.entries(TRANG_THAI).filter(([k]) => k !== "huy").map(([k, t]) => <span key={k} className="flex items-center gap-1"><i className="inline-block h-2.5 w-4 rounded-sm" style={{ background: t.mau }} />{t.ten}</span>)}
+          {TRANG_THAI_HIEN.map(([k, t]) => <span key={k} className="flex items-center gap-1"><i className="inline-block h-2.5 w-4 rounded-sm" style={{ background: t.mau }} />{t.ten}</span>)}
           <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-4 rounded-sm" style={{ background: BAI_COLOR }} />việc bãi</span>
         </div>
         <div className="scroll-x max-h-[74vh] rounded-md border">
