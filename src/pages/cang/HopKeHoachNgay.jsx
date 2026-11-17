@@ -10,7 +10,7 @@ import { so, soGon, plain, thangCua, tenThang, congThang, DAY } from "@/lib/form
 import { docSo } from "@/lib/paste";
 import { ngayCuaThang } from "@/lib/sanLuongTT";
 import { dongHang } from "@/lib/sanLuong";
-import { klCanLam, trangThai, TRANG_THAI, doanBen } from "@/lib/linetime";
+import { klCanLam, trangThai, TRANG_THAI, TRANG_THAI_HIEN, doanBen } from "@/lib/linetime";
 import { xepHangBen } from "./Gantt";
 import { cacTuyen, viTriTrenLich } from "@/lib/capBen";
 import { ngayCuaChuyen, chiaDeuTheoGio, thucTeNgay, ngayDia } from "@/lib/keHoachNgay";
@@ -344,7 +344,7 @@ export default function HopKeHoachNgay({ thang0, onClose, onLuu }) {
           </div>
 
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-[0.6875rem] text-muted-foreground">
-            {Object.entries(TRANG_THAI).filter(([k]) => k !== "huy").map(([k, t]) => <span key={k} className="flex items-center gap-1"><i className="inline-block h-2.5 w-4 rounded-sm" style={{ background: t.mau }} />{t.ten}</span>)}
+            {TRANG_THAI_HIEN.map(([k, t]) => <span key={k} className="flex items-center gap-1"><i className="inline-block h-2.5 w-4 rounded-sm" style={{ background: t.mau }} />{t.ten}</span>)}
             <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-4 rounded-sm ring-2 ring-amber-400" />Ô đã gõ, chưa lưu</span>
           </div>
           <p className="text-[0.6875rem] text-muted-foreground">{nhap ? "Bấm ô ngày của một tàu (hoặc ô Kế hoạch nhập / xuất ở dưới cùng) để mở khung nhập theo ngày bên phải: mỗi tàu đang làm hàng ngày đó có một ô nhập số tấn (Enter sang tàu kế tiếp); số tổng hiện ra các ô bên ngoài. Cây đũa phép chia đều khối lượng tàu theo giờ làm hàng dự kiến, cục tẩy xóa kế hoạch của tàu trong tháng, \"Điền gợi ý\" điền số chia theo giờ cho các tàu còn trống. Bấm Lưu kế hoạch để ghi. Thực nhập / thực xuất lấy từ bảng Sản lượng thực tế." : "Vai trò Xem chỉ xem kế hoạch."}</p>

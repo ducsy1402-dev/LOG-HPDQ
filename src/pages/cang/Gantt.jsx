@@ -1,6 +1,6 @@
 import { Fragment, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "@/store";
-import { khoangBen, doanBen, trangThai, laUoc, chiSo, TRANG_THAI, MAU_CHO } from "@/lib/linetime";
+import { khoangBen, doanBen, trangThai, laUoc, chiSo, TRANG_THAI, TRANG_THAI_HIEN, MAU_CHO } from "@/lib/linetime";
 import { choBatDau, kieuCho, PhanChoHang, ChuThichCho } from "./doanCho";
 import { laBenLienKe } from "@/lib/capBen";
 import { DAY, ngayGio, so, met, pad, iso, ms, tanK, pct } from "@/lib/format";
@@ -202,7 +202,7 @@ export default function Gantt({ voyages, tu, soNgay, pxNgay, che = "ben", gon = 
         </div>
       </div>
       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[0.6875rem] text-muted-foreground">
-        {Object.entries(TRANG_THAI).filter(([k]) => k !== "huy").map(([k, t]) => <span key={k} className="flex items-center gap-1"><i className="inline-block h-2.5 w-4 rounded-sm" style={{ background: t.mau }} />{t.ten}</span>)}
+        {TRANG_THAI_HIEN.map(([k, t]) => <span key={k} className="flex items-center gap-1"><i className="inline-block h-2.5 w-4 rounded-sm" style={{ background: t.mau }} />{t.ten}</span>)}
         <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-4 rounded-sm" style={{ background: "repeating-linear-gradient(135deg,#94a3b8,#94a3b8 4px,#94a3b8aa 4px,#94a3b8aa 6px)" }} />Giờ rời ước tính</span>
         <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-4 rounded-sm border-2 border-dashed border-slate-400" />≈ Trạng thái theo giờ dự kiến (chưa ghi mốc thực tế)</span>
         <span className="flex items-center gap-1"><i className="inline-block h-3 w-0.5 bg-bad" />Hiện tại</span>

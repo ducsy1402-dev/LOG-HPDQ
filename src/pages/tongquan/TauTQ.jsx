@@ -55,7 +55,7 @@ export function TheTau({ onMo }) {
             })}
           </div>
           <div className="mt-1.5 flex flex-wrap gap-x-3 text-[0.6875rem] text-muted-foreground">
-            {["lam_hang", "cap_ben", "xong_hang"].map((k) => <span key={k} className="inline-flex items-center gap-1"><i className="h-2 w-2 rounded-sm" style={{ background: TRANG_THAI[k].mau }} />{TRANG_THAI[k].ten}</span>)}
+            {["lam_hang"].map((k) => <span key={k} className="inline-flex items-center gap-1"><i className="h-2 w-2 rounded-sm" style={{ background: TRANG_THAI[k].mau }} />{TRANG_THAI[k].ten}</span>)}
             <span className="inline-flex items-center gap-1"><i className="h-2 w-2 rounded-sm bg-muted ring-1 ring-border" />Bến trống</span>
           </div>
         </div>}
