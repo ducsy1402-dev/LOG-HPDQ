@@ -8,9 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { MucIcon } from "@/components/common";
 import { useThietBi } from "@/thietbi/Host";
 import { tachBang } from "@/lib/paste";
-import { COT_TAU, MAU_BANG, nhanDienBang, docDongTau, cotThieu, thuTuNgayBangTau } from "@/lib/danTau";
+import { COT_TAU, MAU_BANG, nhanDienBang, docDongTau, cotThieu, thuTuNgayBangTau, timChuyenTBA } from "@/lib/danTau";
 import { timBen } from "@/lib/checks";
-import { maChuyenMoi } from "@/lib/linetime";
+import { maChuyenMoi, chuyenDaRoi } from "@/lib/linetime";
 import { so, plain, ms } from "@/lib/format";
 import { ghiDanhMuc } from "./ChuyenForm";
 import { tenBenChuyen } from "./BangTauBen";
@@ -40,7 +40,7 @@ export default function DanNhanh({ onClose }) {
   // Nhóm hàng: danh mục hàng hóa; hàng chỉ có ở chuyến cũ thì lấy loại hàng của chuyến đó
   const nhomCua = (ten) => hangHoa.find((h) => plain(h.loai_hang) === plain(ten))?.nhom || D.voyages.find((x) => x.ten_hang && x.loai_hang && plain(x.ten_hang) === plain(ten))?.loai_hang || null;
   const ketQua = useMemo(() => {
-    const moi = [], thuTu = thuTuNgayBangTau(dong, cot); // dd/mm hay mm/dd: theo cả cột
+    const moi = [], thuTu = thuTuNgayBangTau(dong, cot), dungTBA = new Set(); // dd/mm hay mm/dd: theo cả cột; dungTBA: chuyến TBA đã khớp một dòng
     return dong.map((o) => {
       if (o.every((c) => !String(c ?? "").trim())) return null;
       const kq = docDongTau(o, cot, { berthOf: (x) => timBen(D.berths, x), now: D.now, nhomCua, thuTu });
@@ -48,13 +48,18 @@ export default function DanNhanh({ onClose }) {
       const { v } = kq;
       if (!D.coSql28) delete v.ben_phu; // chưa chạy SQL 28: chưa lưu được bến phụ
       if (!D.coSql19) { delete v.hang_ds; }
-      const goc = v.ten_tau !== "TBA" ? D.voyages.filter((x) => x.ten_tau === v.ten_tau && !x.atd && !x.huy).sort((a, b) => b.id - a.id)[0] || null : null;
+      // Tàu có tên: khớp theo tên; tàu TBA: khớp theo bến + hướng + khối lượng (xem timChuyenTBA), mỗi chuyến cũ chỉ khớp một dòng
+      // Chuyến "chưa rời" = chưa có ATD và chưa qua ETD (chưa ghi ATD mà đã qua ETD thì coi như đã rời: lần dán sau là chuyến mới)
+      let goc = v.ten_tau !== "TBA" ? D.voyages.filter((x) => x.ten_tau === v.ten_tau && !chuyenDaRoi(x, D.now) && !x.huy).sort((a, b) => b.id - a.id)[0] || null : timChuyenTBA(v, D.voyages, dungTBA, D.now), doiTen = false;
+      // Tàu có tên mới mà chưa chuyến nào mang tên đó: nếu có chuyến TBA khớp (bến + hướng + khối lượng) thì ĐỔI TÊN chuyến TBA đó, không thêm chuyến mới
+      if (!goc && v.ten_tau !== "TBA") { goc = timChuyenTBA(v, D.voyages, dungTBA, D.now); doiTen = !!goc; }
+      if (goc && (v.ten_tau === "TBA" || doiTen)) dungTBA.add(goc.id);
       if (!goc) {
         const nam = new Date(ms(v.etb || v.eta) || Date.now()).getFullYear();
         v.ma_chuyen = maChuyenMoi(v.ten_tau, nam, [...D.voyages, ...moi]);
         moi.push(v);
       }
-      return { ...kq, goc };
+      return { ...kq, goc, doiTen: !!goc && goc.ten_tau === "TBA" && v.ten_tau !== "TBA" };
     });
   }, [dong, cot, D, hangHoa]); // eslint-disable-line react-hooks/exhaustive-deps
   const dsDong = ketQua.filter(Boolean);
@@ -66,8 +71,19 @@ export default function DanNhanh({ onClose }) {
   const luu = async () => {
     const them = dsDong.filter((x) => !x.goc).map((x) => x.v), sua = dsDong.filter((x) => x.goc);
     const r = await run(async () => {
-      if (them.length) await api.insertVoyages(them);
-      for (const x of sua) { const patch = { ...x.v }; delete patch.ma_chuyen; delete patch.ten_tau; if (Object.keys(patch).length) await api.updateVoyage(x.goc.id, patch); }
+      if (them.length || sua.some((x) => x.doiTen)) {
+        // Cấp lại mã chuyến theo số lớn nhất ĐANG CÓ trong CSDL (web chỉ tải chuyến gần đây, hoặc có người vừa thêm): tránh lỗi trùng mã voyages_ma_chuyen_key
+        const daCo = new Map(), moiMa = [];
+        for (const v of [...them, ...sua.filter((x) => x.doiTen).map((x) => x.v)]) { // chuyến mới và chuyến TBA được đổi tên đều cấp mã theo tên mới
+
+          const ten = String(v.ten_tau || "TBA").trim().toUpperCase(), nam = new Date(ms(v.etb || v.eta) || Date.now()).getFullYear(), k = ten + "|" + nam;
+          if (!daCo.has(k)) daCo.set(k, (await api.docMaChuyen(ten, nam)).map((ma_chuyen) => ({ ma_chuyen })));
+          v.ma_chuyen = maChuyenMoi(ten, nam, [...D.voyages, ...daCo.get(k)]);
+          daCo.get(k).push({ ma_chuyen: v.ma_chuyen }); moiMa.push(v.ma_chuyen);
+        }
+        if (them.length) await api.insertVoyages(them);
+      }
+      for (const x of sua) { const patch = { ...x.v }; if (!x.doiTen) { delete patch.ma_chuyen; delete patch.ten_tau; } if (Object.keys(patch).length) await api.updateVoyage(x.goc.id, patch); }
       for (const x of dsDong) await ghiDanhMuc(api, D, x.v);
     }, `Đã lưu: thêm ${them.length} chuyến, cập nhật ${sua.length} chuyến`);
     if (r) onClose();
@@ -115,8 +131,8 @@ export default function DanNhanh({ onClose }) {
                 <tr key={r} className={kq?.loi.length ? "bg-bad/5" : undefined}>
                   <td className="align-top">
                     {!kq ? <span className="text-muted-foreground">{trongDong ? "Dòng trống" : "Không có tên tàu: bỏ qua"}</span> : <>
-                      <div className="flex flex-wrap items-center gap-1">{kq.goc ? <Badge tone="info">Cập nhật</Badge> : <Badge tone="ok">Thêm mới</Badge>}<b>{kq.v.ten_tau}</b></div>
-                      <div className="text-[0.6875rem] text-muted-foreground">{kq.goc?.ma_chuyen || kq.v.ma_chuyen}{kq.v.ben_ma ? ` · ${tenBenChuyen(kq.v)}` : ""}{kq.v.khoi_luong != null ? ` · ${so(kq.v.khoi_luong)} t` : ""}</div>
+                      <div className="flex flex-wrap items-center gap-1">{kq.goc ? <Badge tone="info">{kq.doiTen ? "Đổi tên từ TBA" : "Cập nhật"}</Badge> : <Badge tone="ok">Thêm mới</Badge>}<b>{kq.v.ten_tau}</b></div>
+                      <div className="text-[0.6875rem] text-muted-foreground">{kq.doiTen ? `${kq.goc.ma_chuyen} → mã mới theo tên tàu` : kq.goc?.ma_chuyen || kq.v.ma_chuyen}{kq.v.ben_ma ? ` · ${tenBenChuyen(kq.v)}` : ""}{kq.v.khoi_luong != null ? ` · ${so(kq.v.khoi_luong)} t` : ""}</div>
                       {(kq.ghiChu || []).map((nd, i) => <div key={"g" + i} className="text-[0.6875rem] text-muted-foreground">{nd}</div>)}
                       {kq.loi.map((nd, i) => <div key={i} className="flex gap-1 text-[0.6875rem] text-bad"><MucIcon muc="bad" className="h-3 w-3" />{nd}</div>)}
                     </>}

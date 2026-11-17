@@ -109,3 +109,48 @@ describe("Tên hàng có dấu gạch ngang", () => {
     expect(v.hang_ds.map((h) => [h.ten_hang, h.khoi_luong])).toEqual([["Phế", 1200], ["Than", 800], ["Xỉ S95", 1000]]);
   });
 });
+
+import { timChuyenTBA } from "./danTau";
+describe("timChuyenTBA: dán lại tàu TBA thì cập nhật, không thêm trùng", () => {
+  const cu = [
+    { id: 1, ten_tau: "TBA", ben_ma: "B06", huong: "nhap", khoi_luong: 30000, eta: "2026-11-30T00:00", etb: "2026-11-30T00:00", ten_hang: "Quặng cám quý xa" },
+    { id: 2, ten_tau: "TBA", ben_ma: "B06", huong: "nhap", khoi_luong: 30000, eta: "2026-12-05T00:00", etb: "2026-12-05T00:00", ten_hang: "Quặng cám quý xa" },
+    { id: 3, ten_tau: "TBA", ben_ma: "B07", huong: "nhap", khoi_luong: 30000, eta: "2026-11-30T00:00" },
+    { id: 4, ten_tau: "TBA", ben_ma: "B06", huong: "nhap", khoi_luong: 30000, atd: "2026-11-01T00:00" },
+    { id: 5, ten_tau: "NEW ADMIRE", ben_ma: "B06", huong: "nhap", khoi_luong: 30000 },
+  ];
+  const dong = { ben_ma: "B06", huong: "nhap", khoi_luong: 30000, eta: "2026-12-05T08:00", etb: "2026-12-05T00:00", ten_hang: "Quặng cám quý xa" };
+  it("khớp theo bến + hướng + khối lượng, ưu tiên cùng ngày ETA", () => { expect(timChuyenTBA(dong, cu).id).toBe(2); });
+  it("bỏ qua tàu đã rời, tàu có tên, bến khác", () => { expect(timChuyenTBA({ ...dong, eta: "2026-11-30T08:00" }, cu).id).toBe(1); });
+  it("mỗi chuyến cũ chỉ khớp một dòng trong một lần dán", () => {
+    const dung = new Set([2]);
+    expect(timChuyenTBA(dong, cu, dung).id).toBe(1);
+    dung.add(1);
+    expect(timChuyenTBA(dong, cu, dung)).toBeNull();
+  });
+  it("khác khối lượng hoặc hướng thì thêm mới", () => {
+    expect(timChuyenTBA({ ...dong, khoi_luong: 35000 }, cu)).toBeNull();
+    expect(timChuyenTBA({ ...dong, huong: "xuat" }, cu)).toBeNull();
+  });
+});
+
+import { chuyenDaRoi } from "./linetime";
+import { chuyenCanGhiATD } from "../pages/cang/TuGhiATD";
+describe("ATD tự lấy theo ETD", () => {
+  const now = new Date(2026, 10, 17, 10, 0).getTime();
+  it("chưa ATD mà đã qua ETD thì coi là đã rời", () => {
+    expect(chuyenDaRoi({ etd: "2026-11-16T12:00" }, now)).toBe(true);
+    expect(chuyenDaRoi({ etd: "2026-11-18T12:00" }, now)).toBe(false);
+    expect(chuyenDaRoi({ atd: "2026-11-20T12:00", etd: "2026-11-25T12:00" }, now)).toBe(true);
+    expect(chuyenDaRoi({}, now)).toBe(false);
+  });
+  it("chuyến cần ghi ATD = ETD: bỏ chuyến hủy, đã có ATD, chưa tới ETD, ETD sớm hơn ATB", () => {
+    const ds = [{ id: 1, etd: "2026-11-16T12:00" }, { id: 2, etd: "2026-11-16T12:00", huy: true }, { id: 3, etd: "2026-11-16T12:00", atd: "2026-11-16T13:00" }, { id: 4, etd: "2026-11-30T00:00" }, { id: 5, etd: "2026-11-16T12:00", atb: "2026-11-17T01:00" }, { id: 6 }];
+    expect(chuyenCanGhiATD(ds, now).map((v) => v.id)).toEqual([1]);
+  });
+  it("dán lại tàu đã qua ETD: không khớp chuyến cũ (thành chuyến mới); TBA cũng vậy", () => {
+    const cu = [{ id: 1, ten_tau: "TBA", ben_ma: "B06", huong: "nhap", khoi_luong: 30000, eta: "2026-11-10T00:00", etd: "2026-11-12T00:00" }];
+    expect(timChuyenTBA({ ben_ma: "B06", huong: "nhap", khoi_luong: 30000 }, cu, new Set(), now)).toBeNull();
+    expect(timChuyenTBA({ ben_ma: "B06", huong: "nhap", khoi_luong: 30000 }, cu, new Set(), new Date(2026, 10, 11).getTime()).id).toBe(1);
+  });
+});

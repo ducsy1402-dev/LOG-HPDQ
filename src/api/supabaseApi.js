@@ -120,6 +120,8 @@ export function makeSupabaseApi() {
       }
       return out;
     },
+    // Các mã chuyến đã có trong CSDL của một tàu trong một năm ("TÊN / năm / 0001"): để cấp mã mới không trùng
+    async docMaChuyen(ten, nam) { return ok(await sb.from("voyages").select("ma_chuyen").ilike("ma_chuyen", `${ten} / ${nam} / %`)).map((r) => r.ma_chuyen); },
     async updateVoyage(id, patch) { return ok(await sb.from("voyages").update({ ...patch, updated_at: now() }).eq("id", id).select())[0]; },
     // Mục tiêu sản lượng: mỗi dòng một tháng – hướng – loại hàng; tan = null thì xóa dòng đó
     async saveMucTieu(rows) {

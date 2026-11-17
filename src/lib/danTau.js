@@ -10,6 +10,7 @@
 //   • Các cột còn lại giữ nguyên nội dung; ô trống hiện là "trống" (không ghi chữ "trống" vào CSDL, để NULL).
 //   • Số trong cột Khối lượng / DWT / Cam kết: dấu phẩy + đúng 3 chữ số là ngăn nghìn kiểu Excel ("3,500" = 3.500 t); Draft / LOA dùng cách đọc số thường (4.78, 14,6).
 import { plain, docSo, DAY } from "./format";
+import { chuyenDaRoi } from "./linetime";
 import { docNgayGio, doanThuTuNgay } from "./paste";
 
 // k: khóa; ten: tên cột hiển thị; bb: bắt buộc; bi: tiêu đề cột thường gặp (đã chuẩn hóa: bỏ dấu, chữ thường, bỏ dấu câu trừ "/")
@@ -204,4 +205,16 @@ export const cotThieu = (cot) => COT_TAU.filter((c) => c.bb && !cot.includes(c.k
 export function thuTuNgayBangTau(dong, cot) {
   const idx = cot.map((k, i) => (["eta", "etb", "etd"].includes(k) ? i : -1)).filter((i) => i >= 0);
   return doanThuTuNgay(dong.flatMap((o) => idx.map((i) => o[i])));
+}
+
+// ---------- Tàu TBA khi dán lại (anh Sỹ 17/11/2026) ----------
+// Tàu chưa biết tên (TBA) không có tên để khớp, nên khớp chuyến TBA đã có (chưa rời bến, chưa hủy) theo BẾN + HƯỚNG + KHỐI LƯỢNG cùng với dòng dán;
+// nhiều chuyến cùng khớp thì ưu tiên cùng ngày ETA, rồi cùng hàng, rồi cùng ETB. Mỗi chuyến đã có chỉ khớp một dòng trong một lần dán (dung = Set id đã dùng).
+// Không khớp thì mới thêm chuyến mới. Trả chuyến cũ hoặc null.
+export function timChuyenTBA(v, chuyens, dung = new Set(), now = Date.now()) {
+  if (!v.ben_ma || v.khoi_luong == null || !v.huong) return null;
+  const ngay = (x) => (x ? String(x).slice(0, 10) : "");
+  const diem = (c) => (ngay(c.eta) && ngay(c.eta) === ngay(v.eta) ? 4 : 0) + (plain(c.ten_hang) && plain(c.ten_hang) === plain(v.ten_hang) ? 2 : 0) + (ngay(c.etb) && ngay(c.etb) === ngay(v.etb) ? 1 : 0);
+  const ds = chuyens.filter((c) => String(c.ten_tau || "").trim().toUpperCase() === "TBA" && !chuyenDaRoi(c, now) && !c.huy && !dung.has(c.id) && c.ben_ma === v.ben_ma && (c.huong || "nhap") === v.huong && +c.khoi_luong === +v.khoi_luong);
+  return ds.sort((a, b) => diem(b) - diem(a) || a.id - b.id)[0] || null;
 }

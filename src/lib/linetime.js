@@ -167,6 +167,9 @@ export function doanBen(v, stops = [], now = Date.now()) {
 }
 
 // Mã chuyến "TÊN TÀU / năm / 0001": số thứ tự theo tàu trong năm
+// Chuyến coi là ĐÃ RỜI bến: có ATD, hoặc chưa ghi ATD nhưng đã qua ETD (anh Sỹ 17/11/2026: nhà khai thác không nhập ATD nên lấy ETD làm ATD).
+// Dùng để Dán nhanh coi chuyến sau của cùng một tàu là chuyến mới (mã chuyến mới).
+export const chuyenDaRoi = (v, now = Date.now()) => !!v.atd || (!!v.etd && ms(v.etd) <= now);
 export function maChuyenMoi(tenTau, nam, voyages) {
   const ten = String(tenTau || "TBA").trim().toUpperCase();
   const re = new RegExp(`^${ten.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} / ${nam} / (\\d+)$`);
