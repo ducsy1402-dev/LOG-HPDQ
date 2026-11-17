@@ -32,8 +32,8 @@ export function dsNhomKho(kho, loai, keHoach = []) {
 }
 
 // Một loại kho (thanh_pham | nguyen_lieu): từng điểm của kỳ có nhập / xuất thực tế và kế hoạch, lũy kế, tồn thực tế và tồn kế hoạch.
-// nhom: chỉ lấy hàng thuộc nhóm hàng này ("" = mọi hàng)
-export function chuoiKho(kyInfo, { kho, loai, nhom = "", keHoach = [], giaoDich = [], now }) {
+// nhom: chỉ lấy hàng thuộc nhóm hàng này ("" = mọi hàng); bai: chỉ lấy một kho / bãi lớn ("" = tất cả)
+export function chuoiKho(kyInfo, { kho, loai, nhom = "", bai = "", keHoach = [], giaoDich = [], now }) {
   const { ngays, buoc, homNay } = kyInfo, tap = new Set(ngays), loaiOf = loaiCua(kho);
   const khop = (hang) => !nhom || plain(nhomHangKho(hang, kho)) === plain(nhom);
   const dongOk = kho.dong.filter((d) => !d.saiBai);
@@ -41,18 +41,18 @@ export function chuoiKho(kyInfo, { kho, loai, nhom = "", keHoach = [], giaoDich 
   const cong = (m, k, v) => m.set(k, (m.get(k) || 0) + v);
   for (const g of giaoDich) {
     const n = String(g.ngay).slice(0, 10);
-    if (!tap.has(n) || (g.loai !== "nhap" && g.loai !== "xuat") || loaiOf(g.ten_bai, g.hang) !== loai || !khop(g.hang)) continue;
+    if (!tap.has(n) || (g.loai !== "nhap" && g.loai !== "xuat") || loaiOf(g.ten_bai, g.hang) !== loai || !khop(g.hang) || (bai && g.ten_bai !== bai)) continue;
     cong(g.loai === "nhap" ? nhapTT : xuatTT, n, +g.so_luong || 0);
   }
   for (const r of keHoach) {
     const d = khuCuaKeHoach(r, dongOk);
-    if (!d || d.loai !== loai) continue;
+    if (!d || d.loai !== loai || (bai && d.ten_bai !== bai)) continue;
     if (nhom && plain(r.nhom || nhomHangKho(r.hang || d.hang, kho)) !== plain(nhom)) continue;
     const nd = ngayCuaKeHoach(r), moi = (+r.khoi_luong || 0) / nd.length; // kế hoạch ngày / tuần / tháng / năm chia đều theo ngày của kỳ
     for (const n of nd) if (tap.has(n)) cong(r.huong === "xuat" ? xuatKH : nhapKH, n, moi);
   }
-  const tonHT = nhom ? kho.cap.filter((c) => c.loai === loai && khop(c.hang)).reduce((s, c) => s + c.ton, 0) : kho.dong.filter((d) => d.loai === loai).reduce((s, d) => s + d.ton, 0);
-  const ton = tonCacNgay(kyInfo, tonHT, giaoDich, (b, h) => loaiOf(b, h) === loai && khop(h), now);
+  const tonHT = nhom ? kho.cap.filter((c) => c.loai === loai && khop(c.hang) && (!bai || c.ten_bai === bai)).reduce((s, c) => s + c.ton, 0) : kho.dong.filter((d) => d.loai === loai && (!bai || d.ten_bai === bai)).reduce((s, d) => s + d.ton, 0);
+  const ton = tonCacNgay(kyInfo, tonHT, giaoDich, (b, h) => loaiOf(b, h) === loai && khop(h) && (!bai || b === bai), now);
   const tonDau = ton.get(lui(ngays[0], 1)) ?? tonHT;
   const diem = new Map(), ds = [];
   for (const n of ngays) {
@@ -68,6 +68,26 @@ export function chuoiKho(kyInfo, { kho, loai, nhom = "", keHoach = [], giaoDich 
     o.lkNhapTT = o.dau <= homNay ? a : null; o.lkXuatTT = o.dau <= homNay ? b : null; o.lkNhapKH = c; o.lkXuatKH = d2; o.tonKH = tonDau + c - d2;
   }
   return { diem: ds, tonDau, tonHT, tongNhapTT: a, tongXuatTT: b, tongNhapKH: c, tongXuatKH: d2, coKeHoach: c + d2 > 0 };
+}
+
+// Tồn CUỐI từng điểm của kỳ cho biểu đồ đường "Tồn kho các kho / bãi": mỗi kho / bãi lớn một đường (chọn bai thì mỗi gian / lô của bãi đó một đường) + đường Tổng.
+// Tính ngược từ tồn hiện tại theo sổ nhập – xuất (giaoDich phải phủ từ ngày đầu kỳ tới hôm nay); điểm chưa tới = null. Trả { diem: [{ nhan, dau }], ds: [{ ten, ton: [..], hienTai }], tong: [..] }
+export function chuoiTonKho(kyInfo, { kho, loai, giaoDich = [], now, bai = "" }) {
+  const { ngays, buoc, homNay } = kyInfo, loaiOf = loaiCua(kho);
+  const dongs = kho.dong.filter((d) => d.loai === loai && !d.saiBai && (!bai || d.ten_bai === bai));
+  const nhomDong = [];
+  if (bai) for (const d of dongs) nhomDong.push({ ten: d.ten, hienTai: d.ton, loc: (b, h, khu) => kho.gan(b, h, khu) === d.key });
+  else { const m = new Map(); for (const d of dongs) m.set(d.ten_bai, (m.get(d.ten_bai) || 0) + d.ton); for (const [ten, t] of m) nhomDong.push({ ten, hienTai: t, loc: (b, h) => b === ten && loaiOf(b, h) === loai }); }
+  const tongHT = dongs.reduce((s, d) => s + d.ton, 0);
+  const diemMap = new Map(), diem = [];
+  for (const n of ngays) { const k = khoaDiem(buoc, n); if (!diemMap.has(k)) { const o = { nhan: nhanDiem(buoc, n), dau: n }; diemMap.set(k, o); diem.push(o); } }
+  const theoDiem = (ton) => { // tồn cuối điểm = tồn cuối ngày cuối cùng (≤ hôm nay) của điểm
+    const cuoi = new Map(); for (const n of ngays) if (n <= homNay && ton.has(n)) cuoi.set(khoaDiem(buoc, n), ton.get(n));
+    return diem.map((o) => { const v = cuoi.get(khoaDiem(buoc, o.dau)); return v == null ? null : Math.round(v * 100) / 100; });
+  };
+  const ds = nhomDong.map((g) => ({ ten: g.ten, hienTai: g.hienTai, ton: theoDiem(tonCacNgay(kyInfo, g.hienTai, giaoDich, g.loc, now)) })).sort((a, b) => b.hienTai - a.hienTai);
+  const tong = theoDiem(tonCacNgay(kyInfo, tongHT, giaoDich, (b, h) => loaiOf(b, h) === loai && (!bai || b === bai), now));
+  return { diem, ds, tong, tongHT };
 }
 
 // Tồn phân loại theo điểm của kỳ. declarations: dòng kho_ton_phan_loai { ngay, ten_bai, hang, loai, tan, id }.
