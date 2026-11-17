@@ -203,7 +203,9 @@ export default function HopKeHoachNgay({ thang0, onClose, onLuu }) {
   // Tàu của hộp nhỏ: đang làm hàng ngày đó (theo hướng nếu mở từ ô Kế hoạch nhập / xuất), xếp theo thứ tự trên line
   const dsHop = pop ? loc2.filter((x) => oMo(x, pop.ngay) && (!pop.huong || hDua(x.v) === pop.huong)).sort((a, b) => (thuTu.get(a.v.id) ?? 999) - (thuTu.get(b.v.id) ?? 999)) : [];
 
-  const dongTong = [["nhap", "Kế hoạch nhập", "Thực nhập"], ["xuat", "Kế hoạch xuất", "Thực xuất"]].filter(([h]) => !loc.huong || loc.huong === h);
+  // Lọc theo loại hàng: bên (nhập / xuất) không có tàu nào ứng với loại hàng đó thì ẩn dòng cộng của bên đó (anh Sỹ 17/11/2026)
+  const coTauBen = (h) => loc2.some((x) => hDua(x.v) === h);
+  const dongTong = [["nhap", "Kế hoạch nhập", "Thực nhập"], ["xuat", "Kế hoạch xuất", "Thực xuất"]].filter(([h]) => (!loc.huong || loc.huong === h) && (!loc.nhom || coTauBen(h)));
   const W = hien.length * CW;
   const cotNgay = (n) => { const d = new Date(n + "T00:00:00"); return { cn0: d.getDay() === 0, hn: n === homNay, d }; };
   // Nền lưới ngày dùng chung cho mọi khối (cột hôm nay tô xanh nhạt, chủ nhật tô xám)

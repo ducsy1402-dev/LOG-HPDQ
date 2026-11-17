@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
 import EChart from "@/components/EChart";
 import { useApp } from "@/store";
-import { so, pct, r2 } from "@/lib/format";
-import { khoangBen } from "@/lib/linetime";
+import { so, pct, r2, plain, ms } from "@/lib/format";
+import { NativeSelect } from "@/components/ui/input";
+import { chuyenDaRoi } from "@/lib/linetime";
 import { dongHang } from "@/lib/sanLuong";
 import { cangCuaChuyen, KHONG_CANG } from "@/lib/cangTrucThuoc";
 import { useNhomHang } from "../cang/useNhomHang";
@@ -68,22 +69,42 @@ export function BanhVong({ ds }) {
   );
 }
 
-// KL đã làm của các chuyến cập bến trong kỳ theo (cảng trực thuộc, loại hàng); huong "" = cả hai. Trả { cang: null | [{ ten, tong, loai: Map }] }
-export function useTheoCang(kyInfo, huong) {
+// TẠM THỜI (anh Sỹ 17/11/2026, chưa nhập khối lượng thực tế theo từng chuyến tàu): khối lượng của các chuyến tàu ĐÃ RỜI BẾN = có ATD, hoặc chưa ghi ATD mà đã qua ETD (chuyenDaRoi),
+// tính vào kỳ theo ngày rời (ATD, không có thì ETD); khối lượng = khối lượng hàng của chuyến (dongHang.kl: khối lượng chuyến trừ phần trả lại, chia theo từng hàng), cảng = cột "Cảng trực thuộc" của bến chuyến cập.
+// huong "" = cả hai; loaiLoc = nhóm hàng ("" = mọi loại). Trả { ds: [{ ten, tong, loai: Map }], dsLoai: [nhóm hàng có trong kỳ] } hoặc null nếu chưa có cột Cảng trực thuộc.
+export function useTheoCang(kyInfo, huong, loaiLoc = "") {
   const { D } = useApp(), nhomHang = useNhomHang();
   return useMemo(() => {
     const cang = cangCuaChuyen(D.dmCot, D.berths);
     if (!cang) return null;
-    const m = new Map();
+    const m = new Map(), loais = new Set();
     for (const v of D.voyages) {
-      if (v.huy || (huong && (v.huong === "xuat" ? "xuat" : "nhap") !== huong)) continue;
-      const k = khoangBen(v, D.now); if (!k || k.a < kyInfo.tu || k.a >= kyInfo.den) continue;
+      if (v.huy || !chuyenDaRoi(v, D.now) || (huong && (v.huong === "xuat" ? "xuat" : "nhap") !== huong)) continue;
+      const t = ms(v.atd) ?? ms(v.etd); if (t == null || t < kyInfo.tu || t >= kyInfo.den) continue;
       const ten = cang(v), o = m.get(ten) || { ten, tong: 0, loai: new Map() };
-      for (const h of dongHang(v, nhomHang)) { if (!(h.lam > 0)) continue; o.tong += h.lam; o.loai.set(h.loai, (o.loai.get(h.loai) || 0) + h.lam); }
+      for (const h of dongHang(v, nhomHang)) {
+        if (!(h.kl > 0)) continue;
+        loais.add(h.loai);
+        if (loaiLoc && plain(h.loai) !== plain(loaiLoc)) continue;
+        o.tong += h.kl; o.loai.set(h.loai, (o.loai.get(h.loai) || 0) + h.kl);
+      }
       m.set(ten, o);
     }
-    return [...m.values()].filter((o) => o.tong > 0).sort((a, b) => (a.ten === KHONG_CANG) - (b.ten === KHONG_CANG) || b.tong - a.tong);
-  }, [D.voyages, D.dmCot, D.berths, D.now, kyInfo, huong, nhomHang]);
+    return { ds: [...m.values()].filter((o) => o.tong > 0).sort((a, b) => (a.ten === KHONG_CANG) - (b.ten === KHONG_CANG) || b.tong - a.tong), dsLoai: [...loais].sort((a, b) => a.localeCompare(b, "vi")) };
+  }, [D.voyages, D.dmCot, D.berths, D.now, kyInfo, huong, loaiLoc, nhomHang]);
+}
+// Khung "Cơ cấu sản lượng theo cảng" (Mục tiêu sản lượng và Tổng quan): lọc hướng và loại hàng; ghi chú khối lượng lấy từ đâu
+export function CoCauTheoCang({ kyInfo, cao }) {
+  const [h, setH] = useState(""), [loai, setLoai] = useState("");
+  const r = useTheoCang(kyInfo, h, loai);
+  return (
+    <Khung cao={cao} ten="Cơ cấu sản lượng theo cảng" phu={`${kyInfo.nhan} · KL các chuyến tàu đã rời bến`}
+      bo={<><Chon gt={h} dat={setH} ds={[["", "Tổng"], ["nhap", "Nhập"], ["xuat", "Xuất"]]} />
+        <NativeSelect className="h-6 w-32 text-[0.6875rem]" value={r?.dsLoai.includes(loai) ? loai : ""} onChange={(e) => setLoai(e.target.value)} placeholder="Mọi loại hàng" options={r?.dsLoai || []} aria-label="Lọc theo loại hàng" /></>}>
+      {r == null ? CHUA_CO_CANG : r.ds.length ? <BanhVong ds={r.ds.map((o) => ({ name: o.ten, value: r2(o.tong) }))} cao={Math.max(150, cao - 120)} /> : <ChuaCo>Chưa có chuyến tàu nào đã rời bến trong kỳ{loai ? ` với loại hàng ${loai}` : ""}.</ChuaCo>}
+      <div className="mt-1 text-[0.6875rem] leading-snug text-muted-foreground">Khối lượng lấy từ <b>khối lượng hàng của các chuyến tàu đã có ATD</b> (chưa ghi ATD mà đã qua ETD thì tính theo ETD), tính vào kỳ theo ngày rời bến; cảng theo bến tàu cập (Danh mục › Cầu bến). Tạm thời, vì chưa nhập khối lượng thực tế theo từng chuyến.</div>
+    </Khung>
+  );
 }
 export const CHUA_CO_CANG = <ChuaCo>Chưa có cột <b>Cảng trực thuộc</b>: vào Danh mục › Cầu bến › Danh sách bến, bấm Thêm cột rồi ghi cảng cho từng bến.</ChuaCo>;
 
@@ -91,8 +112,7 @@ const bo = (gt, dat, nhom) => <Chon gt={gt} dat={dat} ds={[["", "Tổng"], ...NH
 
 // cang / vt: dữ liệu đã tải (mục tiêu + thực tế); tdC, tdV: tienDoSanLuong (dòng tóm tắt)
 export default function BieuDoSanLuongTQ({ kyInfo, cang, vt, tdC, tdV }) {
-  const [hCoCau, setHCoCau] = useState(""), [hDV, setHDV] = useState(""), [hLoai, setHLoai] = useState(""), [hDoi, setHDoi] = useState(""), [hCang, setHCang] = useState("");
-  const cangTong = useTheoCang(kyInfo, hCang);
+  const [hCoCau, setHCoCau] = useState(""), [hDV, setHDV] = useState(""), [hLoai, setHLoai] = useState(""), [hDoi, setHDoi] = useState("");
   const coCauCang = useMemo(() => [...tongTheoNhom(kyInfo, cang, "cang", (x) => x.loai, (x) => !hCoCau || x.huong === hCoCau)].map(([k, v]) => ({ name: k, value: r2(v.tt) })).filter((d) => d.value > 0).sort((a, b) => b.value - a.value), [kyInfo, cang, hCoCau]);
   const coCauDV = useMemo(() => [...tongTheoNhom(kyInfo, vt, "van_tai", (x) => x.donVi, (x) => !hDV || x.huong === hDV)].map(([k, v]) => ({ name: tenDonVi(k), value: r2(v.tt) })).filter((d) => d.value > 0).sort((a, b) => b.value - a.value), [kyInfo, vt, hDV]);
   const theoLoai = useMemo(() => [...tongTheoNhom(kyInfo, cang, "cang", (x) => `${x.huong}|${x.loai}`, (x) => !hLoai || x.huong === hLoai)].map(([k, v]) => { const [h, loai] = k.split("|"); return { ...v, ten: `${tenHuong("cang", h)} · ${loai}`, ord: (h === "nhap" ? 0 : 1) + loai }; }).sort((a, b) => a.ord.localeCompare(b.ord, "vi")), [kyInfo, cang, hLoai]);
@@ -123,9 +143,7 @@ export default function BieuDoSanLuongTQ({ kyInfo, cang, vt, tdC, tdV }) {
         <div className="mb-1 text-[0.6875rem] text-muted-foreground">{tieuDe(tdV)}</div>
         <EChart height={280} option={optLuyKe(csV)} />
       </Khung>
-      <Khung cao={CAO} ten="Cơ cấu sản lượng theo cảng trực thuộc" phu={`${kyInfo.nhan} · KL đã làm của tàu cập bến`} bo={bo(hCang, setHCang, "cang")}>
-        {cangTong == null ? CHUA_CO_CANG : cangTong.length ? <BanhVong ds={cangTong.map((o) => ({ name: o.ten, value: r2(o.tong) }))} /> : <ChuaCo>Chưa có tàu cập bến trong kỳ.</ChuaCo>}
-      </Khung>
+      <CoCauTheoCang kyInfo={kyInfo} cao={CAO} />
     </div>
   );
 }
