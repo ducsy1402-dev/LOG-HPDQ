@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea, NativeSelect, Checkbox, Field } from "@/components/ui/input";
 import { MucIcon } from "@/components/common";
 import { tachBang, docSo, docNgayGio, doanThuTuNgay } from "@/lib/paste";
-import { LOAI_GD, ngayStr, khuNhan, goiYBai, khuChoPhepHang, chuDonVi } from "@/lib/kho";
+import { LOAI_GD, ngayStr, khuNhan, goiYBai, khuChoPhepHang } from "@/lib/kho";
 import { so, plain } from "@/lib/format";
 import { tinhTonDau, luotTonDau } from "@/lib/tonDau";
 
@@ -160,7 +160,7 @@ export default function DanNhanhKho({ loaiKho, kho, onClose }) {
                 <tr key={r}>
                   <td className="min-w-[180px] align-top">{!x ? <span className="text-muted-foreground">Dòng trống</span> : x.loi.length
                     ? x.loi.map((l, i) => <div key={i} className="flex gap-1"><MucIcon muc="bad" className="h-3 w-3" />{l}</div>)
-                    : <><b>{tenLoai[x.rec.loai]}</b> {x.rec.loai === "dau_ky" ? "= " : ""}{so(x.rec.so_luong, 2)} {chuDonVi(kho.dong.find((d) => d.key === kho.gan(x.rec.ten_bai, x.rec.hang, x.rec.ten_khu))?.donVi)}<div className="text-muted-foreground">{x.rec.ngay} · {x.rec.ten_bai}{x.rec.ten_khu ? ` › ${x.rec.ten_khu}` : ""}</div>{x.canh.map((c, i) => <div key={i} className="flex gap-1"><MucIcon muc="warn" className="h-3 w-3" />{c}</div>)}</>}</td>
+                    : <><b>{tenLoai[x.rec.loai]}</b> {x.rec.loai === "dau_ky" ? "= " : ""}{so(x.rec.so_luong, 2)} t<div className="text-muted-foreground">{x.rec.ngay} · {x.rec.ten_bai}{x.rec.ten_khu ? ` › ${x.rec.ten_khu}` : ""}</div>{x.canh.map((c, i) => <div key={i} className="flex gap-1"><MucIcon muc="warn" className="h-3 w-3" />{c}</div>)}</>}</td>
                   {o.map((c, i) => <td key={i} className="align-top">{String(c ?? "")}</td>)}
                 </tr>); })}</tbody>
             </table>

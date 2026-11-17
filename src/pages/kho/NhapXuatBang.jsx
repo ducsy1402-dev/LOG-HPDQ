@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useThietBi } from "@/thietbi/Host";
 import { so, plain } from "@/lib/format";
 import { docSo } from "@/lib/paste";
-import { ngayStr, khuChoPhepHang, chuDonVi } from "@/lib/kho";
+import { ngayStr, khuChoPhepHang } from "@/lib/kho";
 import { tinhTonDau, luotTonDau } from "@/lib/tonDau";
 import { cn } from "@/lib/utils";
 import { caHienTai, dsCa, tenCa } from "./GiaoDichForm";
@@ -78,7 +78,6 @@ export default function NhapXuatBang({ loaiKho, kho, onDan, onXong }) {
       if (!tenHang) return loi(`${kr.ten_bai} › ${kr.ten} không chứa ${hang} (chỉ chọn hàng đang chứa trong gian / lô)`);
       const tenGian = `${kr.ten_bai} › ${kr.ten}`;
       const base = { ngay, ca: tenCa(tbD, ngay, ca), ten_bai: kr.ten_bai, ...(coBaiNho ? { ten_khu: kr.ten } : {}), hang: tenHang, so_lo: null, nguon: null, voyage_id: null, chung_tu: null, ghi_chu: String(r.ghi_chu || "").trim() || null };
-      const dvi = chuDonVi(kr.donVi);
       const sl = (k, ten) => { const t = String(r[k]).trim(); if (!t) return null; const v = docSo(t); return v > 0 ? v : `${ten} phải là số lớn hơn 0`; };
       // Tồn đầu (đầu ngày đang chọn): ĐẶT LẠI số tồn, lần khai báo gần nhất thay các lần trước (không cộng dồn); lib/tonDau.js
       const tdS = String(r.tonDau).trim();
@@ -110,7 +109,6 @@ export default function NhapXuatBang({ loaiKho, kho, onDan, onXong }) {
           if (!kd) return loi("điều chuyển: chọn gian / lô đến");
           if (kd.key === kr.key) return loi("điều chuyển: gian / lô đến phải khác gian / lô đi");
           if (!khuChoPhepHang(kd, tenHang, hh)) return loi(`${kd.ten_bai} › ${kd.ten} không nhận ${tenHang}`);
-          if (kd.donVi !== kr.donVi) return loi(`điều chuyển giữa hai gian / lô khác đơn vị (${kr.donVi} → ${kd.donVi}): không quy đổi được, hãy xuất và nhập riêng`);
           cong(kr.key, tenHang, -v, `${tenGian} · ${tenHang}`);
           cong(kd.key, tenHang, v, `${kd.ten_bai} › ${kd.ten} · ${tenHang}`);
           recs.push({ ...base, loai: "dieu_chuyen", den_bai: kd.ten_bai, ...(coBaiNho ? { den_khu: kd.ten } : {}), so_luong: v });
@@ -122,7 +120,7 @@ export default function NhapXuatBang({ loaiKho, kho, onDan, onXong }) {
       const key = k.slice(0, k.indexOf("|")), hang = k.slice(k.indexOf("|") + 1);
       const t = capKho.find((c) => c.key === key && plain(c.hang) === hang)?.ton || 0;
       // d đã gồm cả nhập / điều chuyển đến của bảng: tồn sau khi ghi = t + d
-      if (t + d < -1e-6) return { loi: `Vượt tồn: ${nhan.get(k)} đang có ${so(t)} ${chuDonVi(khuTheoKey.get(key)?.donVi)}, sau khi ghi bảng này còn âm ${so(-(t + d))} ${chuDonVi(khuTheoKey.get(key)?.donVi)}` };
+      if (t + d < -1e-6) return { loi: `Vượt tồn: ${nhan.get(k)} đang có ${so(t)} t, sau khi ghi bảng này còn âm ${so(-(t + d))} t` };
     }
     return { recs };
   };
@@ -157,7 +155,7 @@ export default function NhapXuatBang({ loaiKho, kho, onDan, onXong }) {
       </div>
       <div className="scroll-x max-h-[40vh] rounded-md border">
         <table className="tbl text-xs">
-          <thead><tr><th className="min-w-[250px]">Bãi › Gian/lô</th><th className="min-w-[170px]">Hàng hóa</th><th>Đơn vị</th><th className="num" title="Đặt lại số tồn đầu ngày đang chọn; lần khai báo gần nhất thay các lần trước, không cộng dồn">Tồn đầu</th><th className="num">Nhập</th><th className="num">Xuất</th><th className="num">Điều chuyển</th><th className="min-w-[250px]">Đến bãi › Gian/lô (điều chuyển)</th><th>Ghi chú</th><th></th></tr></thead>
+          <thead><tr><th className="min-w-[250px]">Bãi › Gian/lô</th><th className="min-w-[170px]">Hàng hóa</th><th className="num" title="Đặt lại số tồn đầu ngày đang chọn; lần khai báo gần nhất thay các lần trước, không cộng dồn">Tồn đầu</th><th className="num">Nhập</th><th className="num">Xuất</th><th className="num">Điều chuyển</th><th className="min-w-[250px]">Đến bãi › Gian/lô (điều chuyển)</th><th>Ghi chú</th><th></th></tr></thead>
           <tbody>
             {f.map((r) => {
               const kr = khuTheoKey.get(r.khuKey), hs = hangCuaKhu(kr), t = kr && r.hang ? ton(kr.key, r.hang) : null;
@@ -171,10 +169,9 @@ export default function NhapXuatBang({ loaiKho, kho, onDan, onXong }) {
                     </div>
                   </td>
                   <td>
-                    <ChonGo className="min-w-[160px]" value={r.hang} onChange={(x) => dat(r._k, { hang: x })} options={hs.map((h) => [h, h, `tồn ${so(ton(kr.key, h))} ${chuDonVi(kr.donVi)}`])} placeholder={kr ? "Chọn hàng" : "Chọn gian/lô trước"} />
-                    {t != null && <div className="mt-0.5 text-[0.6875rem] text-muted-foreground">Tồn: {so(t)} {chuDonVi(kr.donVi)}</div>}
+                    <ChonGo className="min-w-[160px]" value={r.hang} onChange={(x) => dat(r._k, { hang: x })} options={hs.map((h) => [h, h, `tồn ${so(ton(kr.key, h))} t`])} placeholder={kr ? "Chọn hàng" : "Chọn gian/lô trước"} />
+                    {t != null && <div className="mt-0.5 text-[0.6875rem] text-muted-foreground">Tồn: {so(t)} t</div>}
                   </td>
-                  <td className="whitespace-nowrap">{kr ? kr.donVi : <span className="text-muted-foreground">Tấn</span>}</td>
                   <td className="num"><Input className="ml-auto h-8 w-28 text-right tabular-nums" inputMode="decimal" value={r.tonDau} placeholder="—" onChange={(e) => dat(r._k, { tonDau: e.target.value })} aria-label="Tồn đầu" title="Số tồn ở đầu ngày đang chọn (đặt lại, không cộng dồn)" /></td>
                   <td className="num"><Input className="ml-auto h-8 w-28 text-right tabular-nums" inputMode="decimal" value={r.nhap} placeholder="0" onChange={(e) => dat(r._k, { nhap: e.target.value })} aria-label="Khối lượng nhập" /></td>
                   <td className="num"><Input className="ml-auto h-8 w-28 text-right tabular-nums" inputMode="decimal" value={r.xuat} placeholder="0" onChange={(e) => dat(r._k, { xuat: e.target.value })} aria-label="Khối lượng xuất" /></td>
@@ -194,7 +191,7 @@ export default function NhapXuatBang({ loaiKho, kho, onDan, onXong }) {
       </div>
       {loi && coSoBang(f) && <p className="rounded-md border border-bad/40 bg-bad/5 px-3 py-1.5 text-xs text-bad">{loi}</p>}
       <div className="flex flex-wrap items-center gap-2">
-        <p className="flex-1 text-[0.6875rem] text-muted-foreground">Chọn bãi và gian / lô rồi nhập số ở ô Tồn đầu, Nhập, Xuất và / hoặc Điều chuyển (điều chuyển chọn thêm bãi › gian/lô đến). Số tính theo đơn vị của gian / lô (Danh mục › Kho hàng kiện / Kho hàng rời). <b>Tồn đầu</b> là số tồn đầu ngày đang chọn: lần khai báo gần nhất thay các lần trước, không cộng dồn. Một dòng ghi được nhiều lượt; Lưu ghi tất cả một lần. Hàng để trống thì tự điền theo hàng của gian / lô.</p>
+        <p className="flex-1 text-[0.6875rem] text-muted-foreground">Chọn bãi và gian / lô rồi nhập số ở ô Tồn đầu, Nhập, Xuất và / hoặc Điều chuyển (điều chuyển chọn thêm bãi › gian/lô đến). Số tính bằng tấn. <b>Tồn đầu</b> là số tồn đầu ngày đang chọn: lần khai báo gần nhất thay các lần trước, không cộng dồn. Một dòng ghi được nhiều lượt; Lưu ghi tất cả một lần. Hàng để trống thì tự điền theo hàng của gian / lô.</p>
         <Button size="sm" variant="outline" onClick={() => setF((o) => [dongMoi({ bai: o[0]?.bai || "" }), ...o])}><Plus />Thêm dòng</Button>
         <Button size="sm" disabled={!recs?.length || !!loi} onClick={luu}><Save />Lưu{recs?.length ? ` ${recs.length} lượt` : ""}</Button>
       </div>
