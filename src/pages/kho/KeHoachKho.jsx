@@ -174,7 +174,7 @@ export default function KeHoachKho({ loai, kho, nhan = "" }) {
       {!coKy && <p className="rounded-md border border-warn/40 bg-warn/5 px-3 py-1.5 text-xs">Chỉ lập được kế hoạch theo tháng. Quản trị chạy <b>sql/12_bai_nho_ke_hoach_ky.sql</b> trong Supabase để lập theo ngày / tuần / năm.</p>}
       <div className="scroll-x max-h-[60vh] rounded-md border">
         <table className="tbl text-xs">
-          <thead><tr><th className="min-w-[200px]">Bãi › Gian/lô</th><th className="min-w-[170px]">Hàng hóa</th><th className="num">Nhập (t)</th><th className="num">Xuất (t)</th><th>Ghi chú</th>{sua && <th></th>}</tr></thead>
+          <thead><tr><th className="min-w-[200px]">Bãi › Gian/lô</th><th className="min-w-[170px]">Hàng hóa</th><th>Đơn vị</th><th className="num">Nhập</th><th className="num">Xuất</th><th>Ghi chú</th>{sua && <th></th>}</tr></thead>
           <tbody>
             {f.map((r) => {
               const d = dongTheoKey.get(r.khu_key), hs = hangCua(d), g = gocTheo.get(r._k), sa = g ? !giong(r, g) : docSo(r.nhap) > 0 || docSo(r.xuat) > 0;
@@ -189,13 +189,14 @@ export default function KeHoachKho({ loai, kho, nhan = "" }) {
                     : <span className="font-medium">{d ? tenKhu(d) : `${r.ten_bai} › ${r.ten_khu}`}</span>}
                     {r.mat && <Badge tone="bad" className="ml-1" title="Bãi nhỏ này không còn trong Danh mục › Kho bãi">Bãi đã xóa</Badge>}</td>
                   <td>{sua ? <ChonGo className="min-w-[160px]" value={r.hang} onChange={(x) => chonHang(r, x)} options={hs} placeholder={phHang} /> : r.hang || <span className="text-muted-foreground">{phHang}</span>}</td>
+                  <td className="whitespace-nowrap">{d ? d.donVi : "Tấn"}</td>
                   <td className="num">{sua ? <Input className="ml-auto h-8 w-28 text-right tabular-nums" inputMode="decimal" value={r.nhap} placeholder="0" onChange={(e) => dat(r._k, { nhap: e.target.value })} aria-label="Khối lượng nhập" /> : r.nhap}</td>
                   <td className="num">{sua ? <Input className="ml-auto h-8 w-28 text-right tabular-nums" inputMode="decimal" value={r.xuat} placeholder="0" onChange={(e) => dat(r._k, { xuat: e.target.value })} aria-label="Khối lượng xuất" /> : r.xuat}</td>
                   <td>{sua ? <Input className="h-8" value={r.ghi_chu} onChange={(e) => dat(r._k, { ghi_chu: e.target.value })} aria-label="Ghi chú" /> : r.ghi_chu}</td>
                   {sua && <td className="w-8">{!r.coDinh && <button type="button" className="rounded p-1 text-muted-foreground hover:text-bad" onClick={() => setF((o) => o.filter((x) => x._k !== r._k))} title="Bỏ dòng" aria-label="Bỏ dòng"><X className="h-4 w-4" /></button>}</td>}
                 </tr>);
             })}
-            {!f.length && <tr><td colSpan={sua ? 6 : 5} className="py-6 text-center text-muted-foreground">{dong.length ? <>Kỳ này chưa có kế hoạch.{sua && <> Bấm <b>Thêm dòng</b> để lập.</>}</> : "Kho này chưa có bãi nhỏ nào. Thêm ở Danh mục › Kho bãi."}</td></tr>}
+            {!f.length && <tr><td colSpan={sua ? 7 : 6} className="py-6 text-center text-muted-foreground">{dong.length ? <>Kỳ này chưa có kế hoạch.{sua && <> Bấm <b>Thêm dòng</b> để lập.</>}</> : "Kho này chưa có bãi nhỏ nào. Thêm ở Danh mục › Kho bãi."}</td></tr>}
           </tbody>
         </table>
       </div>

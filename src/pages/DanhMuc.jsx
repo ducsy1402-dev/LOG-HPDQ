@@ -13,7 +13,7 @@ import { DanhSachNhanSu } from "@/thietbi/tabs/Staffing";
 import { DEFAULT_NHA_THAU } from "@/thietbi/lib/plan";
 import DM_BANG from "@/data/dmBang.json";
 import CotThem from "@/components/CotThem";
-import { tuTinhSucChua, khoaTenBai, kiemTraTenBai, loaiQuyHoach, TEN_KHO_KIEN, TEN_KHO_ROI } from "@/lib/kho";
+import { tuTinhSucChua, khoaTenBai, kiemTraTenBai, loaiQuyHoach, TEN_KHO_KIEN, TEN_KHO_ROI, DON_VI_KIEN, DON_VI_ROI } from "@/lib/kho";
 import QuyHoachBai from "@/pages/kho/QuyHoachBai";
 
 // Danh mục dùng chung cho cả web. Mỗi danh sách cùng giao diện Danh mục xe: Thêm, Import, Xuất Excel; Sửa / Xóa ở từng dòng (sửa trong hộp riêng).
@@ -152,13 +152,15 @@ export default function DanhMuc() {
       ten: tp ? TEN_KHO_KIEN : TEN_KHO_ROI, khoa: "id", batBuoc: "ten_bai", coSua: quyen.suaDmKho, ai: "quản trị", bang: "kho", anCot: ["khu vuc"], chiSua: true,
       rows: (D.khoBai || []).filter((r) => loaiQuyHoach(r) === loai),
       khoaDoc: ["ten_bai", "ten_khu", "dien_tich", "thiet_bi"],
-      mo: `Chỉ hiện các gian / lô đã quy hoạch ${tp ? "Hàng kiện" : "Hàng rời"} (thêm, sửa, xóa ở tab Khai báo & quy hoạch › biểu tượng Quy hoạch). Ở đây khai báo thông tin của từng gian / lô. Sức chứa khả dụng (tấn) là số web dùng; để trống thì web tự tính = sức chứa danh nghĩa × hệ số lưu chứa (chưa có hệ số thì = sức chứa danh nghĩa)${tp ? "" : "; sức chứa danh nghĩa để trống thì = diện tích × chiều cao đống × tỷ khối hàng"}. Kho / bãi khai báo "Cố định" thì mỗi gian / lô chỉ nhận đúng hàng của dòng; "Tự do" nhận mọi hàng (sửa ở tab Khai báo & quy hoạch).`,
+      chon: { don_vi: (tp ? DON_VI_KIEN : DON_VI_ROI).slice(1) }, chonTrong: { don_vi: "Tấn" }, // trống = Tấn
+      mo: `Chỉ hiện các gian / lô đã quy hoạch ${tp ? "Hàng kiện" : "Hàng rời"} (thêm, sửa, xóa ở tab Khai báo & quy hoạch › biểu tượng Quy hoạch). Ở đây khai báo thông tin của từng gian / lô. Đơn vị: Tấn (mặc định) hoặc ${tp ? "Kiện" : "Khối"}; mọi số lượng của gian / lô (sức chứa, nhập, xuất, kế hoạch, tồn) tính theo đơn vị này, không quy đổi (đặt đơn vị trước khi nhập số liệu). Sức chứa khả dụng là số web dùng; để trống thì web tự tính = sức chứa danh nghĩa × hệ số lưu chứa (chưa có hệ số thì = sức chứa danh nghĩa)${tp ? "" : "; sức chứa danh nghĩa để trống thì = diện tích × chiều cao đống × tỷ khối hàng"}. Kho / bãi khai báo "Cố định" thì mỗi gian / lô chỉ nhận đúng hàng của dòng; "Tự do" nhận mọi hàng (sửa ở tab Khai báo & quy hoạch).`,
       cot: [["ten_bai", "Tên kho / bãi", "text", 150, ["ten kho/bai", "ten kho bai", "bai lon", "ten bai"]], ["ten_khu", "Gian / lô", "text", 140, ["gian/lo", "gian lo", "bai nho", "khu"]],
         ["dien_tich", "Diện tích phân bổ (m²)", "so", 100, ["dien tich phan bo", "dien tich"]],
+        ...(D.coSql20 ? [["don_vi", "Đơn vị", "text", 70, ["don vi", "dvt"]]] : []),
         ...(tp ? (khoMoi ? [["so_lop", "Số lớp xếp khả dụng", "so", 90, ["so lop xep kha dung", "so lop"]]] : []) : [["chieu_cao", "Chiều cao đống (m)", "so", 90, ["chieu cao dong", "chieu cao"]]]),
         ["hang", "Hàng đang chứa", "text", 200, ["ten hang", "ten hang (hang dang chua)", "hang hoa"]],
-        ...(khoMoi ? [["suc_chua_dn", "Sức chứa danh nghĩa (t)", "so", 110, ["suc chua danh nghia"]], ["he_so_luu_chua", "Hệ số lưu chứa", "so", 80, ["he so luu chua"]]] : []),
-        ["suc_chua_tay", "Sức chứa khả dụng (t)", "so", 110, ["suc chua kha dung", "suc chua nhap tay"]],
+        ...(khoMoi ? [["suc_chua_dn", "Sức chứa danh nghĩa", "so", 110, ["suc chua danh nghia", "suc chua danh nghia (t)"]], ["he_so_luu_chua", "Hệ số lưu chứa", "so", 80, ["he so luu chua"]]] : []),
+        ["suc_chua_tay", "Sức chứa khả dụng", "so", 110, ["suc chua kha dung", "suc chua nhap tay", "suc chua kha dung (t)"]],
 
         ["thiet_bi", "Thiết bị bãi", "text", 140, ["thiet bi tai kho/bai", "thiet bi bai", "thiet bi"]], ["ghi_chu", "Ghi chú", "text", 180]],
       ph: { suc_chua_tay: "Trống = danh nghĩa × hệ số lưu chứa", ...(tp ? {} : { suc_chua_dn: "Trống = diện tích × cao × tỷ khối" }) },
