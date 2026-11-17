@@ -5,6 +5,7 @@ import { useApp as useLogistics } from "@/store";
 import { cn } from "@/lib/utils";
 import { plain } from "@/lib/format";
 import { trangThai, TRANG_THAI, TRANG_THAI_HIEN, doanBen } from "@/lib/linetime";
+import { taoNhomHang } from "@/lib/sanLuong";
 import { xepHangBen } from "@/pages/cang/Gantt";
 import { tenBen } from "@/pages/cang/BangTauBen";
 import { dongSoXeTau, dongSoXeBai, DAU_SO_XE_TAU, DAU_SO_XE_BAI } from "@/lib/tauDaiHan";
@@ -59,8 +60,11 @@ export default function TimelineCa({ R, doi, onJob }) {
   const CWC = (size <= 7 ? 72 : size <= 14 ? 54 : 46) - (gon ? 8 : 0);
   const tuMs = nHien ? ca[0].st.getTime() : 0, denMs = tuMs + nHien * caMs, W = nHien * CWC;
   const xOf = (t) => ((t - tuMs) / caMs) * CWC;
-  const coHang = (h) => !hangF.length || hangF.some((x) => plain(x) === plain(h));
-  const dsHang = useMemo(() => [...new Set([...ves.map((r) => r.hang), ...fixed.map((f) => f.hang)].map((x) => String(x || "").trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, "vi")), [ves, fixed]);
+  // Bộ lọc theo NHÓM hàng (Danh mục › Hàng hóa, cột Nhóm), không theo tên hàng (anh Sỹ 17/11/2026). Dòng nhiều hàng ("A; B") khớp nếu có hàng thuộc nhóm đã chọn.
+  const nhomH = useMemo(() => taoNhomHang(D.hanghoa || []), [D.hanghoa]);
+  const nhomCua = (h) => [...new Set(String(h || "").split(/[;,]/).map((x) => x.trim()).filter(Boolean).map((x) => nhomH(x, "") || x))];
+  const coHang = (h) => !hangF.length || nhomCua(h).some((n) => hangF.some((x) => plain(x) === plain(n)));
+  const dsHang = useMemo(() => [...new Set([...ves.map((r) => r.hang), ...fixed.map((f) => f.hang)].flatMap((x) => nhomCua(x)))].sort((a, b) => a.localeCompare(b, "vi")), [ves, fixed, nhomH]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Tàu của Linetime (có mã chuyến) và việc cảng nhập tay (không có mã chuyến); lọc theo loại hàng
   const tauLT = useMemo(() => new Map(ves.filter((r) => r.job.lt != null && coHang(r.hang)).map((r) => [String(r.job.lt), r])), [ves, hangF]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -187,7 +191,7 @@ export default function TimelineCa({ R, doi, onJob }) {
   return (
     <div className="grid gap-2">
       <div className="row" style={{ gap: 8 }}>
-        <MultiSelect prefix="Loại hàng" value={hangF} onChange={setHangF} options={dsHang} className="sm" style={{ width: 150 }} />
+        <MultiSelect prefix="Nhóm hàng" value={hangF} onChange={setHangF} options={dsHang} className="sm" style={{ width: 150 }} />
         <button type="button" className={"btn sm" + (gon ? " on-pin" : "")} aria-pressed={gon} title="Dòng thấp, chữ nhỏ: xem được nhiều tàu hơn" onClick={() => { setGon(!gon); luu("qltb-tl-gon", gon ? "0" : "1"); }}><Rows4 size={14} />Gọn</button>
         <Select className="inp sm" value={String(soNgay)} onChange={(v) => { setSoNgay(+v); luu("qltb-tl-ngay", v); }} options={[["7", "7 ngày"], ["14", "14 ngày"], ["21", "21 ngày"], ["99", `Cả lưới (${tongNgay} ngày)`]]} style={{ width: 150 }} aria-label="Số ngày hiển thị" />
         {size < tongNgay && (
