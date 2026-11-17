@@ -71,11 +71,10 @@ export function ConfirmButton({ onConfirm, children, confirmText = "Bấm lần 
 
 export function PageHead({ title, desc, children }) {
   return (
-    <div className="mb-3 flex flex-wrap items-end gap-3">
-      <div className="min-w-0 flex-[1_1_280px]">
-        <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
-        {desc && <p className="mt-0.5 text-xs text-muted-foreground">{desc}</p>}
-      </div>
+    // Đầu trang gọn một hàng (anh Sỹ 17/11/2026, theo Mục tiêu sản lượng): tiêu đề cỡ lg, mô tả dài không chiếm dòng riêng mà hiện khi rê chuột vào tiêu đề; nút nằm cùng hàng.
+    <div className="mb-2 flex flex-wrap items-center gap-2">
+      <h1 className="mr-1 text-lg font-semibold" title={typeof desc === "string" ? desc : undefined}>{title}</h1>
+      {desc && typeof desc !== "string" && <div className="text-xs text-muted-foreground">{desc}</div>}
       {children && <div className="flex flex-wrap items-center gap-2">{children}</div>}
     </div>
   );

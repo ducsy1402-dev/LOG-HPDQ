@@ -224,7 +224,7 @@ export default function MucTieuCang() {
 
       <div className="grid gap-3 xl:grid-cols-3">
         {!chuaCo && cX && <KeHoachXuatHang kyInfo={kyInfo} homNay={homNay} c={cX} nhomX={nhomX} setNhomX={setNhomX} dsNhom={dsNhomX} cao={CAO + 20} nguon={cX.nguon} />}
-        <CoCauTheoCang kyInfo={kyInfo} cao={CAO} />
+        <CoCauTheoCang kyInfo={kyInfo} cao={CAO + 20} />
       </div>
 
       {mo === "dat-mt" && <HopDatMucTieu thang0={thang0} onClose={() => setMo(null)} onLuu={tai} />}
