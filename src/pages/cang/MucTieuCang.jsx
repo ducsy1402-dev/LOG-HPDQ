@@ -22,6 +22,7 @@ import { useNhomHang } from "./useNhomHang";
 import { HopDatMucTieu, HopThucTe } from "./HopMucTieu";
 import HopKeHoachNgay from "./HopKeHoachNgay";
 import HopXemKeHoachSL from "./HopXemKeHoachSL";
+import KeHoachXuatHang from "./KeHoachXuatHang";
 
 // Khai thác Cảng › Mục tiêu sản lượng (anh Sỹ chốt 13/11/2026):
 //   hàng nút trên cùng (Đặt mục tiêu · Xem kế hoạch · Kế hoạch ngày · Sản lượng thực tế) và chọn kỳ Tháng / Quý / Năm;
@@ -111,7 +112,7 @@ export default function MucTieuCang() {
   const [kh, setKh] = useState(undefined); // kế hoạch ngày của kỳ ([] khi chưa chạy SQL 13)
   const [mo, setMo] = useState(null); // dat-mt | xem | ngay | thuc-te
   const [hD, setHD] = useState("xuat"), [nhomD, setNhomD] = useState(""), [hL, setHL] = useState("xuat");
-  const [hCang, setHCang] = useState("");
+  const [hCang, setHCang] = useState(""), [nhomX, setNhomX] = useState(""); // nhomX: loại hàng của biểu đồ Kế hoạch xuất hàng
   const kyInfo = useMemo(() => khoangKy(kyLoai, ngayTC, homNay), [kyLoai, ngayTC, homNay]);
   const tai = () => setLan((x) => x + 1);
   const du = useSanLuongKy("cang", kyInfo.thangs, khoaKyRieng(kyInfo));
@@ -150,6 +151,9 @@ export default function MucTieuCang() {
     xAxis: { type: "category", data: nhanX(c2), axisLabel: { fontSize: 10, hideOverlap: true } }, yAxis: { type: "value", axisLabel: { fontSize: 10, formatter: nghin } },
     series: [veDuong("Kế hoạch", c2.khD.map(r2), MAU.xam, true), veDuong("Thực tế", c2.diem.map((o) => (o.dau <= homNay ? r2(o.tt) : null)), mauHuong[hD])],
   };
+  // Biểu đồ "Kế hoạch xuất hàng": xuất kế hoạch / thực tế lũy kế + tồn kho theo ngày, lọc loại hàng
+  const dsNhomX = useMemo(() => { if (!du) return []; const m = new Map(); for (const r of [...du.mucTieu, ...(du.mucTieuKy || []), ...du.thucTe]) if (r.huong === "xuat" && r.loai_hang) m.set(plain(r.loai_hang), r.loai_hang); return [...m.values()]; }, [du]);
+  const cX = useMemo(() => (sanSang ? chuoi("xuat", nhomX) : null), [sanSang, du, khMap, kyInfo, nhomX]); // eslint-disable-line react-hooks/exhaustive-deps
   // Tiến độ theo loại hàng của hướng chọn: thực tế so mục tiêu của kỳ
   const loai = useMemo(() => {
     if (!sanSang) return [];
@@ -220,6 +224,7 @@ export default function MucTieuCang() {
         </div>)}
 
       <div className="grid gap-3 xl:grid-cols-3">
+        {!chuaCo && cX && <KeHoachXuatHang kyInfo={kyInfo} homNay={homNay} c={cX} nhomX={nhomX} setNhomX={setNhomX} dsNhom={dsNhomX} cao={CAO + 20} nguon={cX.nguon} />}
         <Khung cao={CAO} ten="Cơ cấu sản lượng theo cảng trực thuộc" phu={`${kyInfo.nhan} · KL đã làm của tàu cập bến`} bo={<Chon gt={hCang} dat={setHCang} ds={[["", "Tổng"], ["nhap", "Nhập"], ["xuat", "Xuất"]]} />}>
           {cangTong == null ? CHUA_CO_CANG : cangTong.length ? <BanhVong ds={cangTong.map((o) => ({ name: o.ten, value: r2(o.tong) }))} /> : <ChuaCo>Chưa có tàu cập bến trong kỳ.</ChuaCo>}
         </Khung>
