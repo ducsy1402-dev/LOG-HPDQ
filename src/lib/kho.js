@@ -57,6 +57,7 @@ export function sucChua(row, hangHoa) {
   if (+row.suc_chua_tay > 0) return { tan: +row.suc_chua_tay, cach: "nhập tay" };
   // Khả dụng trống: sức chứa danh nghĩa × hệ số lưu chứa (chưa có hệ số thì khả dụng = danh nghĩa)
   if (+row.suc_chua_dn > 0) { const hs = heSoLuuChua(row.he_so_luu_chua); return { tan: lam2(+row.suc_chua_dn * (hs ?? 1)), cach: hs ? `danh nghĩa ${row.suc_chua_dn} t × hệ số ${hs}` : "= sức chứa danh nghĩa (chưa có hệ số lưu chứa)" }; }
+  if (row.don_vi === "Khối" && +row.dien_tich > 0 && +row.chieu_cao > 0) return { tan: lam2(+row.dien_tich * +row.chieu_cao), cach: `${row.dien_tich} m² × ${row.chieu_cao} m (đơn vị Khối)` };
   const tt = tiTrong(row.hang, hangHoa);
   if (+row.dien_tich > 0 && +row.chieu_cao > 0 && tt > 0) return { tan: +row.dien_tich * +row.chieu_cao * tt, cach: `${row.dien_tich} m² × ${row.chieu_cao} m × ${tt} t/m³` };
   return { tan: null, cach: !(+row.chieu_cao > 0) ? "chưa có chiều cao chất đống" : !(tt > 0) ? "hàng chưa có tỉ trọng" : "chưa có diện tích" };
@@ -71,7 +72,7 @@ export function tuTinhSucChua(rows, loai, hangHoa = [], coCotMoi = true) {
   const out = rows.map((r) => {
     const o = { ...r };
     if (coCotMoi && loai !== "thanh_pham" && !(+o.suc_chua_dn > 0) && +o.dien_tich > 0 && +o.chieu_cao > 0) {
-      const tt = tiTrong(o.hang, hangHoa);
+      const tt = o.don_vi === "Khối" ? 1 : tiTrong(o.hang, hangHoa); // đơn vị Khối: danh nghĩa = diện tích × cao (m³), không nhân tỷ khối
       if (tt > 0) { o.suc_chua_dn = lam2(+o.dien_tich * +o.chieu_cao * tt); tuTinh++; }
     }
     if (!(+o.suc_chua_tay > 0) && +o.suc_chua_dn > 0) {
@@ -181,9 +182,10 @@ export function tongHopKho({ khoBai = [], khoTon = [], khoLo = [], giaoDich = []
       if (w > 0) { const tt = co.reduce((s, c) => s + c.ton * c.tt, 0) / w; sc = { tan: +r.dien_tich * +r.chieu_cao * tt, cach: `${r.dien_tich} m² × ${r.chieu_cao} m × ${so(tt)} t/m³ (bình quân hàng đang chứa)` }; }
     }
     const loai = r.loai_kho || "trong"; // quy hoạch chứa Trống: không thuộc tab kho nào
+    const donVi = donViCua(r);
     const tieuThu = r.hang ? (+r.tieu_thu_ngay > 0 ? +r.tieu_thu_ngay : (xuat30.get(plain(r.hang)) || 0) / 30) : 0;
     const tonCaHang = tonHang.get(plain(r.hang)) || 0;
-    return { ...r, key, ten: tenKhu(r), kieu, nhomBai: kieu === "co_dinh_nhom" ? r.nhom_bai || nhomCua(r.hang, hangHoa) : null, loai, chua, sucChua: sc.tan, cachTinh: sc.cach, ton,
+    return { ...r, key, donVi, ten: tenKhu(r), kieu, nhomBai: kieu === "co_dinh_nhom" ? r.nhom_bai || nhomCua(r.hang, hangHoa) : null, loai, chua, sucChua: sc.tan, cachTinh: sc.cach, ton,
       lapDay: sc.tan > 0 ? ton / sc.tan : null, tieuThu: tieuThu > 0 ? tieuThu : null, ngayCap: tieuThu > 0 ? tonCaHang / tieuThu : null };
   });
   // Tồn ở bãi – hàng không xếp được vào bãi nhỏ nào (hàng sai bãi)
@@ -500,6 +502,10 @@ export function kiemTraGianLo(r, dongBai, dienTichBai) {
   }
   return null;
 }
+// Đơn vị của gian / lô (SQL 20, cột kho_bai.don_vi): Tấn (mặc định) | Kiện (hàng kiện) | Khối (hàng rời). Mọi số lượng của gian / lô tính theo đơn vị này, không quy đổi.
+export const DON_VI_KIEN = ["Tấn", "Kiện"], DON_VI_ROI = ["Tấn", "Khối"];
+export const donViCua = (r) => (["Kiện", "Khối"].includes(r?.don_vi) ? r.don_vi : "Tấn");
+export const chuDonVi = (dv) => (dv === "Kiện" ? "kiện" : dv === "Khối" ? "m³" : "t"); // chữ ngắn đi sau số
 // Hàng HRC (dùng ở kế hoạch ngày của cảng để chia thẻ tàu HRC)
 export const laHRC = (hang, hangHoa = []) => /\bhrc\b/.test(plain(nhomCua(hang, hangHoa) || "")) || /\bhrc\b/.test(plain(hang));
 // Bản sao của kho tổng hợp chỉ gồm gian / lô, tồn, lô của một tab (các thành phần biểu đồ / hộp thao tác dùng nguyên không cần sửa).

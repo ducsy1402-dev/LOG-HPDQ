@@ -167,7 +167,7 @@ const GHI_NHE = new Set(["insertVoyages", "updateVoyage", "deleteVoyage", "addSt
     for (const p of raw.plans || []) (plansBy.get(p.voyage_id) || plansBy.set(p.voyage_id, []).get(p.voyage_id)).push(p);
     const plansOf = (id) => (plansBy.get(id) || []).sort((a, b) => a.ten.localeCompare(b.ten));
     const alerts = canhBaoMo(voyages, { berths: raw.berths, stopsOf, tienOf, plansOf, coSql15: raw.plans != null, coSql19: !!raw.coSql19, nguong, now });
-    return { ...raw, voyages, traOf, bmap, vmap, stopsOf, tienOf, plansOf, alerts, nguong, now, coSql15: raw.plans != null && raw.khoTon != null, coSql17: (raw.khoBai || []).some((r) => "kieu_bai" in r), coSql18: raw.dmCot != null, coSql19: !!raw.coSql19, coSql24: !!raw.coSql24, coSql25: !!raw.coSql25, coSql26: !!raw.coSql26 && raw.traHang != null, coSql28: !!raw.coSql28, coCotDan: !!raw.coCotDan, coSql21: raw.mucTieu != null, coSql27: raw.khoKeHoach != null, coSql08: raw.dmBang != null };
+    return { ...raw, voyages, traOf, bmap, vmap, stopsOf, tienOf, plansOf, alerts, nguong, now, coSql15: raw.plans != null && raw.khoTon != null, coSql17: (raw.khoBai || []).some((r) => "kieu_bai" in r), coSql20: (raw.khoBai || []).some((r) => "don_vi" in r), coSql18: raw.dmCot != null, coSql19: !!raw.coSql19, coSql24: !!raw.coSql24, coSql25: !!raw.coSql25, coSql26: !!raw.coSql26 && raw.traHang != null, coSql28: !!raw.coSql28, coCotDan: !!raw.coCotDan, coSql21: raw.mucTieu != null, coSql27: raw.khoKeHoach != null, coSql08: raw.dmBang != null };
   }, [raw, now]);
 
   // Quyền theo vai trò Cảng / Kho / Thiết bị (cũ) và nhóm quyền theo khu vực (SQL 16): xem src/lib/quyen.js
