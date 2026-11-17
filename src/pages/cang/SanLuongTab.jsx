@@ -250,7 +250,7 @@ function BangMucTieu({ nhom, thang, kyLoai = "thang", mucTieu, mucTieuThang = []
                 <div className="flex flex-wrap items-center gap-2 border-t p-2">
                   <ChonGo className="min-w-[170px] flex-1" value={t.loai || ""} onChange={(x) => setThem({ ...them, [huong]: { ...t, loai: x } })} options={goiY} placeholder={`${c.nhanLoai} (chọn hoặc gõ)`} />
                   {c.coLoaiHang && <ChonGo className="min-w-[170px] flex-1" value={t.hang || ""} onChange={(x) => setThem({ ...them, [huong]: { ...t, hang: x } })} options={goiYHang} placeholder="Loại hàng (để trống = mọi hàng)" />}
-                  {c.coDonVi && <NativeSelect className="h-9 w-32" value={t.donVi || DON_VI[0][0]} onChange={(e) => setThem({ ...them, [huong]: { ...t, donVi: e.target.value } })} options={dsDV} aria-label="Đơn vị thực hiện" />}
+                  {c.coDonVi && <NativeSelect className="h-9 w-40" value={t.donVi || DON_VI[0][0]} onChange={(e) => setThem({ ...them, [huong]: { ...t, donVi: e.target.value } })} options={dsDV} aria-label="Đơn vị thực hiện" />}
                   <Button size="sm" variant="outline" disabled={!(t.loai || "").trim()} onClick={() => themDong(huong)}><Plus />Thêm</Button>
                 </div>)}</>}
             </div>);
@@ -446,10 +446,10 @@ function BangThucTe({ nhom, thang, mucTieu, thucTe, loc, onLuu }) {
       {nhap && (
         <div className="flex flex-wrap items-center gap-2 rounded-md border p-2">
           <span className="text-xs text-muted-foreground">Thêm cột</span>
-          <NativeSelect className="h-9 w-40" value={them.huong} onChange={(e) => setThem({ ...them, huong: e.target.value })} options={c.huong} aria-label="Hướng" />
+          <NativeSelect className="h-9 w-56" value={them.huong} onChange={(e) => setThem({ ...them, huong: e.target.value })} options={c.huong} aria-label="Hướng" />
           <ChonGo className="min-w-[170px] flex-1" value={them.loai} onChange={(x) => setThem({ ...them, loai: x })} options={goiY} placeholder={`${c.nhanLoai} (chọn hoặc gõ)`} />
           {c.coLoaiHang && <ChonGo className="min-w-[170px] flex-1" value={them.hang} onChange={(x) => setThem({ ...them, hang: x })} options={goiYHang} placeholder="Loại hàng (trống = mọi hàng)" />}
-          {c.coDonVi && <NativeSelect className="h-9 w-32" value={them.donVi} onChange={(e) => setThem({ ...them, donVi: e.target.value })} options={dsDV} aria-label="Đơn vị thực hiện" />}
+          {c.coDonVi && <NativeSelect className="h-9 w-40" value={them.donVi} onChange={(e) => setThem({ ...them, donVi: e.target.value })} options={dsDV} aria-label="Đơn vị thực hiện" />}
           <Button size="sm" variant="outline" disabled={!them.loai.trim()} onClick={themCot}><Plus />Thêm</Button>
         </div>)}
       <p className="text-[0.6875rem] text-muted-foreground">{nhap ? "Gõ số tấn của cả ngày vào ô (vd 12.500), bấm Lưu số liệu. Xóa số trong ô là xóa số của ngày đó. Cột có mục tiêu hiện sẵn; muốn nhập loại khác thì Thêm cột." : "Vai trò Xem chỉ xem số liệu."}</p></>}

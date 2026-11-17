@@ -13,7 +13,7 @@ const luu = (k, v) => { try { localStorage.setItem(k, v); } catch { /* bỏ qua 
 const doc = (k, mac) => { try { return localStorage.getItem(k) || mac; } catch { return mac; } };
 const KY = [["thang", "Tháng"], ["quy", "Quý"], ["nam", "Năm"]];
 
-export default function MucTieuVanTai() {
+export default function MucTieuVanTai({ trai }) {
   const { D } = useApp();
   const [kyLoai, setKyLoai] = useState(() => (["quy", "nam"].includes(doc("lg-mt-ky", "thang")) ? doc("lg-mt-ky", "thang") : "thang"));
   const [chon, setChon] = useState(() => ({ thang: thangCua(D.now), quy: khoaKy("quy", D.now), nam: khoaKy("nam", D.now) }));
@@ -27,13 +27,16 @@ export default function MucTieuVanTai() {
   return (
     <div className="grid gap-3">
       <div className="flex flex-wrap items-center gap-2">
-        <div className="inline-flex overflow-hidden rounded-md border" role="tablist" aria-label="Kỳ mục tiêu">
+        {trai}
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+        <div className="inline-flex gap-0.5 rounded-md bg-muted p-0.5 text-xs" role="tablist" aria-label="Kỳ mục tiêu">
           {KY.map(([k, ten]) => (
             <button key={k} type="button" role="tab" aria-selected={kyLoai === k} onClick={() => { setKyLoai(k); luu("lg-mt-ky", k); }}
-              className={cn("h-8 px-3 text-sm font-medium transition-colors", kyLoai === k ? "bg-primary text-primary-foreground" : "hover:bg-accent")}>{ten}</button>))}
+              className={cn("rounded px-2.5 py-1 font-medium transition-colors", kyLoai === k ? "bg-card text-foreground shadow-sm dark:bg-accent" : "text-muted-foreground hover:text-foreground")}>{ten}</button>))}
         </div>
         <NativeSelect className="h-8 w-52" value={ky} onChange={(e) => setChon((o) => ({ ...o, [kyLoai]: e.target.value }))}
           options={dsChon[kyLoai].map(([x, ten]) => [x, ten + (x === hienTai[kyLoai] ? " (này)" : "")])} aria-label={KY.find(([k]) => k === kyLoai)[1]} />
+        </div>
       </div>
       <SanLuongTab nhom="van_tai" thang={ky} kyLoai={kyLoai} />
     </div>
