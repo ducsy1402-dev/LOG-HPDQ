@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Empty, ConfirmButton } from "@/components/common";
 import { so, ngayNam, matchQ } from "@/lib/format";
-import { LOAI_GD, chuDonVi } from "@/lib/kho";
+import { LOAI_GD } from "@/lib/kho";
 import { laTonDauDatLai } from "@/lib/tonDau";
 import { cn } from "@/lib/utils";
 
@@ -23,9 +23,6 @@ export function LichSuKho({ kho, loai, onSua }) {
   const keys = useMemo(() => new Set(kho.dong.map((d) => d.key)), [kho]);
   const gd = useMemo(() => (D.giaoDich || []).filter((g) => keys.has(kho.gan(g.ten_bai, g.hang, g.ten_khu)) || (g.den_bai && keys.has(kho.gan(g.den_bai, g.hang, g.den_khu))))
     .sort((a, b) => String(b.ngay).localeCompare(String(a.ngay)) || b.id - a.id), [D.giaoDich, keys, kho]);
-  // Đơn vị của lượt = đơn vị của gian / lô nhận lượt đó
-  const dvTheoKey = useMemo(() => new Map(kho.dong.map((d) => [d.key, d.donVi])), [kho]);
-  const donViLuot = (g) => dvTheoKey.get(kho.gan(g.ten_bai, g.hang, g.ten_khu));
   const gdLoc = qSo.trim() ? gd.filter((g) => matchQ(qSo, ngayNam(g.ngay), g.ca, TEN_GD[g.loai], g.ten_bai, g.den_bai, g.hang, g.so_lo, g.chung_tu, g.ghi_chu, TEN_NGUON[g.nguon], g.voyage_id ? D.vmap.get(g.voyage_id)?.ten_tau : "")) : gd;
   return (
     <div className="grid gap-2">
@@ -39,13 +36,13 @@ export function LichSuKho({ kho, loai, onSua }) {
       {gd.length && !gdLoc.length ? <Empty>Không có lượt nào khớp "{qSo}".</Empty> : gd.length ? (
         <div className="scroll-x max-h-[45vh]">
           <table className="tbl">
-            <thead><tr><th>Ngày</th><th>Ca</th><th>Loại</th><th>Bãi</th><th>Hàng</th><th className="num">Khối lượng</th>{tp && <th>Lô</th>}<th>Nguồn / chuyến</th><th>Chứng từ, ghi chú</th>{nhap && <th></th>}</tr></thead>
+            <thead><tr><th>Ngày</th><th>Ca</th><th>Loại</th><th>Bãi</th><th>Hàng</th><th className="num">Khối lượng (t)</th>{tp && <th>Lô</th>}<th>Nguồn / chuyến</th><th>Chứng từ, ghi chú</th>{nhap && <th></th>}</tr></thead>
             <tbody>{gdLoc.slice(0, 400).map((g) => (
               <tr key={g.id}>
                 <td className="whitespace-nowrap tabular-nums">{ngayNam(g.ngay)}</td><td>{g.ca}</td>
                 <td><Badge tone={g.loai === "nhap" || g.loai === "dau_ky" ? "ok" : g.loai === "xuat" ? "warn" : g.loai === "kiem_ke" ? "info" : "default"}>{TEN_GD[g.loai]}</Badge></td>
                 <td>{g.ten_bai}{g.ten_khu ? ` › ${g.ten_khu}` : ""}{g.den_bai ? ` → ${g.den_bai}${g.den_khu ? ` › ${g.den_khu}` : ""}` : ""}</td><td>{g.hang}</td>
-                <td className={cn("num", g.loai === "xuat" && "text-warn")}>{laTonDauDatLai(g) ? <>= {so(g.do_thuc_te, 2)}<div className="text-[0.6875rem] font-normal text-muted-foreground" title="Tồn đầu kỳ đặt lại: lượt này điều chỉnh số tồn sổ để đầu ngày đúng bằng số khai báo">({g.so_luong > 0 ? "+" : ""}{so(g.so_luong, 2)})</div></> : <>{g.loai === "xuat" ? "−" : ""}{so(g.so_luong, 2)}</>} <span className="text-[0.6875rem] text-muted-foreground">{chuDonVi(donViLuot(g))}</span></td>
+                <td className={cn("num", g.loai === "xuat" && "text-warn")}>{laTonDauDatLai(g) ? <>= {so(g.do_thuc_te, 2)}<div className="text-[0.6875rem] font-normal text-muted-foreground" title="Tồn đầu kỳ đặt lại: lượt này điều chỉnh số tồn sổ để đầu ngày đúng bằng số khai báo">({g.so_luong > 0 ? "+" : ""}{so(g.so_luong, 2)})</div></> : <>{g.loai === "xuat" ? "−" : ""}{so(g.so_luong, 2)}</>}</td>
                 {tp && <td className="font-mono text-xs">{g.so_lo}</td>}
                 <td className="text-xs">{g.voyage_id ? D.vmap.get(g.voyage_id)?.ten_tau || "Tàu" : ""}{g.nguon && !g.voyage_id ? g.nguon === "cap_sx" ? "Cấp sản xuất" : g.nguon === "san_xuat" ? "Từ sản xuất" : g.nguon === "don_hang" ? "Đơn hàng" : "" : ""}</td>
                 <td className="max-w-[260px] truncate text-xs text-muted-foreground" title={[g.chung_tu, g.ghi_chu].filter(Boolean).join(" · ")}>{[g.chung_tu, g.ghi_chu].filter(Boolean).join(" · ")}</td>
