@@ -8,10 +8,10 @@ import { MucIcon } from "@/components/common";
 import { tachBang } from "@/lib/paste";
 import { so } from "@/lib/format";
 import { HUONG_NGAN } from "@/lib/sanLuongTT";
-import { COT_DAN_VT, MAU_DAN_VT, docBangMucTieuVT, thanhDongDonVi } from "@/lib/mucTieuVT";
+import { COT_DAN_VT, MAU_DAN_VT, docBangMucTieuVT, thanhDongDonVi, gopDongDonVi } from "@/lib/mucTieuVT";
 
 // Dán nhanh / Excel mục tiêu vận tải theo form bảng Excel của anh Sỹ: Loại hàng · Hướng · Loại xe · ĐVT · Tổng · Hòa Phát · Thuê ngoài · Ghi chú (không có Stt).
-// Chỉ đưa số vào bảng đang mở (chưa ghi); bấm Lưu mục tiêu ở bảng để ghi. Quy tắc đọc cột: lib/mucTieuVT.js.
+// Bấm Lưu ở hộp này là GHI LUÔN vào mục tiêu của kỳ đang mở (anh Sỹ 17/11/2026), không cần bấm Lưu lần nữa ở bảng. Dòng trùng khóa được cộng lại. Quy tắc đọc cột: lib/mucTieuVT.js.
 export default function HopDanVT({ onApDung, onClose }) {
   const { toast, fail } = useApp();
   const [text, setText] = useState("");
@@ -28,13 +28,21 @@ export default function HopDanVT({ onApDung, onClose }) {
   };
   const kq = useMemo(() => (bang ? docBangMucTieuVT(bang) : null), [bang]);
   const hopLe = kq?.ds?.filter((x) => !x.loi.length) || [];
+  const [luu, setLuu] = useState(false);
+  // Tổng đọc được theo hướng (Hòa Phát + Thuê ngoài) để đối chiếu với file trước khi lưu; dòng trùng khóa sẽ được cộng lại
+  const gop = useMemo(() => gopDongDonVi(thanhDongDonVi(hopLe)), [kq]); // eslint-disable-line react-hooks/exhaustive-deps
+  const tongHuong = (h) => gop.ds.filter((x) => x.huong === h).reduce((s, x) => s + x.tan, 0);
+  // Cột Tổng trong file (nếu có) theo hướng, để đối chiếu với Hòa Phát + Thuê ngoài
+  const tongFile = (h) => hopLe.filter((x) => x.huong === h && x.tong != null).reduce((a, x) => a + x.tong, 0);
+  const ghiHuong = (h, ten) => { const t = tongHuong(h), f = tongFile(h); return `${ten} ${so(t)} t${f && Math.abs(f - t) > 0.5 ? ` (cột Tổng của file: ${so(f)} t)` : ""}`; };
+  const nhomKey = new Set(gop.ds.map((x) => `${x.huong}|${x.loai.toLowerCase()}|${(x.hang || "").toLowerCase()}`)).size;
   return (
     <Dialog onOpenChange={(o) => !o && onClose()} className="max-w-[min(1000px,calc(100vw-24px))]" title="Dán nhanh / Excel · mục tiêu vận tải"
       description={`Chép bảng từ Excel (Ctrl+C) rồi dán (Ctrl+V), hoặc chọn file Excel. Dòng đầu là tiêu đề: ${COT_DAN_VT.map(([, t]) => t).join(" · ")}. Không cần cột Stt; ô trống hoặc "-" là không có số.`}
       footer={<>
-        <span className="mr-auto text-sm text-muted-foreground">{kq?.ds ? `${hopLe.length} dòng hợp lệ · ${kq.ds.length - hopLe.length} dòng lỗi (bỏ qua)` : ""}</span>
+        <span className="mr-auto text-sm text-muted-foreground">{kq?.ds ? `${hopLe.length} dòng hợp lệ · ${kq.ds.length - hopLe.length} dòng lỗi (bỏ qua) · ${ghiHuong("phuc_vu_cang", "PVC")} · ${ghiHuong("phuc_vu_san_xuat", "PVSX")}${gop.trung ? ` · ${gop.trung} dòng trùng khóa được cộng lại` : ""}` : ""}</span>
         {bang && <Button variant="outline" onClick={() => setBang(null)}><RotateCcw />Dán lại</Button>}
-        <Button disabled={!hopLe.length} onClick={() => { onApDung(thanhDongDonVi(hopLe)); onClose(); }}><Check />Đưa {hopLe.length} dòng vào bảng</Button></>}>
+        <Button disabled={!hopLe.length || luu} onClick={async () => { setLuu(true); const ok = await onApDung(gop.ds); setLuu(false); if (ok) onClose(); }}><Check />{luu ? "Đang lưu…" : `Lưu ${hopLe.length} dòng`}</Button></>}>
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" hidden onChange={(e) => { if (e.target.files[0]) docFile(e.target.files[0]); e.target.value = ""; }} />
         <Button variant="outline" onClick={() => fileRef.current.click()}><Upload />Chọn file Excel</Button>

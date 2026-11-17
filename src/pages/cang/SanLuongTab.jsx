@@ -6,7 +6,7 @@ import { Input, NativeSelect } from "@/components/ui/input";
 import { ChonGo } from "@/components/ui/combobox";
 import { Button } from "@/components/ui/button";
 import { Empty } from "@/components/common";
-import { so, soGon, pct, tenThang, congThang } from "@/lib/format";
+import { so, soGon, pct, tenThang, congThang, plain } from "@/lib/format";
 import { khoangKy, thangTrongKy, tenKy } from "@/lib/ky";
 import { docSo } from "@/lib/paste";
 import { cn } from "@/lib/utils";
@@ -33,6 +33,10 @@ export default function SanLuongTab({ nhom, thang, kyLoai = "thang", che, onLuu 
   const [kq, setKq] = useState(undefined); // undefined: đang tải · null: chưa chạy SQL · { mucTieu, thucTe }
   const nap = (v) => { setKq(v); setBan((x) => x + 1); };
   const tai = useCallback(() => { setLan((x) => x + 1); onLuu?.(); }, [onLuu]);
+  // Bộ lọc của bảng vận tải (anh Sỹ 17/11/2026): hướng (Phục vụ cảng / Phục vụ sản xuất) và loại xe, áp cho cả bảng mục tiêu và bảng thực tế
+  const [hLoc, setHLoc] = useState(""), [xLoc, setXLoc] = useState("");
+  const loc = useCallback((r) => (!hLoc || r.huong === hLoc) && (!xLoc || plain(r.loai) === plain(xLoc)), [hLoc, xLoc]);
+  const dsXe = useMemo(() => (nhom === "van_tai" && kq ? [...new Map([...(kq.mucTieu || []), ...(kq.thucTe || [])].map((r) => [plain(r.loai_xe), r.loai_xe])).values()].filter(Boolean).sort((a, b) => a.localeCompare(b, "vi")) : []), [nhom, kq]);
   useEffect(() => {
     let huy = false;
     const dau = `${kyLoai}|${thang}`; // đánh dấu số liệu thuộc kỳ nào: đổi kỳ thì chờ tải xong, không dùng số liệu của kỳ trước
@@ -48,9 +52,19 @@ export default function SanLuongTab({ nhom, thang, kyLoai = "thang", che, onLuu 
   }, [api, nhom, thang, kyLoai, lan]);
   if (kq === null) return <div className="rounded-md border border-warn/40 bg-warn/5 px-3 py-2 text-sm">Chưa có bảng sản lượng: quản trị cần chạy <b>sql/06_san_luong_thuc_te.sql</b>{kyLoai !== "thang" && <> và <b>sql/10_muc_tieu_quy_nam.sql</b></>} trong Supabase (sau 01 … 04).</div>;
   if (kq === undefined || (kq && kq.dau !== `${kyLoai}|${thang}`)) return <div className="flex items-center gap-2 py-6 text-sm text-muted-foreground"><RefreshCw className="h-4 w-4 animate-spin" />Đang tải số liệu {tenKyThuong(kyLoai, thang)}…</div>;
-  const loc = () => true; // (đã bỏ bộ lọc đội xe của bảng vận tải 15/11/2026)
   return (
     <div className="grid gap-4">
+      {nhom === "van_tai" && (
+        <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Lọc bảng vận tải">
+          <div className="inline-flex overflow-hidden rounded-md border" role="tablist" aria-label="Lọc theo hướng">
+            {[["", "Tất cả"], ...NHOM.van_tai.huong].map(([k, ten]) => (
+              <button key={k} type="button" role="tab" aria-selected={hLoc === k} onClick={() => setHLoc(k)}
+                className={cn("h-8 px-3 text-sm font-medium transition-colors", hLoc === k ? "bg-primary text-primary-foreground" : "hover:bg-accent")}>{ten}</button>))}
+          </div>
+          <NativeSelect className="h-8 w-44" value={xLoc} onChange={(e) => setXLoc(e.target.value)} placeholder="Mọi loại xe" options={dsXe} aria-label="Lọc theo loại xe" />
+          {(hLoc || xLoc) && <Button size="sm" variant="ghost" onClick={() => { setHLoc(""); setXLoc(""); }}><X />Bỏ lọc</Button>}
+          <span className="text-xs text-muted-foreground">Bộ lọc áp cho cả bảng mục tiêu và bảng thực tế bên dưới.</span>
+        </div>)}
       {che !== "thucTe" && <Card><CardContent className="pt-4"><BangMucTieu key={`mt-${nhom}-${kyLoai}-${thang}-${ban}`} nhom={nhom} thang={thang} kyLoai={kyLoai} mucTieu={kq.mucTieu} mucTieuThang={kq.mucTieuThang} thucTe={kq.thucTe} loc={loc} onLuu={tai} /></CardContent></Card>}
       {che !== "mucTieu" && <Card><CardContent className="pt-4">{kyLoai === "thang"
         ? <BangThucTe key={`tt-${nhom}-${thang}-${ban}`} nhom={nhom} thang={thang} mucTieu={kq.mucTieu} thucTe={kq.thucTe} loc={loc} onLuu={tai} />
@@ -139,6 +153,8 @@ function BangMucTieu({ nhom, thang, kyLoai = "thang", mucTieu, mucTieuThang = []
     setF((x) => ({ ...x, ...moi })); setXoa((q) => { const n = new Set(q); for (const k of Object.keys(moi)) n.delete(k); return n; });
     setThemV({ ...themV, loai: "", hang: "" });
   };
+  // Số dòng chờ lưu theo cách người dùng thấy: vận tải gộp Hòa Phát + Thuê ngoài thành một dòng
+  const soDongDoi = vt ? new Set(doi.map((k) => { const r = dong[k] || goc[k]; return r ? `${r.huong}|${plain(r.loai)}|${plain(r.hang)}` : k; })).size : doi.length;
   const truoc = congThang(thang, -1);
   const [dsTruoc, setDsTruoc] = useState(null);
   useEffect(() => { let huy = false; if (sua && !kyMode) api.docSanLuongThang(nhom, truoc).then((r) => { if (!huy) setDsTruoc(r?.mucTieu || []); }).catch(() => {}); return () => { huy = true; }; }, [api, nhom, truoc, sua, kyMode]);
@@ -148,7 +164,19 @@ function BangMucTieu({ nhom, thang, kyLoai = "thang", mucTieu, mucTieuThang = []
     else for (const m of dsTruoc || []) { const r = tuDb(nhom, m), k = khoaCua(r); if (!(dong[k]?.tan || "").trim()) moi[k] = { huong: r.huong, loai: r.loai, donVi: r.donVi, hang: r.hang, tan: soGon(r.tan), ghi_chu: dong[k]?.ghi_chu || r.ghi_chu || "" }; }
     setF(moi); setXoa(new Set());
   };
-  // Dán nhanh / Excel (cảng): đưa số vào bảng, chưa ghi
+  // Dán nhanh / Excel mục tiêu: Lưu ở hộp dán là GHI LUÔN (không cần bấm Lưu lần nữa ở bảng); dòng trùng khóa được cộng lại
+  const luuDan = async (ds) => {
+    const m = new Map();
+    for (const x of ds) {
+      const donVi = c.coDonVi ? x.donVi || DON_VI[0][0] : "", hang = c.coLoaiHang ? x.hang || "" : "", k = khoaDong(x.huong, x.loai, donVi, hang), o = m.get(k);
+      if (o) o.tan += +x.tan || 0; else m.set(k, { thang, huong: x.huong, loai: x.loai, donVi, hang, tan: +x.tan || 0, ghi_chu: (x.ghi_chu || goc[k]?.ghi_chu || "").trim() || null });
+    }
+    const rows = [...m.values()];
+    const ok = await run(() => (kyMode ? api.saveMucTieuKy(nhom, rows) : api.saveMucTieuNhom(nhom, rows)), `Đã lưu ${rows.length} dòng mục tiêu ${tenK} từ bảng dán`);
+    if (ok) onLuu();
+    return !!ok;
+  };
+  // (cũ) đưa số vào bảng, chưa ghi
   const apDungDan = (ds) => {
     const moi = { ...f }, bo = new Set(xoa);
     for (const x of ds) {
@@ -230,9 +258,9 @@ function BangMucTieu({ nhom, thang, kyLoai = "thang", mucTieu, mucTieuThang = []
       </div>}
       <div className="flex flex-wrap items-center gap-2">
         <p className="flex-1 text-[0.6875rem] text-muted-foreground">{sua ? "Gõ số tấn (vd 400.000). Cột Thực hiện là tổng số đã nhập ở bảng thực tế bên dưới. Xóa số hoặc bấm x là bỏ mục tiêu dòng đó (bấm Lưu mới xóa hẳn). " : "Chỉ Quản lý / Quản trị đặt mục tiêu. Cột Thực hiện là tổng số đã nhập ở bảng thực tế bên dưới. "}{kyMode ? " Mục tiêu quý / năm nhập riêng; dòng nào chưa nhập thì Tổng quan cộng mục tiêu các tháng." : ""}</p>
-        {sua && <Button size="sm" disabled={!doi.length} onClick={luu}><Save />Lưu mục tiêu{doi.length ? ` (${doi.length} dòng)` : ""}</Button>}
+        {sua && <Button size="sm" disabled={!doi.length} onClick={luu}><Save />Lưu mục tiêu{doi.length ? ` (${soDongDoi} dòng)` : ""}</Button>}
       </div></>}
-      {dan && <HopDanSL loai="muc_tieu" nhom={nhom} onApDung={apDungDan} onClose={() => setDan(false)} />}
+      {dan && <HopDanSL loai="muc_tieu" nhom={nhom} onApDung={luuDan} onClose={() => setDan(false)} />}
     </div>
   );
 }

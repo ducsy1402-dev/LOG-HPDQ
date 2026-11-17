@@ -51,4 +51,14 @@ export function docBangMucTieuVT(bang) {
   return { ds };
 }
 // Dòng dán hợp lệ -> các dòng mục tiêu theo đơn vị (đưa vào bảng): mỗi ô có số là một dòng
+// Các dòng trùng (cùng loại hàng, hướng, loại xe, đơn vị — không phân biệt hoa thường / dấu) được CỘNG lại: trước đây dòng sau ghi đè dòng trước nên tổng bị hụt
+export function gopDongDonVi(items) {
+  const m = new Map();
+  let trung = 0;
+  for (const x of items) {
+    const k = `${x.huong}|${plain(x.loai)}|${x.donVi}|${plain(x.hang)}`, o = m.get(k);
+    if (o) { o.tan += x.tan; if (!o.ghi_chu && x.ghi_chu) o.ghi_chu = x.ghi_chu; trung++; } else m.set(k, { ...x });
+  }
+  return { ds: [...m.values()], trung };
+}
 export const thanhDongDonVi = (ds) => ds.flatMap((x) => [["hoa_phat", x.hp], ["nha_thau", x.tn]].filter(([, v]) => v != null).map(([donVi, tan]) => ({ huong: x.huong, loai: x.loai, donVi, hang: x.hang, tan, ghi_chu: x.ghi_chu })));
