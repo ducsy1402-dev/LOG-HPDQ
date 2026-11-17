@@ -59,7 +59,7 @@ export default function BangMucTieuVT({ ds, dong, th, kyMode, tongThang, sua, do
       {sua && (
         <div className="flex flex-wrap items-center gap-2 border-t p-2">
           <ChonGo className="min-w-[170px] flex-1" value={them.hang || ""} onChange={(x) => setThem({ ...them, hang: x })} options={goiYHang} placeholder="Loại hàng (để trống = mọi hàng)" />
-          <NativeSelect className="h-9 w-36" value={them.huong || c.huong[0][0]} onChange={(e) => setThem({ ...them, huong: e.target.value })} options={c.huong.map(([h, t]) => [h, `${HUONG_NGAN[h]} · ${t}`])} aria-label="Hướng" />
+          <NativeSelect className="h-9 w-56" value={them.huong || c.huong[0][0]} onChange={(e) => setThem({ ...them, huong: e.target.value })} options={c.huong.map(([h, t]) => [h, `${HUONG_NGAN[h]} · ${t}`])} aria-label="Hướng" />
           <ChonGo className="min-w-[150px] flex-1" value={them.loai || ""} onChange={(x) => setThem({ ...them, loai: x })} options={goiY} placeholder="Loại xe (chọn hoặc gõ)" />
           <Button size="sm" variant="outline" disabled={!(them.loai || "").trim()} onClick={themNhom}><Plus />Thêm dòng</Button>
         </div>)}

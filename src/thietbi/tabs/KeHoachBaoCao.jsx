@@ -33,23 +33,22 @@ export default function KeHoachBaoCao() {
   const chonTab = (v) => { setTab(v); luu("qltb-kh-tab", v); };
   const chonDai = (v) => { setDai(v); luu("qltb-kh-dai", v); };
 
+  // Hai tab nhỏ của Kế hoạch dài hạn nằm bên TRÁI; với Mục tiêu vận tải, bộ chọn Tháng / Quý / Năm nằm cùng hàng ở bên PHẢI (anh Sỹ 17/11/2026)
+  const tabDai = <div className="row mb" style={{ marginBottom: 0 }}><Seg value={dai} onChange={chonDai} options={[["van_tai", "Mục tiêu vận tải"], ["linetime", "Linetime năng lực đáp ứng"]]} /></div>;
   return (
     <>
       <div className="page-h">
-        <div>
-          <h1>Kế hoạch & báo cáo</h1>
-          <div className="sub">{MO_TA[tab]}</div>
-        </div>
-        <div className="tools"><Seg value={tab} onChange={chonTab} options={TAB} /></div>
+        <h1 title={MO_TA[tab]}>Kế hoạch & báo cáo</h1>
+        <Seg value={tab} onChange={chonTab} options={TAB} />
       </div>
 
       {tab === "ngay" && (!D.plan ? <CanSql /> : <ShortTerm />)}
 
       {tab === "dai" && (
         <>
-          <div className="row mb"><Seg value={dai} onChange={chonDai} options={[["van_tai", "Mục tiêu vận tải"], ["linetime", "Linetime năng lực đáp ứng"]]} /></div>
+          {dai !== "van_tai" && tabDai}
           {dai === "van_tai"
-            ? (coCang ? <div className="khong-ttb"><MucTieuVanTai /></div> : <div className="card"><div className="alert warn"><Database size={16} /><span>Mục tiêu vận tải dùng bảng sản lượng của phần Khai thác Cảng: tài khoản cần có quyền Cảng.</span></div></div>)
+            ? (coCang ? <div className="khong-ttb"><MucTieuVanTai trai={tabDai} /></div> : <div className="card"><div className="alert warn"><Database size={16} /><span>Mục tiêu vận tải dùng bảng sản lượng của phần Khai thác Cảng: tài khoản cần có quyền Cảng.</span></div></div>)
             : (!D.plan ? <CanSql /> : <LongTerm />)}
         </>
       )}

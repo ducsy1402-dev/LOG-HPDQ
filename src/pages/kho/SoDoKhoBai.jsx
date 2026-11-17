@@ -35,7 +35,6 @@ function coMai(dmBang, ten) {
   const p = plain(ten);
   return { mai: /^(nha )?kho\b/.test(p) && !/^kho ho\b/.test(p), doan: true };
 }
-const cat = (s, n) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
 
 // Chỉ tiêu sức chứa một bãi nhỏ: kho nguyên liệu = thể tích tối đa (m³) = diện tích × chiều cao chất đống (không có thì sức chứa ÷ tỉ trọng);
 // kho thành phẩm = diện tích (m²) và số lớp xếp khả dụng
@@ -159,19 +158,33 @@ function hangCua(b, m) {
 const soCot = (b, m) => hangCua(b, m).reduce((t, h) => Math.max(t, h.ds.length), 1);
 const slotCua = (b, m) => (xepNgang(b, m) && soCot(b, m) > 1 ? SLOT_N : SLOT);
 const caoCay = (b, m) => Math.max(BG_H, hangCua(b, m).length * ROW);
-// Cột chữ bên phải biểu tượng: tên, dòng phụ, tồn · %, sức chứa (m³ hoặc m² · lớp)
-function CotChu({ x, y, ten, phu, ton, lap, muc, them, ct, lon, chuaPB, ll }) {
+// Đo bề rộng chữ thật (canvas, font Inter) để chữ không tràn sang ô bên cạnh: quá rộng thì thu nhỏ chữ (tối đa còn 78%), vẫn quá thì cắt bằng "…" (tên đầy đủ xem ở chú thích khi rê chuột)
+let _cv = null;
+function doRong(txt, size, dam) {
+  try { _cv ||= document.createElement("canvas").getContext("2d"); _cv.font = `${dam ? 700 : 400} ${size}px Inter Variable, Inter, sans-serif`; return _cv.measureText(txt).width * 1.03; }
+  catch { return txt.length * size * (dam ? 0.62 : 0.57); }
+}
+export function vuaRong(txt, size, dam, rong) {
+  txt = String(txt ?? "");
+  if (!txt || !(rong > 0) || doRong(txt, size, dam) <= rong) return { txt, size };
+  const nho = Math.max(size * 0.78, Math.min(size, (size * rong) / doRong(txt, size, dam)));
+  if (doRong(txt, nho, dam) <= rong) return { txt, size: +nho.toFixed(2) };
+  let t = txt; while (t.length > 1 && doRong(t + "…", nho, dam) > rong) t = t.slice(0, -1);
+  return { txt: t.trimEnd() + "…", size: +nho.toFixed(2) };
+}
+// Cột chữ bên phải biểu tượng: tên, dòng phụ, tồn · %, sức chứa (m³ hoặc m² · lớp); rong = bề rộng tối đa của cột chữ (px)
+function CotChu({ x, y, ten, phu, ton, lap, muc, themTxt, themMau, ct, lon, chuaPB, ll, rong }) {
   const c = lon ? [20, 40, 60, 80] : [14, 29, 44, 58];
+  const T = (txt, size, dam, yy, fill) => { const f = vuaRong(txt, size, dam, rong); return <text x={x} y={yy} fontSize={f.size} fontWeight={dam ? "700" : undefined} fill={fill}>{f.txt}</text>; };
+  const base = chuaPB ? "Chưa phân bổ" : `${so(ton, 0)} t · ${lap != null ? pct(lap) : "—"}`, sT = lon ? 12.5 : 11.5, f3 = vuaRong(base + (themTxt || ""), sT, true, rong);
+  const dong3 = (
+    <text x={x} y={y + c[2]} fontSize={f3.size} fontWeight="700" fill={CHU[muc]}>{f3.txt.slice(0, base.length)}{f3.txt.length > base.length && <tspan fill={themMau || CHU[muc]}>{f3.txt.slice(base.length)}</tspan>}</text>);
   return (
     <g>
-      <text x={x} y={y + c[0]} fontSize={lon ? 14 : 12} fontWeight="700" fill="#e6f2ff">{ten}</text>
+      {T(ten, lon ? 14 : 12, true, y + c[0], "#e6f2ff")}
       {lon
-        ? <><text x={x} y={y + c[1]} fontSize="11" fill="#8fb4dc">{phu}</text>
-          <text x={x} y={y + c[2]} fontSize="12.5" fontWeight="700" fill={CHU[muc]}>{chuaPB ? "Chưa phân bổ" : `${so(ton, 0)} t · ${lap != null ? pct(lap) : "—"}`}</text>
-          <text x={x} y={y + c[3]} fontSize="11.5" fill="#9fc3ea">{ct}</text></>
-        : <><text x={x} y={y + c[1]} fontSize="10.5" fill="#9fc3ea">{ct}</text>
-          <text x={x} y={y + c[2]} fontSize="11.5" fontWeight="700" fill={CHU[muc]}>{so(ton, 0)} t · {lap != null ? pct(lap) : "—"}{them}</text>
-          <text x={x} y={y + c[3]} fontSize="9.5" fill="#8fb4dc">{ll ? `Nhập ${so(ll.nhap, 0)} · Xuất ${so(ll.xuat, 0)} t/ng` : ""}</text></>}
+        ? <>{T(phu, 11, false, y + c[1], "#8fb4dc")}{dong3}{T(ct, 11.5, false, y + c[3], "#9fc3ea")}</>
+        : <>{T(ct, 10.5, false, y + c[1], "#9fc3ea")}{dong3}{T(ll ? `Nhập ${so(ll.nhap, 0)} · Xuất ${so(ll.xuat, 0)} t/ng` : "", 9.5, false, y + c[3], "#8fb4dc")}</>}
     </g>);
 }
 function KhoiCay({ b, mai, x, y, onMo, uid, tp, tt, ttDong, nhay, luuLuong }) {
@@ -181,7 +194,7 @@ function KhoiCay({ b, mai, x, y, onMo, uid, tp, tt, ttDong, nhay, luuLuong }) {
   const dem = new Map(); for (const d of b.dong) dem.set(d.ten, (dem.get(d.ten) || 0) + 1);
   const tenO = (d) => (dem.get(d.ten) > 1 && d.hang ? `${d.ten} · ${d.hang}` : d.ten);
   // Dòng 2 của gian / lô: diện tích · hàng (hàng đang chứa, không có thì hàng quy hoạch)
-  const dong3 = (d) => { const h = (d.chua || []).filter((c) => c.ton > 0).map((c) => c.hang).join(", ") || d.hang || "", dt = +d.dien_tich > 0 ? `${so(d.dien_tich, 0)} m²` : "— m²"; return h ? `${dt} · ${cat(h, 17)}` : dt; };
+  const dong3 = (d) => { const h = (d.chua || []).filter((c) => c.ton > 0).map((c) => c.hang).join(", ") || d.hang || "", dt = +d.dien_tich > 0 ? `${so(d.dien_tich, 0)} m²` : "— m²"; return h ? `${dt} · ${h}` : dt; };
   const v1 = Math.min(yBig, cols > 1 ? yBus(0) : yCon(0)), v2 = Math.max(yBig, cols > 1 ? yBus(rows - 1) : yCon(rows - 1));
   const dongLon = tiLeHang(b.dong.flatMap((d) => d.chua || []));
   return (
@@ -191,7 +204,7 @@ function KhoiCay({ b, mai, x, y, onMo, uid, tp, tt, ttDong, nhay, luuLuong }) {
         <title>{`${b.ten_bai} (${tenLoai(mai)}): tồn ${so(b.ton)} t${b.sucChua ? ` / ${so(b.sucChua)} t` : ""}${b.lapDay != null ? ` · ${pct(b.lapDay)}` : ""} · ${nhanCT().toLowerCase()} ${chuCT(tt)} · ${n} bãi nhỏ\nBấm để mở bảng chi tiết`}</title>
         <rect x="-4" y={bigTop} width={SX - 8} height={BG_H} rx="10" fill="#7cc4ff" className="kb-nen" />
         <BieuTuong mai={mai} id={`${uid}-l`} lap={b.lapDay} dong={dongLon} muc={muc} x={0} y={bigTop + 16} s={BS} />
-        <CotChu lon x={TX} y={bigTop} ten={cat(b.ten_bai, 17)} phu={`${tenLoai(mai)} · ${n} bãi nhỏ`} ton={b.ton} lap={b.lapDay} muc={muc} ct={chuCT(tt)} />
+        <CotChu lon x={TX} y={bigTop} ten={b.ten_bai} phu={`${tenLoai(mai)} · ${n} bãi nhỏ`} ton={b.ton} lap={b.lapDay} muc={muc} ct={chuCT(tt)} rong={SX - 12 - TX - 4} />
       </g>
       <g stroke="#6b9be0" strokeWidth="2.2" fill="none" strokeLinecap="round">
         <line x1={TX + 132} y1={yBig} x2={SX} y2={yBig} /><line x1={SX} y1={v1} x2={SX} y2={v2} />
@@ -208,8 +221,8 @@ function KhoiCay({ b, mai, x, y, onMo, uid, tp, tt, ttDong, nhay, luuLuong }) {
             <title>{`${b.ten_bai} › ${tenO(d)}${d.chua?.length ? ` (${d.chua.map((c) => c.hang).join(", ")})` : ""}: tồn ${so(d.ton)} t${d.sucChua ? ` / ${so(d.sucChua)} t` : ""}${d.lapDay != null ? ` · ${pct(d.lapDay)}` : ""} · ${nhanCT().toLowerCase()} ${chuCT(t)}\nBấm để mở bảng chi tiết`}</title>
             <rect x={x0 - 2} y={y0 + 2} width={SL - 12} height={ROW - 6} rx="8" fill="#7cc4ff" className="kb-nen" />
             <BieuTuong mai={mai} id={`${uid}-${r}-${c}`} lap={d.lapDay} dong={tiLeHang(d.chua)} muc={m} x={x0} y={y0 + 6} s={SM} />
-            <CotChu x={x0 + 94} y={y0 + 4} ten={cat(d.ten, 20)} ton={d.ton} lap={d.lapDay} muc={m} ct={dong3(d)} ll={luuLuong?.get(d.key)}
-              them={cap ? <tspan fill={d.ngayCap < NGUONG_KHO.ngayCapDo ? CHU.bad : d.ngayCap < NGUONG_KHO.ngayCapVang ? CHU.warn : "#8fb4dc"}> · cấp {so(d.ngayCap, 1)} ng</tspan> : null} />
+            <CotChu x={x0 + 94} y={y0 + 4} ten={d.ten} ton={d.ton} lap={d.lapDay} muc={m} ct={dong3(d)} ll={luuLuong?.get(d.key)} rong={SL - 12 - 96 - 4}
+              themTxt={cap ? ` · cấp ${so(d.ngayCap, 1)} ng` : ""} themMau={cap ? (d.ngayCap < NGUONG_KHO.ngayCapDo ? CHU.bad : d.ngayCap < NGUONG_KHO.ngayCapVang ? CHU.warn : "#8fb4dc") : undefined} />
           </g>);
       }))}
     </g>);
@@ -225,7 +238,7 @@ function KhoiGon({ b, mai, x, y, onMo, uid, tt, tp, nhay }) {
       {!pb && <rect x="-4" y="0" width={CW_GON - 12} height={GON_H - 10} rx="10" fill="#7cc4ff" className="kb-nen" />}
       {nhay && <Nhay x={-6} y={-2} w={CW_GON - 8} h={GON_H - 6} />}
       <BieuTuong mai={mai} id={`${uid}-g`} lap={b.lapDay} dong={tiLeHang(d?.chua)} muc={muc} x={0} y={14} s={BS} />
-      <CotChu lon x={TX} y={0} ten={cat(b.ten_bai, 16)} phu={`${tenLoai(mai)} · ${pb ? "chưa phân bổ" : cat(hang || "chưa có hàng", 14)}`} ton={b.ton} lap={b.lapDay} muc={muc} ct={pb ? ctPB : chuCT(tt)} chuaPB={pb} />
+      <CotChu lon x={TX} y={0} ten={b.ten_bai} phu={`${tenLoai(mai)} · ${pb ? "chưa phân bổ" : (hang || "chưa có hàng")}`} ton={b.ton} lap={b.lapDay} muc={muc} ct={pb ? ctPB : chuCT(tt)} chuaPB={pb} rong={CW_GON - 12 - TX - 4} />
     </g>);
 }
 
