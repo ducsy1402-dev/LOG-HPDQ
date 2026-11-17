@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { docBangMucTieuVT, thanhDongDonVi, docTan } from "./mucTieuVT";
+import { docBangMucTieuVT, thanhDongDonVi, docTan, gopDongDonVi } from "./mucTieuVT";
 import { tachBang } from "./paste";
 
 const TD = "Stt\tLoại hàng\tHướng\tLoại xe\tĐVT\tTổng\tHòa Phát\tThuê ngoài\tGhi chú";
@@ -20,6 +20,14 @@ describe("dán nhanh mục tiêu vận tải theo form Excel", () => {
     expect(docBangMucTieuVT([["Loại hàng", "Tổng"], ["a", "1"]]).loiCot).toMatch(/Chưa thấy cột/);
     const { ds } = docBangMucTieuVT(tachBang([TD, "1\tX\tabc\tXe ben\tTấn\t1\t1\t\t", "2\tX\tPVC\tXe ben\tTấn\t1\tabc\t\t"].join("\n")));
     expect(ds[0].loi[0]).toMatch(/Hướng/); expect(ds[1].loi[0]).toMatch(/Hòa Phát/);
+  });
+  it("dòng trùng khóa (kể cả khác hoa thường) được CỘNG lại, không ghi đè", () => {
+    const b = tachBang([TD, "1\tQuặng\tPVSX\tXe ben\tTấn\t100\t60\t40\t", "2\tquặng\tPVSX\tXe Ben\tTấn\t50\t50\t\tghi"].join("\n"));
+    const { ds } = docBangMucTieuVT(b);
+    const g = gopDongDonVi(thanhDongDonVi(ds));
+    expect(g.trung).toBe(1);
+    const hp = g.ds.find((x) => x.donVi === "hoa_phat"), tn = g.ds.find((x) => x.donVi === "nha_thau");
+    expect(hp.tan).toBe(110); expect(tn.tan).toBe(40); expect(hp.ghi_chu).toBe("ghi");
   });
   it("docTan", () => { expect(docTan("60.000")).toBe(60000); expect(docTan("-")).toBeNull(); expect(docTan("")).toBeNull(); expect(docTan(5)).toBe(5); expect(docTan("x")).toBeNaN(); });
 });

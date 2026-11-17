@@ -89,7 +89,7 @@ function HopDanSLChung({ loai, nhom = "cang", thang, onApDung, onClose }) {
       footer={<>
         <span className="mr-auto text-sm text-muted-foreground">{kq?.ds ? `${hopLe.length} dòng hợp lệ · ${kq.ds.length - hopLe.length} dòng lỗi (bỏ qua)` : ""}</span>
         {bang && <Button variant="outline" onClick={() => setBang(null)}><RotateCcw />Dán lại</Button>}
-        <Button disabled={!hopLe.length} onClick={() => { onApDung(hopLe); onClose(); }}><Check />Đưa {hopLe.length} dòng vào bảng</Button></>}>
+        <Button disabled={!hopLe.length} onClick={async () => { const ok = await onApDung(hopLe); if (ok !== false) onClose(); }}><Check />{tt ? `Đưa ${hopLe.length} dòng vào bảng` : `Lưu ${hopLe.length} dòng`}</Button></>}>
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" hidden onChange={(e) => { if (e.target.files[0]) docFile(e.target.files[0]); e.target.value = ""; }} />
         <Button variant="outline" onClick={() => fileRef.current.click()}><Upload />Chọn file Excel</Button>
