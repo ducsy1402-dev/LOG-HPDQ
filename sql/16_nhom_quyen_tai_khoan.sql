@@ -142,7 +142,7 @@ declare
   r record; n text;
 begin
   for r in select * from (values
-    ('bgdcty',         'Quản trị LOG (chỉ xem)',        '{}'::text[]),
+    ('bgdcty',         'BGD CTY',                       '{}'::text[]),
     ('kehoachvantailog',   'Kế hoạch vận tải LOG',          '{van_tai}'),
     ('kehoachkhobailog',   'Kế hoạch kho bãi LOG',          '{kho_bai}'),
     ('kehoachxuatnhaplog', 'Kế hoạch xuất nhập LOG',        '{xuat_nhap}'),
