@@ -12,7 +12,7 @@ import { COT_TAU, MAU_BANG, nhanDienBang, docDongTau, cotThieu, thuTuNgayBangTau
 import { timBen } from "@/lib/checks";
 import { maChuyenMoi, chuyenDaRoi } from "@/lib/linetime";
 import { so, plain, ms } from "@/lib/format";
-import { ghiDanhMuc } from "./ChuyenForm";
+import { ghiDanhMucNhieu } from "./ChuyenForm";
 import { tenBenChuyen } from "./BangTauBen";
 
 // Dán nhanh bảng tàu theo FORM MẪU (anh Sỹ chốt 14/11/2026): BẾN · TÊN TÀU · DRAFT · LOA · DWT · GEAR · HÀNG NHẬP · HÀNG XUẤT · KHỐI LƯỢNG · CAM KẾT · DEM/day ·
@@ -79,21 +79,26 @@ export default function DanNhanh({ onClose }) {
   const luu = async () => {
     const them = dsDong.filter((x) => !x.goc).map((x) => x.v), sua = dsDong.filter((x) => x.goc);
     const r = await run(async () => {
-      if (them.length || sua.some((x) => x.doiTen)) {
-        // Cấp lại mã chuyến theo số lớn nhất ĐANG CÓ trong CSDL (web chỉ tải chuyến gần đây, hoặc có người vừa thêm): tránh lỗi trùng mã voyages_ma_chuyen_key
-        const daCo = new Map(), moiMa = [];
-        for (const v of [...them, ...sua.filter((x) => x.doiTen).map((x) => x.v)]) { // chuyến mới và chuyến TBA được đổi tên đều cấp mã theo tên mới
-
+      // Lưu NHANH (anh Sỹ 19/11/2026): mọi việc không phụ thuộc nhau chạy cùng lúc thay vì nối đuôi từng dòng
+      const dsMa = [...them, ...sua.filter((x) => x.doiTen).map((x) => x.v)]; // chuyến mới và chuyến TBA được đổi tên đều cấp mã theo tên mới
+      if (dsMa.length) {
+        // Cấp lại mã chuyến theo số lớn nhất ĐANG CÓ trong CSDL (web chỉ tải chuyến gần đây, hoặc có người vừa thêm): tránh lỗi trùng mã voyages_ma_chuyen_key; mỗi (tàu, năm) hỏi CSDL một lần, các lần hỏi chạy cùng lúc
+        const khoa = new Map();
+        for (const v of dsMa) { const ten = String(v.ten_tau || "TBA").trim().toUpperCase(), nam = new Date(ms(v.etb || v.eta) || Date.now()).getFullYear(); khoa.set(ten + "|" + nam, [ten, nam]); }
+        const daCo = new Map(await Promise.all([...khoa].map(async ([k, [ten, nam]]) => [k, (await api.docMaChuyen(ten, nam)).map((ma_chuyen) => ({ ma_chuyen }))])));
+        for (const v of dsMa) {
           const ten = String(v.ten_tau || "TBA").trim().toUpperCase(), nam = new Date(ms(v.etb || v.eta) || Date.now()).getFullYear(), k = ten + "|" + nam;
-          if (!daCo.has(k)) daCo.set(k, (await api.docMaChuyen(ten, nam)).map((ma_chuyen) => ({ ma_chuyen })));
           v.ma_chuyen = maChuyenMoi(ten, nam, [...D.voyages, ...daCo.get(k)]);
-          daCo.get(k).push({ ma_chuyen: v.ma_chuyen }); moiMa.push(v.ma_chuyen);
+          daCo.get(k).push({ ma_chuyen: v.ma_chuyen });
         }
-        if (them.length) await api.insertVoyages(them);
       }
-      for (const x of sua) { const patch = { ...x.v }; if (!x.doiTen) { delete patch.ma_chuyen; delete patch.ten_tau; } if (Object.keys(patch).length) await api.updateVoyage(x.goc.id, patch); }
-      for (const x of dsDong) await ghiDanhMuc(api, D, x.v);
-      if (xoaTBA) for (const x of tbaCu) await api.deleteVoyage(x.id);
+      const viec = [
+        ...(them.length ? [() => api.insertVoyages(them)] : []),
+        ...[...sua.reduce((m, x) => { const patch = { ...x.v }; if (!x.doiTen) { delete patch.ma_chuyen; delete patch.ten_tau; } if (Object.keys(patch).length) m.set(x.goc.id, patch); return m; }, new Map())].map(([id, patch]) => () => api.updateVoyage(id, patch)), // một chuyến chỉ ghi một lần (dòng sau thắng)
+        () => ghiDanhMucNhieu(api, dsDong.map((x) => x.v)),
+        ...(xoaTBA ? tbaCu.map((x) => () => api.deleteVoyage(x.id)) : []),
+      ];
+      for (let i = 0; i < viec.length; i += 8) await Promise.all(viec.slice(i, i + 8).map((f) => f())); // tối đa 8 lệnh một lượt
     }, `Đã lưu: thêm ${them.length} chuyến, cập nhật ${sua.length} chuyến${xoaTBA && tbaCu.length ? `, xóa ${tbaCu.length} chuyến TBA cũ` : ""}`);
     if (r) onClose();
   };

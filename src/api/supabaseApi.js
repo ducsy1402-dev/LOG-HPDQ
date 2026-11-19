@@ -239,11 +239,11 @@ export function makeSupabaseApi() {
           ...rows.filter((x) => x.id != null).map(({ id, ...r }) => async () => ok(await sb.from(bang).update({ ...r, updated_at: now() }).eq("id", id)))]);
         return;
       }
-      for (const c of chunk(rows, 300)) ok(await sb.from(bang).upsert(c.map((r) => ({ ...r, updated_at: now() })), { onConflict: khoa }));
+      await song(chunk(rows, 300).map((c) => async () => ok(await sb.from(bang).upsert(c.map((r) => ({ ...r, updated_at: now() })), { onConflict: khoa }))));
     },
     deleteRow: async (bang, khoa, val) => ok(await sb.from(bang).delete().eq(khoa, val)),
     // Xóa nhiều dòng một lần (Danh mục: tick chọn rồi xóa); chia nhóm 200 để câu lệnh không quá dài
-    async deleteRows(bang, khoa, vals) { for (const c of chunk(vals, 200)) ok(await sb.from(bang).delete().in(khoa, c)); },
+    async deleteRows(bang, khoa, vals) { await song(chunk(vals, 200).map((c) => async () => ok(await sb.from(bang).delete().in(khoa, c)))); },
     // Cột tự thêm của một danh mục: ghi lại cả danh sách (cột bỏ đi thì xóa định nghĩa, giá trị cũ trong dòng giữ nguyên)
     async saveCot(bang, cols) {
       const giu = cols.map((c) => c.ma);
