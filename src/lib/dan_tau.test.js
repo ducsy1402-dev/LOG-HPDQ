@@ -154,3 +154,47 @@ describe("ATD tự lấy theo ETD", () => {
     expect(timChuyenTBA({ ben_ma: "B06", huong: "nhap", khoi_luong: 30000 }, cu, new Set(), new Date(2026, 10, 11).getTime()).id).toBe(1);
   });
 });
+
+import { cungLanCap, timChuyenCoTen } from "./danTau";
+describe("dán đè không thêm trùng (tàu đã rời, TBA)", () => {
+  const now = new Date(2026, 10, 19, 10, 0).getTime();
+  // CSDL trả giờ UTC: 17/11 15:00 giờ VN = 08:00Z; 19/11 00:00 giờ VN = 18/11 17:00Z
+  const roi = { id: 1, ten_tau: "MẶT TRỜI VIỆT 39", ben_ma: "B05", huong: "xuat", khoi_luong: 1171, eta: "2026-11-17T08:00:00+00:00", etb: "2026-11-17T17:00:00+00:00", etd: "2026-11-18T17:00:00+00:00", atd: "2026-11-18T17:00:00+00:00" };
+  const dong = (o) => ({ ten_tau: "MẶT TRỜI VIỆT 39", ben_ma: "B05", huong: "xuat", khoi_luong: 1171, eta: new Date(2026, 10, 17, 15, 0).toISOString(), etb: new Date(2026, 10, 18, 0, 0).toISOString(), ...o });
+  it("tàu đã rời, dòng dán còn trong bảng: khớp lại chuyến cũ, không thêm mới", () => {
+    expect(timChuyenCoTen(dong(), [roi], now)?.id).toBe(1);
+    expect(timChuyenCoTen(dong({ eta: "2026-11-19T00:00" }), [roi], now)?.id).toBe(1); // ETA lệch trong 3 ngày
+  });
+  it("lần cập sau của cùng tàu (ETA sau giờ rời, xa hơn 3 ngày) vẫn là chuyến mới", () => {
+    expect(timChuyenCoTen(dong({ eta: "2026-12-05T00:00", etb: "2026-12-06T00:00" }), [roi], now)).toBeNull();
+  });
+  it("có cả chuyến cũ đã rời và chuyến mới: dòng của lần cập nào khớp đúng lần đó", () => {
+    const moi = { id: 2, ten_tau: "MẶT TRỜI VIỆT 39", eta: "2026-12-05T00:00", etb: "2026-12-06T00:00", etd: "2026-12-08T00:00" };
+    expect(timChuyenCoTen(dong(), [roi, moi], now)?.id).toBe(1);
+    expect(timChuyenCoTen(dong({ eta: "2026-12-05T00:00", etb: "2026-12-06T00:00" }), [roi, moi], now)?.id).toBe(2);
+  });
+  it("ETA dời xa: chuyến chưa rời cùng tên vẫn được cập nhật", () => {
+    const chua = { id: 3, ten_tau: "NEW ADMIRE", eta: "2026-11-25T00:00", etd: "2026-11-30T00:00" };
+    expect(timChuyenCoTen({ ten_tau: "NEW ADMIRE", eta: "2026-12-20T00:00" }, [chua], now)?.id).toBe(3);
+  });
+  it("cungLanCap: cùng ngày giờ máy dù CSDL trả UTC", () => {
+    expect(cungLanCap({ eta: "2026-11-20T17:00:00+00:00" }, { eta: new Date(2026, 10, 21, 0, 0).toISOString() })).toBe(true);
+  });
+  it("TBA đã rời bến mà còn dòng trong bảng (cùng ngày ETA): khớp lại, không thêm trùng", () => {
+    const tba = [{ id: 9, ten_tau: "TBA", ben_ma: "B06", huong: "nhap", khoi_luong: 30000, eta: "2026-11-10T00:00", etb: "2026-11-11T00:00", etd: "2026-11-12T00:00", atd: "2026-11-12T00:00" }];
+    const d = { ben_ma: "B06", huong: "nhap", khoi_luong: 30000, eta: new Date(2026, 10, 10).toISOString(), etb: new Date(2026, 10, 11).toISOString() };
+    expect(timChuyenTBA(d, tba, new Set(), now)?.id).toBe(9);
+    expect(timChuyenTBA({ ...d, eta: new Date(2026, 11, 1).toISOString(), etb: new Date(2026, 11, 2).toISOString() }, tba, new Set(), now)).toBeNull();
+  });
+  it("hai TBA cùng bến, cùng khối lượng, khác hàng: dán lại hai lần vẫn đúng hai chuyến (giờ UTC của CSDL)", () => {
+    const cu = [
+      { id: 16, ten_tau: "TBA", ben_ma: "B11", huong: "nhap", khoi_luong: 5000, eta: "2026-11-20T17:00:00+00:00", etb: "2026-11-21T17:00:00+00:00", ten_hang: "Nhập Than cám 2(Lam sơn)" },
+      { id: 27, ten_tau: "TBA", ben_ma: "B11", huong: "nhap", khoi_luong: 5000, eta: "2026-11-20T17:00:00+00:00", etb: "2026-11-22T17:00:00+00:00", ten_hang: "Nhập Than cám 3( Lam Son)" },
+    ];
+    const r = (hang, etb) => ({ ben_ma: "B11", huong: "nhap", khoi_luong: 5000, eta: new Date(2026, 10, 21).toISOString(), etb: new Date(2026, 10, etb).toISOString(), ten_hang: hang });
+    const dung = new Set();
+    const a = timChuyenTBA(r("Nhập Than cám 3( Lam Son)", 23), cu, dung, now); dung.add(a.id);
+    const b = timChuyenTBA(r("Nhập Than cám 2(Lam sơn)", 22), cu, dung, now);
+    expect([a.id, b.id]).toEqual([27, 16]);
+  });
+});
