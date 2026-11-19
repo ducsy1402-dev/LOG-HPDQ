@@ -182,22 +182,27 @@ export function makeSupabaseApi() {
       await song([...rows.filter((x) => x.tan == null).map((r) => async () => ok(await lien(sb.from(c.bangTT).delete().eq("ngay", r.ngay).eq("ca", r.ca).eq("huong", r.huong), r))),
         ...chunk(ghi, 300).map((g) => async () => ok(await sb.from(c.bangTT).upsert(g, { onConflict: nhom === "van_tai" ? "ngay,ca,huong,loai_xe,don_vi,loai_hang" : "ngay,ca,huong,loai_hang" })))]);
     },
-    // Kế hoạch xuất bán theo tháng (SQL 22): { xe: [...đường bộ / biển × loại xe × đơn vị], kho: [...phân bổ xuất kho] }; null = chưa chạy SQL 22
-    async docKhXuatBan(thang) {
-      const [xe, kho] = await Promise.all([sb.from("kh_xuat_ban_xe").select("*").eq("thang", thang).range(0, 9999), sb.from("kh_xuat_kho").select("*").eq("thang", thang).range(0, 9999)]);
-      return xe.error || kho.error ? null : { xe: xe.data, kho: kho.data };
+    // Kế hoạch tổng hợp (SQL 22): xuất bán, sản xuất, nhập mua của một KỲ (ky = '2026-11' | '2026-Q4' | '2026'). Trả { th, xe, kho }; null = chưa chạy SQL 22
+    async docKeHoachTH(ky) {
+      const [th, xe, kho] = await Promise.all([sb.from("kh_tong_hop").select("*").eq("ky", ky).range(0, 9999), sb.from("kh_phan_xe").select("*").eq("ky", ky).range(0, 9999), sb.from("kh_phan_kho").select("*").eq("ky", ky).range(0, 9999)]);
+      return th.error || xe.error || kho.error ? null : { th: th.data, xe: xe.data, kho: kho.data };
     },
-    // Thay toàn bộ các dòng của (tháng, hàng, hình thức): rows = [{ loai_xe, don_vi, tan }]
-    async luuKhXuatBanXe(thang, hang, hinh, rows) {
-      ok(await sb.from("kh_xuat_ban_xe").delete().eq("thang", thang).eq("hang", hang).eq("hinh_thuc", hinh));
-      const ghi = rows.filter((r) => r.tan > 0).map((r) => ({ thang, hang, hinh_thuc: hinh, loai_xe: r.loai_xe || "", don_vi: r.don_vi, tan: r.tan, updated_at: now() }));
-      if (ghi.length) ok(await sb.from("kh_xuat_ban_xe").insert(ghi));
+    // ghi: [{ hang, bo, bien, tong }] thêm / sửa số kế hoạch từng hàng; xoa: [hàng] bỏ hàng khỏi bản kế hoạch (xóa luôn phân xe, phân kho của hàng đó)
+    async luuKhDong(loai, ky, { ghi = [], xoa = [] }) {
+      await song([...xoa.map((hang) => async () => { for (const b of ["kh_tong_hop", "kh_phan_xe", "kh_phan_kho"]) ok(await sb.from(b).delete().eq("loai", loai).eq("ky", ky).eq("hang", hang)); }),
+        ghi.length && (async () => ok(await sb.from("kh_tong_hop").upsert(ghi.map((r) => ({ loai, ky, hang: r.hang, bo: r.bo || 0, bien: r.bien || 0, tong: r.tong || 0, updated_at: now() })), { onConflict: "loai,ky,hang" })))]);
     },
-    // Thay toàn bộ phân bổ xuất kho của (tháng, hàng): rows = [{ ten_bai, ten_khu, tan }]
-    async luuKhXuatKho(thang, hang, rows) {
-      ok(await sb.from("kh_xuat_kho").delete().eq("thang", thang).eq("hang", hang));
-      const ghi = rows.filter((r) => r.tan > 0).map((r) => ({ thang, hang, ten_bai: r.ten_bai, ten_khu: r.ten_khu || "", tan: r.tan, updated_at: now() }));
-      if (ghi.length) ok(await sb.from("kh_xuat_kho").insert(ghi));
+    // Thay toàn bộ phân xe của (kế hoạch, kỳ, hàng, hình thức): rows = [{ loai_xe, don_vi, tan }]
+    async luuKhPhanXe(loai, ky, hang, hinh, rows) {
+      ok(await sb.from("kh_phan_xe").delete().eq("loai", loai).eq("ky", ky).eq("hang", hang).eq("hinh_thuc", hinh));
+      const ghi = rows.filter((r) => r.tan > 0).map((r) => ({ loai, ky, hang, hinh_thuc: hinh, loai_xe: r.loai_xe || "", don_vi: r.don_vi, tan: r.tan, updated_at: now() }));
+      if (ghi.length) ok(await sb.from("kh_phan_xe").insert(ghi));
+    },
+    // Thay toàn bộ phân bổ kho của (kế hoạch, kỳ, hàng): rows = [{ ten_bai, ten_khu, tan }]
+    async luuKhPhanKho(loai, ky, hang, rows) {
+      ok(await sb.from("kh_phan_kho").delete().eq("loai", loai).eq("ky", ky).eq("hang", hang));
+      const ghi = rows.filter((r) => r.tan > 0).map((r) => ({ loai, ky, hang, ten_bai: r.ten_bai, ten_khu: r.ten_khu || "", tan: r.tan, updated_at: now() }));
+      if (ghi.length) ok(await sb.from("kh_phan_kho").insert(ghi));
     },
     // Kế hoạch sản lượng theo ngày, theo chuyến tàu (SQL 13): các dòng { id, voyage_id, ngay, khoi_luong } từ ngày tu đến ngày den (yyyy-mm-dd); null = chưa chạy SQL 13
     async docKeHoachNgay(tu, den) {

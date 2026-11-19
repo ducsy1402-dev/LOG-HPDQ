@@ -53,7 +53,8 @@ export function AppProvider({ children }) {
 
   // Hàm ghi chỉ đụng tới chuyến tàu và dữ liệu đi kèm chuyến: lưu xong tải lại nhẹ
 const GHI_NHE = new Set(["insertVoyages", "updateVoyage", "deleteVoyage", "addStop", "updateStop", "deleteStop", "addEvent", "deleteEvent", "savePlan", "deletePlan", "addTraHang", "deleteTraHang", "saveTien", "saveThucTe"]);
-  const KHONG = new Set(["saveThucTe", "saveMucTieuKy", "saveKeHoachNgay", "addTonPhanLoai", "deleteTonPhanLoai", "luuKhXuatBanXe", "luuKhXuatKho"]);
+  const KHONG = new Set(["saveThucTe", "saveMucTieuKy", "saveKeHoachNgay", "addTonPhanLoai", "deleteTonPhanLoai"]);
+  const KHONG_LAM_MOI = new Set(["luuKhDong", "luuKhPhanXe", "luuKhPhanKho"]); // Kế hoạch tổng hợp: trang tự tải lại số của nó, không cần làm mới dữ liệu chung
   const GHI_KHO = new Set(["addGiaoDich", "updateGiaoDich", "deleteGiaoDich", "saveLo", "saveKeHoachKho"]);
   const RONG = { berths: [], vessels: [], agents: [], khoBai: [], voyages: [], stops: [], tien: [], plans: null, khoTon: null, khoLo: null, giaoDich: null, dmCot: null, coSql19: false, coSql24: false, coSql25: false, coSql26: false, coSql28: false, coSql12: false, coCotDan: false, traHang: null, mucTieu: null, khoKeHoach: null, dmBang: null };
   // kieu: false = tải đầy đủ · true / "nhe" = chỉ chuyến tàu và dữ liệu đi kèm · "kho" = chỉ sổ kho (tồn, lô, giao dịch, kế hoạch kho)
@@ -145,9 +146,10 @@ const GHI_NHE = new Set(["insertVoyages", "updateVoyage", "deleteVoyage", "addSt
     try { luot.current.clear(); r = await fn(); } catch (e) { fail(e); setBusy(false); return undefined; }
     const ghi = [...luot.current].filter((k) => !/^(load|get|dau|onAuth|sign)/.test(k));
     const tat = (T) => ghi.length > 0 && ghi.every((k) => T.has(k));
-    const kieu = tat(KHONG) ? "khong" : tat(new Set([...KHONG, ...GHI_NHE])) ? "nhe" : tat(new Set([...KHONG, ...GHI_KHO])) ? "kho" : false;
+    const kieu = tat(KHONG_LAM_MOI) ? "bo-qua" : tat(KHONG) ? "khong" : tat(new Set([...KHONG, ...GHI_NHE])) ? "nhe" : tat(new Set([...KHONG, ...GHI_KHO])) ? "kho" : false;
     setBusy(false);
     if (msg) toast(msg);
+    if (kieu === "bo-qua") return r ?? true;
     dangKiem.current = true; // trong lúc tải nền, lượt kiểm tra định kỳ bỏ qua
     (async () => { try { if (kieu === "khong") setRaw((cu) => (cu ? { ...cu } : cu)); else await load(undefined, undefined, kieu); } catch (e) { fail(e); } finally { dangKiem.current = false; } })();
     return r ?? true;

@@ -36,10 +36,15 @@ export function makeDemoApi() {
     if (v.huy || !(klCanLam(v) > 0)) continue;
     for (const [ngay, tan] of chiaDeuTheoGio(v, klCanLam(v) * 0.9)) if (tan > 0) db.keHoachNgay.push({ id: ++db.nextId.kn, voyage_id: v.id, ngay, khoi_luong: tan, ghi_chu: null, updated_at: null });
   }
-  // Kế hoạch xuất bán mẫu (tháng hiện tại) cho Kế hoạch tổng hợp
-  { const d = new Date(), th = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`, x = (hang, hinh_thuc, loai_xe, don_vi, tan) => ({ id: 0, thang: th, hang, hinh_thuc, loai_xe, don_vi, tan });
-    db.khXuatBan = { xe: [x("Thép cuộn HRC", "bo", "Xe đầu kéo", "hoa_phat", 6000), x("Thép cuộn HRC", "bo", "Xe đầu kéo", "nha_thau", 4000), x("Thép cuộn HRC", "bien", "Xe đầu kéo", "hoa_phat", 12000), x("Thép cuộn HRC", "bien", "Xe đầu kéo", "nha_thau", 8000),
-      x("Thép thanh", "bo", "Xe đầu kéo", "hoa_phat", 3000), x("Thép thanh", "bien", "", "hoa_phat", 5000), x("Phôi vuông", "bien", "Xe đầu kéo", "nha_thau", 7000)].map((r, i) => ({ ...r, id: i + 1 })), kho: [] }; db.nextId.khxb = 100; }
+  // Kế hoạch tổng hợp mẫu (tháng hiện tại): xuất bán, sản xuất, nhập mua
+  { const d = new Date(), ky = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const t = (loai, hang, bo, bien, tong) => ({ loai, ky, hang, bo, bien, tong: tong ?? bo + bien });
+    const x = (loai, hang, hinh_thuc, loai_xe, don_vi, tan) => ({ loai, ky, hang, hinh_thuc, loai_xe, don_vi, tan });
+    db.khTH = { nextId: 100,
+      th: [t("xuat_ban", "Thép cuộn HRC", 10000, 20000), t("xuat_ban", "Thép thanh", 3000, 5000), t("xuat_ban", "Phôi vuông", 0, 7000), t("san_xuat", "Thép cuộn HRC", 0, 0, 35000), t("san_xuat", "Thép thanh", 0, 0, 9000), t("nhap_mua", "Phế", 4000, 12000)],
+      xe: [x("xuat_ban", "Thép cuộn HRC", "bo", "Xe đầu kéo", "hoa_phat", 6000), x("xuat_ban", "Thép cuộn HRC", "bo", "Xe đầu kéo", "nha_thau", 4000), x("xuat_ban", "Thép cuộn HRC", "bien", "Xe đầu kéo", "hoa_phat", 12000), x("xuat_ban", "Thép cuộn HRC", "bien", "Xe đầu kéo", "nha_thau", 8000),
+        x("xuat_ban", "Thép thanh", "bo", "Xe đầu kéo", "hoa_phat", 3000), x("xuat_ban", "Thép thanh", "bien", "", "hoa_phat", 5000), x("xuat_ban", "Phôi vuông", "bien", "Xe đầu kéo", "nha_thau", 7000), x("nhap_mua", "Phế", "bien", "Xe ben", "nha_thau", 12000)],
+      kho: [] }; }
   const role = DEMO_ROLE;
   const can = (r) => { if (BAC[role] < BAC[r]) throw new Error(`Chế độ demo đang thử vai trò "${role}": không đủ quyền thao tác này`); };
   const KHOA = { berths: "ma", vessels: "ten", agents: "ten", kho_bai: "id" };
@@ -169,16 +174,21 @@ export function makeDemoApi() {
       }
     },
     // Kế hoạch sản lượng theo ngày, theo chuyến tàu (SQL 13): dữ liệu mẫu trong bộ nhớ
-    async docKhXuatBan(thang) { await wait(60); return clone({ xe: db.khXuatBan.xe.filter((x) => x.thang === thang), kho: db.khXuatBan.kho.filter((x) => x.thang === thang) }); },
-    async luuKhXuatBanXe(thang, hang, hinh, rows) {
-      can("nhap"); await wait();
-      db.khXuatBan.xe = db.khXuatBan.xe.filter((x) => !(x.thang === thang && x.hang === hang && x.hinh_thuc === hinh));
-      for (const r of rows) if (r.tan > 0) db.khXuatBan.xe.push({ id: ++db.nextId.khxb, thang, hang, hinh_thuc: hinh, loai_xe: r.loai_xe || "", don_vi: r.don_vi, tan: r.tan });
+    async docKeHoachTH(ky) { await wait(60); const k = db.khTH; return clone({ th: k.th.filter((x) => x.ky === ky), xe: k.xe.filter((x) => x.ky === ky), kho: k.kho.filter((x) => x.ky === ky) }); },
+    async luuKhDong(loai, ky, { ghi = [], xoa = [] }) {
+      can("nhap"); await wait(); const k = db.khTH, kh = (r, h) => r.loai === loai && r.ky === ky && r.hang === h;
+      for (const h of xoa) { k.th = k.th.filter((r) => !kh(r, h)); k.xe = k.xe.filter((r) => !kh(r, h)); k.kho = k.kho.filter((r) => !kh(r, h)); }
+      for (const r of ghi) { k.th = k.th.filter((x) => !kh(x, r.hang)); k.th.push({ loai, ky, hang: r.hang, bo: r.bo || 0, bien: r.bien || 0, tong: r.tong || 0 }); }
     },
-    async luuKhXuatKho(thang, hang, rows) {
-      can("nhap"); await wait();
-      db.khXuatBan.kho = db.khXuatBan.kho.filter((x) => !(x.thang === thang && x.hang === hang));
-      for (const r of rows) if (r.tan > 0) db.khXuatBan.kho.push({ id: ++db.nextId.khxb, thang, hang, ten_bai: r.ten_bai, ten_khu: r.ten_khu || "", tan: r.tan });
+    async luuKhPhanXe(loai, ky, hang, hinh, rows) {
+      can("nhap"); await wait(); const k = db.khTH;
+      k.xe = k.xe.filter((x) => !(x.loai === loai && x.ky === ky && x.hang === hang && x.hinh_thuc === hinh));
+      for (const r of rows) if (r.tan > 0) k.xe.push({ loai, ky, hang, hinh_thuc: hinh, loai_xe: r.loai_xe || "", don_vi: r.don_vi, tan: r.tan });
+    },
+    async luuKhPhanKho(loai, ky, hang, rows) {
+      can("nhap"); await wait(); const k = db.khTH;
+      k.kho = k.kho.filter((x) => !(x.loai === loai && x.ky === ky && x.hang === hang));
+      for (const r of rows) if (r.tan > 0) k.kho.push({ loai, ky, hang, ten_bai: r.ten_bai, ten_khu: r.ten_khu || "", tan: r.tan });
     },
     async docKeHoachNgay(tu, den) { await wait(60); return clone(db.keHoachNgay.filter((x) => x.ngay >= tu && x.ngay <= den)); },
     async saveKeHoachNgay(rows) {
