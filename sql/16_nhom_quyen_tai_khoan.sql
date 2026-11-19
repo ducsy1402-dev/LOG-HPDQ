@@ -10,11 +10,11 @@
 --   cau_ben   (Kế hoạch cầu bến)  | Linetime tàu cập (chuyến, khoảng dừng, trả hàng, nhật ký), danh mục cầu bến, tàu, đại lý + hàng hóa
 --   nhap_lieu (Nhập liệu)         | CHỈ Sản lượng thực tế (cảng và vận tải)
 --   dieu_do   (Điều độ)           | Phần Điều độ (hiện trang Điều độ chưa có ô nhập; quyền để sẵn, bổ sung chính sách khi thiết kế)
--- Tài khoản quantrilog: chỉ xem (không thuộc nhóm nào).
+-- Tài khoản bgdcty: chỉ xem (không thuộc nhóm nào).
 --
 -- Chạy được nhiều lần. Thứ tự: (1) tạo 7 tài khoản ở Supabase › Authentication › Users › Add user
--- (email dạng  quantrilog@hpdq.test  + mật khẩu, tick Auto Confirm User), (2) chạy file này. Chạy lại file này sau khi thêm tài khoản mới.
--- Đăng nhập trên web chỉ cần gõ TÊN (quantrilog), web tự thêm @hpdq.test.
+-- (email dạng  bgdcty@hpdq.test  + mật khẩu, tick Auto Confirm User), (2) chạy file này. Chạy lại file này sau khi thêm tài khoản mới.
+-- Đăng nhập trên web chỉ cần gõ TÊN (bgdcty), web tự thêm @hpdq.test.
 
 -- 1. Nhóm của từng tài khoản
 create table if not exists public.user_nhom (
@@ -142,7 +142,7 @@ declare
   r record; n text;
 begin
   for r in select * from (values
-    ('quantrilog',         'Quản trị LOG (chỉ xem)',        '{}'::text[]),
+    ('bgdcty',         'BGD CTY',                       '{}'::text[]),
     ('kehoachvantailog',   'Kế hoạch vận tải LOG',          '{van_tai}'),
     ('kehoachkhobailog',   'Kế hoạch kho bãi LOG',          '{kho_bai}'),
     ('kehoachxuatnhaplog', 'Kế hoạch xuất nhập LOG',        '{xuat_nhap}'),
@@ -163,5 +163,5 @@ end $$;
 -- Kiểm tra: 7 dòng (tài khoản đã tạo), mỗi dòng ghi rõ nhóm
 select u.email, r.vai_tro, coalesce(string_agg(g.nhom, ', ' order by g.nhom), '(chỉ xem)') as nhom
 from auth.users u join public.user_roles r on r.user_id = u.id left join public.user_nhom g on g.user_id = u.id
-where lower(split_part(u.email, '@', 1)) in ('quantrilog','kehoachvantailog','kehoachkhobailog','kehoachxuatnhaplog','kehoachcaubenlog','nhaplieulog','dieudolog')
+where lower(split_part(u.email, '@', 1)) in ('bgdcty','kehoachvantailog','kehoachkhobailog','kehoachxuatnhaplog','kehoachcaubenlog','nhaplieulog','dieudolog')
 group by u.email, r.vai_tro order by u.email;
