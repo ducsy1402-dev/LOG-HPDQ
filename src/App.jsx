@@ -1,5 +1,5 @@
 import { useEffect, useState, lazy, Suspense } from "react";
-import { LayoutDashboard, Ship, Warehouse, Boxes, Database, ShieldCheck, Bell, Sun, Moon, LogOut, LogIn, Menu, X, ShieldAlert, Download, UserRound, Anchor, RefreshCw, KeyRound, ClipboardList, Gauge, CalendarRange, FileSpreadsheet, FileText, BookOpen, MonitorDown, Target } from "lucide-react";
+import { LayoutDashboard, Ship, Warehouse, Boxes, Database, ShieldCheck, Bell, Sun, Moon, LogOut, LogIn, Menu, X, ShieldAlert, Download, UserRound, Anchor, RefreshCw, KeyRound, ClipboardList, Gauge, CalendarRange, FileSpreadsheet, FileText, BookOpen, MonitorDown, Target, Layers } from "lucide-react";
 import { AppProvider, useApp, useHash } from "./store";
 import { Toasts, MucIcon } from "./components/common";
 import { Dialog } from "./components/ui/dialog";
@@ -28,10 +28,12 @@ const DanhMuc = lazy(() => import("./pages/DanhMuc"));
 const PhanQuyen = lazy(() => import("./pages/PhanQuyen"));
 const Kho = lazy(() => import("./pages/kho/Kho"));
 const MucTieu = lazy(() => import("./pages/cang/MucTieu"));
+const KeHoachTongHop = lazy(() => import("./pages/kehoach/KeHoachTongHop"));
 
 // cang: cần quyền phần Cảng; kho: quyền Kho bãi (hoặc Cảng); tb: cần quyền phần Thiết bị cơ giới
 const NAV = [
   { id: "tong-quan", ten: "Tổng quan", icon: LayoutDashboard },
+  { id: "ke-hoach-tong-hop", ten: "Kế hoạch tổng hợp", icon: Layers, kho: true }, // xuất bán → sản xuất → nhập mua; từ đó ra kế hoạch xuất / nhập / tồn kho và kế hoạch vận tải
   { nhom: "Thiết bị cơ giới", tb: true },
   { id: "thiet-bi/khai-bao", ten: "Khai báo", icon: ClipboardList, tb: true, alias: ["thiet-bi/su-kien", "thiet-bi/nhan-su"] }, // 2 tab: Tình trạng & sự kiện, Nhân sự & quân số (đường dẫn cũ vẫn mở đúng tab)
   { id: "thiet-bi/dieu-do", ten: "Điều độ", icon: Gauge, tb: true },
@@ -142,6 +144,7 @@ function Main() {
     if (route.startsWith("cang/") && !quyen.coCang) return chuaCaiCang;
     if (route === "cang/linetime") return <Linetime />;
     if (route === "cang/muc-tieu") return <MucTieu />;
+    if (route === "ke-hoach-tong-hop") return <KeHoachTongHop />;
     if (route === "kho" || route.startsWith("kho/")) return <Kho route={route} />;
     if (route === "danh-muc") return <DanhMuc />;
     if (route === "phan-quyen" && quyen.quanTri) return <PhanQuyen />;
