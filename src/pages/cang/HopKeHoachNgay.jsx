@@ -166,7 +166,10 @@ export default function HopKeHoachNgay({ thang0, onClose, onLuu }) {
 
   // ---- Line tàu là BẢN SAO của Linetime › Lịch cầu bến (theo bến): dùng đúng hàm xếp tàu vào dòng bến của lịch (xepHangBen), thanh tàu đặt theo GIỜ thật; mỗi ngày tàu ở bến là một ô số tấn. ----
   const tuMs = new Date(hien[0] + "T00:00:00").getTime(), denMs = tuMs + hien.length * DAY;
-  const hang = useMemo(() => xepHangBen(D, loc2.map((x) => x.v), tuMs, denMs, "ben", { row: 30, lan: LH, top: 4 }), [D.voyages, D.berths, D.now, loc2, tuMs, denMs, LH]); // eslint-disable-line react-hooks/exhaustive-deps
+  const hangTat = useMemo(() => xepHangBen(D, loc2.map((x) => x.v), tuMs, denMs, "ben", { row: 30, lan: LH, top: 4 }), [D.voyages, D.berths, D.now, loc2, tuMs, denMs, LH]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Đang lọc (hướng hoặc loại hàng) thì ẩn bến không có tàu nào thuộc bộ lọc trong các ngày đang xem (anh Sỹ 19/11/2026)
+  const dangLoc = !!(loc.huong || loc.nhom);
+  const hang = useMemo(() => (dangLoc ? hangTat.filter((r) => r.ds.length) : hangTat), [hangTat, dangLoc]);
   const xOf = (t) => ((t - tuMs) / DAY) * CW;
   // Theo mét (như GanttMet): mỗi tuyến bến một dải, tàu nằm đúng vị trí mét (viTriTrenLich: không chồng, tàu một bến trong bến, tàu hai bến vắt qua ranh giới); chiều cao thanh theo LOA
   const dai = useMemo(() => {
@@ -296,7 +299,7 @@ export default function HopKeHoachNgay({ thang0, onClose, onLuu }) {
                       {r.ds.map((x) => thanh(`${x.v.id}:${x.a}`, x.v, x.a, x.b, x.st, x.top, LH - 6))}
                     </div>
                   </div>
-                )) : dai.map((d) => (
+                )) : dai.filter((d) => !dangLoc || metTau.some((it) => it.tuyen.ma === d.t.ma)).map((d) => (
                   <div key={d.t.ma} className="flex border-b-2 border-muted-foreground/40">
                     <div className="sticky left-0 z-10 shrink-0 border-r bg-card" style={{ width: LABEL, height: d.h }}>
                       {d.t.bens.map((b) => (
