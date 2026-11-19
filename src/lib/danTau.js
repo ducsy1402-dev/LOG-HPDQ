@@ -9,7 +9,7 @@
 //   • Ô Hàng nhập / Hàng xuất chỉ có dấu gạch ("-", "--", "/") coi như trống.
 //   • Các cột còn lại giữ nguyên nội dung; ô trống hiện là "trống" (không ghi chữ "trống" vào CSDL, để NULL).
 //   • Số trong cột Khối lượng / DWT / Cam kết: dấu phẩy + đúng 3 chữ số là ngăn nghìn kiểu Excel ("3,500" = 3.500 t); Draft / LOA dùng cách đọc số thường (4.78, 14,6).
-import { plain, docSo, DAY } from "./format";
+import { plain, docSo, DAY, ms } from "./format";
 import { chuyenDaRoi } from "./linetime";
 import { docNgayGio, doanThuTuNgay } from "./paste";
 
@@ -207,14 +207,43 @@ export function thuTuNgayBangTau(dong, cot) {
   return doanThuTuNgay(dong.flatMap((o) => idx.map((i) => o[i])));
 }
 
-// ---------- Tàu TBA khi dán lại (anh Sỹ 17/11/2026) ----------
-// Tàu chưa biết tên (TBA) không có tên để khớp, nên khớp chuyến TBA đã có (chưa rời bến, chưa hủy) theo BẾN + HƯỚNG + KHỐI LƯỢNG cùng với dòng dán;
-// nhiều chuyến cùng khớp thì ưu tiên cùng ngày ETA, rồi cùng hàng, rồi cùng ETB. Mỗi chuyến đã có chỉ khớp một dòng trong một lần dán (dung = Set id đã dùng).
-// Không khớp thì mới thêm chuyến mới. Trả chuyến cũ hoặc null.
+// ---------- Dán đè không thêm trùng (anh Sỹ 17–19/11/2026) ----------
+// Ngày (giờ máy) của một mốc giờ, dạng yyyy-mm-dd; so ngày bằng giờ máy vì CSDL trả giờ UTC ("2026-11-20T17:00:00+00:00" là 21/11 giờ Việt Nam)
+const p2 = (n) => String(n).padStart(2, "0");
+export const ngayMoc = (x) => { const t = ms(x); if (t == null) return ""; const d = new Date(t); return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`; };
+
+// Dòng dán (v) và chuyến đã có (c) là CÙNG MỘT LẦN CẬP BẾN, kể cả chuyến đã rời bến (có ATD hoặc đã qua ETD):
+//   • cùng ngày ETA hoặc cùng ngày ETB; hoặc ETA lệch nhau không quá 3 ngày;
+//   • hoặc ETA của dòng dán nằm trước giờ rời của chuyến cũ (ATD, không có thì ETD) và không sớm hơn ETA chuyến cũ quá 7 ngày.
+// Lần cập sau của cùng một tàu có ETA SAU giờ rời của lần trước (và xa hơn 3 ngày) nên vẫn là chuyến mới. Dùng để dán đè bảng tàu mà không sinh chuyến trùng.
+export function cungLanCap(c, v) {
+  if (ngayMoc(c.eta) && ngayMoc(c.eta) === ngayMoc(v.eta)) return true;
+  if (ngayMoc(c.etb) && ngayMoc(c.etb) === ngayMoc(v.etb)) return true;
+  const e1 = ms(v.eta), e0 = ms(c.eta), r0 = ms(c.atd) ?? ms(c.etd);
+  if (e1 != null && e0 != null && Math.abs(e1 - e0) <= 3 * DAY) return true;
+  if (e1 != null && r0 != null && e1 <= r0 && (e0 == null || e1 >= e0 - 7 * DAY)) return true;
+  return false;
+}
+
+// Tàu có tên: chuyến cũ cùng tên khớp với dòng dán. Ưu tiên chuyến CÙNG LẦN CẬP (cả chuyến đã rời; nhiều chuyến thì ETA gần nhất); không có thì chuyến chưa rời mới nhất
+// (người dùng dời ETA xa). Không có gì khớp thì là chuyến mới. Trả chuyến cũ hoặc null.
+export function timChuyenCoTen(v, chuyens, now = Date.now()) {
+  const ds = chuyens.filter((c) => c.ten_tau === v.ten_tau && !c.huy);
+  const e1 = ms(v.eta);
+  const xa = (c) => (e1 != null && ms(c.eta) != null ? Math.abs(ms(c.eta) - e1) : 0);
+  const gan = ds.filter((c) => cungLanCap(c, v)).sort((a, b) => xa(a) - xa(b) || b.id - a.id)[0];
+  return gan || ds.filter((c) => !chuyenDaRoi(c, now)).sort((a, b) => b.id - a.id)[0] || null;
+}
+
+// ---------- Tàu TBA khi dán lại ----------
+// Tàu chưa biết tên (TBA) không có tên để khớp, nên khớp chuyến TBA đã có (chưa hủy) theo BẾN + HƯỚNG + KHỐI LƯỢNG cùng với dòng dán;
+// nhiều chuyến cùng khớp thì ưu tiên cùng ngày ETA, rồi cùng hàng, rồi cùng ETB. Chuyến TBA đã rời bến chỉ khớp khi cùng ngày ETA hoặc ETB với dòng dán (sau giờ rời dòng còn trong bảng
+// vẫn là chuyến đó, không thêm trùng). Mỗi chuyến đã có chỉ khớp một dòng trong một lần dán (dung = Set id đã dùng). Không khớp thì mới thêm chuyến mới. Trả chuyến cũ hoặc null.
 export function timChuyenTBA(v, chuyens, dung = new Set(), now = Date.now()) {
   if (!v.ben_ma || v.khoi_luong == null || !v.huong) return null;
-  const ngay = (x) => (x ? String(x).slice(0, 10) : "");
-  const diem = (c) => (ngay(c.eta) && ngay(c.eta) === ngay(v.eta) ? 4 : 0) + (plain(c.ten_hang) && plain(c.ten_hang) === plain(v.ten_hang) ? 2 : 0) + (ngay(c.etb) && ngay(c.etb) === ngay(v.etb) ? 1 : 0);
-  const ds = chuyens.filter((c) => String(c.ten_tau || "").trim().toUpperCase() === "TBA" && !chuyenDaRoi(c, now) && !c.huy && !dung.has(c.id) && c.ben_ma === v.ben_ma && (c.huong || "nhap") === v.huong && +c.khoi_luong === +v.khoi_luong);
+  const cungNgay = (c) => (ngayMoc(c.eta) && ngayMoc(c.eta) === ngayMoc(v.eta)) || (ngayMoc(c.etb) && ngayMoc(c.etb) === ngayMoc(v.etb));
+  const diem = (c) => (ngayMoc(c.eta) && ngayMoc(c.eta) === ngayMoc(v.eta) ? 4 : 0) + (plain(c.ten_hang) && plain(c.ten_hang) === plain(v.ten_hang) ? 2 : 0) + (ngayMoc(c.etb) && ngayMoc(c.etb) === ngayMoc(v.etb) ? 1 : 0);
+  const ds = chuyens.filter((c) => String(c.ten_tau || "").trim().toUpperCase() === "TBA" && !c.huy && !dung.has(c.id) && c.ben_ma === v.ben_ma && (c.huong || "nhap") === v.huong && +c.khoi_luong === +v.khoi_luong
+    && (!chuyenDaRoi(c, now) || cungNgay(c)));
   return ds.sort((a, b) => diem(b) - diem(a) || a.id - b.id)[0] || null;
 }

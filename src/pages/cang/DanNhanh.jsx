@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { MucIcon } from "@/components/common";
 import { useThietBi } from "@/thietbi/Host";
 import { tachBang } from "@/lib/paste";
-import { COT_TAU, MAU_BANG, nhanDienBang, docDongTau, cotThieu, thuTuNgayBangTau, timChuyenTBA } from "@/lib/danTau";
+import { COT_TAU, MAU_BANG, nhanDienBang, docDongTau, cotThieu, thuTuNgayBangTau, timChuyenTBA, timChuyenCoTen } from "@/lib/danTau";
 import { timBen } from "@/lib/checks";
 import { maChuyenMoi, chuyenDaRoi } from "@/lib/linetime";
 import { so, plain, ms } from "@/lib/format";
@@ -34,7 +34,7 @@ export default function DanNhanh({ onClose }) {
     const n = Math.max(...b.map((r) => r.length));
     const day = b.map((r) => [...r, ...Array(n - r.length).fill("")]);
     const nd = nhanDienBang(day);
-    setBang(day); setCot(nd.cot); setCoTieuDe(nd.coTieuDe);
+    setBang(day); setCot(nd.cot); setCoTieuDe(nd.coTieuDe); setXoaTBA(false);
   };
   const dong = bang ? (coTieuDe ? bang.slice(1) : bang) : [];
   // Nhóm hàng: danh mục hàng hóa; hàng chỉ có ở chuyến cũ thì lấy loại hàng của chuyến đó
@@ -49,8 +49,8 @@ export default function DanNhanh({ onClose }) {
       if (!D.coSql28) delete v.ben_phu; // chưa chạy SQL 28: chưa lưu được bến phụ
       if (!D.coSql19) { delete v.hang_ds; }
       // Tàu có tên: khớp theo tên; tàu TBA: khớp theo bến + hướng + khối lượng (xem timChuyenTBA), mỗi chuyến cũ chỉ khớp một dòng
-      // Chuyến "chưa rời" = chưa có ATD và chưa qua ETD (chưa ghi ATD mà đã qua ETD thì coi như đã rời: lần dán sau là chuyến mới)
-      let goc = v.ten_tau !== "TBA" ? D.voyages.filter((x) => x.ten_tau === v.ten_tau && !chuyenDaRoi(x, D.now) && !x.huy).sort((a, b) => b.id - a.id)[0] || null : timChuyenTBA(v, D.voyages, dungTBA, D.now), doiTen = false;
+      // Dán đè KHÔNG thêm trùng (19/11): dòng dán khớp cả chuyến ĐÃ RỜI nếu là cùng lần cập (cùng ngày ETA / ETB…, xem cungLanCap); chỉ khi ETA nằm sau giờ rời của chuyến cũ mới là chuyến mới
+      let goc = v.ten_tau !== "TBA" ? timChuyenCoTen(v, D.voyages, D.now) : timChuyenTBA(v, D.voyages, dungTBA, D.now), doiTen = false;
       // Tàu có tên mới mà chưa chuyến nào mang tên đó: nếu có chuyến TBA khớp (bến + hướng + khối lượng) thì ĐỔI TÊN chuyến TBA đó, không thêm chuyến mới
       if (!goc && v.ten_tau !== "TBA") { goc = timChuyenTBA(v, D.voyages, dungTBA, D.now); doiTen = !!goc; }
       if (goc && (v.ten_tau === "TBA" || doiTen)) dungTBA.add(goc.id);
@@ -63,6 +63,14 @@ export default function DanNhanh({ onClose }) {
     });
   }, [dong, cot, D, hangHoa]); // eslint-disable-line react-hooks/exhaustive-deps
   const dsDong = ketQua.filter(Boolean);
+  // Chuyến TBA cũ (chưa cập bến, chưa hủy) KHÔNG còn dòng nào trong bảng vừa dán: thường do dòng đó đã đổi bến / khối lượng nên thành chuyến mới và chuyến cũ còn sót lại.
+  // Cho tick để xóa cùng lần lưu (mặc định KHÔNG tick, vì bảng dán có thể chỉ là một phần).
+  const [xoaTBA, setXoaTBA] = useState(false);
+  const tbaCu = useMemo(() => {
+    if (!bang || !dsDong.length) return [];
+    const dung = new Set(dsDong.filter((x) => x.goc).map((x) => x.goc.id));
+    return D.voyages.filter((x) => String(x.ten_tau || "").trim().toUpperCase() === "TBA" && !x.huy && !x.atb && !chuyenDaRoi(x, D.now) && !dung.has(x.id));
+  }, [bang, dsDong, D.voyages, D.now]); // eslint-disable-line react-hooks/exhaustive-deps
   const soLoi = dsDong.filter((x) => x.loi.length).length;
   const thieu = bang ? cotThieu(cot) : [];
   const coCot = D.coCotDan;
@@ -85,7 +93,8 @@ export default function DanNhanh({ onClose }) {
       }
       for (const x of sua) { const patch = { ...x.v }; if (!x.doiTen) { delete patch.ma_chuyen; delete patch.ten_tau; } if (Object.keys(patch).length) await api.updateVoyage(x.goc.id, patch); }
       for (const x of dsDong) await ghiDanhMuc(api, D, x.v);
-    }, `Đã lưu: thêm ${them.length} chuyến, cập nhật ${sua.length} chuyến`);
+      if (xoaTBA) for (const x of tbaCu) await api.deleteVoyage(x.id);
+    }, `Đã lưu: thêm ${them.length} chuyến, cập nhật ${sua.length} chuyến${xoaTBA && tbaCu.length ? `, xóa ${tbaCu.length} chuyến TBA cũ` : ""}`);
     if (r) onClose();
   };
 
@@ -131,7 +140,7 @@ export default function DanNhanh({ onClose }) {
                 <tr key={r} className={kq?.loi.length ? "bg-bad/5" : undefined}>
                   <td className="align-top">
                     {!kq ? <span className="text-muted-foreground">{trongDong ? "Dòng trống" : "Không có tên tàu: bỏ qua"}</span> : <>
-                      <div className="flex flex-wrap items-center gap-1">{kq.goc ? <Badge tone="info">{kq.doiTen ? "Đổi tên từ TBA" : "Cập nhật"}</Badge> : <Badge tone="ok">Thêm mới</Badge>}<b>{kq.v.ten_tau}</b></div>
+                      <div className="flex flex-wrap items-center gap-1">{kq.goc ? <Badge tone="info">{kq.doiTen ? "Đổi tên từ TBA" : kq.goc && chuyenDaRoi(kq.goc, D.now) ? "Cập nhật (đã rời)" : "Cập nhật"}</Badge> : <Badge tone="ok">Thêm mới</Badge>}<b>{kq.v.ten_tau}</b></div>
                       <div className="text-[0.6875rem] text-muted-foreground">{kq.doiTen ? `${kq.goc.ma_chuyen} → mã mới theo tên tàu` : kq.goc?.ma_chuyen || kq.v.ma_chuyen}{kq.v.ben_ma ? ` · ${tenBenChuyen(kq.v)}` : ""}{kq.v.khoi_luong != null ? ` · ${so(kq.v.khoi_luong)} t` : ""}</div>
                       {(kq.ghiChu || []).map((nd, i) => <div key={"g" + i} className="text-[0.6875rem] text-muted-foreground">{nd}</div>)}
                       {kq.loi.map((nd, i) => <div key={i} className="flex gap-1 text-[0.6875rem] text-bad"><MucIcon muc="bad" className="h-3 w-3" />{nd}</div>)}
@@ -145,6 +154,12 @@ export default function DanNhanh({ onClose }) {
                 </tr>); })}</tbody>
             </table>
           </div>
+          {tbaCu.length > 0 && (
+            <div className="rounded-md border border-warn/40 bg-warn/5 px-3 py-2 text-xs">
+              <label className="flex items-center gap-2 text-sm font-medium"><Checkbox checked={xoaTBA} onChange={(e) => setXoaTBA(e.target.checked)} />Xóa {tbaCu.length} chuyến TBA cũ không còn trong bảng vừa dán</label>
+              <div className="mt-1 text-muted-foreground">Chuyến TBA chưa cập bến mà không có dòng nào của bảng này khớp (VD dòng đã đổi bến hoặc khối lượng nên được thêm thành chuyến mới). Tick để xóa luôn khi lưu; không tick thì giữ nguyên. Chỉ tick khi bảng dán là bảng ĐẦY ĐỦ.</div>
+              <ul className="mt-1 grid gap-0.5">{tbaCu.slice(0, 12).map((x) => <li key={x.id}>{x.ma_chuyen} · {tenBenChuyen(x)} · {x.khoi_luong != null ? so(x.khoi_luong) + " t" : "—"} · ETA {x.eta ? String(x.eta).slice(0, 10) : "—"}{x.ten_hang ? " · " + x.ten_hang : ""}</li>)}{tbaCu.length > 12 && <li>… và {tbaCu.length - 12} chuyến nữa</li>}</ul>
+            </div>)}
         </div>
       )}
     </Dialog>
