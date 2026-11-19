@@ -182,6 +182,23 @@ export function makeSupabaseApi() {
       await song([...rows.filter((x) => x.tan == null).map((r) => async () => ok(await lien(sb.from(c.bangTT).delete().eq("ngay", r.ngay).eq("ca", r.ca).eq("huong", r.huong), r))),
         ...chunk(ghi, 300).map((g) => async () => ok(await sb.from(c.bangTT).upsert(g, { onConflict: nhom === "van_tai" ? "ngay,ca,huong,loai_xe,don_vi,loai_hang" : "ngay,ca,huong,loai_hang" })))]);
     },
+    // Kế hoạch xuất bán theo tháng (SQL 22): { xe: [...đường bộ / biển × loại xe × đơn vị], kho: [...phân bổ xuất kho] }; null = chưa chạy SQL 22
+    async docKhXuatBan(thang) {
+      const [xe, kho] = await Promise.all([sb.from("kh_xuat_ban_xe").select("*").eq("thang", thang).range(0, 9999), sb.from("kh_xuat_kho").select("*").eq("thang", thang).range(0, 9999)]);
+      return xe.error || kho.error ? null : { xe: xe.data, kho: kho.data };
+    },
+    // Thay toàn bộ các dòng của (tháng, hàng, hình thức): rows = [{ loai_xe, don_vi, tan }]
+    async luuKhXuatBanXe(thang, hang, hinh, rows) {
+      ok(await sb.from("kh_xuat_ban_xe").delete().eq("thang", thang).eq("hang", hang).eq("hinh_thuc", hinh));
+      const ghi = rows.filter((r) => r.tan > 0).map((r) => ({ thang, hang, hinh_thuc: hinh, loai_xe: r.loai_xe || "", don_vi: r.don_vi, tan: r.tan, updated_at: now() }));
+      if (ghi.length) ok(await sb.from("kh_xuat_ban_xe").insert(ghi));
+    },
+    // Thay toàn bộ phân bổ xuất kho của (tháng, hàng): rows = [{ ten_bai, ten_khu, tan }]
+    async luuKhXuatKho(thang, hang, rows) {
+      ok(await sb.from("kh_xuat_kho").delete().eq("thang", thang).eq("hang", hang));
+      const ghi = rows.filter((r) => r.tan > 0).map((r) => ({ thang, hang, ten_bai: r.ten_bai, ten_khu: r.ten_khu || "", tan: r.tan, updated_at: now() }));
+      if (ghi.length) ok(await sb.from("kh_xuat_kho").insert(ghi));
+    },
     // Kế hoạch sản lượng theo ngày, theo chuyến tàu (SQL 13): các dòng { id, voyage_id, ngay, khoi_luong } từ ngày tu đến ngày den (yyyy-mm-dd); null = chưa chạy SQL 13
     async docKeHoachNgay(tu, den) {
       const r = await sb.from("ke_hoach_san_luong_ngay").select("*").gte("ngay", tu).lte("ngay", den).order("ngay").range(0, 9999);
