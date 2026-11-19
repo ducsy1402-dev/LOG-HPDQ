@@ -21,9 +21,11 @@ export function useHash() {
 export function AppProvider({ children }) {
   // Ghi lại các hàm ghi dữ liệu đã gọi trong một thao tác, để lưu xong biết chỉ cần tải lại phần chuyến tàu (nhanh) hay phải tải lại tất cả
   const luot = useRef(new Set());
+  const ganChuyen = useRef(() => {}); // cập nhật chuyến trong bộ nhớ ngay khi ghi xong (gán bên dưới, sau khi có setRaw)
   const api = useMemo(() => {
     const goc = DEMO ? makeDemoApi() : makeSupabaseApi();
-    return new Proxy(goc, { get: (t, k) => { const f = t[k]; return typeof f === "function" ? (...a) => { luot.current.add(String(k)); return f.apply(t, a); } : f; } });
+    const TUC_THI = new Set(["insertVoyages", "updateVoyage", "deleteVoyage"]);
+    return new Proxy(goc, { get: (t, k) => { const f = t[k]; return typeof f === "function" ? (...a) => { luot.current.add(String(k)); const kq = f.apply(t, a); if (TUC_THI.has(k)) Promise.resolve(kq).then((v) => ganChuyen.current(String(k), a, v)).catch(() => {}); return kq; } : f; } });
   }, []);
   const [phase, setPhase] = useState("loading"); // loading | login | norole | chua_sql | ready
   const [user, setUser] = useState(null);
@@ -51,20 +53,32 @@ export function AppProvider({ children }) {
 
   // Hàm ghi chỉ đụng tới chuyến tàu và dữ liệu đi kèm chuyến: lưu xong tải lại nhẹ
 const GHI_NHE = new Set(["insertVoyages", "updateVoyage", "deleteVoyage", "addStop", "updateStop", "deleteStop", "addEvent", "deleteEvent", "savePlan", "deletePlan", "addTraHang", "deleteTraHang", "saveTien", "saveThucTe"]);
+  const KHONG = new Set(["saveThucTe", "saveMucTieuKy", "saveKeHoachNgay", "addTonPhanLoai", "deleteTonPhanLoai"]);
+  const GHI_KHO = new Set(["addGiaoDich", "updateGiaoDich", "deleteGiaoDich", "saveLo", "saveKeHoachKho"]);
   const RONG = { berths: [], vessels: [], agents: [], khoBai: [], voyages: [], stops: [], tien: [], plans: null, khoTon: null, khoLo: null, giaoDich: null, dmCot: null, coSql19: false, coSql24: false, coSql25: false, coSql26: false, coSql28: false, coSql12: false, coCotDan: false, traHang: null, mucTieu: null, khoKeHoach: null, dmBang: null };
-  const load = useCallback(async (r = roleRef.current, thang = tuThang, nhe = false) => {
+  // kieu: false = tải đầy đủ · true / "nhe" = chỉ chuyến tàu và dữ liệu đi kèm · "kho" = chỉ sổ kho (tồn, lô, giao dịch, kế hoạch kho)
+  const loadSeq = useRef(0); // lượt tải mới nhất; lượt cũ về sau thì bỏ (khỏi ghi đè số mới bằng số cũ)
+  const load = useCallback(async (r = roleRef.current, thang = tuThang, kieu = false) => {
     // Chưa chạy SQL 13 hoặc không có quyền Cảng: phần Cảng trống, phần Thiết bị cơ giới vẫn dùng được
     if (!r?.cang && !r?.kho) { setRaw({ ...RONG }); setTaiLuc(Date.now()); return; }
+    const stt = ++loadSeq.current;
     const tu = new Date(thangKhoang(thang)[0]).toISOString();
-    // Dấu vân tay lấy cùng lúc với việc tải (thay đổi xảy ra trong lúc tải sẽ được phát hiện ở lượt kiểm tra sau)
-    const [dvt, d] = await Promise.all([api.dauVanTay?.().catch(() => null) ?? null, api.loadAll({ tu, xemTien: BAC[r?.cang] >= 2, nhe })]);
-    if (nhe) setRaw((cu) => (cu ? { ...cu, ...d } : cu)); // tải nhẹ: giữ danh mục, kho; không ghi dấu vân tay để lượt kiểm tra sau tải đủ nếu người khác sửa phần kia
+    // Dấu vân tay lấy cùng lúc với việc tải (thay đổi xảy ra trong lúc tải sẽ được phát hiện ở lượt kiểm tra sau); tải một phần thì không cần
+    const [dvt, d] = await Promise.all([kieu ? null : api.dauVanTay?.().catch(() => null) ?? null, api.loadAll({ tu, xemTien: BAC[r?.cang] >= 2, nhe: kieu === true || kieu === "nhe", phan: kieu === "kho" ? "kho" : undefined })]);
+    if (stt !== loadSeq.current) return;
+    if (kieu) setRaw((cu) => (cu ? { ...cu, ...d } : cu)); // tải một phần: giữ phần còn lại; không ghi dấu vân tay để lượt kiểm tra sau tải đủ nếu người khác sửa phần kia
     else setRaw(d);
-    if (!nhe) dauVTRef.current = dvt;
-    cheDoRef.current = dvt != null ? "dau-van-tay" : "dinh-ky";
+    if (!kieu) { dauVTRef.current = dvt; cheDoRef.current = dvt != null ? "dau-van-tay" : "dinh-ky"; }
     capNhatRef.current = Date.now();
     setTaiLuc(Date.now());
   }, [api, tuThang]);
+  ganChuyen.current = (k, a, v) => setRaw((cu) => {
+    if (!cu?.voyages) return cu;
+    if (k === "insertVoyages") return { ...cu, voyages: [...cu.voyages, ...(v || []).filter(Boolean)] };
+    if (k === "updateVoyage") return { ...cu, voyages: cu.voyages.map((x) => (x.id === a[0] ? { ...x, ...(a[1] || {}), ...(v || {}) } : x)) };
+    if (k === "deleteVoyage") return { ...cu, voyages: cu.voyages.filter((x) => x.id !== a[0]) };
+    return cu;
+  });
 
   const boot = useCallback(async (session) => {
     if (!session) { setUser(null); setPhase("login"); return; }
@@ -122,15 +136,21 @@ const GHI_NHE = new Set(["insertVoyages", "updateVoyage", "deleteVoyage", "addSt
 
   const reload = useCallback(async () => { try { await load(); } catch (e) { fail(e); } }, [load, fail]);
   // Chạy một thao tác ghi: báo kết quả, tải lại dữ liệu. Trả về kết quả hoặc undefined nếu lỗi.
+  // Ghi xong là TRẢ KẾT QUẢ NGAY (báo thành công, đóng hộp), việc tải lại chạy nền (anh Sỹ 19/11/2026: lưu xong không phải chờ):
+  //   · KHONG: ghi vào bảng web không giữ trong bộ nhớ chung (sản lượng thực tế, mục tiêu quý / năm, kế hoạch ngày, phân loại tồn): không tải lại, chỉ báo các màn hình tự tải lại số của chúng;
+  //   · chuyến tàu: cập nhật ngay trong bộ nhớ (xem ganChuyen) rồi tải nhẹ phần chuyến; sổ kho: chỉ tải lại phần kho; còn lại tải đầy đủ.
   const run = useCallback(async (fn, msg) => {
     setBusy(true);
-    try {
-      luot.current.clear();
-      const r = await fn();
-      // Chỉ ghi chuyến tàu, khoảng dừng, phương án, trả hàng: tải lại phần đó là đủ (nhanh hơn nhiều so với tải lại toàn bộ)
-      const ghi = [...luot.current].filter((k) => !/^(load|get|dau|onAuth|sign)/.test(k));
-      await load(undefined, undefined, ghi.length > 0 && ghi.every((k) => GHI_NHE.has(k)));
-      if (msg) toast(msg); return r ?? true; } catch (e) { fail(e); return undefined; } finally { setBusy(false); }
+    let r;
+    try { luot.current.clear(); r = await fn(); } catch (e) { fail(e); setBusy(false); return undefined; }
+    const ghi = [...luot.current].filter((k) => !/^(load|get|dau|onAuth|sign)/.test(k));
+    const tat = (T) => ghi.length > 0 && ghi.every((k) => T.has(k));
+    const kieu = tat(KHONG) ? "khong" : tat(new Set([...KHONG, ...GHI_NHE])) ? "nhe" : tat(new Set([...KHONG, ...GHI_KHO])) ? "kho" : false;
+    setBusy(false);
+    if (msg) toast(msg);
+    dangKiem.current = true; // trong lúc tải nền, lượt kiểm tra định kỳ bỏ qua
+    (async () => { try { if (kieu === "khong") setRaw((cu) => (cu ? { ...cu } : cu)); else await load(undefined, undefined, kieu); } catch (e) { fail(e); } finally { dangKiem.current = false; } })();
+    return r ?? true;
   }, [load, toast, fail]);
 
   const moRongKhoang = useCallback(async (thang) => {

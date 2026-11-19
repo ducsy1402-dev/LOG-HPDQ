@@ -19,6 +19,16 @@ const SO = ["khoi_luong", "da_lam", "draft", "loa", "dwt", "cam_ket"];
 const NGAY = ["eta", "etb", "etd"];
 
 // Lưu kèm danh mục tàu (nhập một lần, dùng lại). Lỗi danh mục không chặn việc lưu chuyến.
+// Ghi tàu của nhiều chuyến vào danh mục tàu bằng MỘT lệnh (Dán nhanh bảng tàu); cùng tên tàu thì gộp, giá trị có ưu tiên hơn ô trống
+export async function ghiDanhMucNhieu(api, vs) {
+  const m = new Map();
+  for (const v of vs) {
+    if (!v.ten_tau || v.ten_tau === "TBA") continue;
+    const o = m.get(v.ten_tau) || { ten: v.ten_tau, dwt: null, loa: null, draft: null };
+    m.set(v.ten_tau, { ten: o.ten, dwt: v.dwt ?? o.dwt, loa: v.loa ?? o.loa, draft: v.draft ?? o.draft });
+  }
+  try { if (m.size) await api.upsertRows("vessels", [...m.values()], "ten"); } catch { /* bỏ qua */ }
+}
 export async function ghiDanhMuc(api, D, v) {
   try {
     if (v.ten_tau && v.ten_tau !== "TBA") await api.upsertRows("vessels", [{ ten: v.ten_tau, dwt: v.dwt ?? null, loa: v.loa ?? null, draft: v.draft ?? null }], "ten");

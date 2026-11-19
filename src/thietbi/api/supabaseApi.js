@@ -2,6 +2,11 @@ import { supabase } from "../../lib/supabase";
 
 const chunk = (a, n) => Array.from({ length: Math.ceil(a.length / n) }, (_, i) => a.slice(i * n, i * n + n));
 const ok = (r) => { if (r.error) throw r.error; return r.data; };
+// Chạy các việc ghi cùng lúc (tối đa n việc một lượt) thay vì nối đuôi nhau
+async function song(viec, n = 8) {
+  const ds = viec.filter(Boolean);
+  for (let i = 0; i < ds.length; i += n) await Promise.all(ds.slice(i, i + n).map((f) => f()));
+}
 
 export function supabaseApi() {
   const sb = supabase();
@@ -31,7 +36,7 @@ export function supabaseApi() {
     },
 
     async loadAll({ cutoff, from }) {
-      const [dm, vehicles, staff, events, cakip, headcount, specs, hanghoa] = await Promise.all([
+      const [dm, vehicles, staff, events, cakip, headcount, specs, hanghoa, tbGanSl, headcountTo, thongTinCa, plan] = await Promise.all([
         sb.from("danh_muc").select("*").then(ok),
         fetchAll(() => sb.from("vehicles").select("*").order("ma")),
         fetchAll(() => sb.from("staff").select("*").order("ma")),
@@ -41,39 +46,43 @@ export function supabaseApi() {
         // Hai bảng mới của phiên bản 2: nếu chưa chạy migration thì trả về rỗng thay vì lỗi
         sb.from("model_specs").select("*").then((r) => r.data || []),
         sb.from("hang_hoa").select("*").order("loai_hang").then((r) => r.data || []),
+        // Thiết bị gắn theo loại (SQL 20). Chưa chạy SQL 20 thì null: tab Thiết bị gắn báo cần chạy SQL
+        sb.from("thiet_bi_gan_sl").select("*").order("thu_tu").order("id").then((r) => (r.error ? null : r.data)),
+        // Quân số theo tổ (SQL 14). Chưa chạy SQL 14 thì null: tab Nhân sự & quân số báo cần chạy SQL và nhập theo đội như cũ
+        sb.from("headcount_to").select("*").gte("ngay", from).then((r) => (r.error ? null : r.data)),
+        // Thông tin đầu / cuối ca (SQL 18). Chưa chạy SQL 18 thì null: tab Thông tin đầu/cuối ca báo cần chạy SQL
+        sb.from("thong_tin_ca").select("*").gte("ngay", from).then((r) => (r.error ? null : r.data)),
+        this.loadPlan(),
       ]);
       const d = Object.fromEntries(dm.map((x) => [x.id, x.data]));
-      // Thiết bị gắn theo loại (SQL 20). Chưa chạy SQL 20 thì null: tab Thiết bị gắn báo cần chạy SQL
-      const tbGanSl = await sb.from("thiet_bi_gan_sl").select("*").order("thu_tu").order("id").then((r) => (r.error ? null : r.data));
-      // Quân số theo tổ (SQL 14). Chưa chạy SQL 14 thì null: tab Nhân sự & quân số báo cần chạy SQL và nhập theo đội như cũ
-      const headcountTo = await sb.from("headcount_to").select("*").gte("ngay", from).then((r) => (r.error ? null : r.data));
-      // Thông tin đầu / cuối ca (SQL 18). Chưa chạy SQL 18 thì null: tab Thông tin đầu/cuối ca báo cần chạy SQL
-      const thongTinCa = await sb.from("thong_tin_ca").select("*").gte("ngay", from).then((r) => (r.error ? null : r.data));
-      return { meta: d.meta || {}, nguong: d.nguong || {}, mapPt: d.map_pt || null, nhaThau: d.nha_thau || null, toTruong: d.to_truong || null, vehicles, staff, events, cakip, headcount, headcountTo, thongTinCa, specs, hanghoa, tbGanSl, plan: await this.loadPlan() };
+      return { meta: d.meta || {}, nguong: d.nguong || {}, mapPt: d.map_pt || null, nhaThau: d.nha_thau || null, toTruong: d.to_truong || null, vehicles, staff, events, cakip, headcount, headcountTo, thongTinCa, specs, hanghoa, tbGanSl, plan };
     },
 
     // Dữ liệu Giai đoạn 2. Chưa chạy file SQL 6 thì trả về null (tab Kế hoạch sẽ báo cần chạy SQL).
     async loadPlan() {
-      const params = await sb.from("plan_params").select("*");
-      if (params.error) return null;
-      const [jobs, batch] = await Promise.all([
-        sb.from("plan_jobs").select("*").order("id").then(ok),
-        sb.from("demand_batches").select("*").eq("is_current", true).order("id", { ascending: false }).limit(1).then(ok),
+      // Các bảng không phụ thuộc nhau lấy cùng lúc (trước đây nối đuôi 6 lượt); chỉ nhu cầu phải chờ biết lô hiện hành
+      const since = new Date(Date.now() - 3 * 864e5).toISOString();
+      const [params, jobsR, batchR, asg, coDinh] = await Promise.all([
+        sb.from("plan_params").select("*"),
+        sb.from("plan_jobs").select("*").order("id"),
+        sb.from("demand_batches").select("*").eq("is_current", true).order("id", { ascending: false }).limit(1),
+        fetchAll(() => sb.from("assignments").select("*").gte("ca_bat_dau", since).order("id")).catch((e) => ({ loi: e })),
+        // Mẫu gán cố định (SQL 10). Chưa chạy SQL 10 thì null: trang ẩn chức năng "Cố định".
+        sb.from("gan_co_dinh").select("*").order("id").then((r) => (r.error ? null : r.data)),
       ]);
+      if (params.error) return null;
+      const jobs = ok(jobsR), batch = ok(batchR);
+      if (asg?.loi) throw asg.loi;
       const b = batch[0] || null;
       const demands = b ? await fetchAll(() => sb.from("demands").select("*").eq("batch_id", b.id).order("id")) : [];
-      const since = new Date(Date.now() - 3 * 864e5).toISOString();
-      const assignments = await fetchAll(() => sb.from("assignments").select("*").gte("ca_bat_dau", since).order("id"));
-      // Mẫu gán cố định (SQL 10). Chưa chạy SQL 10 thì null: trang ẩn chức năng "Cố định".
-      const coDinh = await sb.from("gan_co_dinh").select("*").order("id").then((r) => (r.error ? null : r.data));
-      return { params: Object.fromEntries(params.data.map((x) => [x.id, x.data])), jobs, batch: b, demands, assignments, coDinh };
+      return { params: Object.fromEntries(params.data.map((x) => [x.id, x.data])), jobs, batch: b, demands, assignments: asg, coDinh };
     },
     savePlanParams: async (id, data) => ok(await sb.from("plan_params").upsert({ id, data, updated_at: new Date().toISOString() })),
     insertPlanJob: async (rec) => ok(await sb.from("plan_jobs").insert(rec)),
     updatePlanJob: async (id, patch) => ok(await sb.from("plan_jobs").update(patch).eq("id", id)),
     deletePlanJob: async (id) => ok(await sb.from("plan_jobs").delete().eq("id", id)),
     // Lưu thứ tự dòng sau khi kéo thả: [{id, thu_tu}]
-    async reorderPlanJobs(rows) { for (const r of rows) ok(await sb.from("plan_jobs").update({ thu_tu: r.thu_tu }).eq("id", r.id)); },
+    async reorderPlanJobs(rows) { await song(rows.map((r) => async () => ok(await sb.from("plan_jobs").update({ thu_tu: r.thu_tu }).eq("id", r.id)))); },
     importDemands: async (file, rows, win) => ok(await sb.rpc("import_demands", { p_file: file, p_rows: rows, p_win_a: win.winA, p_win_b: win.winB })),
     async insertDemand(rec) {
       let b = ok(await sb.from("demand_batches").select("id").eq("is_current", true).order("id", { ascending: false }).limit(1))[0];
@@ -115,7 +124,7 @@ export function supabaseApi() {
     },
     deleteTbGanSl: async (id) => ok(await sb.from("thiet_bi_gan_sl").delete().eq("id", id)),
     // Danh mục dùng chung (mục Danh mục của web chung): hàng hóa, thiết bị gắn
-    async upsertHangHoa(rows) { for (const c of chunk(rows, 300)) ok(await sb.from("hang_hoa").upsert(c.map((r) => ({ ...r, updated_at: new Date().toISOString() })))); },
+    async upsertHangHoa(rows) { await song(chunk(rows, 300).map((c) => async () => ok(await sb.from("hang_hoa").upsert(c.map((r) => ({ ...r, updated_at: new Date().toISOString() })))))); },
     deleteHangHoa: async (ten) => ok(await sb.from("hang_hoa").delete().eq("loai_hang", ten)),
     async deleteHangHoas(tens) { for (const c of chunk(tens, 200)) ok(await sb.from("hang_hoa").delete().in("loai_hang", c)); },
     async saveThietBiGan(list, them, dung) {
@@ -130,7 +139,7 @@ export function supabaseApi() {
     insertEvent: async (rec) => ok(await sb.from("events").insert(rec)),
     updateEvent: async (id, patch) => ok(await sb.from("events").update(patch).eq("id", id)),
     deleteEvent: async (id) => ok(await sb.from("events").delete().eq("id", id)),
-    async upsertVehicles(rows) { for (const c of chunk(rows, 500)) ok(await sb.from("vehicles").upsert(c)); },
+    async upsertVehicles(rows) { await song(chunk(rows, 500).map((c) => async () => ok(await sb.from("vehicles").upsert(c)))); },
     deleteVehicle: async (ma) => ok(await sb.from("vehicles").delete().eq("ma", ma)),
     async deleteVehicles(mas) { for (const c of chunk(mas, 200)) ok(await sb.from("vehicles").delete().in("ma", c)); },
     // Đổi tên tổ: xe, nhân sự và thứ tự tổ trong danh mục
@@ -148,7 +157,7 @@ export function supabaseApi() {
         ok(await sb.from("danh_muc").update({ data: { list }, updated_at: new Date().toISOString() }).eq("id", "to_truong"));
       }
     },
-    async upsertStaff(rows) { for (const c of chunk(rows, 500)) ok(await sb.from("staff").upsert(c)); },
+    async upsertStaff(rows) { await song(chunk(rows, 500).map((c) => async () => ok(await sb.from("staff").upsert(c)))); },
     deleteStaff: async (ma) => ok(await sb.from("staff").delete().eq("ma", ma)),
     async deleteStaffs(mas) { for (const c of chunk(mas, 200)) ok(await sb.from("staff").delete().in("ma", c)); },
     // Chỉ xóa nhân sự mẫu (mã bắt đầu bằng MAU-) do file 5_nap_du_lieu_that.sql tạo
@@ -157,8 +166,8 @@ export function supabaseApi() {
     upsertHeadcount: async (rows) => ok(await sb.from("headcount").upsert(rows)),
     // Thông tin đầu / cuối ca: xoa = [{ ngay, ca, loai, ma_xe }] là các dòng bỏ khỏi bảng
     saveThongTinCa: async (rows, xoa = []) => {
-      for (const r of xoa) ok(await sb.from("thong_tin_ca").delete().eq("ngay", r.ngay).eq("ca", r.ca).eq("loai", r.loai).eq("ma_xe", r.ma_xe));
-      if (rows.length) ok(await sb.from("thong_tin_ca").upsert(rows));
+      await song([...xoa.map((r) => async () => ok(await sb.from("thong_tin_ca").delete().eq("ngay", r.ngay).eq("ca", r.ca).eq("loai", r.loai).eq("ma_xe", r.ma_xe))),
+        rows.length && (async () => ok(await sb.from("thong_tin_ca").upsert(rows)))]);
     },
     upsertHeadcountTo: async (rows) => ok(await sb.from("headcount_to").upsert(rows)),
 
@@ -178,8 +187,8 @@ export function supabaseApi() {
     async luuThucTeCD(rows) {
       const trong = (r) => r.khoi_luong == null && r.so_chuyen == null && r.so_xe == null && !r.ghi_chu;
       const ghi = rows.filter((r) => !trong(r)).map(({ id, updated_at, ...r }) => r);
-      if (ghi.length) ok(await sb.from("chien_dich_thuc_te").upsert(ghi, { onConflict: "chien_dich_id,tuyen_id,ngay,ca" }));
-      for (const r of rows.filter(trong)) ok(await sb.from("chien_dich_thuc_te").delete().eq("chien_dich_id", r.chien_dich_id).eq("tuyen_id", r.tuyen_id).eq("ngay", r.ngay).eq("ca", r.ca));
+      await song([ghi.length && (async () => ok(await sb.from("chien_dich_thuc_te").upsert(ghi, { onConflict: "chien_dich_id,tuyen_id,ngay,ca" }))),
+        ...rows.filter(trong).map((r) => async () => ok(await sb.from("chien_dich_thuc_te").delete().eq("chien_dich_id", r.chien_dich_id).eq("tuyen_id", r.tuyen_id).eq("ngay", r.ngay).eq("ca", r.ca)))]);
     },
   };
 }

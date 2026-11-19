@@ -59,8 +59,8 @@ export function AppProvider({ children }) {
     try {
       setBusy(true);
       const t = today();
-      const dvt = await api.dauVanTay?.().catch(() => null) ?? null; // lấy trước khi tải
-      const r = await api.loadAll({ cutoff: addDays(t, -30 * (DEFAULT_T.luu_thang)), from: addDays(t, -1) });
+      // Dấu vân tay và dữ liệu lấy cùng lúc (không nối đuôi); thay đổi xảy ra trong lúc tải sẽ được phát hiện ở lượt kiểm tra sau
+      const [dvt, r] = await Promise.all([api.dauVanTay?.().catch(() => null) ?? null, api.loadAll({ cutoff: addDays(t, -30 * (DEFAULT_T.luu_thang)), from: addDays(t, -1) })]);
       setRaw({ ...r, today: t });
       dauVTRef.current = dvt;
       cheDoRef.current = dvt != null ? "dau-van-tay" : "dinh-ky";
@@ -118,9 +118,12 @@ export function AppProvider({ children }) {
   const signIn = async (email, pw) => { const s = await api.signIn(email, pw); await enter(s.user); };
   const signOut = async () => { await api.signOut(); location.reload(); };
 
-  // Chạy một thao tác ghi, báo kết quả, tải lại dữ liệu
+  // Chạy một thao tác ghi, báo kết quả NGAY rồi tải lại dữ liệu chạy nền (anh Sỹ 19/11/2026: lưu xong không phải chờ tải lại)
   const run = useCallback(async (fn, okMsg) => {
-    try { await fn(); if (okMsg) toast(okMsg); await reload(); return true; } catch (e) { fail(e); return false; }
+    try { await fn(); } catch (e) { fail(e); return false; }
+    if (okMsg) toast(okMsg);
+    reload();
+    return true;
   }, [reload, toast, fail]);
 
   const D = useMemo(() => (raw ? derive(raw) : null), [raw]);
