@@ -124,7 +124,7 @@ export default function KeHoachTongHop() {
       </div>
 
       {mo === "dai" && <HopDaiHan onClose={() => setMo(null)} k={k} data={data} kho={kho} sua={sua} dsHang={dsHang} loaiXe={loaiXe} onLuu={taiLai} />}
-      {mo === "ngay" && <HopNgay onClose={() => setMo(null)} />}
+      {mo === "ngay" && <HopNgay onClose={() => setMo(null)} kho={kho} sua={sua} dsHang={dsHang} loaiXe={loaiXe} />}
     </div>
   );
 }

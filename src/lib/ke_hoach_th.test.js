@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { dongKeHoach, gomXe, tongPhanXe, dongGhiXe, chiaTheoSucChua, docDanKeHoach } from "./keHoachTH";
+import { dongKeHoach, gomXe, tongPhanXe, dongGhiXe, chiaTheoSucChua, docDanKeHoach, loChuaHang, docDanNgayBo, hangCuaTau } from "./keHoachTH";
 
 const th = [
   { loai: "xuat_ban", hang: "Thép cuộn HRC", bo: 10000, bien: 20000, tong: 0 },
@@ -54,5 +54,24 @@ describe("dán nhanh kế hoạch", () => {
   });
   it("báo thiếu cột khi có tiêu đề mà thiếu cột bắt buộc", () => {
     expect(docDanKeHoach([["Tên hàng", "Đường bộ"], ["Phế", "5"]], "xuat_ban").thieu).toEqual(["Đường biển"]);
+  });
+});
+
+describe("kế hoạch ngày", () => {
+  const kho = { dong: [{ key: "a", ten_bai: "Kho A", ten: "G1", sucChua: 100, hang: "HRC" }, { key: "b", ten_bai: "Kho A", ten: "G2", sucChua: 200, hang: "HRC" }, { key: "c", ten_bai: "Bãi C", ten: "L1", sucChua: 50, hang: "Phế" }],
+    cap: [{ key: "a", hang: "HRC", ton: 30 }, { key: "c", hang: "Phế", ton: 5 }] };
+  it("gian / lô đang chứa hàng; hàng chưa có tồn thì gợi ý gian / lô khai báo; thêm gian / lô đã phân bổ", () => {
+    expect(loChuaHang(kho, ["hrc"]).map((x) => x.key)).toEqual(["a"]);
+    expect(loChuaHang(kho, ["Quặng"]).map((x) => x.key)).toEqual([]);
+    expect(loChuaHang({ ...kho, cap: [] }, ["HRC"]).map((x) => x.key)).toEqual(["a", "b"]);
+    expect(loChuaHang(kho, ["HRC"], [{ ten_bai: "Kho A", ten_khu: "G2", tan: 5 }]).map((x) => x.key)).toEqual(["a", "b"]);
+  });
+  it("hàng của tàu tách theo dấu ; ,", () => { expect(hangCuaTau({ ten_hang: "A; B , C" })).toEqual(["A", "B", "C"]); });
+  it("dán nhanh đường bộ: hướng nhập / xuất, kho / bãi, gian / lô, khối lượng", () => {
+    const r = docDanNgayBo([["Tên hàng", "Hướng", "Kho/bãi", "Gian/lô", "Khối lượng"], ["HRC", "Xuất", "Kho A", "G1", "1.200"], ["Phế", "nhập", "Bãi C", "", "300"], ["", "x", "", "", "0"]]);
+    expect(r.dong[0]).toMatchObject({ hang: "HRC", huong: "xuat", ten_bai: "Kho A", ten_khu: "G1", tan: 1200, loi: [] });
+    expect(r.dong[1]).toMatchObject({ huong: "nhap", ten_khu: "", tan: 300, loi: [] });
+    expect(r.dong[2].loi).toHaveLength(2);
+    expect(docDanNgayBo([["HRC", "N", "Kho A", "G1", "5"]]).dong[0]).toMatchObject({ huong: "nhap", tan: 5 });
   });
 });

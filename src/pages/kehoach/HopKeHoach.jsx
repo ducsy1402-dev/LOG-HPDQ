@@ -3,6 +3,9 @@ import { Dialog } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ChonKy } from "./ChonKy";
 import BangKeHoach from "./BangKeHoach";
+import NgayBo from "./NgayBo";
+import HopKeHoachNgay from "../cang/HopKeHoachNgay";
+import HopTauNgay from "./HopTauNgay";
 
 const SapThietKe = ({ ten, y }) => (
   <div className="flex flex-col items-center gap-2 rounded-md border border-dashed px-4 py-12 text-center text-sm text-muted-foreground">
@@ -34,17 +37,22 @@ export function HopDaiHan({ onClose, k, data, ...chung }) {
   );
 }
 
-// Hộp "Kế hoạch ngày": kế hoạch xuất / nhập theo ngày, tách đường bộ và đường biển. Thiết kế sau.
-export function HopNgay({ onClose }) {
+// Hộp "Kế hoạch ngày": kế hoạch xuất / nhập theo ngày, tách đường bộ và đường biển.
+//   • Đường bộ: bảng theo ngày (Tên hàng · Hướng · Vào / ra kho bãi › gian / lô · Khối lượng), gian / lô chọn theo hàng đang chứa (NgayBo.jsx).
+//   • Đường biển: giao diện Kế hoạch ngày của Mục tiêu sản lượng (line tàu + khung nhập theo ngày; HopKeHoachNgay nhúng); trỏ vào một dòng tàu có mũi tên mở hộp phân xe + xuất / nhập kho (HopTauNgay.jsx).
+export function HopNgay({ onClose, kho, sua, dsHang, loaiXe }) {
   return (
-    <Dialog onOpenChange={(o) => !o && onClose()} className="max-w-3xl" title="Kế hoạch ngày" description="Kế hoạch xuất / nhập theo ngày, lấy từ kế hoạch dài hạn.">
+    <Dialog onOpenChange={(o) => !o && onClose()} className="max-w-[min(1500px,calc(100vw-24px))]" title="Kế hoạch ngày" description="Kế hoạch xuất / nhập theo ngày, tách đường bộ và đường biển.">
       <Tabs defaultValue="bo">
         <TabsList>
           <TabsTrigger value="bo">Xuất / nhập đường bộ</TabsTrigger>
           <TabsTrigger value="bien">Xuất / nhập đường biển</TabsTrigger>
         </TabsList>
-        <TabsContent value="bo"><SapThietKe ten="Xuất / nhập đường bộ" y="Sẽ thiết kế sau: kế hoạch ngày của xe vào / ra theo kế hoạch dài hạn." /></TabsContent>
-        <TabsContent value="bien"><SapThietKe ten="Xuất / nhập đường biển" y="Sẽ thiết kế sau: kế hoạch ngày theo tàu (liên kết với Linetime tàu cập bến)." /></TabsContent>
+        <TabsContent value="bo"><NgayBo kho={kho} sua={sua} dsHang={dsHang} /></TabsContent>
+        <TabsContent value="bien">
+          <HopKeHoachNgay nhung onClose={() => {}}
+            tiepTheo={({ v, ngay, neo, tong, onDong }) => <HopTauNgay key={`${v.id}|${ngay}`} neo={neo} onDong={onDong} v={v} ngay={ngay} tong={tong} kho={kho} loaiXe={loaiXe} sua={sua} />} />
+        </TabsContent>
       </Tabs>
     </Dialog>
   );

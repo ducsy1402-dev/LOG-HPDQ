@@ -33,7 +33,7 @@ const LABEL = 118, MPX = 0.6, PAD_MET = 6; // MPX: pixel cho mỗi mét ở ch�
 
 // Khung nhập theo ngày (hộp nhỏ): các tàu đang làm hàng trong một ngày, mỗi tàu một ô nhập số tấn. Số gõ vào ghi thẳng vào bảng nháp của hộp lớn (chưa lưu).
 // Khung nằm CẠNH line tàu (bên phải), không nổi lên trên: không bao giờ che line hay các dòng cộng, nên vừa gõ vừa thấy số tổng đổi.
-function KhungNgay({ ngay, huong, ds, vid, giaTri, hienThi, datO, goiY, chiaDeu, xoaTau, onDong, nhap, now, tongTau }) {
+function KhungNgay({ ngay, huong, ds, vid, giaTri, hienThi, datO, goiY, chiaDeu, xoaTau, onDong, nhap, now, tongTau, onTiep }) {
   const khung = useRef();
   useEffect(() => { // mở khung là gõ được ngay: tàu vừa bấm (hoặc tàu đầu tiên)
     const h = setTimeout(() => {
@@ -62,7 +62,7 @@ function KhungNgay({ ngay, huong, ds, vid, giaTri, hienThi, datO, goiY, chiaDeu,
         {ds.length ? ds.map((x, i) => {
           const { v } = x, st = TRANG_THAI[trangThai(v, now)], kl = klCanLam(v), tt = tongTau(v), g = goiY(v, ngay);
           return (
-            <div key={v.id} className={cn("flex items-center gap-2 border-b px-3 py-2 last:border-b-0", String(v.id) === String(vid) && "bg-primary/5")}>
+            <div key={v.id} className={cn("group flex items-center gap-2 border-b px-3 py-2 last:border-b-0", String(v.id) === String(vid) && "bg-primary/5")}>
               <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: st.mau }} title={st.ten} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5"><b className="truncate">{v.ten_tau}</b><Badge tone={v.huong === "xuat" ? "warn" : "info"} className="shrink-0">{v.huong === "xuat" ? "Xuất" : "Nhập"}</Badge></div>
@@ -81,6 +81,8 @@ function KhungNgay({ ngay, huong, ds, vid, giaTri, hienThi, datO, goiY, chiaDeu,
                 </div>
               </div>}
               {!nhap && <b className="tabular-nums">{fmt(giaTri(v, ngay)) || "—"}</b>}
+              {/* Mũi tên hiện khi trỏ vào dòng tàu: mở hộp tiếp theo bên cạnh (Kế hoạch tổng hợp: phân xe, xuất / nhập kho) */}
+              {onTiep && <button type="button" onClick={(e) => onTiep(v, e.currentTarget)} className="shrink-0 rounded p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-primary focus:opacity-100 group-hover:opacity-100" title="Phân xe và xuất / nhập kho của tàu trong ngày" aria-label={`Phân xe và kho: ${v.ten_tau}`}><ChevronRight className="h-5 w-5" /></button>}
             </div>);
         }) : <div className="px-3 py-6 text-center text-xs text-muted-foreground">Không có tàu nào đang làm hàng ngày này (theo bộ lọc).</div>}
       </div>
@@ -92,7 +94,8 @@ function KhungNgay({ ngay, huong, ds, vid, giaTri, hienThi, datO, goiY, chiaDeu,
   );
 }
 
-export default function HopKeHoachNgay({ thang0, onClose, onLuu }) {
+// nhung: dùng làm NỘI DUNG của một tab (không bọc hộp thoại riêng). tiepTheo({ v, ngay, neo, tong, onDong }): hiện mũi tên ở mỗi dòng tàu của khung nhập theo ngày, bấm thì dựng hộp tiếp theo bên cạnh.
+export default function HopKeHoachNgay({ thang0, onClose, onLuu, nhung, tiepTheo }) {
   const { D, api, quyen, run, toast } = useApp();
   const nhomHang = useNhomHang(), nhap = quyen.keHoachNgay;
   const [thang, setThang] = useState(thang0 || thangCua(D.now));
@@ -103,6 +106,8 @@ export default function HopKeHoachNgay({ thang0, onClose, onLuu }) {
   const [sua, setSua] = useState({}); // ô đã gõ: "mã chuyến|ngày" -> chữ
   const [cua, setCua] = useState({ co: 14, bat: 0 }); // cửa sổ ngày: số ngày (31 = cả tháng) và vị trí ngày đầu
   const [pop, setPop] = useState(null); // hộp nhỏ đang mở: { ngay, huong, vid }
+  const [tiep, setTiep] = useState(null); // hộp tiếp theo của một tàu: { v, ngay, neo }
+  useEffect(() => { if (!pop) setTiep(null); }, [pop]);
   // Trục dọc như Linetime › Lịch cầu bến: "ben" mỗi bến một dòng · "met" theo mét dọc từng tuyến bến; nhớ ở máy, mặc định theo lựa chọn ở Linetime
   const [truc, setTruc] = useState(() => { try { return (localStorage.getItem("lg-khn-truc") ?? localStorage.getItem("lg-gantt-truc")) === "met" ? "met" : "ben"; } catch { return "ben"; } });
   const doiTruc = (k) => { setPop(null); setTruc(k); try { localStorage.setItem("lg-khn-truc", k); } catch { /* bỏ qua */ } };
@@ -243,9 +248,8 @@ export default function HopKeHoachNgay({ thang0, onClose, onLuu }) {
   };
   const chuaBen = loc2.filter((x) => !x.v.ben_ma).length;
 
-  return (
-    <Dialog onOpenChange={(o) => !o && onClose()} className="max-w-[min(1500px,calc(100vw-24px))]" title="Kế hoạch sản lượng theo ngày"
-      description="Line tàu cập trong tháng, xếp giống Linetime › Lịch cầu bến (mỗi bến một dòng): bấm một ô ngày để mở khung nhập bên phải, nhập số tấn kế hoạch cho từng tàu đang làm hàng ngày đó.">
+  const noiDung = (
+    <>
       {rows === null ? <div className="rounded-md border border-warn/40 bg-warn/5 px-3 py-2 text-sm">Chưa có bảng kế hoạch ngày: quản trị cần chạy <b>sql/13_ke_hoach_san_luong_ngay.sql</b> trong Supabase.</div> : (
         <div className="grid gap-3">
           <div className="flex flex-wrap items-center gap-2">
@@ -345,7 +349,9 @@ export default function HopKeHoachNgay({ thang0, onClose, onLuu }) {
           ) : <Empty>Không có chuyến tàu nào trong {tenThang(thang).toLowerCase()}{loc.nhom || loc.huong ? " ứng với bộ lọc" : ""}. Thêm chuyến ở Khai thác Cảng › Linetime.</Empty>}
           </div>
           {pop && <KhungNgay key={`${pop.ngay}|${pop.huong}|${pop.vid}`} ngay={pop.ngay} huong={pop.huong} vid={pop.vid} ds={dsHop} nhap={nhap} now={D.now}
-            giaTri={giaTri} hienThi={hienThi} datO={datO} goiY={goiY} chiaDeu={chiaDeu} xoaTau={xoaTau} tongTau={tongTau} onDong={() => setPop(null)} />}
+            giaTri={giaTri} hienThi={hienThi} datO={datO} goiY={goiY} chiaDeu={chiaDeu} xoaTau={xoaTau} tongTau={tongTau} onDong={() => setPop(null)}
+            onTiep={tiepTheo ? (v, neo) => setTiep({ v, ngay: pop.ngay, neo }) : undefined} />}
+          {pop && tiep && tiepTheo({ ...tiep, tong: giaTri(tiep.v, tiep.ngay), onDong: () => setTiep(null) })}
           </div>
 
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-[0.6875rem] text-muted-foreground">
@@ -355,6 +361,13 @@ export default function HopKeHoachNgay({ thang0, onClose, onLuu }) {
           <p className="text-[0.6875rem] text-muted-foreground">{nhap ? "Bấm ô ngày của một tàu (hoặc ô Kế hoạch nhập / xuất ở dưới cùng) để mở khung nhập theo ngày bên phải: mỗi tàu đang làm hàng ngày đó có một ô nhập số tấn (Enter sang tàu kế tiếp); số tổng hiện ra các ô bên ngoài. Cây đũa phép chia đều khối lượng tàu theo giờ làm hàng dự kiến, cục tẩy xóa kế hoạch của tàu trong tháng, \"Điền gợi ý\" điền số chia theo giờ cho các tàu còn trống. Bấm Lưu kế hoạch để ghi. Thực nhập / thực xuất lấy từ bảng Sản lượng thực tế." : "Vai trò Xem chỉ xem kế hoạch."}</p>
 
         </div>)}
+    </>
+  );
+  if (nhung) return noiDung;
+  return (
+    <Dialog onOpenChange={(o) => !o && onClose()} className="max-w-[min(1500px,calc(100vw-24px))]" title="Kế hoạch sản lượng theo ngày"
+      description="Line tàu cập trong tháng, xếp giống Linetime › Lịch cầu bến (mỗi bến một dòng): bấm một ô ngày để mở khung nhập bên phải, nhập số tấn kế hoạch cho từng tàu đang làm hàng ngày đó.">
+      {noiDung}
     </Dialog>
   );
 }
