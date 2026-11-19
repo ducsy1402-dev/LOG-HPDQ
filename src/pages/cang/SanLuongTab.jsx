@@ -342,9 +342,11 @@ function BangThucTe({ nhom, thang, mucTieu, thucTe, loc, onLuu }) {
     for (const r of thucTe) { const x = tuDb(nhom, r), k = khoaCua(x); if (!m.has(k)) m.set(k, { huong: x.huong, loai: x.loai, donVi: x.donVi, hang: x.hang }); }
     for (const x of extra) { const k = khoaCua(x); if (!m.has(k)) m.set(k, x); }
     const thuTuHuong = c.huong.map(([h]) => h);
-    return [...m.entries()].map(([k, x]) => ({ ...x, k, mt: mt.get(k) || 0 }))
+    // Bảng vận tải (anh Sỹ 19/11/2026): chỉ hiện cột có mục tiêu > 0; vẫn giữ cột đã có số thực tế (khỏi giấu số đã nhập) và cột vừa thêm
+    const giuCot = (k) => nhom !== "van_tai" || (mt.get(k) || 0) > 0 || extra.some((x) => khoaCua(x) === k) || ngays.some((n) => (goc[kOu(n, k)] || 0) > 0);
+    return [...m.entries()].filter(([k]) => giuCot(k)).map(([k, x]) => ({ ...x, k, mt: mt.get(k) || 0 }))
       .sort((a, b) => thuTuHuong.indexOf(a.huong) - thuTuHuong.indexOf(b.huong) || (nhom === "van_tai" ? a.loai.localeCompare(b.loai, "vi") : 0) || b.mt - a.mt || a.loai.localeCompare(b.loai, "vi") || a.donVi.localeCompare(b.donVi) || a.hang.localeCompare(b.hang, "vi"));
-  }, [mucTieu, thucTe, extra, nhom, c.huong]);
+  }, [mucTieu, thucTe, extra, nhom, c.huong, goc, ngays]);
   const cot = useMemo(() => cotTat.filter(loc), [cotTat, loc]); // các cột đang hiện (theo bộ lọc đội xe)
   const goiY = useLoaiGoiY(nhom, useMemo(() => cotTat.map((x) => x.loai), [cotTat]));
   const dsDV = dsDonVi();
