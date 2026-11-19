@@ -7,17 +7,17 @@ const tatCa = (q) => [q.nhap, q.quanLy, q.quanTri, q.kho.nhap, q.keHoachNgay, q.
 
 describe("Tên đăng nhập không đuôi email", () => {
   it("thêm đuôi hpdq.test, giữ nguyên email đầy đủ, bỏ đuôi khi hiển thị", () => {
-    expect(emailTuTenDangNhap("QuanTriLog")).toBe("quantrilog@hpdq.test");
+    expect(emailTuTenDangNhap("BgdCty")).toBe("bgdcty@hpdq.test");
     expect(emailTuTenDangNhap("  nhaplieulog ")).toBe("nhaplieulog@hpdq.test");
     expect(emailTuTenDangNhap("a.b@gmail.com")).toBe("a.b@gmail.com");
     expect(emailTuTenDangNhap("")).toBe("");
-    expect(tenDangNhap("quantrilog@hpdq.test")).toBe("quantrilog");
+    expect(tenDangNhap("bgdcty@hpdq.test")).toBe("bgdcty");
     expect(tenDangNhap("a.b@gmail.com")).toBe("a.b@gmail.com");
   });
 });
 
 describe("Quyền theo nhóm", () => {
-  it("quantrilog: xem tất cả, không sửa ở đâu", () => {
+  it("bgdcty: xem tất cả, không sửa ở đâu", () => {
     const q = tk();
     expect(tatCa(q)).toEqual(Array(14).fill(false));
     expect([q.coCang, q.coThietBi, q.kho.co]).toEqual([true, true, true]);
