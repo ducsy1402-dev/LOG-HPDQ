@@ -4,6 +4,11 @@ import { NHOM } from "../lib/sanLuongTT";
 import { congThang } from "../lib/format";
 
 const ok = (r) => { if (r.error) throw r.error; return r.data; };
+// Chạy các việc ghi cùng lúc (tối đa n việc một lượt) thay vì nối đuôi nhau: mỗi lượt gọi mạng vài trăm ms nên nối đuôi làm lưu rất chậm
+async function song(viec, n = 8) {
+  const ds = viec.filter(Boolean);
+  for (let i = 0; i < ds.length; i += n) await Promise.all(ds.slice(i, i + n).map((f) => f()));
+}
 const chunk = (a, n) => Array.from({ length: Math.ceil(a.length / n) }, (_, i) => a.slice(i * n, i * n + n));
 async function fetchAll(q) {
   const out = [];
@@ -62,7 +67,7 @@ export function makeSupabaseApi() {
     // tu: ISO, chuyến có mốc từ ngày này trở đi hoặc chưa rời bến.
     // Mọi truy vấn không phụ thuộc nhau chạy song song (trước đây nối đuôi nhau hơn chục lượt, mỗi lượt vài trăm ms nên lưu xong phải chờ 3 – 4 giây).
     // nhe = true: chỉ tải phần hay đổi khi ghi chuyến (chuyến, khoảng dừng, tiền, phương án, trả hàng); danh mục, kho giữ nguyên bản đã có.
-    async loadAll({ tu, xemTien, nhe = false }) {
+    async loadAll({ tu, xemTien, nhe = false, phan }) {
       // Cờ SQL: chỉ đổi khi anh chạy SQL mới (rồi tải lại trang), nên đã có thì nhớ luôn, không hỏi lại mỗi lần tải
       const dò = async (khoa, bang, cot) => { if (coSql[khoa]) return true; const co = !(await sb.from(bang).select(cot).limit(1)).error; if (co) coSql[khoa] = true; return co; };
       const phanChuyen = async () => {
@@ -76,6 +81,16 @@ export function makeSupabaseApi() {
       const plansP = Promise.resolve([]);
       // Số máng, tàu ưu tiên, vét / be hầm (SQL 19); cẩu tàu (SQL 24); thiết bị gắn của cẩu cảng (SQL 25); chuyển bến, ra neo, trả hàng (SQL 26); bến phụ (SQL 28)
       const coP = Promise.all([dò("19", "voyages", "uu_tien"), dò("24", "voyages", "cau_tau"), dò("25", "voyages", "cau_gan"), dò("26", "voyage_stops", "loai"), dò("28", "voyages", "ben_phu"), dò("12", "kho_giao_dich", "ten_khu"), dò("dan", "voyages", "gear")]);
+      if (phan === "kho") { // chỉ sổ kho (sau khi ghi nhập / xuất / kế hoạch kho)
+        const tuNgayKho = new Date(Date.now() - 35 * 864e5).toISOString().slice(0, 10);
+        const [khoTon, khoLo, giaoDich, khoKeHoach] = await Promise.all([
+          thu(sb.from("kho_ton").select("*").range(0, 9999)),
+          thu(sb.from("kho_lo").select("*").range(0, 9999)),
+          fetchAll(() => sb.from("kho_giao_dich").select("*").gte("ngay", tuNgayKho).order("id")).catch(() => null),
+          thu(sb.from("kho_ke_hoach").select("*").order("thang").order("id").range(0, 9999)),
+        ]);
+        return { khoTon, khoLo, giaoDich, khoKeHoach };
+      }
       if (nhe) {
         const [c, plans, [coSql19, coSql24, coSql25, coSql26, coSql28, coSql12, coCotDan]] = await Promise.all([phanChuyen(), plansP, coP]);
         return { ...c, plans, coSql19, coSql24, coSql25, coSql26, coSql28, coSql12, coCotDan };
@@ -114,10 +129,12 @@ export function makeSupabaseApi() {
     async insertVoyages(rows) {
       const out = new Array(rows.length), nhom = new Map();
       rows.forEach((r, i) => { const k = Object.keys(r).sort().join("|"); nhom.set(k, [...(nhom.get(k) || []), i]); });
-      for (const idx of nhom.values()) for (const c of chunk(idx, 200)) {
+      const viec = [];
+      for (const idx of nhom.values()) for (const c of chunk(idx, 200)) viec.push(async () => {
         const kq = ok(await sb.from("voyages").insert(c.map((i) => rows[i])).select());
         c.forEach((i, j) => { out[i] = kq[j]; });
-      }
+      });
+      await song(viec);
       return out;
     },
     // Các mã chuyến đã có trong CSDL của một tàu trong một năm ("TÊN / năm / 0001"): để cấp mã mới không trùng
@@ -125,10 +142,9 @@ export function makeSupabaseApi() {
     async updateVoyage(id, patch) { return ok(await sb.from("voyages").update({ ...patch, updated_at: now() }).eq("id", id).select())[0]; },
     // Mục tiêu sản lượng: mỗi dòng một tháng – hướng – loại hàng; tan = null thì xóa dòng đó
     async saveMucTieu(rows) {
-      for (const r of rows.filter((x) => x.tan == null))
-        ok(await sb.from("muc_tieu_san_luong").delete().eq("thang", r.thang).eq("huong", r.huong).eq("loai_hang", r.loai_hang));
       const ghi = rows.filter((x) => x.tan != null).map((r) => ({ thang: r.thang, huong: r.huong, loai_hang: r.loai_hang, tan: r.tan, ghi_chu: r.ghi_chu || null, updated_at: now() }));
-      if (ghi.length) ok(await sb.from("muc_tieu_san_luong").upsert(ghi, { onConflict: "thang,huong,loai_hang" }));
+      await song([...rows.filter((x) => x.tan == null).map((r) => async () => ok(await sb.from("muc_tieu_san_luong").delete().eq("thang", r.thang).eq("huong", r.huong).eq("loai_hang", r.loai_hang))),
+        ghi.length && (async () => ok(await sb.from("muc_tieu_san_luong").upsert(ghi, { onConflict: "thang,huong,loai_hang" })))]);
     },
     // Mục tiêu tháng + sản lượng thực tế theo ca / ngày của một nhóm (cang | van_tai) trong một tháng (SQL 06). null = chưa chạy SQL 06
     async docSanLuongThang(nhom, thang) {
@@ -143,9 +159,9 @@ export function makeSupabaseApi() {
     // rows: [{ thang, huong, loai, donVi, tan, ghi_chu }]; tan = null thì xóa dòng đó
     async saveMucTieuNhom(nhom, rows) {
       const c = NHOM[nhom], lien = (q, r) => (nhom === "van_tai" ? q.eq("loai_xe", r.loai).eq("don_vi", r.donVi).eq("loai_hang", r.hang || "") : q.eq("loai_hang", r.loai));
-      for (const r of rows.filter((x) => x.tan == null)) ok(await lien(sb.from(c.bangMT).delete().eq("thang", r.thang).eq("huong", r.huong), r));
       const ghi = rows.filter((x) => x.tan != null).map((r) => ({ thang: r.thang, huong: r.huong, ...(nhom === "van_tai" ? { loai_xe: r.loai, don_vi: r.donVi, loai_hang: r.hang || "" } : { loai_hang: r.loai }), tan: r.tan, ghi_chu: r.ghi_chu || null, updated_at: now() }));
-      if (ghi.length) ok(await sb.from(c.bangMT).upsert(ghi, { onConflict: nhom === "van_tai" ? "thang,huong,loai_xe,don_vi,loai_hang" : "thang,huong,loai_hang" }));
+      await song([...rows.filter((x) => x.tan == null).map((r) => async () => ok(await lien(sb.from(c.bangMT).delete().eq("thang", r.thang).eq("huong", r.huong), r))),
+        ghi.length && (async () => ok(await sb.from(c.bangMT).upsert(ghi, { onConflict: nhom === "van_tai" ? "thang,huong,loai_xe,don_vi,loai_hang" : "thang,huong,loai_hang" })))]);
     },
     // Mục tiêu theo quý / năm (SQL 10): ky = "2026-Q4" | "2026". Trả các dòng cùng dạng dòng mục tiêu tháng (thang = ky); null = chưa chạy SQL 10
     async docMucTieuKy(nhom, ky) {
@@ -155,16 +171,16 @@ export function makeSupabaseApi() {
     },
     // rows: [{ thang (= ky), huong, loai, donVi, hang, tan, ghi_chu }]; tan = null thì xóa dòng đó
     async saveMucTieuKy(nhom, rows) {
-      for (const r of rows.filter((x) => x.tan == null)) ok(await sb.from("muc_tieu_ky").delete().eq("nhom", nhom).eq("ky", r.thang).eq("huong", r.huong).eq("loai", r.loai).eq("don_vi", r.donVi || "").eq("loai_hang", r.hang || ""));
       const ghi = rows.filter((x) => x.tan != null).map((r) => ({ nhom, ky: r.thang, huong: r.huong, loai: r.loai, don_vi: r.donVi || "", loai_hang: r.hang || "", tan: r.tan, ghi_chu: r.ghi_chu || null, updated_at: now() }));
-      if (ghi.length) ok(await sb.from("muc_tieu_ky").upsert(ghi, { onConflict: "nhom,ky,huong,loai,don_vi,loai_hang" }));
+      await song([...rows.filter((x) => x.tan == null).map((r) => async () => ok(await sb.from("muc_tieu_ky").delete().eq("nhom", nhom).eq("ky", r.thang).eq("huong", r.huong).eq("loai", r.loai).eq("don_vi", r.donVi || "").eq("loai_hang", r.hang || ""))),
+        ghi.length && (async () => ok(await sb.from("muc_tieu_ky").upsert(ghi, { onConflict: "nhom,ky,huong,loai,don_vi,loai_hang" })))]);
     },
     // rows: [{ ngay, ca, huong, loai, donVi, tan }]; tan = null thì xóa số của ô đó
     async saveThucTe(nhom, rows) {
       const c = NHOM[nhom], lien = (q, r) => (nhom === "van_tai" ? q.eq("loai_xe", r.loai).eq("don_vi", r.donVi).eq("loai_hang", r.hang || "") : q.eq("loai_hang", r.loai));
-      for (const r of rows.filter((x) => x.tan == null)) ok(await lien(sb.from(c.bangTT).delete().eq("ngay", r.ngay).eq("ca", r.ca).eq("huong", r.huong), r));
       const ghi = rows.filter((x) => x.tan != null).map((r) => ({ ngay: r.ngay, ca: r.ca, huong: r.huong, ...(nhom === "van_tai" ? { loai_xe: r.loai, don_vi: r.donVi, loai_hang: r.hang || "" } : { loai_hang: r.loai }), tan: r.tan, updated_at: now() }));
-      for (const g of chunk(ghi, 300)) ok(await sb.from(c.bangTT).upsert(g, { onConflict: nhom === "van_tai" ? "ngay,ca,huong,loai_xe,don_vi,loai_hang" : "ngay,ca,huong,loai_hang" }));
+      await song([...rows.filter((x) => x.tan == null).map((r) => async () => ok(await lien(sb.from(c.bangTT).delete().eq("ngay", r.ngay).eq("ca", r.ca).eq("huong", r.huong), r))),
+        ...chunk(ghi, 300).map((g) => async () => ok(await sb.from(c.bangTT).upsert(g, { onConflict: nhom === "van_tai" ? "ngay,ca,huong,loai_xe,don_vi,loai_hang" : "ngay,ca,huong,loai_hang" })))]);
     },
     // Kế hoạch sản lượng theo ngày, theo chuyến tàu (SQL 13): các dòng { id, voyage_id, ngay, khoi_luong } từ ngày tu đến ngày den (yyyy-mm-dd); null = chưa chạy SQL 13
     async docKeHoachNgay(tu, den) {
@@ -175,21 +191,21 @@ export function makeSupabaseApi() {
     async saveKeHoachNgay(rows) {
       const xoa = new Map();
       for (const r of rows.filter((x) => x.khoi_luong == null)) { if (!xoa.has(r.voyage_id)) xoa.set(r.voyage_id, []); xoa.get(r.voyage_id).push(r.ngay); }
-      for (const [vid, ngays] of xoa) ok(await sb.from("ke_hoach_san_luong_ngay").delete().eq("voyage_id", vid).in("ngay", ngays));
       const ghi = rows.filter((x) => x.khoi_luong != null).map((r) => ({ voyage_id: r.voyage_id, ngay: r.ngay, khoi_luong: r.khoi_luong, updated_at: now() }));
-      for (const g of chunk(ghi, 300)) ok(await sb.from("ke_hoach_san_luong_ngay").upsert(g, { onConflict: "voyage_id,ngay" }));
+      await song([...[...xoa].map(([vid, ngays]) => async () => ok(await sb.from("ke_hoach_san_luong_ngay").delete().eq("voyage_id", vid).in("ngay", ngays))),
+        ...chunk(ghi, 300).map((g) => async () => ok(await sb.from("ke_hoach_san_luong_ngay").upsert(g, { onConflict: "voyage_id,ngay" })))]);
     },
     // Kế hoạch xuất / nhập tồn kho: { them: [dòng mới], sua: [{ id, ...cột đổi }], xoa: [id] }
     async saveKeHoachKho({ them = [], sua = [], xoa = [] }) {
       if (xoa.length) ok(await sb.from("kho_ke_hoach").delete().in("id", xoa));
-      for (const c of chunk(them, 300)) ok(await sb.from("kho_ke_hoach").insert(c));
-      for (const { id, ...r } of sua) ok(await sb.from("kho_ke_hoach").update({ ...r, updated_at: now() }).eq("id", id));
+      await song([...chunk(them, 300).map((c) => async () => ok(await sb.from("kho_ke_hoach").insert(c))),
+        ...sua.map(({ id, ...r }) => async () => ok(await sb.from("kho_ke_hoach").update({ ...r, updated_at: now() }).eq("id", id)))]);
     },
     // Danh mục phụ (SQL 08): mỗi dòng { id, bang, data, thu_tu }. rows: [{ id?, ...giá trị cột }]
     async saveDmBang(bang, rows) {
       const cu = rows.filter((r) => r.id != null), moi = rows.filter((r) => r.id == null);
-      for (const { id, ...data } of cu) ok(await sb.from("danh_muc_bang").update({ data, updated_at: now() }).eq("id", id));
-      if (moi.length) ok(await sb.from("danh_muc_bang").insert(moi.map(({ id, ...data }, i) => ({ bang, data, thu_tu: 100000 + i }))));
+      await song([...cu.map(({ id, ...data }) => async () => ok(await sb.from("danh_muc_bang").update({ data, updated_at: now() }).eq("id", id))),
+        moi.length && (async () => ok(await sb.from("danh_muc_bang").insert(moi.map(({ id, ...data }, i) => ({ bang, data, thu_tu: 100000 + i })))))]);
     },
     deleteDmBang: async (ids) => ok(await sb.from("danh_muc_bang").delete().in("id", ids)),
     // Phân loại tồn kho: cần giải phóng / đầu cơ (SQL 07). null = chưa chạy SQL 07
@@ -197,10 +213,10 @@ export function makeSupabaseApi() {
     async addTonPhanLoai(rows) { ok(await sb.from("kho_ton_phan_loai").insert(rows)); },
     deleteTonPhanLoai: async (id) => ok(await sb.from("kho_ton_phan_loai").delete().eq("id", id)),
     // Kho: sổ nhập – xuất, lô thành phẩm
-    async addGiaoDich(rows) { for (const c of chunk(rows, 300)) ok(await sb.from("kho_giao_dich").insert(c)); },
+    async addGiaoDich(rows) { await song(chunk(rows, 300).map((c) => async () => ok(await sb.from("kho_giao_dich").insert(c)))); },
     updateGiaoDich: async (id, patch) => ok(await sb.from("kho_giao_dich").update(patch).eq("id", id)),
     deleteGiaoDich: async (id) => ok(await sb.from("kho_giao_dich").delete().eq("id", id)),
-    async saveLo(rows) { for (const c of chunk(rows, 300)) ok(await sb.from("kho_lo").upsert(c.map((r) => ({ ...r, updated_at: now() })), { onConflict: "so_lo", ignoreDuplicates: false })); },
+    async saveLo(rows) { await song(chunk(rows, 300).map((c) => async () => ok(await sb.from("kho_lo").upsert(c.map((r) => ({ ...r, updated_at: now() })), { onConflict: "so_lo", ignoreDuplicates: false })))); },
     loadGiaoDichKhoang: async (tu, den) => fetchAll(() => sb.from("kho_giao_dich").select("*").gte("ngay", tu).lte("ngay", den).order("id")),
     deleteVoyage: async (id) => ok(await sb.from("voyages").delete().eq("id", id)),
     // Reset line tàu cập: xóa MỌI chuyến (khoảng dừng, nhật ký, trả hàng, kế hoạch ngày đi theo chuyến); không hoàn tác được
@@ -219,8 +235,8 @@ export function makeSupabaseApi() {
     async upsertRows(bang, rows, khoa) {
       if (khoa === "id") {
         const moi = rows.filter((r) => r.id == null).map(({ id, ...r }) => ({ ...r, updated_at: now() }));
-        for (const c of chunk(moi, 300)) ok(await sb.from(bang).insert(c));
-        for (const { id, ...r } of rows.filter((x) => x.id != null)) ok(await sb.from(bang).update({ ...r, updated_at: now() }).eq("id", id));
+        await song([...chunk(moi, 300).map((c) => async () => ok(await sb.from(bang).insert(c))),
+          ...rows.filter((x) => x.id != null).map(({ id, ...r }) => async () => ok(await sb.from(bang).update({ ...r, updated_at: now() }).eq("id", id)))]);
         return;
       }
       for (const c of chunk(rows, 300)) ok(await sb.from(bang).upsert(c.map((r) => ({ ...r, updated_at: now() })), { onConflict: khoa }));
