@@ -21,8 +21,8 @@ export const NHOM = {
   },
 };
 // Nghiệp vụ của Kế hoạch vận tải (anh Sỹ 20/11/2026, SQL 25). Kế hoạch nhập Cảng phân bổ mặc định là "Nhập tàu", kế hoạch xuất Cảng là "Xuất tàu"; kế hoạch sản xuất chọn một trong ba nghiệp vụ còn lại.
-export const NGHIEP_VU = ["Nhập tàu", "Xuất tàu", "Trung chuyển", "Thu hồi", "Cấp sản xuất"];
-export const NV_SAN_XUAT = ["Trung chuyển", "Thu hồi", "Cấp sản xuất"];
+export const NGHIEP_VU = ["Nhập tàu", "Xuất tàu", "Trung chuyển", "Thu hồi", "Cấp sản xuất", "Chuyển bãi"];
+export const NV_SAN_XUAT = ["Trung chuyển", "Thu hồi", "Cấp sản xuất", "Chuyển bãi"];
 // Đọc tên nghiệp vụ gõ / dán (không phân biệt dấu, hoa thường) -> tên chuẩn; "" nếu để trống; null nếu không nhận ra
 export const docNghiepVu = (x) => { const t = plain(String(x ?? "")); if (!t) return ""; return NGHIEP_VU.find((n) => plain(n) === t) ?? null; };
 export const tenHuong = (nhom, h) => NHOM[nhom].huong.find(([x]) => x === h)?.[1] || h;

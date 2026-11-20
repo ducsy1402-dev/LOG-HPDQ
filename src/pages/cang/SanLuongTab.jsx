@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ClipboardPaste, Copy, Plus, Save, X, RefreshCw, ChevronDown, ChevronRight } from "lucide-react";
+import { ClipboardPaste, Copy, Plus, Save, X, RefreshCw, ChevronDown, ChevronRight, Pencil, Check } from "lucide-react";
 import { useApp } from "@/store";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input, NativeSelect } from "@/components/ui/input";
@@ -110,6 +110,9 @@ function BangMucTieu({ nhom, thang, kyLoai = "thang", mucTieu, mucTieuThang = []
   const { D, quyen, api, run, toast } = useApp();
   const c = NHOM[nhom], nhomHang = useNhomHang();
   const dsHuong = huongHien ? c.huong.filter(([h]) => h === huongHien) : c.huong; // các hướng đang hiện
+  // Các bảng kế hoạch KHÔNG sửa trực tiếp (anh Sỹ 20/11/2026): mỗi dòng có biểu tượng Sửa; bấm mới mở ô nhập của dòng đó (bấm lại, dấu ✓, để khóa)
+  const [dangSua, setDangSua] = useState(() => new Set());
+  const batSua = (k) => setDangSua((o) => { const n = new Set(o); if (n.has(k)) n.delete(k); else n.add(k); return n; });
   const [pb, setPb] = useState(null); // hộp Phân bổ vận tải đang mở: { k, huong, loai, neo } (bấm vào ô mục tiêu của Kế hoạch nhập / xuất Cảng)
   const goc = useMemo(() => Object.fromEntries(mucTieu.map((m) => { const r = tuDb(nhom, m); return [khoaCua(r), { huong: r.huong, loai: r.loai, donVi: r.donVi, hang: r.hang, nv: r.nv, tan: soGon(r.tan), ghi_chu: r.ghi_chu || "" }]; })), [mucTieu, nhom]);
   const [f, setF] = useState(goc);
@@ -136,7 +139,7 @@ function BangMucTieu({ nhom, thang, kyLoai = "thang", mucTieu, mucTieuThang = []
   const themDong = (huong) => {
     const t = them[huong] || {}, loai = (t.loai || "").trim(); if (!loai) return;
     const donVi = c.coDonVi ? t.donVi || DON_VI[0][0] : "", hang = c.coLoaiHang ? (t.hang || "").trim() : "", k = khoaDong(huong, loai, donVi, hang);
-    if (!dong[k]) { setF({ ...f, [k]: { huong, loai, donVi, hang, tan: "", ghi_chu: "" } }); setXoa((o) => { const n = new Set(o); n.delete(k); return n; }); }
+    if (!dong[k]) { setF({ ...f, [k]: { huong, loai, donVi, hang, tan: "", ghi_chu: "" } }); setDangSua((o) => new Set(o).add(k)); setXoa((o) => { const n = new Set(o); n.delete(k); return n; }); }
     setThem({ ...them, [huong]: { ...t, loai: "", hang: "" } });
   };
   // Vận tải: bảng theo form Excel (Loại hàng · Hướng · Loại xe · ĐVT · Tổng · Hòa Phát · Thuê ngoài · Ghi chú), mỗi dòng gộp hai dòng CSDL (hai đơn vị)
@@ -157,6 +160,7 @@ function BangMucTieu({ nhom, thang, kyLoai = "thang", mucTieu, mucTieuThang = []
     const nv = themV.nv || "";
     const moi = {}; for (const dv of ["hoa_phat", "nha_thau"]) { const k = khoaDong(huong, loai, dv, hang, nv); if (!dong[k]) moi[k] = { huong, loai, donVi: dv, hang, nv, tan: "", ghi_chu: "" }; }
     setF((x) => ({ ...x, ...moi })); setXoa((q) => { const n = new Set(q); for (const k of Object.keys(moi)) n.delete(k); return n; });
+    setDangSua((q) => new Set(q).add(`${huong}|${plain(loai)}|${plain(hang)}|${plain(nv)}`));
     setThemV({ ...themV, loai: "", hang: "" });
   };
   // Số dòng chờ lưu theo cách người dùng thấy: vận tải gộp Hòa Phát + Thuê ngoài thành một dòng
@@ -217,7 +221,7 @@ function BangMucTieu({ nhom, thang, kyLoai = "thang", mucTieu, mucTieuThang = []
           {dsHuong.length > 1 && <span><span className="text-muted-foreground">cộng</span> <b className="tabular-nums text-primary">{so(tongAll(tongMT))} t</b></span>}
         </div>
       </div>
-      {!thuMT && <>{vt ? <BangMucTieuVT ds={nhomVT} dong={dong} th={th} kyMode={kyMode} tongThang={tongThang} sua={sua} doi={doi} datO={datO} datGhiChu={datGhiChu} xoaNhom={xoaNhom} them={themV} setThem={setThemV} themNhom={themNhom} goiY={goiY} goiYHang={goiYHang} />
+      {!thuMT && <>{vt ? <BangMucTieuVT ds={nhomVT} dong={dong} th={th} dangSua={dangSua} batSua={batSua} kyMode={kyMode} tongThang={tongThang} sua={sua} doi={doi} datO={datO} datGhiChu={datGhiChu} xoaNhom={xoaNhom} them={themV} setThem={setThemV} themNhom={themNhom} goiY={goiY} goiYHang={goiYHang} />
       : <div className={cn("grid items-start gap-3", dsHuong.length > 1 && "lg:grid-cols-2")}>
         {dsHuong.map(([huong, ten]) => {
           const ds = Object.entries(dong).filter(([, r]) => r.huong === huong && loc(r)).sort((a, b) => (docSo(b[1].tan) || 0) - (docSo(a[1].tan) || 0) || a[1].loai.localeCompare(b[1].loai, "vi") || a[1].hang.localeCompare(b[1].hang, "vi"));
@@ -230,7 +234,7 @@ function BangMucTieu({ nhom, thang, kyLoai = "thang", mucTieu, mucTieuThang = []
                 <span className="ml-auto text-xs font-normal text-muted-foreground">{ds.length} dòng{thuH[huong] ? ` · mục tiêu ${so(mtT)} t · thực hiện ${so(thT)} t${mtT ? ` (${pct(thT / mtT)})` : ""}` : ""}</span></button>
               {!thuH[huong] && <><div className="scroll-x max-h-[50vh]">
                 <table className="tbl text-xs">
-                  <thead><tr><th>{c.nhanLoai}</th>{c.coDonVi && <th>Đơn vị</th>}{c.coLoaiHang && <th>Loại hàng</th>}<th className="num">Mục tiêu (t)</th>{kyMode && <th className="num">Σ các tháng</th>}<th className="num">Thực hiện</th><th className="num">Đạt</th><th>Ghi chú</th>{sua && <th className="w-8" />}</tr></thead>
+                  <thead><tr><th>{c.nhanLoai}</th>{c.coDonVi && <th>Đơn vị</th>}{c.coLoaiHang && <th>Loại hàng</th>}<th className="num">Mục tiêu (t)</th>{kyMode && <th className="num">Σ các tháng</th>}<th className="num">Thực hiện</th><th className="num">Đạt</th><th>Ghi chú</th>{sua && <th className="w-16" />}</tr></thead>
                   <tbody>
                     {ds.map(([k, r]) => {
                       const mt = docSo(r.tan) || 0, tt = th.get(k) || 0, tauT = tau?.theoLoai.get(khoaLoai(huong, r.loai))?.tau;
@@ -239,12 +243,16 @@ function BangMucTieu({ nhom, thang, kyLoai = "thang", mucTieu, mucTieuThang = []
                           <td className="whitespace-nowrap font-medium">{r.loai}{tauT > 0 && <div className="text-[0.6875rem] font-normal text-muted-foreground">tàu trong tháng {so(tauT)} t</div>}</td>
                           {c.coDonVi && <td className="whitespace-nowrap">{tenDonVi(r.donVi)}</td>}
                           {c.coLoaiHang && <td className="whitespace-nowrap">{r.hang || <span className="text-muted-foreground">Mọi hàng</span>}</td>}
-                          <td className="num">{sua ? <Input className="ml-auto h-8 w-28 text-right tabular-nums" inputMode="decimal" value={r.tan} placeholder="—" onChange={(e) => dat1(k, "tan", e.target.value)} onFocus={(e) => { if (nhom === "cang") setPb({ k, huong, loai: r.loai, neo: e.currentTarget }); }} title={nhom === "cang" ? "Bấm để phân bổ vận tải (Băng tải / Chạy xe)" : undefined} aria-label={`Mục tiêu ${r.loai} ${r.hang}`} /> : (r.tan || "—")}</td>
+                          <td className="num">{sua && dangSua.has(k)
+                            ? <Input className="ml-auto h-8 w-28 text-right tabular-nums" inputMode="decimal" value={r.tan} placeholder="—" onChange={(e) => dat1(k, "tan", e.target.value)} autoFocus aria-label={`Mục tiêu ${r.loai} ${r.hang}`} />
+                            : sua && nhom === "cang" ? <button type="button" onClick={(e) => setPb({ k, huong, loai: r.loai, neo: e.currentTarget })} title="Bấm để phân bổ vận tải (Băng tải / Chạy xe)" className={cn("ml-auto flex h-8 min-w-[7rem] items-center justify-end rounded-md border border-transparent px-2 tabular-nums transition-colors hover:border-input hover:bg-accent", pb?.k === k && "border-primary bg-primary/10")}>{r.tan || "—"}</button>
+                            : (r.tan || "—")}</td>
                           {kyMode && <td className="num text-muted-foreground">{tongThang.has(k) ? so(tongThang.get(k).tan) : "—"}</td>}
                           <td className="num">{so(tt)}</td>
                           <td className={cn("num", mt > 0 && tt >= mt && "font-semibold text-ok")}>{mt ? pct(tt / mt) : ""}</td>
-                          <td className="min-w-[110px]">{sua ? <Input className="h-8" value={r.ghi_chu} onChange={(e) => dat1(k, "ghi_chu", e.target.value)} aria-label={`Ghi chú ${r.loai} ${r.hang}`} /> : r.ghi_chu}</td>
-                          {sua && <td className="w-8"><button type="button" className="rounded p-1 text-muted-foreground hover:text-bad" onClick={() => xoaDong(k)} title={`Xóa dòng ${r.loai}`} aria-label={`Xóa dòng ${r.loai} ${r.hang}`}><X className="h-4 w-4" /></button></td>}
+                          <td className="min-w-[110px]">{sua && dangSua.has(k) ? <Input className="h-8" value={r.ghi_chu} onChange={(e) => dat1(k, "ghi_chu", e.target.value)} aria-label={`Ghi chú ${r.loai} ${r.hang}`} /> : r.ghi_chu}</td>
+                          {sua && <td className="w-16 whitespace-nowrap"><button type="button" className={cn("rounded p-1 hover:text-primary", dangSua.has(k) ? "text-primary" : "text-muted-foreground")} onClick={() => batSua(k)} title={dangSua.has(k) ? "Xong sửa (khóa dòng)" : "Sửa dòng"} aria-label={`${dangSua.has(k) ? "Xong sửa" : "Sửa"} dòng ${r.loai} ${r.hang}`}>{dangSua.has(k) ? <Check className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}</button>
+                            <button type="button" className="rounded p-1 text-muted-foreground hover:text-bad" onClick={() => xoaDong(k)} title={`Xóa dòng ${r.loai}`} aria-label={`Xóa dòng ${r.loai} ${r.hang}`}><X className="h-4 w-4" /></button></td>}
                         </tr>);
                     })}
                     {!ds.length && <tr><td colSpan={(sua ? 6 : 5) + soCotPhu + (kyMode ? 1 : 0)} className="py-4 text-center text-muted-foreground">Chưa có dòng nào. Chọn {c.nhanLoai.toLowerCase()}{c.coLoaiHang ? ", loại hàng" : ""} ở ô bên dưới rồi bấm Thêm, nhập mục tiêu và bấm Lưu.</td></tr>}

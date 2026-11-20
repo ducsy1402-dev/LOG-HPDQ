@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Plus, X } from "lucide-react";
+import { Check, Pencil, Plus, X } from "lucide-react";
 import { Input, NativeSelect } from "@/components/ui/input";
 import { ChonGo } from "@/components/ui/combobox";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ import { NHOM, HUONG_NGAN, NGHIEP_VU, khoaCot } from "@/lib/sanLuongTT";
 // Mỗi dòng gộp hai dòng CSDL (Hòa Phát, Thuê ngoài); Tổng = Hòa Phát + Thuê ngoài (tự cộng, không nhập).
 // Thêm hai cột đối chiếu: Thực hiện (cộng từ bảng thực tế) và Đạt (%). Sản lượng thực tế không chia theo nghiệp vụ nên khi một cột thực tế (hướng + loại xe + loại hàng) dùng cho nhiều nghiệp vụ thì
 // Thực hiện / Đạt của các dòng đó để trống, chỉ cộng một lần ở dòng Tổng. Quý / năm có thêm cột Σ các tháng.
-export default function BangMucTieuVT({ ds, dong, th, kyMode, tongThang, sua, doi, datO, datGhiChu, xoaNhom, them, setThem, themNhom, goiY, goiYHang }) {
+export default function BangMucTieuVT({ ds, dong, th, dangSua, batSua, kyMode, tongThang, sua, doi, datO, datGhiChu, xoaNhom, them, setThem, themNhom, goiY, goiYHang }) {
   const c = NHOM.van_tai;
   const v = (k) => (k ? dong[k]?.tan ?? "" : "");
   const num = (k) => (k ? docSo(String(v(k))) || 0 : 0);
@@ -30,7 +30,7 @@ export default function BangMucTieuVT({ ds, dong, th, kyMode, tongThang, sua, do
   const sigma = (o) => [o.hp, o.tn, ...o.khac].reduce((s, k) => s + (k && tongThang.has(k) ? tongThang.get(k).tan : 0), 0);
   const doiNhom = (o) => [o.hp, o.tn, ...o.khac].some((k) => k && doi.includes(k));
   const o_ = (o, slot) => (
-    sua
+    sua && dangSua.has(o.g)
       ? <Input className="ml-auto h-8 w-28 text-right tabular-nums" inputMode="decimal" value={v(o[slot])} onChange={(e) => datO(o, slot, e.target.value)}
           aria-label={`${slot === "hp" ? "Hòa Phát" : "Thuê ngoài"}: ${o.hang || "mọi hàng"} ${HUONG_NGAN[o.huong]} ${o.nv} ${o.loai}`} />
       : v(o[slot]));
@@ -40,7 +40,7 @@ export default function BangMucTieuVT({ ds, dong, th, kyMode, tongThang, sua, do
       <div className="scroll-x max-h-[60vh]">
         <table className="tbl text-xs">
           <thead><tr><th>Loại hàng</th><th>Hướng</th><th>Nghiệp vụ</th><th>Loại xe</th><th>ĐVT</th><th className="num">Hòa Phát</th><th className="num">Thuê ngoài</th>
-            {kyMode && <th className="num">Σ các tháng</th>}<th className="num">Thực hiện</th><th className="num">Đạt</th><th>Ghi chú</th>{sua && <th className="w-8" />}</tr></thead>
+            {kyMode && <th className="num">Σ các tháng</th>}<th className="num">Thực hiện</th><th className="num">Đạt</th><th>Ghi chú</th>{sua && <th className="w-16" />}</tr></thead>
           <tbody>
             {ds.map((o) => {
               const tong = tongNhom(o), tt = thNhom(o), nhieu = nhieuNv(o);
@@ -56,8 +56,8 @@ export default function BangMucTieuVT({ ds, dong, th, kyMode, tongThang, sua, do
                   {kyMode && <td className="num text-muted-foreground">{sigma(o) ? so(sigma(o)) : ""}</td>}
                   <td className="num" title={nhieu ? "Sản lượng thực tế nhập chung cho các nghiệp vụ cùng hướng, loại xe, loại hàng: xem dòng Tổng" : undefined}>{nhieu ? "" : so(tt)}</td>
                   <td className={cn("num", !nhieu && tong > 0 && tt >= tong && "font-semibold text-ok")}>{!nhieu && tong ? pct(tt / tong) : ""}</td>
-                  <td className="min-w-[120px]">{sua ? <Input className="h-8" value={ghiChu(o)} onChange={(e) => datGhiChu(o, e.target.value)} aria-label={`Ghi chú ${o.hang} ${o.loai}`} /> : ghiChu(o)}</td>
-                  {sua && <td className="w-8"><button type="button" className="rounded p-1 text-muted-foreground hover:text-bad" onClick={() => xoaNhom(o)} title="Xóa dòng" aria-label={`Xóa dòng ${o.hang || "mọi hàng"} ${o.nv} ${o.loai}`}><X className="h-4 w-4" /></button></td>}
+                  <td className="min-w-[120px]">{sua && dangSua.has(o.g) ? <Input className="h-8" value={ghiChu(o)} onChange={(e) => datGhiChu(o, e.target.value)} aria-label={`Ghi chú ${o.hang} ${o.loai}`} /> : ghiChu(o)}</td>
+                  {sua && <td className="w-16 whitespace-nowrap"><button type="button" className={cn("rounded p-1 hover:text-primary", dangSua.has(o.g) ? "text-primary" : "text-muted-foreground")} onClick={() => batSua(o.g)} title={dangSua.has(o.g) ? "Xong sửa (khóa dòng)" : "Sửa dòng"} aria-label={`${dangSua.has(o.g) ? "Xong sửa" : "Sửa"} dòng ${o.hang || "mọi hàng"} ${o.nv} ${o.loai}`}>{dangSua.has(o.g) ? <Check className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}</button><button type="button" className="rounded p-1 text-muted-foreground hover:text-bad" onClick={() => xoaNhom(o)} title="Xóa dòng" aria-label={`Xóa dòng ${o.hang || "mọi hàng"} ${o.nv} ${o.loai}`}><X className="h-4 w-4" /></button></td>}
                 </tr>);
             })}
             {!ds.length && <tr><td colSpan={(sua ? 11 : 10) + (kyMode ? 1 : 0)} className="py-4 text-center text-muted-foreground">Chưa có dòng nào. Chọn loại hàng, hướng, nghiệp vụ, loại xe ở ô bên dưới rồi bấm Thêm dòng, nhập Hòa Phát / Thuê ngoài và bấm Lưu. Hoặc phân bổ từ Kế hoạch nhập / xuất Cảng và Kế hoạch sản xuất.</td></tr>}

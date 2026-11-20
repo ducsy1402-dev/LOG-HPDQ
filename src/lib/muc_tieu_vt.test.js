@@ -25,8 +25,9 @@ describe("nhomDongVT (mục tiêu vận tải theo dòng Hòa Phát / Thuê ngo�
 import { docNghiepVu, khoaCot, khoaCua, NGHIEP_VU } from "./sanLuongTT";
 import { docBangMucTieuVT, gopDongDonVi, thanhDongDonVi } from "./mucTieuVT";
 describe("nghiệp vụ của kế hoạch vận tải", () => {
-  it("5 nghiệp vụ; đọc không phân biệt dấu / hoa thường; trống = trống; lạ = null", () => {
-    expect(NGHIEP_VU).toEqual(["Nhập tàu", "Xuất tàu", "Trung chuyển", "Thu hồi", "Cấp sản xuất"]);
+  it("6 nghiệp vụ; đọc không phân biệt dấu / hoa thường; trống = trống; lạ = null", () => {
+    expect(NGHIEP_VU).toEqual(["Nhập tàu", "Xuất tàu", "Trung chuyển", "Thu hồi", "Cấp sản xuất", "Chuyển bãi"]);
+    expect(docNghiepVu("chuyen bai")).toBe("Chuyển bãi");
     expect(docNghiepVu("nhap tau")).toBe("Nhập tàu");
     expect(docNghiepVu(" CẤP SẢN XUẤT ")).toBe("Cấp sản xuất");
     expect(docNghiepVu("")).toBe("");
