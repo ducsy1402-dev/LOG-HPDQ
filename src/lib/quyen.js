@@ -6,7 +6,7 @@ export const BAC = { xem: 0, nhap: 1, quan_ly: 2, quan_tri: 3 };
 export const NHOM_QUYEN = {
   van_tai: { ten: "Kế hoạch vận tải", sua: "Thiết bị cơ giới, danh mục thiết bị cơ giới và hàng hóa, mục tiêu / sản lượng thực tế vận tải" },
   kho_bai: { ten: "Kế hoạch kho bãi", sua: "Khai thác kho bãi, danh mục kho bãi và hàng hóa" },
-  xuat_nhap: { ten: "Kế hoạch xuất nhập", sua: "Mục tiêu sản lượng cảng (mục tiêu, kế hoạch ngày, sản lượng thực tế) và danh mục hàng hóa" },
+  xuat_nhap: { ten: "Kế hoạch xuất nhập", sua: "Kế hoạch tổng hợp phần cảng (mục tiêu, kế hoạch ngày, sản lượng thực tế) và danh mục hàng hóa" },
   cau_ben: { ten: "Kế hoạch cầu bến", sua: "Linetime tàu cập, danh mục cầu bến / tàu / đại lý và hàng hóa" },
   nhap_lieu: { ten: "Nhập liệu", sua: "Chỉ Sản lượng thực tế (cảng và vận tải)" },
   dieu_do: { ten: "Điều độ", sua: "Phần Điều độ (chưa có ô nhập; quyền để sẵn)" },

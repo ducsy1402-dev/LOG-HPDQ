@@ -204,25 +204,6 @@ export function makeSupabaseApi() {
       const ghi = rows.filter((r) => r.tan > 0).map((r) => ({ loai, ky, hang, ten_bai: r.ten_bai, ten_khu: r.ten_khu || "", tan: r.tan, updated_at: now() }));
       if (ghi.length) ok(await sb.from("kh_phan_kho").insert(ghi));
     },
-    // Kế hoạch ngày đường bộ (SQL 23): các dòng { ngay, hang, huong, ten_bai, ten_khu, tan } từ ngày tu tới ngày den (yyyy-mm-dd); null = chưa chạy SQL 23
-    async docKhNgayBo(tu, den) { const r = await sb.from("kh_ngay_bo").select("*").gte("ngay", tu).lte("ngay", den).order("id").range(0, 9999); return r.error ? null : r.data; },
-    // Thay toàn bộ các dòng của một ngày: rows = [{ hang, huong, ten_bai, ten_khu, tan }]
-    async luuKhNgayBo(ngay, rows) {
-      ok(await sb.from("kh_ngay_bo").delete().eq("ngay", ngay));
-      const ghi = rows.filter((r) => r.tan > 0).map((r) => ({ ngay, hang: r.hang, huong: r.huong, ten_bai: r.ten_bai || "", ten_khu: r.ten_khu || "", tan: r.tan, updated_at: now() }));
-      if (ghi.length) ok(await sb.from("kh_ngay_bo").insert(ghi));
-    },
-    // Kế hoạch ngày đường biển, chi tiết một tàu trong một ngày (SQL 23): phân xe + xuất / nhập kho. Trả { xe, kho }; null = chưa chạy SQL 23
-    async docKhNgayTau(voyageId, ngay) {
-      const [xe, kho] = await Promise.all([sb.from("kh_ngay_tau_xe").select("*").eq("voyage_id", voyageId).eq("ngay", ngay), sb.from("kh_ngay_tau_kho").select("*").eq("voyage_id", voyageId).eq("ngay", ngay)]);
-      return xe.error || kho.error ? null : { xe: xe.data, kho: kho.data };
-    },
-    async luuKhNgayTau(voyageId, ngay, { xe = [], kho = [] }) {
-      await Promise.all([sb.from("kh_ngay_tau_xe").delete().eq("voyage_id", voyageId).eq("ngay", ngay).then(ok), sb.from("kh_ngay_tau_kho").delete().eq("voyage_id", voyageId).eq("ngay", ngay).then(ok)]);
-      const gx = xe.filter((r) => r.tan > 0).map((r) => ({ voyage_id: voyageId, ngay, loai_xe: r.loai_xe || "", don_vi: r.don_vi, tan: r.tan, updated_at: now() }));
-      const gk = kho.filter((r) => r.tan > 0).map((r) => ({ voyage_id: voyageId, ngay, ten_bai: r.ten_bai, ten_khu: r.ten_khu || "", tan: r.tan, updated_at: now() }));
-      await Promise.all([gx.length && sb.from("kh_ngay_tau_xe").insert(gx).then(ok), gk.length && sb.from("kh_ngay_tau_kho").insert(gk).then(ok)]);
-    },
     // Kế hoạch sản lượng theo ngày, theo chuyến tàu (SQL 13): các dòng { id, voyage_id, ngay, khoi_luong } từ ngày tu đến ngày den (yyyy-mm-dd); null = chưa chạy SQL 13
     async docKeHoachNgay(tu, den) {
       const r = await sb.from("ke_hoach_san_luong_ngay").select("*").gte("ngay", tu).lte("ngay", den).order("ngay").range(0, 9999);

@@ -54,7 +54,7 @@ export function AppProvider({ children }) {
   // Hàm ghi chỉ đụng tới chuyến tàu và dữ liệu đi kèm chuyến: lưu xong tải lại nhẹ
 const GHI_NHE = new Set(["insertVoyages", "updateVoyage", "deleteVoyage", "addStop", "updateStop", "deleteStop", "addEvent", "deleteEvent", "savePlan", "deletePlan", "addTraHang", "deleteTraHang", "saveTien", "saveThucTe"]);
   const KHONG = new Set(["saveThucTe", "saveMucTieuKy", "saveKeHoachNgay", "addTonPhanLoai", "deleteTonPhanLoai"]);
-  const KHONG_LAM_MOI = new Set(["luuKhDong", "luuKhPhanXe", "luuKhPhanKho", "luuKhNgayBo", "luuKhNgayTau"]); // Kế hoạch tổng hợp: trang tự tải lại số của nó, không cần làm mới dữ liệu chung
+  const KHONG_LAM_MOI = new Set(["luuKhDong", "luuKhPhanXe", "luuKhPhanKho"]); // Kế hoạch tổng hợp: trang tự tải lại số của nó, không cần làm mới dữ liệu chung
   const GHI_KHO = new Set(["addGiaoDich", "updateGiaoDich", "deleteGiaoDich", "saveLo", "saveKeHoachKho"]);
   const RONG = { berths: [], vessels: [], agents: [], khoBai: [], voyages: [], stops: [], tien: [], plans: null, khoTon: null, khoLo: null, giaoDich: null, dmCot: null, coSql19: false, coSql24: false, coSql25: false, coSql26: false, coSql28: false, coSql12: false, coCotDan: false, traHang: null, mucTieu: null, khoKeHoach: null, dmBang: null };
   // kieu: false = tải đầy đủ · true / "nhe" = chỉ chuyến tàu và dữ liệu đi kèm · "kho" = chỉ sổ kho (tồn, lô, giao dịch, kế hoạch kho)
