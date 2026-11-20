@@ -126,11 +126,13 @@ export default function MucTieuCang() {
   const sanSang = !!du && kh !== undefined;
 
   // Một hướng (và nhóm hàng): thực tế, mục tiêu chia đều và kế hoạch theo từng điểm của kỳ
-  const chuoi = (h, nhom = "", ky = kyInfo) => {
+  // buTheoNgay (biểu đồ Kế hoạch xuất hàng HRC, vẽ theo ngày): ngày nào có kế hoạch ngày (> 0) thì lấy số đó, ngày không có lấy xuất trung bình ngày của tháng (mục tiêu tháng ÷ số ngày)
+  const chuoi = (h, nhom = "", ky = kyInfo, buTheoNgay = false) => {
     const c = chuoiKy(ky, du, "cang", { loc: (x) => x.huong === h && (!nhom || plain(x.loai) === plain(nhom)) });
     const k = keHoachTheoDiem(ky, khMap, h, nhom);
-    const khD = c.diem.map((o, i) => (k.kh[i] != null ? k.kh[i] : o.mt));
-    return { ...c, khD, nguon: k.du ? "kế hoạch ngày theo tàu" : k.coKh ? "kế hoạch ngày + mục tiêu chia đều (tháng chưa đặt)" : "mục tiêu chia đều" };
+    const khD = c.diem.map((o, i) => (buTheoNgay ? (k.kh[i] > 0 ? k.kh[i] : o.mt) : k.kh[i] != null ? k.kh[i] : o.mt));
+    const nguon = buTheoNgay ? "ngày có kế hoạch ngày lấy theo kế hoạch ngày, ngày chưa có lấy xuất trung bình ngày của tháng (mục tiêu ÷ số ngày)" : k.du ? "kế hoạch ngày theo tàu" : k.coKh ? "kế hoạch ngày + mục tiêu chia đều (tháng chưa đặt)" : "mục tiêu chia đều";
+    return { ...c, khD, nguon };
   };
   const nhanX = (c) => c.diem.map((o) => o.nhan);
   const veDuong = (name, data, color, net) => ({ name, type: "line", showSymbol: kyLoai !== "thang", symbolSize: 4, data, itemStyle: { color }, lineStyle: { width: net ? 1.6 : 2.4, type: net ? "dashed" : "solid", color }, smooth: false });
@@ -155,7 +157,7 @@ export default function MucTieuCang() {
   const nhomHRC = useMemo(() => dsNhomX.find((n) => plain(n) === "hrc") || "HRC", [dsNhomX]); // biểu đồ Kế hoạch xuất hàng chỉ thống kê loại hàng HRC (anh Sỹ 21/11/2026)
   // Biểu đồ Kế hoạch xuất hàng HRC luôn vẽ theo NGÀY (trục hoành là ngày) dù kỳ là Tháng / Quý / Năm (anh Sỹ 21/11/2026)
   const kyNgay = useMemo(() => ({ ...kyInfo, buoc: "ngay" }), [kyInfo]);
-  const cX = useMemo(() => (sanSang ? chuoi("xuat", nhomHRC, kyNgay) : null), [sanSang, du, khMap, kyNgay, nhomHRC]); // eslint-disable-line react-hooks/exhaustive-deps
+  const cX = useMemo(() => (sanSang ? chuoi("xuat", nhomHRC, kyNgay, true) : null), [sanSang, du, khMap, kyNgay, nhomHRC]); // eslint-disable-line react-hooks/exhaustive-deps
   // Tiến độ theo loại hàng của hướng chọn: thực tế so mục tiêu của kỳ
   const loai = useMemo(() => {
     if (!sanSang) return [];
