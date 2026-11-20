@@ -67,7 +67,7 @@ export default function DanNhanhKho({ loaiKho, kho, onClose }) {
     if (!loai) loi.push(`Không rõ loại "${r.loai}"`);
     if (!ngay) loi.push(`Ngày "${r.ngay}" không đọc được`);
     if (!String(r.hang ?? "").trim()) loi.push("Thiếu hàng");
-    if (sl == null || (loai !== "kiem_ke" && loai !== "dau_ky" && !(sl > 0)) || (loai === "dau_ky" && !(sl >= 0))) loi.push(`Khối lượng "${r.so_luong ?? ""}" không hợp lệ`);
+    if (sl == null || (loai !== "kiem_ke" && !(sl >= 0))) loi.push(`Khối lượng "${r.so_luong ?? ""}" không hợp lệ`);
     // Chưa có bãi chứa: chặn cả lần lưu (khai báo ở Danh mục › Kho bãi rồi dán lại)
     const den = baiDm.get(plain(r.den_bai)), hang = String(r.hang ?? "").trim(), baiGhi = String(r.ten_bai ?? "").trim(), gianGhi = String(r.ten_khu ?? "").trim();
     let chuaBai = false, bai = baiDm.get(plain(baiGhi));
@@ -121,7 +121,7 @@ export default function DanNhanhKho({ loaiKho, kho, onClose }) {
     }
     for (const { r, kr } of tdMoi.values()) {
       const td = tinhTonDau({ kho, giaoDich: D.giaoDich || [], key: kr.key, hang: r.hang, ngay: r.ngay, tonDau: r.so_luong });
-      const luot = luotTonDau({ ngay: r.ngay, ca: r.ca, kr, hang: r.hang, tonDau: r.so_luong, ...td, ghi_chu: r.ghi_chu });
+      const luot = luotTonDau({ ngay: r.ngay, ca: r.ca, kr, hang: r.hang, tonDau: r.so_luong, ...td, ghi_chu: r.ghi_chu, ghiCa: true });
       if (luot) rows.push({ ...luot, den_bai: null, den_khu: null });
     }
     const loMoi = [...new Map(rows.filter((r) => r.so_lo && (r.loai === "nhap" || r.loai === "dau_ky") && !(D.khoLo || []).some((l) => l.so_lo === r.so_lo)).map((r) => [r.so_lo, { so_lo: r.so_lo, hang: r.hang, ngay_nhap: r.ngay, trang_thai: "san_sang" }])).values()];

@@ -137,7 +137,7 @@ export default function GiaoDichForm({ loaiKho, loaiGD: loaiDau, kho, sua, onClo
   const lapDong = () => {
     const sl = docSo(f.so_luong);
     if (loiBai) { toast(canKhaiBao ? `${loiBai}. Khai báo bãi chứa ở Danh mục › Kho bãi trước khi lưu.` : loiBai, "bad"); return null; }
-    if (!(sl > 0)) { toast("Số lượng phải lớn hơn 0", "bad"); return null; }
+    if (sl == null || !(sl >= 0)) { toast("Số lượng phải là số không âm (nhập 0 cũng được)", "bad"); return null; }
     if ((loaiGD === "xuat" || dc) && sl > (tonLo ?? tonBH) + 1e-6) { toast(`Vượt tồn: ${f.so_lo ? "lô" : "bãi"} chỉ còn ${so(tonLo ?? tonBH)} t`, "bad"); return null; }
     if (tp && loaiGD === "nhap" && !f.so_lo.trim()) { toast("Thành phẩm cần số lô", "bad"); return null; }
     const tenHang = (vao ? hangCuaBai.find((h) => plain(h) === plain(hang)) || (kho.hangHoa || []).find((h) => plain(h.loai_hang) === plain(hang))?.loai_hang : hangCuaBai.find((h) => plain(h) === plain(hang))) || hang;

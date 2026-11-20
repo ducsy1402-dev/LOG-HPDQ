@@ -31,6 +31,8 @@ describe("tồn đầu kỳ đặt lại (không cộng dồn)", () => {
   });
   it("lượt ghi: bỏ qua khi số đã khớp, có do_thuc_te / so_sach", () => {
     expect(luotTonDau({ ngay: "2026-11-17", kr, hang: "HRC", tonDau: 200, hienCo: 200, delta: 0 })).toBeNull();
+    // khai tồn đầu 0 khi tồn đang 0 (ghiCa): vẫn ghi một lượt chênh lệch 0 để web nhận số 0
+    expect(luotTonDau({ ngay: "2026-11-17", kr, hang: "HRC", tonDau: 0, hienCo: 0, delta: 0, ghiCa: true })).toMatchObject({ loai: "dau_ky", so_luong: 0, do_thuc_te: 0, so_sach: 0 });
     expect(luotTonDau({ ngay: "2026-11-17", kr, hang: "HRC", tonDau: 200, hienCo: 500, delta: -300 })).toMatchObject({ loai: "dau_ky", so_luong: -300, do_thuc_te: 200, so_sach: 500, ten_khu: "G1" });
   });
 });

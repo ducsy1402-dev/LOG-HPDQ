@@ -78,7 +78,7 @@ export default function NhapXuatBang({ loaiKho, kho, onDan, onXong }) {
       if (!tenHang) return loi(`${kr.ten_bai} › ${kr.ten} không chứa ${hang} (chỉ chọn hàng đang chứa trong gian / lô)`);
       const tenGian = `${kr.ten_bai} › ${kr.ten}`;
       const base = { ngay, ca: tenCa(tbD, ngay, ca), ten_bai: kr.ten_bai, ...(coBaiNho ? { ten_khu: kr.ten } : {}), hang: tenHang, so_lo: null, nguon: null, voyage_id: null, chung_tu: null, ghi_chu: String(r.ghi_chu || "").trim() || null };
-      const sl = (k, ten) => { const t = String(r[k]).trim(); if (!t) return null; const v = docSo(t); return v > 0 ? v : `${ten} phải là số lớn hơn 0`; };
+      const sl = (k, ten) => { const t = String(r[k]).trim(); if (!t) return null; const v = docSo(t); return v != null && Number.isFinite(v) && v >= 0 ? v : `${ten} phải là số không âm (nhập 0 cũng được)`; }; // 0 được nhận (anh Sỹ 21/11/2026)
       // Tồn đầu (đầu ngày đang chọn): ĐẶT LẠI số tồn, lần khai báo gần nhất thay các lần trước (không cộng dồn); lib/tonDau.js
       const tdS = String(r.tonDau).trim();
       if (tdS) {
@@ -88,7 +88,7 @@ export default function NhapXuatBang({ loaiKho, kho, onDan, onXong }) {
         if (coTonDau.has(kk)) return loi(`hai dòng cùng khai tồn đầu của ${tenGian} · ${tenHang}`);
         coTonDau.add(kk);
         const td = tinhTonDau({ kho, giaoDich: D.giaoDich || [], key: kr.key, hang: tenHang, ngay, tonDau: X });
-        const luot = luotTonDau({ ngay, ca: tenCa(tbD, ngay, ca), kr, hang: tenHang, tonDau: X, ...td, ghi_chu: base.ghi_chu });
+        const luot = luotTonDau({ ngay, ca: tenCa(tbD, ngay, ca), kr, hang: tenHang, tonDau: X, ...td, ghi_chu: base.ghi_chu, ghiCa: true });
         if (luot) recs.push(luot);
         cong(kr.key, tenHang, td.delta, `${tenGian} · ${tenHang}`);
       }

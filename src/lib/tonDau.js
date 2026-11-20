@@ -29,8 +29,8 @@ export function tinhTonDau({ kho, giaoDich, key, hang, ngay, tonDau }) {
   const base = tonNay - tuNgay, hienCo = base + daCo;
   return { base, hienCo, delta: tonDau - hienCo };
 }
-// Lượt sổ ghi cho một lần khai báo tồn đầu kỳ (null nếu không cần ghi: số đã khớp)
-export const luotTonDau = ({ ngay, ca, kr, hang, tonDau, hienCo, delta, ghi_chu = null }) => (Math.abs(delta) < 1e-9 ? null
+// Lượt sổ ghi cho một lần khai báo tồn đầu kỳ (null nếu không cần ghi: số đã khớp). ghiCa = true: số đã khớp vẫn ghi một lượt chênh lệch 0 để web nhận (VD khai tồn đầu 0 khi tồn đang là 0)
+export const luotTonDau = ({ ngay, ca, kr, hang, tonDau, hienCo, delta, ghi_chu = null, ghiCa = false }) => (!ghiCa && Math.abs(delta) < 1e-9 ? null
   : { ngay, ca: ca || null, loai: "dau_ky", ten_bai: kr.ten_bai, ten_khu: kr.ten, hang, so_luong: Math.round(delta * 1e6) / 1e6, do_thuc_te: tonDau, so_sach: Math.round(hienCo * 1e6) / 1e6, nguon: null, so_lo: null, chung_tu: null, ghi_chu });
 // Lượt Tồn đầu kỳ kiểu mới (đặt lại) có do_thuc_te
 export const laTonDauDatLai = (g) => g.loai === "dau_ky" && g.do_thuc_te != null;
