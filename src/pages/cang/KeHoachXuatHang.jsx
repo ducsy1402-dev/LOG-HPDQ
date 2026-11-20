@@ -9,7 +9,7 @@ import { khoaKy } from "@/lib/ky";
 import { useKho } from "../kho/useKho";
 import { useNhomHang } from "./useNhomHang";
 
-// Biểu đồ "Kế hoạch xuất hàng · HRC" ở Kế hoạch tổng hợp (anh Sỹ 17/11/2026, sửa lại 21/11/2026): CHỈ loại hàng HRC, MỘT trục khối lượng (t), theo kỳ Tháng / Quý / Năm của trang (điểm theo ngày / tuần / tháng).
+// Biểu đồ "Kế hoạch xuất hàng · HRC" ở Kế hoạch tổng hợp (anh Sỹ 17/11/2026, sửa lại 21/11/2026): CHỈ loại hàng HRC, MỘT trục khối lượng (t), kỳ Tháng / Quý / Năm của trang nhưng LUÔN vẽ theo NGÀY (mỗi điểm một ngày; kyInfo truyền vào đã đặt buoc = "ngay").
 //   • Lũy kế xuất KẾ HOẠCH (tím, nét đứt): kế hoạch ngày theo tàu, tháng chưa đặt thì mục tiêu chia đều;
 //   • Lũy kế xuất THỰC TẾ (xanh trời): sản lượng xuất thực tế đã nhập, chỉ tới hôm nay;
 //   • TỒN KHO HRC (hổ phách, nét liền): tồn thực tế tới hôm nay, tính ngược từ tồn hiện tại theo sổ nhập – xuất kho (điều chuyển nội bộ không đổi tồn);
@@ -55,12 +55,18 @@ export default function KeHoachXuatHang({ kyInfo, homNay, c, nhom, cao }) {
   }, [kyInfo, homNay]);
   const tonNay = useMemo(() => (kho ? r2(kho.cap.filter((x) => lamNhom(x.hang)).reduce((s, x) => s + x.ton, 0)) : null), [kho, nhom, D.hanghoa]); // eslint-disable-line react-hooks/exhaustive-deps
   // Tồn thực tế cuối mỗi điểm = tồn hiện tại − tổng thay đổi của các lượt sổ SAU ngày cuối điểm (tới hôm nay); chỉ cho các điểm đã qua hết
+  // (đi lùi một lượt từ hôm nay: tồn cuối ngày d = tồn hôm nay − tổng thay đổi các ngày SAU d tới hôm nay)
   const ton = useMemo(() => {
     if (tonNay == null || !gd) return null;
     const dl = (g) => (g.loai === "xuat" ? -(+g.so_luong || 0) : g.loai === "dieu_chuyen" ? 0 : +g.so_luong || 0);
-    const luot = gd.filter((g) => lamNhom(g.hang)).map((g) => [String(g.ngay).slice(0, 10), dl(g)]);
-    return diem.map((o) => (o.cuoi > homNay ? null : r2(tonNay - luot.filter(([n]) => n > o.cuoi).reduce((s, [, v]) => s + v, 0))));
-  }, [tonNay, gd, diem, homNay, nhom, D.hanghoa]); // eslint-disable-line react-hooks/exhaustive-deps
+    const delta = new Map();
+    for (const g of gd) if (lamNhom(g.hang)) { const n = String(g.ngay).slice(0, 10); delta.set(n, (delta.get(n) || 0) + dl(g)); }
+    const ds = kyInfo.ngays.filter((d) => d <= homNay), cuoiNgay = new Map();
+    let cur = tonNay;
+    if (ds.length) { const last = ds[ds.length - 1]; for (const [n, v] of delta) if (n > last) cur -= v; } // kỳ đã qua: trừ các ngày sau kỳ tới hôm nay
+    for (let i = ds.length - 1; i >= 0; i--) { cuoiNgay.set(ds[i], r2(cur)); cur -= delta.get(ds[i]) || 0; }
+    return diem.map((o) => (o.cuoi > homNay ? null : cuoiNgay.get(o.cuoi) ?? null));
+  }, [tonNay, gd, diem, kyInfo, homNay, nhom, D.hanghoa]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const lkKH = luyKe(c.khD).map(r2), lkTT = c.diem.map((o) => (o.lkTt == null ? null : r2(o.lkTt)));
   // Tồn dự báo từ hôm nay: tồn hôm nay + (sản xuất kế hoạch − xuất kế hoạch) của các ngày còn lại; điểm chứa hôm nay chỉ tính phần ngày còn lại
@@ -78,7 +84,7 @@ export default function KeHoachXuatHang({ kyInfo, homNay, c, nhom, cao }) {
     return { out, sxCon: r2(sxCon), xuCon: r2(xuCon), cuoi: out[out.length - 1], het: het >= 0 ? c.diem[het].nhan : null };
   }, [ton, tonNay, diem, c, sx, kyInfo, homNay]);
 
-  const duong = (name, data, color, o = {}) => ({ name, type: "line", showSymbol: kyInfo.ky !== "thang", symbolSize: 4, data, itemStyle: { color }, lineStyle: { width: o.net ? 1.8 : 2.4, type: o.net ? "dashed" : "solid", color }, ...o.them });
+  const duong = (name, data, color, o = {}) => ({ name, type: "line", showSymbol: false, data, itemStyle: { color }, lineStyle: { width: o.net ? 1.8 : 2.4, type: o.net ? "dashed" : "solid", color }, ...o.them });
   const series = [
     duong("Lũy kế xuất · kế hoạch", lkKH, MAU.kh, { net: true }),
     duong("Lũy kế xuất · thực tế", lkTT, MAU.tt),
@@ -96,7 +102,7 @@ export default function KeHoachXuatHang({ kyInfo, homNay, c, nhom, cao }) {
   };
   const cuoiTT = lkTT.filter((v) => v != null).slice(-1)[0] ?? 0, cuoiKH = lkKH[lkKH.length - 1] || 0;
   return (
-    <Khung cao={cao} className="xl:col-span-2" ten="Kế hoạch xuất hàng · HRC" phu={`${kyInfo.nhan} · theo ${kyInfo.buoc === "ngay" ? "ngày" : kyInfo.buoc === "tuan" ? "tuần" : "tháng"} · tồn kho HRC thực tế và dự báo`}>
+    <Khung cao={cao} className="xl:col-span-2" ten="Kế hoạch xuất hàng · HRC" phu={`${kyInfo.nhan} · theo ngày · tồn kho HRC thực tế và dự báo`}>
       <EChart height={cao - 112} option={option} />
       <div className="mt-1 grid gap-0.5 text-[0.6875rem] text-muted-foreground">
         <span>Xuất thực tế <b className="text-foreground">{so(cuoiTT, 0)} t</b> / kế hoạch cả kỳ <b className="text-foreground">{so(cuoiKH, 0)} t</b> · KH: {c.nguon}</span>

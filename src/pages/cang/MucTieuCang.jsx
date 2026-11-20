@@ -126,9 +126,9 @@ export default function MucTieuCang() {
   const sanSang = !!du && kh !== undefined;
 
   // Một hướng (và nhóm hàng): thực tế, mục tiêu chia đều và kế hoạch theo từng điểm của kỳ
-  const chuoi = (h, nhom = "") => {
-    const c = chuoiKy(kyInfo, du, "cang", { loc: (x) => x.huong === h && (!nhom || plain(x.loai) === plain(nhom)) });
-    const k = keHoachTheoDiem(kyInfo, khMap, h, nhom);
+  const chuoi = (h, nhom = "", ky = kyInfo) => {
+    const c = chuoiKy(ky, du, "cang", { loc: (x) => x.huong === h && (!nhom || plain(x.loai) === plain(nhom)) });
+    const k = keHoachTheoDiem(ky, khMap, h, nhom);
     const khD = c.diem.map((o, i) => (k.kh[i] != null ? k.kh[i] : o.mt));
     return { ...c, khD, nguon: k.du ? "kế hoạch ngày theo tàu" : k.coKh ? "kế hoạch ngày + mục tiêu chia đều (tháng chưa đặt)" : "mục tiêu chia đều" };
   };
@@ -153,7 +153,9 @@ export default function MucTieuCang() {
   // Biểu đồ "Kế hoạch xuất hàng": xuất kế hoạch / thực tế lũy kế + tồn kho theo ngày, lọc loại hàng
   const dsNhomX = useMemo(() => { if (!du) return []; const m = new Map(); for (const r of [...du.mucTieu, ...(du.mucTieuKy || []), ...du.thucTe]) if (r.huong === "xuat" && r.loai_hang) m.set(plain(r.loai_hang), r.loai_hang); return [...m.values()]; }, [du]);
   const nhomHRC = useMemo(() => dsNhomX.find((n) => plain(n) === "hrc") || "HRC", [dsNhomX]); // biểu đồ Kế hoạch xuất hàng chỉ thống kê loại hàng HRC (anh Sỹ 21/11/2026)
-  const cX = useMemo(() => (sanSang ? chuoi("xuat", nhomHRC) : null), [sanSang, du, khMap, kyInfo, nhomHRC]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Biểu đồ Kế hoạch xuất hàng HRC luôn vẽ theo NGÀY (trục hoành là ngày) dù kỳ là Tháng / Quý / Năm (anh Sỹ 21/11/2026)
+  const kyNgay = useMemo(() => ({ ...kyInfo, buoc: "ngay" }), [kyInfo]);
+  const cX = useMemo(() => (sanSang ? chuoi("xuat", nhomHRC, kyNgay) : null), [sanSang, du, khMap, kyNgay, nhomHRC]); // eslint-disable-line react-hooks/exhaustive-deps
   // Tiến độ theo loại hàng của hướng chọn: thực tế so mục tiêu của kỳ
   const loai = useMemo(() => {
     if (!sanSang) return [];
@@ -223,7 +225,7 @@ export default function MucTieuCang() {
         </div>)}
 
       <div className="grid gap-3 xl:grid-cols-3">
-        {!chuaCo && cX && <KeHoachXuatHang kyInfo={kyInfo} homNay={homNay} c={cX} nhom={nhomHRC} cao={CAO + 20} />}
+        {!chuaCo && cX && <KeHoachXuatHang kyInfo={kyNgay} homNay={homNay} c={cX} nhom={nhomHRC} cao={CAO + 20} />}
         <CoCauTheoCang kyInfo={kyInfo} cao={CAO + 20} />
       </div>
 
