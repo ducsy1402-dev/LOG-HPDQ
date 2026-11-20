@@ -5,6 +5,9 @@ import { trangThai, laUoc, chiSo, TRANG_THAI, TRANG_THAI_HIEN } from "@/lib/line
 import { cacTuyen, viTriTrenLich, benTheoViTri, tenTuyen } from "@/lib/capBen";
 import { DAY, ngayGio, met, pad, iso, ms, thoiLuong } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { docSo } from "@/lib/format";
 import { tenBen, noiHaiBen } from "./BangTauBen";
 import { viTriChu } from "@/lib/tenBen";
 import { TheTau, SNAP, THU, KEO_DUOC } from "./Gantt";
@@ -57,6 +60,24 @@ export default function GanttMet({ voyages, tu, soNgay, pxNgay, che = "ben", gon
     const lech = doiGioDuoc(it) ? Math.round(((k.dx / pxNgay) * DAY) / SNAP) * SNAP : 0;
     const ben = benTheoViTri(D.berths, d.t.bens[0].ma, x, it.L);
     return { d, x, lech, ben, a: it.seg.a + lech, b: it.seg.b + lech };
+  };
+  // ---- Chỉnh nhanh mét cầu cập (anh Sỹ 20/11/2026): nút ghim trên thanh tàu mở hộp nhỏ gõ mét đầu, nhích ± hoặc bấm sát đầu / cuối bến. LOA của tàu KHÔNG đổi (mét cuối = mét đầu + LOA);
+  // chỉ ghi vị trí mét (vi_tri) và bến chính / phụ theo phần tàu chiếm. Chỉ đoạn bến hiện tại không do khoảng dừng chuyển bến.
+  const coChinhMet = (it) => doiMetDuoc(it) && !it.seg.nguon;
+  const [hop, setHop] = useState(null); // { it, dau (mét đầu, chuỗi đang gõ), cx, cy }
+  const moHop = (e, it) => { e.stopPropagation(); setTro(null); const r = e.currentTarget.getBoundingClientRect(); setHop({ it, dau: String(Math.round(it.x * 100) / 100), cx: r.left, cy: r.bottom + 4 }); };
+  const kqHop = (h) => {
+    const it = h.it, t = it.tuyen, x = docSo(h.dau);
+    if (h.dau.trim() === "" || !Number.isFinite(x)) return { x: null, ben: null, ngoai: true };
+    return { x, ben: benTheoViTri(D.berths, t.bens[0].ma, x, it.L), ngoai: x < t.tu - 1e-6 || x + it.L > t.den + 1e-6 };
+  };
+  const luuHop = () => {
+    const h = hop, r = kqHop(h), v = h.it.v;
+    if (r.x == null) return toast("Mét đầu phải là một số", "warn");
+    if (!r.ben || r.ngoai) return toast(`Mét ${met(r.x)}–${met(r.x + h.it.L)} ra ngoài tuyến ${tenTuyen(h.it.tuyen, tenBen)} (mét ${met(h.it.tuyen.tu)}–${met(h.it.tuyen.den)}) hoặc chiếm hơn hai bến`, "warn");
+    setHop(null);
+    if (r.x === h.it.x && h.it.coDinh) return;
+    run(() => api.updateVoyage(v.id, { vi_tri: r.x, ben_ma: r.ben.ben_ma, ben_phu: r.ben.ben_phu || null }), `${v.ten_tau}: bến ${noiHaiBen(r.ben.ben_ma, r.ben.ben_phu)} ${viTriChu(r.x, h.it.L)}`);
   };
   const onDown = (e, it) => {
     if (e.button !== 0) return;
@@ -127,6 +148,7 @@ export default function GanttMet({ voyages, tu, soNgay, pxNgay, che = "ben", gon
               const dangKeo = keo?.moved && keo.it === it;
               const left = Math.max(0, xOf(it.seg.a)), right = Math.min(W, xOf(it.seg.b)), w = Math.max(6, right - left);
               const top = yMet(d, it.x), h = Math.max(8, it.L * K.mPx);
+              const nutMet = coChinhMet(it);
               const cs = it.st === "lam_hang" ? chiSo(it.v, D.stopsOf(it.v.id), D.now) : null;
               const mau = TRANG_THAI[it.st].mau;
               const keoDuoc = doiMetDuoc(it) || doiGioDuoc(it);
@@ -154,6 +176,9 @@ export default function GanttMet({ voyages, tu, soNgay, pxNgay, che = "ben", gon
                   {cs && <div className="absolute inset-y-0 left-0 bg-black/25" style={{ width: `${Math.min(100, (cs.hoanTat || 0) * 100)}%` }} />}
                   <span className="relative truncate">{it.uocTT ? "≈ " : ""}{it.v.uu_tien ? "★ " : ""}{it.v.ten_tau}</span>
                   {h >= 26 && <span className="relative truncate opacity-85">{it.v._loaUoc || it.thuNho ? "≈" : ""}{met(it.L)} m · {noiHaiBen(it.seg.ben, it.seg.phu)} {viTriChu(it.x, it.L)}</span>}
+                  {/* Nút ghim: mở hộp chỉnh nhanh mét cầu cập (không đổi LOA) */}
+                  {nutMet && h >= 14 && <button type="button" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => moHop(e, it)} title="Chỉnh nhanh mét cầu cập (không đổi LOA)" aria-label={`Chỉnh mét cầu cập ${it.v.ten_tau}`}
+                    className="absolute right-0.5 top-0.5 z-20 flex h-3.5 w-3.5 items-center justify-center rounded bg-black/30 text-[0.5625rem] font-bold leading-none text-white opacity-60 hover:bg-black/60 hover:opacity-100">m</button>}
                 </div>
                 </Fragment>);
             })}
@@ -161,6 +186,34 @@ export default function GanttMet({ voyages, tu, soNgay, pxNgay, che = "ben", gon
         </div>
       </div>
       {/* Đang kéo: mét, bến, giờ cập – rời để căn chỉnh */}
+      {/* Hộp chỉnh nhanh mét cầu cập: LOA tàu giữ nguyên, chỉ đổi vị trí mét */}
+      {hop && (() => {
+        const it = hop.it, t = it.tuyen, r = kqHop(hop), x = r.x ?? it.x;
+        const dat = (m) => setHop({ ...hop, dau: String(Math.round(m * 100) / 100) });
+        const chip = t.bens.flatMap((b) => [[`Đầu ${tenBen(b.ma)}`, b.tu], [`Cuối ${tenBen(b.ma)}`, b.den - it.L]]).filter(([, m]) => m >= t.tu - 1e-6 && m + it.L <= t.den + 1e-6);
+        return (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setHop(null)} />
+            <div className="fixed z-50 w-72 rounded-lg border bg-popover p-3 text-xs text-popover-foreground shadow-xl" style={{ left: Math.max(8, Math.min(hop.cx, window.innerWidth - 296)), top: Math.max(8, Math.min(hop.cy, window.innerHeight - 270)) }}>
+              <div className="text-sm font-semibold">{it.v.ten_tau}</div>
+              <div className="text-muted-foreground">LOA {met(it.L)} m (không đổi) · tuyến {tenTuyen(t, tenBen)} (mét {met(t.tu)}–{met(t.den)})</div>
+              <div className="mt-2 flex items-center gap-2">
+                <span className="shrink-0">Mét đầu</span>
+                <Input autoFocus className="h-8 w-24 tabular-nums" value={hop.dau} inputMode="decimal" onFocus={(e) => e.target.select()} onChange={(e) => setHop({ ...hop, dau: e.target.value })}
+                  onKeyDown={(e) => { if (e.key === "Enter") luuHop(); if (e.key === "Escape") setHop(null); }} aria-label="Mét đầu tàu" />
+                <span className="text-muted-foreground">→ cuối <b className="tabular-nums text-foreground">{r.x == null ? "?" : met(x + it.L)}</b></span>
+              </div>
+              <div className="mt-2 flex gap-1">
+                {[-10, -1, 1, 10].map((d) => <Button key={d} size="xs" variant="outline" className="flex-1 tabular-nums" onClick={() => dat(x + d)}>{d > 0 ? "+" : "−"}{Math.abs(d)} m</Button>)}
+              </div>
+              <div className="mt-2 flex flex-wrap gap-1">
+                {chip.map(([ten, m]) => <Button key={ten} size="xs" variant="ghost" className="border" onClick={() => dat(m)}>{ten}</Button>)}
+              </div>
+              <div className="mt-2">{r.ben && !r.ngoai ? <>Cập bến <b>{noiHaiBen(r.ben.ben_ma, r.ben.ben_phu)}</b> · mét {met(x)}–{met(x + it.L)}</> : <span className="text-bad">Ra ngoài tuyến / chiếm hơn hai bến</span>}</div>
+              <div className="mt-2 flex justify-end gap-2"><Button size="sm" variant="outline" onClick={() => setHop(null)}>Hủy</Button><Button size="sm" disabled={!r.ben || r.ngoai} onClick={luuHop}>Lưu</Button></div>
+            </div>
+          </>);
+      })()}
       {dang && (
         <div className="pointer-events-none fixed z-50 rounded-md border bg-popover px-2.5 py-1.5 text-xs shadow-lg" style={{ left: (keo.cx ?? 0) + 16, top: (keo.cy ?? 0) + 16 }}>
           <div className="font-semibold">{keo.it.v.ten_tau} · {met(keo.it.L)} m</div>
@@ -174,10 +227,11 @@ export default function GanttMet({ voyages, tu, soNgay, pxNgay, che = "ben", gon
         <ChuThichCho toan={che === "toan"} />
         {che === "toan" && <span className="flex items-center gap-1"><i className="inline-block h-3 w-0.5 bg-white" />Vạch NOR, bắt đầu / kết thúc làm hàng</span>}
         <span className="flex items-center gap-1"><i className="inline-block h-3 w-4 border-t-2 border-warn" />Đầu góc vuông</span>
+        {coSua && <span className="flex items-center gap-1"><i className="inline-flex h-3.5 w-3.5 items-center justify-center rounded bg-slate-500 text-[0.5625rem] font-bold not-italic text-white">m</i>Bấm để chỉnh nhanh mét cầu cập (không đổi LOA)</span>}
         <span>≈ trước tên tàu: trạng thái theo giờ dự kiến · ≈ trước số mét: LOA ước tính (tàu chưa có LOA)</span>
         {chuaXep > 0 && <span>{chuaXep} chuyến chưa có bến (không vẽ trên lịch theo mét)</span>}
       </div>
-      {tro && !keo && <TheTau x={tro.x} cx={tro.cx} cy={tro.cy} />}
+      {tro && !keo && !hop && <TheTau x={tro.x} cx={tro.cx} cy={tro.cy} />}
     </>
   );
 }

@@ -87,8 +87,8 @@ export function demoData() {
     V({ ma_chuyen: ma("SEA FORTUNE", 1), ten_tau: "SEA FORTUNE", dai_ly: "VOSA Quảng Ngãi", huong: "xuat", loai_hang: "HRC", ten_hang: "HRC xuất khẩu", khoi_luong: 18000, ben_ma: "B03", huy: true, ghi_chu: "Chủ hàng hủy chuyến",
       eta: "15/10 06:00", etb: "15/10 10:00", etd: "17/10 10:00" }),
   ];
-  // Tàu cập hai bến liền nhau (bến phụ, SQL 28) mẫu: 7/8 và 3/5
-  for (const [m, ben_ma, ben_phu, loa] of [[ma("NAM KHÁNH 18", 4), "B07", "B08", null], [ma("TBA", 1), "B03", "B05", 190]]) {
+  // Tàu cập hai bến liền nhau (bến phụ, SQL 28) mẫu: 7/8, 3/5, 5/10 và 6/11 (hàng bến ghép ở Linetime › Theo bến)
+  for (const [m, ben_ma, ben_phu, loa] of [[ma("NAM KHÁNH 18", 4), "B07", "B08", null], [ma("TBA", 1), "B03", "B05", 190], [ma("MARINE HONESTY", 1), "B10", "B05", null], [ma("GREAT HARMONY", 1), "B11", "B06", null]]) {
     const v = voyages.find((x) => x.ma_chuyen === m);
     if (v) Object.assign(v, { ben_ma, ben_phu }, loa ? { loa } : {});
   }

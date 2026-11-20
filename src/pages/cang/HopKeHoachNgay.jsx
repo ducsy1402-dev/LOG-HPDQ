@@ -16,7 +16,7 @@ import { cacTuyen, viTriTrenLich } from "@/lib/capBen";
 import { ngayCuaChuyen, chiaDeuTheoGio, thucTeNgay, ngayDia } from "@/lib/keHoachNgay";
 import { cn } from "@/lib/utils";
 import { useNhomHang } from "./useNhomHang";
-import { tenBen } from "./BangTauBen";
+import { tenBen, noiHaiBen } from "./BangTauBen";
 
 // Kế hoạch ngày (nút "Kế hoạch ngày" của Mục tiêu sản lượng › Khai thác cảng, SQL 13) — thiết kế lại 14/11/2026 theo ý anh Sỹ (từ 15/11: xếp tàu GIỐNG Linetime › Lịch cầu bến theo bến, không còn theo cụm bến):
 // VỪA XEM LINE TÀU VỪA LẬP KẾ HOẠCH CHI TIẾT TỪNG TÀU.
@@ -76,7 +76,7 @@ function KhungNgay({ ngay, huong, ds, vid, giaTri, hienThi, datO, goiY, chiaDeu,
                   <span className="text-xs text-muted-foreground">t</span>
                 </div>
                 <div className="flex items-center gap-0.5">
-                  <button type="button" onClick={() => chiaDeu(v)} className="rounded p-1 text-muted-foreground hover:text-primary" title="Chia đều khối lượng tàu cho các ngày làm hàng theo giờ dự kiến" aria-label={`Chia đều ${v.ten_tau}`}><Wand2 className="h-3.5 w-3.5" /></button>
+                  <button type="button" onClick={() => chiaDeu(v)} className="rounded p-1 text-muted-foreground hover:text-primary" title="Chia khối lượng tàu cho các ngày theo tỉ lệ giờ làm hàng trong từng ngày (từ lúc làm hàng tới ETD)" aria-label={`Chia đều ${v.ten_tau}`}><Wand2 className="h-3.5 w-3.5" /></button>
                   <button type="button" onClick={() => xoaTau(v)} className="rounded p-1 text-muted-foreground hover:text-bad" title="Xóa kế hoạch của tàu trong tháng" aria-label={`Xóa kế hoạch ${v.ten_tau}`}><Eraser className="h-3.5 w-3.5" /></button>
                 </div>
               </div>}
@@ -171,7 +171,9 @@ export default function HopKeHoachNgay({ thang0, onClose, onLuu, nhung, tiepTheo
 
   // ---- Line tàu là BẢN SAO của Linetime › Lịch cầu bến (theo bến): dùng đúng hàm xếp tàu vào dòng bến của lịch (xepHangBen), thanh tàu đặt theo GIỜ thật; mỗi ngày tàu ở bến là một ô số tấn. ----
   const tuMs = new Date(hien[0] + "T00:00:00").getTime(), denMs = tuMs + hien.length * DAY;
-  const hangTat = useMemo(() => xepHangBen(D, loc2.map((x) => x.v), tuMs, denMs, "ben", { row: 30, lan: LH, top: 4 }), [D.voyages, D.berths, D.now, loc2, tuMs, denMs, LH]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Hàng bến ghép (B03/05…) giống Lịch cầu bến: cùng cài đặt nút "Bến ghép" ở Linetime (lg-gantt-ghep, mặc định bật)
+  const ghep = D.coSql28 && (() => { try { return localStorage.getItem("lg-gantt-ghep") !== "0"; } catch { return true; } })();
+  const hangTat = useMemo(() => xepHangBen(D, loc2.map((x) => x.v), tuMs, denMs, "ben", { row: 30, lan: LH, top: 4 }, { ghep }), [D.voyages, D.berths, D.now, loc2, tuMs, denMs, LH, ghep]); // eslint-disable-line react-hooks/exhaustive-deps
   // Đang lọc (hướng hoặc loại hàng) thì ẩn bến không có tàu nào thuộc bộ lọc trong các ngày đang xem (anh Sỹ 19/11/2026)
   const dangLoc = !!(loc.huong || loc.nhom);
   const hang = useMemo(() => (dangLoc ? hangTat.filter((r) => r.ds.length) : hangTat), [hangTat, dangLoc]);
@@ -293,9 +295,9 @@ export default function HopKeHoachNgay({ thang0, onClose, onLuu, nhung, tiepTheo
                 </div>
 
                 {truc === "ben" ? hang.map((r) => (
-                  <div key={r.ma || "_"} className="flex border-b">
-                    <div className="sticky left-0 z-10 flex shrink-0 flex-col justify-center border-r bg-card px-2" style={{ width: LABEL }}>
-                      <span className="font-mono text-[0.8125rem] font-semibold leading-tight">{r.b ? tenBen(r.ma) : "Chưa xếp bến"}</span>
+                  <div key={r.ma || "_"} className={cn("flex border-b", r.cap && "bg-primary/[0.05]")}>
+                    <div className={cn("sticky left-0 z-10 flex shrink-0 flex-col justify-center border-r bg-card px-2", r.cap && "border-l-2 border-l-primary/60")} style={{ width: LABEL }}>
+                      <span className={cn("font-mono text-[0.8125rem] font-semibold leading-tight", r.cap && "text-primary")}>{r.cap ? `⇕ ${noiHaiBen(r.cap[0], r.cap[1])}` : r.b ? tenBen(r.ma) : "Chưa xếp bến"}</span>
                       {r.ds.length > 0 && <span className="text-[0.6875rem] text-muted-foreground">{new Set(r.ds.map((x) => x.v.id)).size} tàu</span>}
                     </div>
                     <div className="relative shrink-0" style={{ width: W, height: r.h }}>

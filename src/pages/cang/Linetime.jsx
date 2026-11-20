@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Plus, Trash2, ClipboardPaste, CalendarRange, CalendarClock, CalendarCheck, Rows3, Rows4, List, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Anchor, Clock3, Ruler } from "lucide-react";
+import { Plus, Trash2, ClipboardPaste, CalendarRange, CalendarClock, CalendarCheck, Rows3, Rows4, List, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Anchor, Clock3, Ruler, Link2 } from "lucide-react";
 import { useApp } from "@/store";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -35,6 +35,7 @@ export default function Linetime() {
   const ghi = (k, v) => { try { localStorage.setItem(k, v); } catch { /* bỏ qua */ } };
   const [che, setChe] = useState(() => doc("lg-gantt-che", "ben"));
   const [gon, setGon] = useState(() => doc("lg-gantt-gon", "0") === "1");
+  const [ghep, setGhep] = useState(() => doc("lg-gantt-ghep", "1") === "1"); // hàng riêng cho bến ghép (B03/05…) ở chế độ Theo bến
   // Trục dọc của lịch: "ben" mỗi bến một dòng; "met" theo mét dọc tuyến bến (đặt vị trí mét, tàu hai bến)
   const [truc, setTruc] = useState(() => doc("lg-gantt-truc", "ben"));
   const [them, setThem] = useState(false);
@@ -86,7 +87,7 @@ export default function Linetime() {
         </TabsList>
           {tab === "gantt" && <>
             <span className="hidden h-6 w-px shrink-0 bg-border md:block" aria-hidden />
-            <div className="flex min-w-0 flex-wrap items-center gap-1.5" title={quyen.nhap ? (truc === "met" ? "Kéo ngang đổi giờ (tàu chưa cập, bước 30 phút), kéo dọc đặt vị trí mét / đổi bến." : "Kéo thanh tàu chưa cập bến để đổi bến / giờ dự kiến (bước 30 phút).") : undefined}>
+            <div className="flex min-w-0 flex-wrap items-center gap-1.5" title={quyen.nhap ? (truc === "met" ? "Kéo ngang đổi giờ (tàu chưa cập, bước 30 phút), kéo dọc đặt vị trí mét / đổi bến." : "Kéo thanh tàu chưa cập bến để đổi bến / giờ dự kiến; kéo mép trái / phải thanh tàu để đổi giờ cập / rời (bước 30 phút).") : undefined}>
             <Button size="sm" variant="outline" onClick={() => setTu(tu - 7 * DAY)} aria-label="Lùi 7 ngày"><ChevronLeft /></Button>
             <Button size="sm" variant="outline" onClick={() => setTu(homNay() - 3 * DAY)}>Hôm nay</Button>
             <Button size="sm" variant="outline" onClick={() => setTu(tu + 7 * DAY)} aria-label="Tới 7 ngày"><ChevronRight /></Button>
@@ -104,6 +105,8 @@ export default function Linetime() {
                 <Button key={k} size="xs" variant={che === k ? "secondary" : "ghost"} className={cn(che === k && "text-primary")} title={mo} aria-pressed={che === k}
                   onClick={() => { setChe(k); ghi("lg-gantt-che", k); }}>{k === "toan" ? <Clock3 /> : <Anchor />}{t}</Button>))}
             </div>
+            {truc === "ben" && <Button size="xs" variant={ghep ? "secondary" : "outline"} className={cn(ghep && "text-primary")} aria-pressed={ghep} title="Hiện hàng riêng cho các bến ghép (B03/05, B05/10, B04/06, B06/11…): tàu cập hai bến vẽ ở hàng ghép (hộp Kế hoạch ngày cũng theo cài đặt này)"
+              onClick={() => { setGhep(!ghep); ghi("lg-gantt-ghep", ghep ? "0" : "1"); }}><Link2 />Bến ghép</Button>}
             <Button size="xs" variant={gon ? "secondary" : "outline"} className={cn(gon && "text-primary")} aria-pressed={gon} title="Dòng thấp, chữ nhỏ: xem được nhiều bến hơn"
               onClick={() => { setGon(!gon); ghi("lg-gantt-gon", gon ? "0" : "1"); }}><Rows4 />Gọn</Button>
               <NutToanManHinh on={toanMH} onClick={doiToanMH} />
@@ -114,7 +117,7 @@ export default function Linetime() {
         <TabsContent value="gantt">
           {truc === "met"
             ? <GanttMet voyages={loc} tu={tu} soNgay={soNgay} pxNgay={ZOOM[zoom]} che={che} gon={gon} maxH={toanMH ? "calc(100dvh - 130px)" : undefined} />
-            : <Gantt voyages={loc} tu={tu} soNgay={soNgay} pxNgay={ZOOM[zoom]} che={che} gon={gon} maxH={toanMH ? "calc(100dvh - 130px)" : undefined} />}
+            : <Gantt voyages={loc} tu={tu} soNgay={soNgay} pxNgay={ZOOM[zoom]} che={che} gon={gon} ghep={ghep} giaDuoc maxH={toanMH ? "calc(100dvh - 130px)" : undefined} />}
         </TabsContent>
 
         <TabsContent value="ben"><Card><CardContent className="pt-4"><BangTauBen /></CardContent></Card></TabsContent>

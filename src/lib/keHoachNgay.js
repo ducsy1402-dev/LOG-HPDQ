@@ -3,7 +3,7 @@
 //   • gộp kế hoạch ngày theo (ngày, hướng, nhóm hàng); so với thực tế (bảng san_luong_cang) và mục tiêu tháng;
 //   • đếm tàu đang làm hàng / chờ trong 24 giờ tới cho ba thẻ (HRC, thép thành phẩm, hàng nhập).
 import { trangThai, klCanLam } from "./linetime";
-import { mocDuKien } from "./xepBen";
+import { mocDuKien, THU_TUC_SAU_HANG, ROI_SAU_THU_TUC } from "./xepBen";
 import { dongHang } from "./sanLuong";
 import { laHRC, loaiKhoTuHang } from "./kho";
 import { plain } from "./format";
@@ -16,8 +16,12 @@ const dauNgay = (t) => { const d = new Date(t); return new Date(d.getFullYear(),
 const ms = (x) => (x ? new Date(x).getTime() : null);
 
 // Khoảng thời gian làm hàng (ms) của chuyến để chia kế hoạch: bắt đầu → kết thúc làm hàng (thực tế nếu có, không thì dự kiến); null nếu chưa có mốc
+// Kết thúc làm hàng: mốc thực tế nếu có; chưa có mà đã có ETD / ATD thì làm hàng suốt thời gian tàu ở bến (ETD trừ thủ tục và rời bến), không dùng mốc ước tính theo cam kết
+// (tàu không có cam kết bị ước 1 ngày nên cả khối lượng dồn vào ngày đầu, 20/11/2026); không có ETD thì dùng mốc dự kiến.
 export function khoangLamHang(v) {
-  const m = mocDuKien(v), a = m.bd ?? m.cap ?? m.eta, b = m.kt ?? m.roi ?? (a != null ? a + DAY : null);
+  const m = mocDuKien(v), a = m.bd ?? m.cap ?? m.eta;
+  const roi = ms(v.atd) ?? ms(v.etd), coKT = !!v.kt_lam_hang;
+  const b = coKT ? m.kt : roi != null && a != null ? roi - THU_TUC_SAU_HANG - ROI_SAU_THU_TUC : m.kt ?? m.roi ?? (a != null ? a + DAY : null);
   return a != null && b != null ? { a, b: Math.max(b, a + HOUR) } : null;
 }
 // Các ngày (yyyy-mm-dd) chuyến chiếm bến, từ ngày cập đến ngày rời

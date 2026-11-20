@@ -23,6 +23,12 @@ describe("chia kế hoạch theo giờ làm hàng", () => {
     const m = chiaDeuTheoGio(v);
     expect([...m.values()].reduce((s, x) => s + x, 0)).toBe(1000);
   });
+  it("tàu không có cam kết, chưa có mốc kết thúc: chia theo giờ làm hàng tới ETD, không dồn vào ngày đầu", () => {
+    const v = tau({ khoi_luong: 92500, atb: T("2026-11-10T08:00:00"), etd: T("2026-11-14T08:00:00") }); // làm hàng 10/11 09:00 → 14/11 05:30 = 92,5 giờ
+    const m = chiaDeuTheoGio(v);
+    expect([...m.keys()]).toEqual(["2026-11-10", "2026-11-11", "2026-11-12", "2026-11-13", "2026-11-14"]);
+    expect(m.get("2026-11-10")).toBe(15000); expect(m.get("2026-11-11")).toBe(24000); expect(m.get("2026-11-13")).toBe(24000); expect(m.get("2026-11-14")).toBe(5500);
+  });
   it("chưa có mốc nào: không chia", () => { expect(chiaDeuTheoGio(tau({})).size).toBe(0); });
   it("các ngày tàu ở bến", () => {
     const v = tau({ atb: T("2026-11-10T08:00:00"), atd: T("2026-11-12T09:00:00"), bd_lam_hang: T("2026-11-10T10:00:00"), kt_lam_hang: T("2026-11-12T06:00:00") });

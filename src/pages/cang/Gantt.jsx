@@ -2,7 +2,7 @@ import { Fragment, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "@/store";
 import { khoangBen, doanBen, trangThai, laUoc, chiSo, TRANG_THAI, TRANG_THAI_HIEN, MAU_CHO } from "@/lib/linetime";
 import { choBatDau, kieuCho, PhanChoHang, ChuThichCho } from "./doanCho";
-import { laBenLienKe } from "@/lib/capBen";
+import { laBenLienKe, benLienKe } from "@/lib/capBen";
 import { DAY, ngayGio, so, met, pad, iso, ms, tanK, pct } from "@/lib/format";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -43,9 +43,18 @@ function chiaLan(ds) {
 // mỗi bến một dòng theo thứ tự bến trong danh mục; mỗi đoạn tàu chiếm bến là một thanh; thanh trùng giờ xếp thành nhiều làn (tàu rời đúng lúc tàu khác cập thì nối tiếp cùng một làn);
 // tàu cập hai bến chỉ ở bến đứng trước và xếp dưới cùng dòng. K = { row, lan, top }: chiều cao tối thiểu một dòng, chiều cao một làn, lề trên.
 // Trả [{ ma, b, ds: [{ v, a, b, a0, la, st, uocTT, haiBen, lan, top, rowMa }], soLan, y, h }]
-export function xepHangBen(D, voyages, tu, den, che, K) {
-  const ROW = K.row;
-  const rows = [...D.berths.map((b) => ({ ma: b.ma, b })), { ma: "", b: null }];
+// opt.ghep (chỉ Linetime › Theo bến, 20/11/2026): thêm một HÀNG RIÊNG cho từng cặp bến liền kề (B03/05, B05/10, B04/06, B06/11…) nằm ngay dưới bến đứng trước;
+// tàu cập hai bến vẽ ở hàng ghép (không còn nằm cuối dòng bến chính; anh Sỹ không dùng bóng sọc ở hai dòng bến thành phần). Hàng ghép trả thêm cap: [bến trước, bến sau].
+export function xepHangBen(D, voyages, tu, den, che, K, opt = {}) {
+  const ROW = K.row, ghep = !!opt.ghep;
+  const thuTuBen = (m) => D.berths.findIndex((b) => String(b.ma) === String(m));
+  const rows = [];
+  for (const b of D.berths) {
+    rows.push({ ma: b.ma, b });
+    if (!ghep) continue;
+    for (const k of benLienKe(D.berths, b.ma)) if (thuTuBen(k.ma) > thuTuBen(b.ma)) rows.push({ ma: `${b.ma}|${k.ma}`, b: null, cap: [String(b.ma), String(k.ma)] });
+  }
+  rows.push({ ma: "", b: null });
   const theoBen = new Map(rows.map((r) => [r.ma, []]));
   for (const v of voyages) {
     const k = khoangBen(v, D.now);
@@ -59,17 +68,19 @@ export function xepHangBen(D, voyages, tu, den, che, K) {
       if (d.b < tu || (i ? d.a : la) > den) return;
       const phu = d.phu && laBenLienKe(D.berths, d.ben, d.phu) ? d.phu : "";
       // Tàu cập hai bến (3/5): chỉ vẽ ở BẾN ĐỨNG TRƯỚC trong dãy bến; ghi "⇕ (B03/05)" trên thanh
-      const thuTu = (m) => D.berths.findIndex((b) => String(b.ma) === String(m));
-      for (const ma of [phu && thuTu(phu) >= 0 && thuTu(phu) < thuTu(d.ben) ? phu : d.ben || ""]) {
+      const thuTu = thuTuBen;
+      const truoc = phu && thuTu(phu) >= 0 && thuTu(phu) < thuTu(d.ben) ? phu : d.ben || "", sau = truoc === phu ? d.ben : phu;
+      const cap = ghep && phu && truoc && theoBen.has(`${truoc}|${sau}`) ? `${truoc}|${sau}` : null;
+      for (const ma of [cap || truoc]) {
         const row = theoBen.has(ma) ? ma : "";
-        theoBen.get(row).push({ v, a: d.a, b: d.b, uoc: d.uoc, a0: i ? null : a0, la: i ? d.a : la, st: trangThai(v, D.now), uocTT: laUoc(v, D.now), rowMa: row, haiBen: phu ? noiHaiBen(d.ben, phu) : null });
+        theoBen.get(row).push({ v, a: d.a, b: d.b, uoc: d.uoc, a0: i ? null : a0, la: i ? d.a : la, st: trangThai(v, D.now), uocTT: laUoc(v, D.now), rowMa: row, haiBen: phu ? noiHaiBen(d.ben, phu) : null, dau: d.dau, cuoi: d.cuoi });
       }
     });
   }
   let y = 0;
   return rows.filter((r) => r.ma || theoBen.get("").length).map((r) => {
-    const ds = theoBen.get(r.ma), don = ds.filter((x) => !x.haiBen), doi = ds.filter((x) => x.haiBen);
-    const nDon = don.length ? chiaLan(don) : 0, nDoi = doi.length ? chiaLan(doi) : 0, soLan = Math.max(1, nDon + nDoi), h = Math.max(ROW, soLan * K.lan + K.top * 2);
+    const ds = theoBen.get(r.ma), don = r.cap ? ds : ds.filter((x) => !x.haiBen), doi = r.cap ? [] : ds.filter((x) => x.haiBen);
+    const nDon = don.length ? chiaLan(don) : 0, nDoi = doi.length ? chiaLan(doi) : 0, soLan = Math.max(1, nDon + nDoi), h = Math.max(r.cap ? 0 : ROW, soLan * K.lan + K.top * 2);
     // Tàu một bến xếp từ trên xuống; tàu hai bến (3/5) luôn xếp ở DƯỚI CÙNG, sát mép cuối dòng bến chính, kể cả khi bến chính không có tàu nào
     for (const x of don) x.top = K.top + x.lan * K.lan;
     for (const x of doi) x.top = h - K.top - (nDoi - x.lan) * K.lan;
@@ -81,25 +92,55 @@ export function xepHangBen(D, voyages, tu, den, che, K) {
 // che = "ben": chỉ thời gian chiếm bến; "toan": thêm đoạn chờ bến (màu đỏ: từ NOR, tàu chưa đến neo thì từ ETA, tới lúc cập), vạch NOR và làm hàng.
 // Mọi chế độ: khoảng dừng "Chờ hàng" / "Chờ bãi" (chờ đủ hàng, chờ có bãi nhập) vẽ màu xanh lá trên thanh tàu.
 // gon: dòng thấp, chữ nhỏ để xem được nhiều bến một lúc. maxH: chiều cao tối đa khung lịch (toàn màn hình thì cao hơn).
-export default function Gantt({ voyages, tu, soNgay, pxNgay, che = "ben", gon = false, maxH = "70vh" }) {
+export default function Gantt({ voyages, tu, soNgay, pxNgay, che = "ben", gon = false, maxH = "70vh", ghep = false, giaDuoc = false }) {
   const K = gon ? CO.gon : CO.thuong, ROW = K.row, LABEL = K.label;
   const { D, quyen, run, api, setVoyageMo, toast } = useApp();
+  const hienGhep = ghep && D.coSql28; // hàng bến ghép chỉ khi CSDL đã có cột bến phụ (SQL 28)
   const [keo, setKeo] = useState(null); // { v, dx, dy, x0, y0, moved }
+  const [gian, setGian] = useState(null); // kéo giãn thanh tàu: { x, canh: "trai" | "phai", x0, dx, cx, cy, moved }
   const [tro, setTro] = useState(null); // { x, cx, cy } thanh tàu đang trỏ chuột
   const khung = useRef();
   const den = tu + soNgay * DAY, W = soNgay * pxNgay;
   const xOf = (t) => ((t - tu) / DAY) * pxNgay;
 
-  const hang = useMemo(() => xepHangBen(D, voyages, tu, den, che, K), [voyages, D.berths, D.now, tu, den, che, gon]); // eslint-disable-line react-hooks/exhaustive-deps
+  const hang = useMemo(() => xepHangBen(D, voyages, tu, den, che, K, { ghep: hienGhep }), [voyages, D.berths, D.now, tu, den, che, gon, hienGhep]); // eslint-disable-line react-hooks/exhaustive-deps
   const cao = hang.reduce((s, r) => s + r.h, 0);
 
   const benTaiY = (y) => hang.find((r) => y >= r.y && y < r.y + r.h)?.ma;
+
+  // ---- Kéo giãn: nắm mép phải (ETD / ATD) hoặc mép trái (ETB / ATB) của thanh tàu để đổi giờ ngay trên lịch, không cần mở phiếu chuyến ----
+  // Chỉ mép trái của đoạn đầu và mép phải của đoạn cuối (tàu có chuyển bến: các mốc giữa sửa ở phiếu chuyến). Bước 30 phút, tối thiểu 30 phút ở bến.
+  const coGian = (x) => giaDuoc && quyen.nhap && !x.v.huy;
+  const moc = (x, canh) => (canh === "trai" ? (x.v.atb ? "atb" : "etb") : (x.v.atd ? "atd" : "etd"));
+  const tenMoc = { atb: "ATB", etb: "ETB", atd: "ATD", etd: "ETD" };
+  const tinhGian = ({ x, canh, dx }) => {
+    const lech = Math.round(((dx / pxNgay) * DAY) / SNAP) * SNAP;
+    return canh === "trai" ? { a: Math.min(x.a + lech, x.b - SNAP), b: x.b } : { a: x.a, b: Math.max(x.b + lech, x.a + SNAP) };
+  };
+  const onDownGian = (e, x, canh) => {
+    if (e.button !== 0) return;
+    e.stopPropagation(); setTro(null);
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setGian({ x, canh, x0: e.clientX, dx: 0, moved: false });
+  };
+  const xongGian = () => {
+    const g = gian; setGian(null);
+    if (!g?.moved) return;
+    const { a, b } = tinhGian(g), m = moc(g.x, g.canh), gia = g.canh === "trai" ? a : b, cu = g.canh === "trai" ? g.x.a : g.x.b;
+    if (gia === cu) return;
+    run(() => api.updateVoyage(g.x.v.id, { [m]: iso(gia) }), `${g.x.v.ten_tau}: ${tenMoc[m]} → ${ngayGio(gia)} (ở bến ${thoiLuong((b - a) / 36e5, { ngan: true })})`);
+  };
   const onDown = (e, x) => {
     if (e.button !== 0) return;
     e.currentTarget.setPointerCapture(e.pointerId);
     setKeo({ x, dx: 0, dy: 0, x0: e.clientX, y0: e.clientY, moved: false, coKeo: quyen.nhap && KEO_DUOC.has(x.st) });
   };
   const onMove = (e) => {
+    if (gian) {
+      const dx = e.clientX - gian.x0;
+      if (!gian.moved && Math.abs(dx) < 4) return;
+      return setGian({ ...gian, dx, cx: e.clientX, cy: e.clientY, moved: true });
+    }
     if (!keo) return;
     const dx = e.clientX - keo.x0, dy = e.clientY - keo.y0;
     if (!keo.moved && Math.hypot(dx, dy) < 5) return;
@@ -112,7 +153,11 @@ export default function Gantt({ voyages, tu, soNgay, pxNgay, che = "ben", gon = 
     const rowCu = hang.find((r) => r.ma === x.rowMa) || hang.find((r) => r.ma === (x.v.ben_ma || ""));
     const rowMoi = benTaiY(rowCu.y + x.top + dy + K.bar / 2) ?? rowCu.ma;
     let benMoi = x.v.ben_ma || "", phuMoi = x.v.ben_phu || "";
-    if (rowMoi !== rowCu.ma) {
+    const hangMoi = hang.find((r) => r.ma === rowMoi);
+    if (hienGhep) {
+      // Có hàng bến ghép: thả vào hàng ghép (B03/05…) thì tàu cập hai bến đó; thả vào hàng một bến thì tàu cập một bến đó
+      if (rowMoi !== rowCu.ma) { if (hangMoi?.cap) [benMoi, phuMoi] = hangMoi.cap; else { benMoi = rowMoi; phuMoi = ""; } }
+    } else if (rowMoi !== rowCu.ma) {
       const thu = D.berths.map((b) => b.ma), lechDong = thu.indexOf(rowMoi) - thu.indexOf(rowCu.ma);
       const doi = (ma) => (thu.includes(ma) && thu.indexOf(rowCu.ma) >= 0 && rowMoi ? thu[thu.indexOf(ma) + lechDong] || "" : "");
       benMoi = x.v.ben_phu ? doi(x.v.ben_ma) || rowMoi : rowMoi;
@@ -122,6 +167,7 @@ export default function Gantt({ voyages, tu, soNgay, pxNgay, che = "ben", gon = 
     return { lech, benMoi, phuMoi };
   };
   const onUp = () => {
+    if (gian) return xongGian();
     if (!keo) return;
     const { x, moved, coKeo } = keo;
     setKeo(null);
@@ -150,25 +196,29 @@ export default function Gantt({ voyages, tu, soNgay, pxNgay, che = "ben", gon = 
               </div>); })}
           </div>
           {/* Hàng bến */}
-          <div className="relative" style={{ height: cao }} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={() => setKeo(null)}>
+          <div className="relative" style={{ height: cao }} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={() => { setKeo(null); setGian(null); }}>
             {ngayDs.map((t, i) => <div key={t} className={cn("absolute inset-y-0 border-r", new Date(t).getDay() === 0 && "bg-muted/40")} style={{ left: LABEL + i * pxNgay, width: pxNgay }} />)}
             {D.now >= tu && D.now <= den && <div className="absolute inset-y-0 z-10 w-0.5 bg-bad/80" style={{ left: LABEL + xOf(D.now) }} title={`Hiện tại ${ngayGio(D.now)}`} />}
             {hang.map((r) => (
-              <div key={r.ma || "_"} className="absolute inset-x-0 border-b" style={{ top: r.y, height: r.h }}>
-                <div className="sticky left-0 z-20 flex h-full flex-col justify-center overflow-hidden border-r bg-card px-2 leading-tight" style={{ width: LABEL }}
-                  title={r.b ? `Bến ${r.b.ma}: DWT ${so(r.b.dwt_max)} · mớn ${r.b.mon_cung ? "≤" : ""}${so(r.b.mon_max, 2)} m · dài ${met(r.b.loa_max)} m\n${r.b.loai_hang || ""}` : "Chuyến chưa xếp bến"}>
-                  <span className={cn("font-mono font-semibold", gon ? "text-[0.6875rem]" : "text-[0.8125rem]")}>{r.b ? tenBen(r.b.ma) : "Chưa xếp"}</span>
+              <div key={r.ma || "_"} className={cn("absolute inset-x-0 border-b", r.cap && "bg-primary/[0.05]")} style={{ top: r.y, height: r.h }}>
+                <div className={cn("sticky left-0 z-20 flex h-full flex-col justify-center overflow-hidden border-r bg-card px-2 leading-tight", r.cap && "border-l-2 border-l-primary/60")} style={{ width: LABEL }}
+                  title={r.cap ? `Bến ghép ${noiHaiBen(r.cap[0], r.cap[1])}: tàu dài cập vắt qua hai bến liền kề. Thả thanh tàu vào hàng này để đổi sang cập hai bến.` : r.b ? `Bến ${r.b.ma}: DWT ${so(r.b.dwt_max)} · mớn ${r.b.mon_cung ? "≤" : ""}${so(r.b.mon_max, 2)} m · dài ${met(r.b.loa_max)} m\n${r.b.loai_hang || ""}` : "Chuyến chưa xếp bến"}>
+                  <span className={cn("font-mono font-semibold", gon ? "text-[0.6875rem]" : "text-[0.8125rem]", r.cap && "text-primary")}>{r.cap ? `⇕ ${noiHaiBen(r.cap[0], r.cap[1])}` : r.b ? tenBen(r.b.ma) : "Chưa xếp"}</span>
                   {r.b && !gon && <span className="truncate text-[0.6875rem] text-muted-foreground">{r.b.mon_cung ? "≤" : ""}{so(r.b.mon_max, 1)}m · {met(r.b.loa_max)}m</span>}
+                  {r.cap && !gon && <span className="truncate text-[0.6875rem] text-muted-foreground">bến ghép</span>}
                 </div>
                 {r.ds.map((x) => {
                   const dangKeo = keo?.x.v.id === x.v.id && keo.moved && keo.coKeo;
-                  const left = Math.max(0, xOf(x.a)), right = Math.min(W, xOf(x.b)), w = Math.max(6, right - left);
+                  const gx = gian?.moved && gian.x.v.id === x.v.id && gian.x.a === x.a ? tinhGian(gian) : null; // đang kéo giãn thanh này: vẽ theo mốc mới
+                  const dangGian = !!gx, xa = gx?.a ?? x.a, xb = gx?.b ?? x.b;
+                  const left = Math.max(0, xOf(xa)), right = Math.min(W, xOf(xb)), w = Math.max(6, right - left);
+                  const gianTrai = coGian(x) && x.dau, gianPhai = coGian(x) && x.cuoi, tayG = Math.min(8, Math.max(4, w / 4));
                   const cs = x.st === "lam_hang" ? chiSo(x.v, D.stopsOf(x.v.id), D.now) : null;
                   const mau = TRANG_THAI[x.st].mau;
                   const top = x.top, troVao = (e) => !keo && e.pointerType === "mouse" && setTro({ x, cx: e.clientX, cy: e.clientY });
                   const dsStops = D.stopsOf(x.v.id);
                   // Toàn thời gian: đoạn chờ bến (đến neo / NOR -> cập bến) và các vạch mốc
-                  const choL = x.a0 != null ? Math.max(0, xOf(x.a0)) : null, choR = x.a0 != null ? Math.min(W, xOf(x.a)) : null;
+                  const choL = x.a0 != null ? Math.max(0, xOf(x.a0)) : null, choR = x.a0 != null ? Math.min(W, xOf(xa)) : null;
                   const coCho = choL != null && choR > choL;
                   const vach = che === "toan" ? [["NOR", x.v.nor], ["BĐ làm hàng", x.v.bd_lam_hang], ["KT làm hàng", x.v.kt_lam_hang]].filter(([, t]) => t && ms(t) >= tu && ms(t) <= den) : [];
                   return (
@@ -185,13 +235,16 @@ export default function Gantt({ voyages, tu, soNgay, pxNgay, che = "ben", gon = 
                     <div onPointerDown={(e) => { setTro(null); onDown(e, x); }}
                       onPointerMove={troVao} onPointerLeave={() => setTro(null)}
                       className={cn("absolute z-10 flex items-center overflow-hidden rounded-md px-1.5 font-medium text-white shadow-sm", K.chu, coCho && "rounded-l-none",
-                        KEO_DUOC.has(x.st) && quyen.nhap ? "cursor-grab" : "cursor-pointer", dangKeo && "z-30 cursor-grabbing opacity-90 ring-2 ring-white",
+                        KEO_DUOC.has(x.st) && quyen.nhap ? "cursor-grab" : "cursor-pointer", dangKeo && "z-30 cursor-grabbing opacity-90 ring-2 ring-white", dangGian && "z-30 ring-2 ring-white",
                         x.uocTT && "border-2 border-dashed border-white/80", x.v.huy && "line-through opacity-50")}
                       style={{ left: LABEL + left, width: w, top, height: K.bar, background: x.uoc ? `repeating-linear-gradient(135deg, ${mau}, ${mau} 8px, ${mau}cc 8px, ${mau}cc 12px)` : mau,
                         transform: dangKeo ? `translate(${keo.dx}px, ${keo.dy}px)` : undefined }}
                       aria-label={`${x.v.ten_tau}: ${TRANG_THAI[x.st].ten}`}>
                       {cs && <div className="absolute inset-y-0 left-0 bg-black/25" style={{ width: `${Math.min(100, (cs.hoanTat || 0) * 100)}%` }} />}
-                      <span className="relative truncate">{x.uocTT ? "≈ " : ""}{x.v.uu_tien ? "★ " : ""}{x.haiBen ? "⇕ " : ""}{x.v.ten_tau}{x.haiBen && !gon && w > 110 ? ` (${x.haiBen})` : ""}{!gon && w > 140 && x.v.khoi_luong ? ` · ${so(x.v.khoi_luong)}t` : ""}</span>
+                      <span className="relative truncate">{x.uocTT ? "≈ " : ""}{x.v.uu_tien ? "★ " : ""}{x.haiBen ? "⇕ " : ""}{x.v.ten_tau}{x.haiBen && !gon && w > 110 && !r.cap ? ` (${x.haiBen})` : ""}{!gon && w > 140 && x.v.khoi_luong ? ` · ${so(x.v.khoi_luong)}t` : ""}</span>
+                      {/* Tay nắm kéo giãn: mép trái đổi ETB / ATB, mép phải đổi ETD / ATD */}
+                      {gianTrai && <span onPointerDown={(e) => onDownGian(e, x, "trai")} title={`Kéo để đổi ${tenMoc[moc(x, "trai")]}`} className="group/g absolute inset-y-0 left-0 z-20 flex cursor-ew-resize items-center justify-center bg-black/0 hover:bg-white/40" style={{ width: tayG }}><i className="h-1/2 w-px bg-white/0 group-hover/g:bg-white" /></span>}
+                      {gianPhai && <span onPointerDown={(e) => onDownGian(e, x, "phai")} title={`Kéo để đổi ${tenMoc[moc(x, "phai")]}`} className="group/g absolute inset-y-0 right-0 z-20 flex cursor-ew-resize items-center justify-center bg-black/0 hover:bg-white/40" style={{ width: tayG }}><i className="h-1/2 w-px bg-white/0 group-hover/g:bg-white" /></span>}
                     </div>
                     </Fragment>
                   );
@@ -206,6 +259,7 @@ export default function Gantt({ voyages, tu, soNgay, pxNgay, che = "ben", gon = 
         <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-4 rounded-sm" style={{ background: "repeating-linear-gradient(135deg,#94a3b8,#94a3b8 4px,#94a3b8aa 4px,#94a3b8aa 6px)" }} />Giờ rời ước tính</span>
         <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-4 rounded-sm border-2 border-dashed border-slate-400" />≈ Trạng thái theo giờ dự kiến (chưa ghi mốc thực tế)</span>
         <span className="flex items-center gap-1"><i className="inline-block h-3 w-0.5 bg-bad" />Hiện tại</span>
+        {giaDuoc && quyen.nhap && <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-1 cursor-ew-resize rounded-sm bg-white ring-1 ring-slate-400" />Kéo mép trái / phải thanh tàu để đổi ETB·ATB / ETD·ATD</span>}
         <ChuThichCho toan={che === "toan"} />
         {che === "toan" && <span className="flex items-center gap-1"><i className="inline-block h-3 w-0.5 bg-white" />Vạch NOR, bắt đầu / kết thúc làm hàng</span>}
       </div>
@@ -216,7 +270,13 @@ export default function Gantt({ voyages, tu, soNgay, pxNgay, che = "ben", gon = 
           <div>Cập <b className="tabular-nums">{ngayGio(keo.x.a + k.lech)}</b> → rời <b className="tabular-nums">{ngayGio(keo.x.b + k.lech)}</b>{k.lech ? <span className="text-muted-foreground"> ({k.lech > 0 ? "+" : "−"}{so(Math.abs(k.lech) / 36e5, 1)} giờ)</span> : null}</div>
           <div className="text-muted-foreground">Chọn vị trí mét: chuyển sang chế độ Theo mét</div>
         </div>); })()}
-      {tro && !keo && <TheTau x={tro.x} cx={tro.cx} cy={tro.cy} />}
+      {gian?.moved && (() => { const g = tinhGian(gian), m = moc(gian.x, gian.canh), lech = (gian.canh === "trai" ? g.a - gian.x.a : g.b - gian.x.b); return (
+        <div className="pointer-events-none fixed z-50 rounded-md border bg-popover px-2.5 py-1.5 text-xs shadow-lg" style={{ left: (gian.cx ?? 0) + 16, top: (gian.cy ?? 0) + 16 }}>
+          <div className="font-semibold">{gian.x.v.ten_tau}</div>
+          <div>{tenMoc[m]}: <b className="tabular-nums">{ngayGio(gian.canh === "trai" ? g.a : g.b)}</b>{lech ? <span className="text-muted-foreground"> ({lech > 0 ? "+" : "−"}{thoiLuong(Math.abs(lech) / 36e5, { ngan: true })})</span> : null}</div>
+          <div className="text-muted-foreground">Ở bến {ngayGio(g.a)} → {ngayGio(g.b)} · {thoiLuong((g.b - g.a) / 36e5, { ngan: true })}</div>
+        </div>); })()}
+      {tro && !keo && !gian && <TheTau x={tro.x} cx={tro.cx} cy={tro.cy} />}
     </>
   );
 }
