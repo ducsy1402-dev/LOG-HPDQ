@@ -23,10 +23,10 @@ export default function HopDanKeHoach({ loai, ky, nhanKy, onClose, onLuu }) {
     const ghi = kq.dong.map(({ hang, bo, bien, tong }) => ({ hang, bo, bien, tong }));
     if (await run(() => api.luuKhDong(loai, ky, { ghi }), `Đã lưu ${ghi.length} dòng ${cfg.ten.toLowerCase()} ${nhanKy}`)) { onLuu(); onClose(); }
   };
-  const mau = bb ? "Tên hàng\tTổng\tĐường bộ\tĐường biển\nThép cuộn HRC\t30000\t10000\t20000" : "Tên hàng\tTổng\nThép cuộn HRC\t35000";
+  const mau = bb ? "Loại hàng\tTổng\tĐường bộ\tĐường biển\nHRC\t30000\t10000\t20000" : "Loại hàng\tTổng\nHRC\t35000";
   return (
     <Dialog onOpenChange={(o) => !o && onClose()} className="max-w-2xl" title={`Dán nhanh · ${cfg.ten} · ${nhanKy}`}
-      description={bb ? "Chép bảng từ Excel (bôi đen, Ctrl+C) rồi dán vào ô dưới (Ctrl+V). Cột: Tên hàng · Tổng · Đường bộ · Đường biển (tổng lấy bộ + biển)." : "Chép bảng từ Excel (bôi đen, Ctrl+C) rồi dán vào ô dưới (Ctrl+V). Cột: Tên hàng · Tổng."}
+      description={bb ? "Chép bảng từ Excel (bôi đen, Ctrl+C) rồi dán vào ô dưới (Ctrl+V). Cột: Loại hàng · Tổng · Đường bộ · Đường biển (tổng lấy bộ + biển)." : "Chép bảng từ Excel (bôi đen, Ctrl+C) rồi dán vào ô dưới (Ctrl+V). Cột: Loại hàng · Tổng."}
       footer={kq && <>
         <span className={`mr-auto text-sm ${soLoi || kq.thieu.length ? "text-bad" : "text-muted-foreground"}`}>{kq.thieu.length ? `Thiếu cột: ${kq.thieu.join(", ")}` : soLoi ? `${soLoi} dòng lỗi, chưa lưu được` : `${kq.dong.length} dòng sẽ ghi vào ${nhanKy}`}</span>
         <Button variant="outline" onClick={() => { setBang(null); }}><RotateCcw />Dán lại</Button>
@@ -42,7 +42,7 @@ export default function HopDanKeHoach({ loai, ky, nhanKy, onClose, onLuu }) {
       ) : (
         <div className="scroll-x max-h-[55vh] rounded-md border">
           <table className="tbl text-sm">
-            <thead><tr><th className="text-left">Tên hàng</th><th className="text-right">Tổng (t)</th>{bb && <><th className="text-right">Đường bộ (t)</th><th className="text-right">Đường biển (t)</th></>}<th className="text-left">Ghi chú</th></tr></thead>
+            <thead><tr><th className="text-left">Loại hàng</th><th className="text-right">Tổng (t)</th>{bb && <><th className="text-right">Đường bộ (t)</th><th className="text-right">Đường biển (t)</th></>}<th className="text-left">Ghi chú</th></tr></thead>
             <tbody>{kq.dong.map((x, i) => (
               <tr key={i} className={x.loi.length ? "bg-bad/5" : undefined}>
                 <td className="font-medium">{x.hang || <span className="text-muted-foreground">(trống)</span>}</td>

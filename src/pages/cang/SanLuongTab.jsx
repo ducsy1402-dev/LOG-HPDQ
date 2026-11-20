@@ -77,7 +77,7 @@ export default function SanLuongTab({ nhom, thang, kyLoai = "thang", che, onLuu,
 }
 
 // Danh sách gợi ý loại hàng (cảng: nhóm hàng trong Danh mục) hoặc loại xe / đội xe (vận tải: đội xe trong Thiết bị cơ giới)
-function useLoaiGoiY(nhom, daCo) {
+export function useLoaiGoiY(nhom, daCo) {
   const { D } = useApp();
   const tb = useThietBi()?.D;
   return useMemo(() => {
@@ -139,8 +139,11 @@ function BangMucTieu({ nhom, thang, kyLoai = "thang", mucTieu, mucTieuThang = []
   const themDong = (huong) => {
     const t = them[huong] || {}, loai = (t.loai || "").trim(); if (!loai) return;
     const donVi = c.coDonVi ? t.donVi || DON_VI[0][0] : "", hang = c.coLoaiHang ? (t.hang || "").trim() : "", k = khoaDong(huong, loai, donVi, hang);
-    if (!dong[k]) { setF({ ...f, [k]: { huong, loai, donVi, hang, tan: "", ghi_chu: "" } }); setDangSua((o) => new Set(o).add(k)); setXoa((o) => { const n = new Set(o); n.delete(k); return n; }); }
-    setThem({ ...them, [huong]: { ...t, loai: "", hang: "" } });
+    const tan = (t.tan || "").trim(); // khối lượng nhập ngay ở dòng thêm (tùy chọn)
+    if (tan && !(docSo(tan) >= 0)) return toast(`"${tan}" không phải số tấn`, "bad");
+    if (!dong[k]) { setF({ ...f, [k]: { huong, loai, donVi, hang, tan, ghi_chu: "" } }); setDangSua((o) => new Set(o).add(k)); setXoa((o) => { const n = new Set(o); n.delete(k); return n; }); }
+    else if (tan) setF({ ...f, [k]: { ...dong[k], tan } }); // dòng đã có: cập nhật khối lượng
+    setThem({ ...them, [huong]: { ...t, loai: "", hang: "", tan: "" } });
   };
   // Vận tải: bảng theo form Excel (Loại hàng · Hướng · Loại xe · ĐVT · Tổng · Hòa Phát · Thuê ngoài · Ghi chú), mỗi dòng gộp hai dòng CSDL (hai đơn vị)
   const vt = !!c.coDonVi;
@@ -265,6 +268,8 @@ function BangMucTieu({ nhom, thang, kyLoai = "thang", mucTieu, mucTieuThang = []
                   <ChonGo className="min-w-[170px] flex-1" value={t.loai || ""} onChange={(x) => setThem({ ...them, [huong]: { ...t, loai: x } })} options={goiY} placeholder={`${c.nhanLoai} (chọn hoặc gõ)`} />
                   {c.coLoaiHang && <ChonGo className="min-w-[170px] flex-1" value={t.hang || ""} onChange={(x) => setThem({ ...them, [huong]: { ...t, hang: x } })} options={goiYHang} placeholder="Loại hàng (để trống = mọi hàng)" />}
                   {c.coDonVi && <NativeSelect className="h-9 w-40" value={t.donVi || DON_VI[0][0]} onChange={(e) => setThem({ ...them, [huong]: { ...t, donVi: e.target.value } })} options={dsDV} aria-label="Đơn vị thực hiện" />}
+                  <Input className="w-36 text-right tabular-nums" inputMode="decimal" value={t.tan || ""} placeholder="Khối lượng (t)" aria-label="Khối lượng mục tiêu (tấn)"
+                    onChange={(e) => setThem({ ...them, [huong]: { ...t, tan: e.target.value } })} onKeyDown={(e) => e.key === "Enter" && themDong(huong)} />
                   <Button size="sm" variant="outline" disabled={!(t.loai || "").trim()} onClick={() => themDong(huong)}><Plus />Thêm</Button>
                 </div>)}</>}
             </div>);

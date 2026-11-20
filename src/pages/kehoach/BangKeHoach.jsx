@@ -58,7 +58,7 @@ export default function BangKeHoach({ loai, ky, nhanKy, data, kho, sua, dsHang, 
       </div>
       <div className="overflow-x-auto rounded-md border">
         <table className="tbl w-full text-sm">
-          <thead><tr><th className="text-left">Tên hàng</th><th className={thL}>Tổng (t)</th>{bb && <><th className={thL}>{loai === "nhap_mua" ? "Nhập đường bộ (t)" : "Đường bộ (t)"}</th><th className={thL}>{loai === "nhap_mua" ? "Nhập đường biển (t)" : "Đường biển (t)"}</th></>}<th className="w-16" /></tr></thead>
+          <thead><tr><th className="text-left">Loại hàng</th><th className={thL}>Tổng (t)</th>{bb && <><th className={thL}>{loai === "nhap_mua" ? "Nhập đường bộ (t)" : "Đường bộ (t)"}</th><th className={thL}>{loai === "nhap_mua" ? "Nhập đường biển (t)" : "Đường biển (t)"}</th></>}<th className="w-16" /></tr></thead>
           <tbody>
             {dong.map((x) => (
               <tr key={x.hang}>
@@ -79,7 +79,7 @@ export default function BangKeHoach({ loai, ky, nhanKy, data, kho, sua, dsHang, 
       </div>
       {sua && (
         <div className="mt-2 grid items-center gap-2" style={{ gridTemplateColumns: bb ? "minmax(160px,1fr) 7rem 7rem 7rem auto" : "minmax(160px,1fr) 8rem auto" }}>
-          <ChonGo value={them.hang} onChange={(x) => setThem((o) => ({ ...o, hang: x }))} options={dsHang} placeholder="Tên hàng" />
+          <ChonGo value={them.hang} onChange={(x) => setThem((o) => ({ ...o, hang: x }))} options={dsHang} placeholder="Loại hàng (chọn hoặc gõ)" />
           {bb ? (
             <>
               <Input className="text-right tabular-nums text-muted-foreground" disabled tabIndex={-1} value={(docSo(them.bo) || 0) + (docSo(them.bien) || 0) ? so((docSo(them.bo) || 0) + (docSo(them.bien) || 0), 0) : ""} placeholder="Tổng" aria-label="Tổng (tự cộng)" />
