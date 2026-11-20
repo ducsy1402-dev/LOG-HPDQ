@@ -6,8 +6,9 @@ import { thangCua, tenThang, congThang } from "@/lib/format";
 import { khoaKy, dsKy, tenKy } from "@/lib/ky";
 import { cn } from "@/lib/utils";
 import SanLuongTab from "./SanLuongTab";
+import SanXuatKeHoach from "../kehoach/SanXuatKeHoach";
 
-// Hộp Đặt mục tiêu có BA mục (anh Sỹ 20/11/2026): Kế hoạch nhập · Kế hoạch xuất (mục tiêu cảng theo loại hàng, hai hướng của bảng cũ) · Kế hoạch sản xuất (= bảng Mục tiêu vận tải, trước nằm ở Thiết bị cơ giới › Kế hoạch dài hạn).
+// Hộp Đặt mục tiêu có BỐN mục (anh Sỹ 20/11/2026): Kế hoạch nhập · Kế hoạch xuất (mục tiêu cảng theo loại hàng, hai hướng của bảng cũ) · Kế hoạch vận tải (= bảng Mục tiêu vận tải, trước nằm ở Thiết bị cơ giới › Kế hoạch dài hạn) · Kế hoạch sản xuất (bảng Tên hàng · Tổng, trước là tab của Kế hoạch tổng hợp › Kế hoạch dài hạn).
 // Sản lượng thực tế có hai mục: Cảng nhập / xuất và Vận tải (bảng thực tế vận tải cũng chuyển từ Thiết bị cơ giới sang).
 // Hai hộp của trang Mục tiêu sản lượng › Khai thác cảng, dùng lại các bảng cũ (SanLuongTab) nhưng mỗi hộp chỉ một bảng:
 //   Đặt mục tiêu: mục tiêu sản lượng nhập / xuất theo loại hàng, theo THÁNG / QUÝ / NĂM (quản lý trở lên sửa; quý / năm nhập riêng, SQL 10);
@@ -28,9 +29,9 @@ export function HopDatMucTieu({ thang0, onClose, onLuu }) {
     nam: dsKy("nam", D.now, 3, 2).map((x) => [x, tenKy("nam", x)]),
   };
   const ky = chon[kyLoai];
-  const [muc, setMuc] = useState("nhap"); // nhap | xuat | san_xuat; các bảng luôn được dựng sẵn, chỉ ẩn / hiện, để chuyển mục không mất số đang gõ
+  const [muc, setMuc] = useState("nhap"); // nhap | xuat | van_tai | san_xuat; các bảng mục tiêu luôn được dựng sẵn, chỉ ẩn / hiện, để chuyển mục không mất số đang gõ
   return (
-    <Dialog onOpenChange={(o) => !o && onClose()} className={RONG} title="Đặt mục tiêu sản lượng" description="Kế hoạch nhập, kế hoạch xuất (theo loại hàng) và kế hoạch sản xuất (vận tải: loại xe, Hòa Phát / Thuê ngoài) của tháng, quý hoặc năm. Chỉ Quản lý / Quản trị đặt mục tiêu.">
+    <Dialog onOpenChange={(o) => !o && onClose()} className={RONG} title="Đặt mục tiêu sản lượng" description="Kế hoạch nhập, kế hoạch xuất (theo loại hàng), kế hoạch vận tải (loại xe, Hòa Phát / Thuê ngoài) và kế hoạch sản xuất của tháng, quý hoặc năm. Chỉ Quản lý / Quản trị đặt mục tiêu.">
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <div className="inline-flex overflow-hidden rounded-md border" role="tablist" aria-label="Kỳ mục tiêu">
           {KY.map(([k, ten]) => (
@@ -40,9 +41,10 @@ export function HopDatMucTieu({ thang0, onClose, onLuu }) {
         <NativeSelect className="h-7 w-48 text-xs" value={ky} onChange={(e) => setChon((o) => ({ ...o, [kyLoai]: e.target.value }))}
           options={dsChon[kyLoai].map(([x, ten]) => [x, ten + (x === hienTai[kyLoai] ? " (này)" : "")])} aria-label={KY.find(([k]) => k === kyLoai)[1]} />
       </div>
-      <MucTab muc={muc} setMuc={setMuc} ds={[["nhap", "Kế hoạch nhập"], ["xuat", "Kế hoạch xuất"], ["san_xuat", "Kế hoạch sản xuất"]]} />
-      <div className={muc === "san_xuat" ? "hidden" : ""}><SanLuongTab nhom="cang" thang={ky} kyLoai={kyLoai} che="mucTieu" onLuu={onLuu} huongHien={muc === "xuat" ? "xuat" : "nhap"} /></div>
-      <div className={muc === "san_xuat" ? "" : "hidden"}><SanLuongTab nhom="van_tai" thang={ky} kyLoai={kyLoai} che="mucTieu" onLuu={onLuu} /></div>
+      <MucTab muc={muc} setMuc={setMuc} ds={[["nhap", "Kế hoạch nhập"], ["xuat", "Kế hoạch xuất"], ["van_tai", "Kế hoạch vận tải"], ["san_xuat", "Kế hoạch sản xuất"]]} />
+      <div className={muc === "van_tai" || muc === "san_xuat" ? "hidden" : ""}><SanLuongTab nhom="cang" thang={ky} kyLoai={kyLoai} che="mucTieu" onLuu={onLuu} huongHien={muc === "xuat" ? "xuat" : "nhap"} /></div>
+      <div className={muc === "van_tai" ? "" : "hidden"}><SanLuongTab nhom="van_tai" thang={ky} kyLoai={kyLoai} che="mucTieu" onLuu={onLuu} /></div>
+      {muc === "san_xuat" && <SanXuatKeHoach kyLoai={kyLoai} ky={ky} />}
     </Dialog>
   );
 }
