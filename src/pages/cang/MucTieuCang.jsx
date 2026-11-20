@@ -182,7 +182,7 @@ export default function MucTieuCang() {
   return (
     <div className="grid gap-3">
       <div className="flex flex-wrap items-center gap-2">
-        <h1 className="mr-1 text-lg font-semibold">Mục tiêu sản lượng</h1>
+        <h1 className="mr-1 text-lg font-semibold">Kế hoạch tổng hợp</h1>
         {nut(Target, "Đặt mục tiêu", "dat-mt", "Mục tiêu sản lượng theo tháng / quý / năm")}
         {nut(Eye, "Xem kế hoạch", "xem", "Xem mục tiêu, kế hoạch ngày và thực tế")}
         {nut(CalendarDays, "Kế hoạch ngày", "ngay", "Đặt sản lượng kế hoạch từng ngày theo line tàu")}

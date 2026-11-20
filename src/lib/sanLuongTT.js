@@ -20,14 +20,21 @@ export const NHOM = {
     bangMT: "muc_tieu_van_tai", bangTT: "san_luong_van_tai", cotLoai: "loai_xe",
   },
 };
+// Nghiệp vụ của Kế hoạch vận tải (anh Sỹ 20/11/2026, SQL 25). Kế hoạch nhập Cảng phân bổ mặc định là "Nhập tàu", kế hoạch xuất Cảng là "Xuất tàu"; kế hoạch sản xuất chọn một trong ba nghiệp vụ còn lại.
+export const NGHIEP_VU = ["Nhập tàu", "Xuất tàu", "Trung chuyển", "Thu hồi", "Cấp sản xuất", "Chuyển bãi"];
+export const NV_SAN_XUAT = ["Trung chuyển", "Thu hồi", "Cấp sản xuất", "Chuyển bãi"];
+// Đọc tên nghiệp vụ gõ / dán (không phân biệt dấu, hoa thường) -> tên chuẩn; "" nếu để trống; null nếu không nhận ra
+export const docNghiepVu = (x) => { const t = plain(String(x ?? "")); if (!t) return ""; return NGHIEP_VU.find((n) => plain(n) === t) ?? null; };
 export const tenHuong = (nhom, h) => NHOM[nhom].huong.find(([x]) => x === h)?.[1] || h;
 
 // Khóa một dòng / cột: hướng | loại (hàng hoặc xe) | đơn vị (vận tải) | loại hàng (vận tải; trống = mọi hàng)
-export const khoaDong = (huong, loai, donVi = "", hang = "") => `${huong}|${plain(loai)}|${donVi || ""}|${plain(hang)}`;
+export const khoaDong = (huong, loai, donVi = "", hang = "", nv = "") => `${huong}|${plain(loai)}|${donVi || ""}|${plain(hang)}${nv ? `|${plain(nv)}` : ""}`; // nv: nghiệp vụ (vận tải); trống thì khóa giữ nguyên như trước
 // Dòng trong CSDL -> dạng chung { huong, loai, donVi, hang, ... }; và ngược lại
-export const tuDb = (nhom, r) => ({ ...r, loai: r[NHOM[nhom].cotLoai], donVi: NHOM[nhom].coDonVi ? r.don_vi : "", hang: NHOM[nhom].coLoaiHang ? r.loai_hang || "" : "" });
+export const tuDb = (nhom, r) => ({ ...r, loai: r[NHOM[nhom].cotLoai], donVi: NHOM[nhom].coDonVi ? r.don_vi : "", hang: NHOM[nhom].coLoaiHang ? r.loai_hang || "" : "", nv: NHOM[nhom].coDonVi ? r.nghiep_vu || "" : "" });
 export const raDb = (nhom, r) => (NHOM[nhom].coDonVi ? { loai_xe: r.loai, don_vi: r.donVi, loai_hang: r.hang || "" } : { loai_hang: r.loai });
-export const khoaCua = (r) => khoaDong(r.huong, r.loai, r.donVi, r.hang);
+// khoaCua: khóa DÒNG mục tiêu (có nghiệp vụ); khoaCot: khóa CỘT / thực tế (không có nghiệp vụ: sản lượng thực tế không chia theo nghiệp vụ)
+export const khoaCua = (r) => khoaDong(r.huong, r.loai, r.donVi, r.hang, r.nv);
+export const khoaCot = (r) => khoaDong(r.huong, r.loai, r.donVi, r.hang);
 
 // Các ngày YYYY-MM-DD của tháng YYYY-MM
 export function ngayCuaThang(thang) {
@@ -52,12 +59,12 @@ export const HUONG_NGAN = { phuc_vu_cang: "PVC", phuc_vu_san_xuat: "PVSX" };
 export function nhomDongVT(dong, thuTuHuong = []) {
   const m = new Map();
   for (const [k, r] of Object.entries(dong)) {
-    const g = `${r.huong}|${plain(r.loai)}|${plain(r.hang)}`;
-    const o = m.get(g) || { g, huong: r.huong, loai: r.loai, hang: r.hang || "", hp: null, tn: null, khac: [], donViTN: "nha_thau" };
+    const g = `${r.huong}|${plain(r.loai)}|${plain(r.hang)}|${plain(r.nv || "")}`;
+    const o = m.get(g) || { g, huong: r.huong, loai: r.loai, hang: r.hang || "", nv: r.nv || "", hp: null, tn: null, khac: [], donViTN: "nha_thau" };
     if (r.donVi === "hoa_phat") o.hp = k;
     else if (r.donVi === "nha_thau" || o.tn == null) { if (o.tn != null) o.khac.push(o.tn); o.tn = k; o.donViTN = r.donVi || "nha_thau"; }
     else o.khac.push(k);
     m.set(g, o);
   }
-  return [...m.values()].sort((a, b) => thuTuHuong.indexOf(a.huong) - thuTuHuong.indexOf(b.huong) || a.hang.localeCompare(b.hang, "vi") || a.loai.localeCompare(b.loai, "vi"));
+  return [...m.values()].sort((a, b) => thuTuHuong.indexOf(a.huong) - thuTuHuong.indexOf(b.huong) || a.hang.localeCompare(b.hang, "vi") || a.loai.localeCompare(b.loai, "vi") || a.nv.localeCompare(b.nv, "vi"));
 }

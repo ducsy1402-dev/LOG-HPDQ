@@ -3,12 +3,14 @@
 // Dòng đầu là tiêu đề cột; cột nhận theo tên (không dấu, không phân biệt hoa thường), thứ tự tùy ý. Ô trống hoặc "-" = không có số.
 // Hòa Phát + Thuê ngoài là số web ghi; Tổng chỉ để đối chiếu (lệch thì cảnh báo, vẫn lấy Hòa Phát + Thuê ngoài).
 import { plain, docSo } from "./format";
+import { NGHIEP_VU, docNghiepVu } from "./sanLuongTT";
 
-export const COT_DAN_VT = [["hang", "Loại hàng"], ["huong", "Hướng"], ["loai", "Loại xe"], ["dvt", "ĐVT"], ["tong", "Tổng"], ["hp", "Hòa Phát"], ["tn", "Thuê ngoài"], ["ghi_chu", "Ghi chú"]];
+export const COT_DAN_VT = [["hang", "Loại hàng"], ["huong", "Hướng"], ["nv", "Nghiệp vụ"], ["loai", "Loại xe"], ["dvt", "ĐVT"], ["tong", "Tổng"], ["hp", "Hòa Phát"], ["tn", "Thuê ngoài"], ["ghi_chu", "Ghi chú"]];
 export const MAU_DAN_VT = COT_DAN_VT.map(([, t]) => t).join("\t");
 const TEN_COT = {
   hang: ["loai hang", "hang", "nhom hang", "hang hoa", "ten hang"],
   huong: ["huong", "huong phuc vu", "phuc vu", "muc dich"],
+  nv: ["nghiep vu", "nv"],
   loai: ["loai xe", "doi xe", "xe", "loai phuong tien", "phuong tien"],
   dvt: ["dvt", "don vi tinh"],
   tong: ["tong", "tong cong", "tong muc tieu", "muc tieu"],
@@ -37,6 +39,8 @@ export function docBangMucTieuVT(bang) {
     const loi = [], canh = [], huong = docHuongVT(r.huong), loai = String(r.loai ?? "").trim();
     if (!huong) loi.push(`Hướng "${r.huong ?? ""}" phải là PVC (phục vụ cảng) hoặc PVSX (phục vụ sản xuất)`);
     if (!loai) loi.push("Thiếu loại xe");
+    const nv = docNghiepVu(r.nv);
+    if (nv === null) loi.push(`Nghiệp vụ "${r.nv}" phải là: ${NGHIEP_VU.join(", ")} (hoặc để trống)`);
     const hp = docTan(r.hp), tn = docTan(r.tn), tong = docTan(r.tong);
     if (Number.isNaN(hp)) loi.push(`Hòa Phát "${r.hp}" không phải số`);
     if (Number.isNaN(tn)) loi.push(`Thuê ngoài "${r.tn}" không phải số`);
@@ -46,7 +50,7 @@ export function docBangMucTieuVT(bang) {
       else if (hp == null && tn == null) loi.push(`Có Tổng ${tong} nhưng chưa chia Hòa Phát / Thuê ngoài`);
       else if (tong != null && Math.abs((hp || 0) + (tn || 0) - tong) > 0.5) canh.push(`Tổng ${tong} khác Hòa Phát + Thuê ngoài (${(hp || 0) + (tn || 0)}): lấy theo Hòa Phát + Thuê ngoài`);
     }
-    return { hang: String(r.hang ?? "").trim(), huong, loai, hp: Number.isNaN(hp) ? null : hp, tn: Number.isNaN(tn) ? null : tn, tong: Number.isNaN(tong) ? null : tong, ghi_chu: String(r.ghi_chu ?? "").trim(), loi, canh };
+    return { hang: String(r.hang ?? "").trim(), huong, nv: nv || "", loai, hp: Number.isNaN(hp) ? null : hp, tn: Number.isNaN(tn) ? null : tn, tong: Number.isNaN(tong) ? null : tong, ghi_chu: String(r.ghi_chu ?? "").trim(), loi, canh };
   });
   return { ds };
 }
@@ -56,9 +60,9 @@ export function gopDongDonVi(items) {
   const m = new Map();
   let trung = 0;
   for (const x of items) {
-    const k = `${x.huong}|${plain(x.loai)}|${x.donVi}|${plain(x.hang)}`, o = m.get(k);
+    const k = `${x.huong}|${plain(x.loai)}|${x.donVi}|${plain(x.hang)}|${plain(x.nv || "")}`, o = m.get(k);
     if (o) { o.tan += x.tan; if (!o.ghi_chu && x.ghi_chu) o.ghi_chu = x.ghi_chu; trung++; } else m.set(k, { ...x });
   }
   return { ds: [...m.values()], trung };
 }
-export const thanhDongDonVi = (ds) => ds.flatMap((x) => [["hoa_phat", x.hp], ["nha_thau", x.tn]].filter(([, v]) => v != null).map(([donVi, tan]) => ({ huong: x.huong, loai: x.loai, donVi, hang: x.hang, tan, ghi_chu: x.ghi_chu })));
+export const thanhDongDonVi = (ds) => ds.flatMap((x) => [["hoa_phat", x.hp], ["nha_thau", x.tn]].filter(([, v]) => v != null).map(([donVi, tan]) => ({ huong: x.huong, loai: x.loai, donVi, hang: x.hang, nv: x.nv || "", tan, ghi_chu: x.ghi_chu })));

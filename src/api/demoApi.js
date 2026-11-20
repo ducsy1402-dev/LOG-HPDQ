@@ -147,26 +147,26 @@ export function makeDemoApi() {
     },
     async saveMucTieuNhom(nhom, rows) {
       can("quan_ly"); await wait();
-      const kho = (r) => khoaDong(r.huong, r.loai, r.donVi, r.hang);
+      const kho = (r) => khoaDong(r.huong, r.loai, r.donVi, r.hang, r.nv);
       const bang = nhom === "cang" ? "mucTieu" : "mucTieuVanTai";
       for (const r of rows) {
         db[bang] = db[bang].filter((x) => !(x.thang === r.thang && kho(tuDb(nhom, x)) === kho(r)));
-        if (r.tan != null) db[bang].push({ thang: r.thang, huong: r.huong, ...(nhom === "van_tai" ? { loai_xe: r.loai, don_vi: r.donVi, loai_hang: r.hang || "" } : { loai_hang: r.loai }), tan: r.tan, ghi_chu: r.ghi_chu || null, updated_at: new Date().toISOString() });
+        if (r.tan != null) db[bang].push({ thang: r.thang, huong: r.huong, ...(nhom === "van_tai" ? { loai_xe: r.loai, don_vi: r.donVi, loai_hang: r.hang || "", nghiep_vu: r.nv || "" } : { loai_hang: r.loai }), tan: r.tan, ghi_chu: r.ghi_chu || null, updated_at: new Date().toISOString() });
       }
     },
     // Mục tiêu theo quý / năm (SQL 10), lưu trong bộ nhớ
     async docMucTieuKy(nhom, ky) { await wait(60); return clone(db.mucTieuKy.filter((x) => x.nhom === nhom && x.thang === ky).map(({ nhom: _n, ...r }) => r)); },
     async saveMucTieuKy(nhom, rows) {
       can("quan_ly"); await wait();
-      const kho = (r) => khoaDong(r.huong, r.loai, r.donVi, r.hang);
+      const kho = (r) => khoaDong(r.huong, r.loai, r.donVi, r.hang, r.nv);
       for (const r of rows) {
         db.mucTieuKy = db.mucTieuKy.filter((x) => !(x.nhom === nhom && x.thang === r.thang && kho(tuDb(nhom, x)) === kho(r)));
-        if (r.tan != null) db.mucTieuKy.push({ nhom, thang: r.thang, huong: r.huong, ...(nhom === "van_tai" ? { loai_xe: r.loai, don_vi: r.donVi, loai_hang: r.hang || "" } : { loai_hang: r.loai }), tan: r.tan, ghi_chu: r.ghi_chu || null });
+        if (r.tan != null) db.mucTieuKy.push({ nhom, thang: r.thang, huong: r.huong, ...(nhom === "van_tai" ? { loai_xe: r.loai, don_vi: r.donVi, loai_hang: r.hang || "", nghiep_vu: r.nv || "" } : { loai_hang: r.loai }), tan: r.tan, ghi_chu: r.ghi_chu || null });
       }
     },
     async saveThucTe(nhom, rows) {
       can("nhap"); await wait();
-      const kho = (r) => khoaDong(r.huong, r.loai, r.donVi, r.hang);
+      const kho = (r) => khoaDong(r.huong, r.loai, r.donVi, r.hang, r.nv);
       const bang = nhom === "cang" ? "sanLuongCang" : "sanLuongVanTai";
       for (const r of rows) {
         db[bang] = db[bang].filter((x) => !(x.ngay === r.ngay && x.ca === r.ca && kho(tuDb(nhom, x)) === kho(r)));
@@ -189,19 +189,6 @@ export function makeDemoApi() {
       can("nhap"); await wait(); const k = db.khTH;
       k.kho = k.kho.filter((x) => !(x.loai === loai && x.ky === ky && x.hang === hang));
       for (const r of rows) if (r.tan > 0) k.kho.push({ loai, ky, hang, ten_bai: r.ten_bai, ten_khu: r.ten_khu || "", tan: r.tan });
-    },
-    async docKhNgayBo(tu, den) { await wait(60); return clone((db.khNgayBo ||= []).filter((x) => x.ngay >= tu && x.ngay <= den)); },
-    async luuKhNgayBo(ngay, rows) {
-      can("nhap"); await wait(); db.khNgayBo ||= [];
-      db.khNgayBo = db.khNgayBo.filter((x) => x.ngay !== ngay);
-      for (const r of rows) if (r.tan > 0) db.khNgayBo.push({ id: (db.nextId.khnb = (db.nextId.khnb || 0) + 1), ngay, hang: r.hang, huong: r.huong, ten_bai: r.ten_bai || "", ten_khu: r.ten_khu || "", tan: r.tan });
-    },
-    async docKhNgayTau(voyageId, ngay) { await wait(60); const k = (db.khNgayTau ||= { xe: [], kho: [] }); return clone({ xe: k.xe.filter((x) => x.voyage_id === voyageId && x.ngay === ngay), kho: k.kho.filter((x) => x.voyage_id === voyageId && x.ngay === ngay) }); },
-    async luuKhNgayTau(voyageId, ngay, { xe = [], kho = [] }) {
-      can("nhap"); await wait(); const k = (db.khNgayTau ||= { xe: [], kho: [] }), la = (x) => x.voyage_id === voyageId && x.ngay === ngay;
-      k.xe = k.xe.filter((x) => !la(x)); k.kho = k.kho.filter((x) => !la(x));
-      for (const r of xe) if (r.tan > 0) k.xe.push({ voyage_id: voyageId, ngay, loai_xe: r.loai_xe || "", don_vi: r.don_vi, tan: r.tan });
-      for (const r of kho) if (r.tan > 0) k.kho.push({ voyage_id: voyageId, ngay, ten_bai: r.ten_bai, ten_khu: r.ten_khu || "", tan: r.tan });
     },
     async docKeHoachNgay(tu, den) { await wait(60); return clone(db.keHoachNgay.filter((x) => x.ngay >= tu && x.ngay <= den)); },
     async saveKeHoachNgay(rows) {
