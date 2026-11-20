@@ -26,7 +26,8 @@ const fmt = (n) => (n == null ? "" : soGon(n));
 // Tab vận tải có thêm cột Loại hàng (nhóm hàng như bên cảng) và bộ lọc đội xe (Xe ben, Xe đầu kéo, Xe bồn…) áp cho cả hai bảng.
 // Dữ liệu của tháng đang chọn tải riêng từ Supabase (SQL 06); sau mỗi lần lưu tải lại.
 // che: "mucTieu" chỉ hiện bảng mục tiêu, "thucTe" chỉ hiện bảng thực tế (hộp Đặt mục tiêu / Sản lượng thực tế của trang cảng); bỏ trống = cả hai
-export default function SanLuongTab({ nhom, thang, kyLoai = "thang", che, onLuu }) {
+// huongHien: chỉ hiện bảng mục tiêu của MỘT hướng ("nhap" | "xuat") ở nhóm cảng (hộp Đặt mục tiêu chia mục Kế hoạch nhập / xuất); bỏ trống = cả hai hướng
+export default function SanLuongTab({ nhom, thang, kyLoai = "thang", che, onLuu, huongHien }) {
   const { api } = useApp();
   const [lan, setLan] = useState(0);
   const [ban, setBan] = useState(0); // phiên bản số liệu đã tải: bảng chỉ dựng lại khi số liệu MỚI về (không dựng lại bằng số liệu cũ ngay sau khi lưu)
@@ -65,7 +66,7 @@ export default function SanLuongTab({ nhom, thang, kyLoai = "thang", che, onLuu 
           {(hLoc || xLoc) && <Button size="sm" variant="ghost" onClick={() => { setHLoc(""); setXLoc(""); }}><X />Bỏ lọc</Button>}
           <span className="text-xs text-muted-foreground">Bộ lọc áp cho cả bảng mục tiêu và bảng thực tế bên dưới.</span>
         </div>)}
-      {che !== "thucTe" && <Card><CardContent className="pt-4"><BangMucTieu key={`mt-${nhom}-${kyLoai}-${thang}-${ban}`} nhom={nhom} thang={thang} kyLoai={kyLoai} mucTieu={kq.mucTieu} mucTieuThang={kq.mucTieuThang} thucTe={kq.thucTe} loc={loc} onLuu={tai} /></CardContent></Card>}
+      {che !== "thucTe" && <Card><CardContent className="pt-4"><BangMucTieu key={`mt-${nhom}-${kyLoai}-${thang}-${ban}`} nhom={nhom} thang={thang} kyLoai={kyLoai} mucTieu={kq.mucTieu} mucTieuThang={kq.mucTieuThang} thucTe={kq.thucTe} loc={loc} onLuu={tai} huongHien={huongHien} /></CardContent></Card>}
       {che !== "mucTieu" && <Card><CardContent className="pt-4">{kyLoai === "thang"
         ? <BangThucTe key={`tt-${nhom}-${thang}-${ban}`} nhom={nhom} thang={thang} mucTieu={kq.mucTieu} thucTe={kq.thucTe} loc={loc} onLuu={tai} />
         : <BangTheoThang nhom={nhom} kyLoai={kyLoai} ky={thang} thangs={kq.thangs} mucTieu={kq.mucTieu} thucTe={kq.thucTe} loc={loc} />}</CardContent></Card>}
@@ -100,12 +101,13 @@ const TieuDeThu = ({ thu, dao, children }) => (
   <h2 className="text-sm font-semibold"><button type="button" onClick={dao} aria-expanded={!thu} title={thu ? "Mở bảng" : "Thu gọn bảng"} className="inline-flex items-center gap-1 hover:text-primary">
     {thu ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}{children}</button></h2>);
 
-function BangMucTieu({ nhom, thang, kyLoai = "thang", mucTieu, mucTieuThang = [], thucTe, loc, onLuu }) {
+function BangMucTieu({ nhom, thang, kyLoai = "thang", mucTieu, mucTieuThang = [], thucTe, loc, onLuu, huongHien }) {
   const [thuMT, daoMT] = useThu(`lg-sl-thu-mt-${nhom}`);
   const [thuH, setThuH] = useState(() => { try { return JSON.parse(localStorage.getItem(`lg-sl-thu-huong-${nhom}`) || "{}"); } catch { return {}; } });
   const daoH = (h) => setThuH((o) => { const n = { ...o, [h]: !o[h] }; try { localStorage.setItem(`lg-sl-thu-huong-${nhom}`, JSON.stringify(n)); } catch { /* bỏ qua */ } return n; });
   const { D, quyen, api, run, toast } = useApp();
   const c = NHOM[nhom], nhomHang = useNhomHang();
+  const dsHuong = huongHien ? c.huong.filter(([h]) => h === huongHien) : c.huong; // các hướng đang hiện
   const goc = useMemo(() => Object.fromEntries(mucTieu.map((m) => { const r = tuDb(nhom, m); return [khoaCua(r), { huong: r.huong, loai: r.loai, donVi: r.donVi, hang: r.hang, tan: soGon(r.tan), ghi_chu: r.ghi_chu || "" }]; })), [mucTieu, nhom]);
   const [f, setF] = useState(goc);
   const [xoa, setXoa] = useState(() => new Set());
@@ -197,7 +199,7 @@ function BangMucTieu({ nhom, thang, kyLoai = "thang", mucTieu, mucTieuThang = []
   // Tổng theo hướng, chỉ tính các dòng đang hiện (theo bộ lọc đội xe)
   const tongMT = (huong) => Object.values(dong).filter((r) => r.huong === huong && loc(r)).reduce((s, r) => s + (docSo(r.tan) || 0), 0);
   const tongTH = (huong) => thRows.filter((r) => r.huong === huong && loc(r)).reduce((s, r) => s + (+r.tan || 0), 0);
-  const tongAll = (fn) => c.huong.reduce((s, [h]) => s + fn(h), 0);
+  const tongAll = (fn) => dsHuong.reduce((s, [h]) => s + fn(h), 0);
   const soCotPhu = (c.coDonVi ? 1 : 0) + (c.coLoaiHang ? 1 : 0);
   return (
     <div className="grid gap-3">
@@ -207,13 +209,13 @@ function BangMucTieu({ nhom, thang, kyLoai = "thang", mucTieu, mucTieuThang = []
         {sua && !kyMode && dsTruoc?.length > 0 && <Button size="sm" variant="outline" onClick={chepTruoc} title="Điền mục tiêu tháng trước vào các dòng còn trống"><Copy />Chép mục tiêu {tenThang(truoc).toLowerCase()}</Button>}
         {sua && <Button size="sm" variant="outline" onClick={() => setDan(true)} title="Dán bảng từ Excel hoặc chọn file Excel"><ClipboardPaste />Dán nhanh / Excel</Button>}
         <div className="ml-auto flex flex-wrap gap-x-5 gap-y-1 text-sm">
-          {c.huong.map(([h, ten]) => <span key={h}><span className="text-muted-foreground">{ten}</span> <b className="tabular-nums">{so(tongMT(h))}</b></span>)}
-          <span><span className="text-muted-foreground">cộng</span> <b className="tabular-nums text-primary">{so(tongAll(tongMT))} t</b></span>
+          {dsHuong.map(([h, ten]) => <span key={h}><span className="text-muted-foreground">{ten}</span> <b className="tabular-nums">{so(tongMT(h))}</b></span>)}
+          {dsHuong.length > 1 && <span><span className="text-muted-foreground">cộng</span> <b className="tabular-nums text-primary">{so(tongAll(tongMT))} t</b></span>}
         </div>
       </div>
       {!thuMT && <>{vt ? <BangMucTieuVT ds={nhomVT} dong={dong} th={th} kyMode={kyMode} tongThang={tongThang} sua={sua} doi={doi} datO={datO} datGhiChu={datGhiChu} xoaNhom={xoaNhom} them={themV} setThem={setThemV} themNhom={themNhom} goiY={goiY} goiYHang={goiYHang} />
-      : <div className="grid items-start gap-3 lg:grid-cols-2">
-        {c.huong.map(([huong, ten]) => {
+      : <div className={cn("grid items-start gap-3", dsHuong.length > 1 && "lg:grid-cols-2")}>
+        {dsHuong.map(([huong, ten]) => {
           const ds = Object.entries(dong).filter(([, r]) => r.huong === huong && loc(r)).sort((a, b) => (docSo(b[1].tan) || 0) - (docSo(a[1].tan) || 0) || a[1].loai.localeCompare(b[1].loai, "vi") || a[1].hang.localeCompare(b[1].hang, "vi"));
           const mtT = tongMT(huong), thT = tongTH(huong), t = them[huong] || {};
           return (

@@ -4,20 +4,18 @@ import { useApp } from "../store";
 import { Seg } from "../components/ui";
 import ShortTerm from "./plan/ShortTerm";
 import LongTerm from "./plan/LongTerm";
-import { useApp as useAppChung } from "@/store";
-import MucTieuVanTai from "@/pages/cang/MucTieuVanTai";
 import ChienDich from "./chiendich/ChienDich";
 
 // Kế hoạch & báo cáo (Thiết bị cơ giới), 3 tab:
 //  · Kế hoạch ngày  = tab Ngắn hạn cũ (gán xe cho nhu cầu các ca tới)
-//  · Kế hoạch dài hạn = 2 tab nhỏ: Mục tiêu vận tải (tab cũ) và Linetime năng lực đáp ứng (tab Dài hạn cũ)
+//  · Kế hoạch dài hạn = Linetime năng lực đáp ứng (tab Dài hạn cũ). Mục tiêu vận tải đã chuyển sang Khai thác Cảng › Mục tiêu sản lượng › Đặt mục tiêu › Kế hoạch sản xuất (anh Sỹ 20/11/2026)
 //  · Chiến dịch = chiến dịch vận chuyển: tính số xe, điểm xếp / dỡ, giãn cách, biểu đồ chạy xe, linetime khối lượng, thực tế (SQL 17)
 const doc = (k, mac) => { try { return localStorage.getItem(k) || mac; } catch { return mac; } };
 const luu = (k, v) => { try { localStorage.setItem(k, v); } catch { /* bỏ qua */ } };
 const TAB = [["ngay", "Kế hoạch ngày"], ["dai", "Kế hoạch dài hạn"], ["chien-dich", "Chiến dịch"]];
 const MO_TA = {
   ngay: "Kế hoạch chi tiết các ca tới theo file nhu cầu: gán xe, kiểm tra trùng giờ, xe hỏng, sai loại, xuất PDF trình ký.",
-  dai: "Mục tiêu khai thác vận tải và năng lực đáp ứng theo tiến độ tàu, việc bãi từng ca.",
+  dai: "Năng lực đáp ứng theo tiến độ tàu, việc bãi từng ca.",
   "chien-dich": "Chiến dịch vận chuyển: từ khối lượng, quãng đường, tốc độ, năng suất xếp / vun… web tính số xe, số điểm xếp / dỡ, giãn cách chạy xe, vẽ biểu đồ từng chuyến và linetime khối lượng; nhập thực tế theo ca để so kế hoạch.",
 };
 
@@ -27,14 +25,9 @@ const CanSql = () => (
 
 export default function KeHoachBaoCao() {
   const { D } = useApp();
-  const coCang = !!useAppChung()?.quyen?.coCang; // mục tiêu vận tải dùng bảng sản lượng của phần Cảng (SQL 06): cần quyền Cảng
   const [tab, setTab] = useState(() => { const t = doc("qltb-kh-tab", "ngay"); return TAB.some(([k]) => k === t) ? t : "ngay"; });
-  const [dai, setDai] = useState(() => { const t = doc("qltb-kh-dai", "van_tai"); return t === "linetime" || t === "van_tai" ? t : "van_tai"; });
   const chonTab = (v) => { setTab(v); luu("qltb-kh-tab", v); };
-  const chonDai = (v) => { setDai(v); luu("qltb-kh-dai", v); };
 
-  // Hai tab nhỏ của Kế hoạch dài hạn nằm bên TRÁI; với Mục tiêu vận tải, bộ chọn Tháng / Quý / Năm nằm cùng hàng ở bên PHẢI (anh Sỹ 17/11/2026)
-  const tabDai = <div className="row mb" style={{ marginBottom: 0 }}><Seg value={dai} onChange={chonDai} options={[["van_tai", "Mục tiêu vận tải"], ["linetime", "Linetime năng lực đáp ứng"]]} /></div>;
   return (
     <>
       <div className="page-h">
@@ -44,14 +37,7 @@ export default function KeHoachBaoCao() {
 
       {tab === "ngay" && (!D.plan ? <CanSql /> : <ShortTerm />)}
 
-      {tab === "dai" && (
-        <>
-          {dai !== "van_tai" && tabDai}
-          {dai === "van_tai"
-            ? (coCang ? <div className="khong-ttb"><MucTieuVanTai trai={tabDai} /></div> : <div className="card"><div className="alert warn"><Database size={16} /><span>Mục tiêu vận tải dùng bảng sản lượng của phần Khai thác Cảng: tài khoản cần có quyền Cảng.</span></div></div>)
-            : (!D.plan ? <CanSql /> : <LongTerm />)}
-        </>
-      )}
+      {tab === "dai" && (!D.plan ? <CanSql /> : <LongTerm />)}
 
       {tab === "chien-dich" && <ChienDich />}
     </>
