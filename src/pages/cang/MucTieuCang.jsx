@@ -132,7 +132,8 @@ export default function MucTieuCang() {
     const k = keHoachTheoDiem(ky, khMap, h, nhom);
     const khD = c.diem.map((o, i) => (buTheoNgay ? (k.kh[i] > 0 ? k.kh[i] : o.mt) : k.kh[i] != null ? k.kh[i] : o.mt));
     const nguon = buTheoNgay ? "ngày có kế hoạch ngày lấy theo kế hoạch ngày, ngày chưa có lấy xuất trung bình ngày của tháng (mục tiêu ÷ số ngày)" : k.du ? "kế hoạch ngày theo tàu" : k.coKh ? "kế hoạch ngày + mục tiêu chia đều (tháng chưa đặt)" : "mục tiêu chia đều";
-    return { ...c, khD, nguon };
+    const tb = buTheoNgay ? c.diem.map((o, i) => !(k.kh[i] > 0) && o.mt > 0) : null; // ngày dùng xuất trung bình tháng (không có kế hoạch ngày): biểu đồ vẽ chấm màu khác
+    return { ...c, khD, nguon, tb };
   };
   const nhanX = (c) => c.diem.map((o) => o.nhan);
   const veDuong = (name, data, color, net) => ({ name, type: "line", showSymbol: kyLoai !== "thang", symbolSize: 4, data, itemStyle: { color }, lineStyle: { width: net ? 1.6 : 2.4, type: net ? "dashed" : "solid", color }, smooth: false });

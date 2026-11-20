@@ -20,7 +20,7 @@ import { useNhomHang } from "./useNhomHang";
 //   • TỒN DỰ BÁO (nét đứt, từ hôm nay): tồn hôm nay + sản xuất kế hoạch − xuất kế hoạch của các ngày còn lại. Chưa có kế hoạch nhập kho nên dùng TỔNG KHỐI LƯỢNG SẢN XUẤT HRC trong Kế hoạch sản xuất của kỳ (Kế hoạch tổng hợp › Đặt mục tiêu),
 //     chia đều theo ngày. Đường dự báo tô XANH LÁ khi tồn CAO HƠN mức tồn hôm nay (sản xuất đang lớn hơn xuất kế hoạch, tồn tăng) và ĐỎ khi THẤP HƠN (xuất kế hoạch lớn hơn sản xuất, tồn giảm); đường chấm ngang là mức tồn hôm nay.
 // Tồn kho cần quyền Khai thác kho bãi; không có thì chỉ vẽ hai đường lũy kế xuất.
-const MAU = { kh: "#a855f7", tt: "#38bdf8", ton: "#f59e0b", cao: "#22c55e", thap: "#f43f5e" };
+const MAU = { tbThang: "#f472b6", kh: "#a855f7", tt: "#38bdf8", ton: "#f59e0b", cao: "#22c55e", thap: "#f43f5e" };
 const nghin = (v) => (Math.abs(v) >= 1000 ? `${r2(v / 1000)}k` : v);
 
 export default function KeHoachXuatHang({ kyInfo: kyDay, homNay, c: cDay, nhom, cao }) {
@@ -34,7 +34,7 @@ export default function KeHoachXuatHang({ kyInfo: kyDay, homNay, c: cDay, nhom, 
     const idx = kyDay.ngays.map((d, i) => (d.slice(0, 7) === thang ? i : -1)).filter((i) => i >= 0);
     let lk = 0;
     const diemT = idx.map((i) => { const o = cDay.diem[i]; if (o.dau <= homNay) lk += +o.tt || 0; return { ...o, lkTt: o.dau <= homNay ? lk : null }; });
-    return { ...cDay, diem: diemT, khD: idx.map((i) => cDay.khD[i]) };
+    return { ...cDay, diem: diemT, khD: idx.map((i) => cDay.khD[i]), tb: idx.map((i) => !!cDay.tb?.[i]) };
   }, [kyDay, cDay, thang, homNay]);
   const kho = useKho(), nhomHang = useNhomHang();
   const [gd, setGd] = useState(null); // sổ kho từ đầu kỳ tới hôm nay
@@ -102,7 +102,7 @@ export default function KeHoachXuatHang({ kyInfo: kyDay, homNay, c: cDay, nhom, 
 
   const duong = (name, data, color, o = {}) => ({ name, type: "line", showSymbol: false, data, itemStyle: { color }, lineStyle: { width: o.net ? 1.8 : 2.4, type: o.net ? "dashed" : "solid", color }, ...o.them });
   const series = [
-    duong("Lũy kế xuất · kế hoạch", lkKH, MAU.kh, { net: true }),
+    duong("Lũy kế xuất · kế hoạch", lkKH, MAU.kh, { net: true, them: { showSymbol: true, symbolSize: (_, p) => (c.tb[p.dataIndex] ? 6 : 0), data: lkKH.map((v, i) => (c.tb[i] ? { value: v, itemStyle: { color: MAU.tbThang } } : v)) } }),
     duong("Lũy kế xuất · thực tế", lkTT, MAU.tt),
     ...(ton ? [duong("Tồn kho HRC · thực tế", ton, MAU.ton, { them: { areaStyle: { color: MAU.ton, opacity: 0.07 } } })] : []),
     ...(dbao ? [duong("Tồn kho HRC · dự báo", dbao.out, MAU.cao, { net: true, them: { markLine: { symbol: "none", silent: true, animation: false,
@@ -127,7 +127,7 @@ export default function KeHoachXuatHang({ kyInfo: kyDay, homNay, c: cDay, nhom, 
         </div>) : null}>
       <EChart height={cao - 112} option={option} />
       <div className="mt-1 grid gap-0.5 text-[0.6875rem] text-muted-foreground">
-        <span>Xuất thực tế <b className="text-foreground">{so(cuoiTT, 0)} t</b> / kế hoạch cả tháng <b className="text-foreground">{so(cuoiKH, 0)} t</b> · KH: {c.nguon}</span>
+        <span>Xuất thực tế <b className="text-foreground">{so(cuoiTT, 0)} t</b> / kế hoạch cả tháng <b className="text-foreground">{so(cuoiKH, 0)} t</b> · KH: {c.nguon}{c.tb.some(Boolean) && <> · <i className="inline-block h-2 w-2 rounded-full align-middle" style={{ background: MAU.tbThang }} /> chấm hồng = ngày chưa có kế hoạch ngày, đang lấy xuất trung bình tháng</>}</span>
         {!kho ? <span>Tồn kho: cần quyền Khai thác kho bãi để xem.</span> : tonNay == null || gd == null ? <span>Đang tải sổ kho…</span> : dbao ? (
           <span>Tồn HRC hôm nay <b className="text-foreground">{so(tonNay, 0)} t</b> → dự báo cuối tháng <b className={dbao.cuoi >= tonNay ? "text-ok" : "text-bad"}>{so(dbao.cuoi, 0)} t</b> ({dbao.cuoi >= tonNay ? "tăng" : "giảm"} {so(Math.abs(dbao.cuoi - tonNay), 0)} t) = tồn hôm nay + sản xuất kế hoạch còn lại <b className="text-foreground">{so(dbao.sxCon, 0)} t</b> − xuất kế hoạch còn lại <b className="text-foreground">{so(dbao.xuCon, 0)} t</b>
             {dbao.het ? <b className="text-bad"> · dự kiến hết hàng từ {dbao.het}</b> : ""}. Đường dự báo <b className="text-ok">xanh</b> = cao hơn tồn hôm nay (sản xuất lớn hơn xuất kế hoạch), <b className="text-bad">đỏ</b> = thấp hơn.</span>
