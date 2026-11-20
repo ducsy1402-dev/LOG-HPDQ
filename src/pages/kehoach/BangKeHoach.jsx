@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ChonGo } from "@/components/ui/combobox";
 import { so, docSo, plain } from "@/lib/format";
-import { KE_HOACH, dongKeHoach, tongDong, r2 } from "@/lib/keHoachTH";
+import { KE_HOACH, dongKeHoach, tongDong, r2, loaiKyCua } from "@/lib/keHoachTH";
+import { useNhomHang } from "../cang/useNhomHang";
 import HopPhanKho from "./HopPhanKho";
 import HopPhanXe from "./HopPhanXe";
 import HopDanKeHoach from "./HopDanKeHoach";
@@ -15,8 +16,10 @@ import HopDanKeHoach from "./HopDanKeHoach";
 //   • sản xuất  : Tên hàng · Tổng;                           bấm Tổng → hộp Nhập kho (nhập tổng ngay trong hộp)
 //   • nhập mua  : Tên hàng · Tổng · Đường bộ · Đường biển;  bấm Tổng → hộp Nhập kho, bấm Biển → hộp Phân xe (Bộ chỉ nhập khối lượng)
 // Mỗi bảng có nút Dán nhanh / Excel, dòng thêm đủ các trường của bảng (hàng đã có thì cập nhật số), nút xóa hàng khỏi kế hoạch. Kỳ lập kế hoạch: Tháng / Quý / Năm.
-export default function BangKeHoach({ loai, ky, nhanKy, data, kho, sua, dsHang, loaiXe, onLuu }) {
+// onPhanBo(huongVT): gọi sau khi phân bổ vận tải xong (chỉ kế hoạch sản xuất: bấm Tổng có thêm mục Phân bổ vận tải)
+export default function BangKeHoach({ loai, ky, nhanKy, data, kho, sua, dsHang, loaiXe, onLuu, onPhanBo }) {
   const { api, run } = useApp();
+  const nhomHang = useNhomHang();
   const cfg = KE_HOACH[loai], bb = cfg.boBien;
   const [pop, setPop] = useState(null); // { hang, kieu: "kho" | "bo" | "bien", neo }
   const [dan, setDan] = useState(false);
@@ -81,7 +84,8 @@ export default function BangKeHoach({ loai, ky, nhanKy, data, kho, sua, dsHang, 
         {" "}Thêm hàng đã có trong bảng thì cập nhật số của hàng đó.
       </p>
       {pop && dongPop && (pop.kieu === "kho"
-        ? <HopPhanKho key={`k|${pop.hang}`} neo={pop.neo} onDong={() => setPop(null)} loai={loai} ky={ky} hang={dongPop.hang} tong={dongPop.tong} tongSua={!bb} kho={kho} khoRows={(data?.kho || []).filter((r) => r.loai === loai && plain(r.hang) === plain(dongPop.hang))} sua={sua} onLuu={onLuu} />
+        ? <HopPhanKho key={`k|${pop.hang}`} neo={pop.neo} onDong={() => setPop(null)} loai={loai} ky={ky} hang={dongPop.hang} tong={dongPop.tong} tongSua={!bb} kho={kho} khoRows={(data?.kho || []).filter((r) => r.loai === loai && plain(r.hang) === plain(dongPop.hang))} sua={sua} onLuu={onLuu}
+          vanTai={loai === "san_xuat" && onPhanBo ? { kyLoai: loaiKyCua(ky), hangVT: nhomHang(dongPop.hang, "") || dongPop.hang, onXong: (h) => { setPop(null); onPhanBo(h); } } : undefined} />
         : <HopPhanXe key={`x|${pop.hang}|${pop.kieu}`} neo={pop.neo} onDong={() => setPop(null)} loai={loai} ky={ky} hang={dongPop.hang} hinh={pop.kieu} dong={dongPop} xe={data?.xe || []} loaiXe={loaiXe} sua={sua} onLuu={onLuu} />)}
       {dan && <HopDanKeHoach loai={loai} ky={ky} nhanKy={nhanKy} onClose={() => setDan(false)} onLuu={onLuu} />}
     </div>

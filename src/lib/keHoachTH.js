@@ -13,6 +13,8 @@ export const KE_HOACH = {
 export const HINH_THUC = [["bo", "Đường bộ"], ["bien", "Đường biển"]];
 export const DON_VI_XE = [["hoa_phat", "Hòa Phát"], ["nha_thau", "Thuê ngoài"]];
 export const KHONG_LOAI_XE = "(không chia loại xe)";
+// Loại kỳ từ khóa kỳ: "2026-Q4" -> quy, "2026" -> nam, còn lại -> thang
+export const loaiKyCua = (ky) => (/-Q\d$/.test(String(ky)) ? "quy" : /^\d{4}$/.test(String(ky)) ? "nam" : "thang");
 export const r2 = (x) => Math.round((+x || 0) * 100) / 100;
 
 // Các dòng của một bản kế hoạch: [{ hang, bo, bien, tong }] sắp theo tổng giảm dần

@@ -29,6 +29,8 @@ export function HopDatMucTieu({ thang0, onClose, onLuu }) {
     nam: dsKy("nam", D.now, 3, 2).map((x) => [x, tenKy("nam", x)]),
   };
   const ky = chon[kyLoai];
+  const [lanVT, setLanVT] = useState(0), [locDau, setLocDau] = useState(""); // bảng vận tải dựng lại (key) và mở sẵn hướng vừa phân bổ
+  const phanBo = (huongVT) => { setLocDau(huongVT); setLanVT((n) => n + 1); setMuc("van_tai"); }; // sau khi phân bổ vận tải: chuyển sang mục Kế hoạch vận tải (tab Phục vụ cảng / Phục vụ sản xuất)
   const [muc, setMuc] = useState("nhap"); // nhap | xuat | van_tai | san_xuat; các bảng mục tiêu luôn được dựng sẵn, chỉ ẩn / hiện, để chuyển mục không mất số đang gõ
   return (
     <Dialog onOpenChange={(o) => !o && onClose()} className={RONG} title="Đặt mục tiêu sản lượng" description="Kế hoạch nhập Cảng, kế hoạch xuất Cảng (theo loại hàng), kế hoạch sản xuất và kế hoạch vận tải (loại xe, Hòa Phát / Thuê ngoài) của tháng, quý hoặc năm. Chỉ Quản lý / Quản trị đặt mục tiêu.">
@@ -42,9 +44,9 @@ export function HopDatMucTieu({ thang0, onClose, onLuu }) {
           options={dsChon[kyLoai].map(([x, ten]) => [x, ten + (x === hienTai[kyLoai] ? " (này)" : "")])} aria-label={KY.find(([k]) => k === kyLoai)[1]} />
       </div>
       <MucTab muc={muc} setMuc={setMuc} ds={[["nhap", "Kế hoạch nhập Cảng"], ["xuat", "Kế hoạch xuất Cảng"], ["san_xuat", "Kế hoạch sản xuất"], ["van_tai", "Kế hoạch vận tải"]]} />
-      <div className={muc === "van_tai" || muc === "san_xuat" ? "hidden" : ""}><SanLuongTab nhom="cang" thang={ky} kyLoai={kyLoai} che="mucTieu" onLuu={onLuu} huongHien={muc === "xuat" ? "xuat" : "nhap"} /></div>
-      <div className={muc === "van_tai" ? "" : "hidden"}><SanLuongTab nhom="van_tai" thang={ky} kyLoai={kyLoai} che="mucTieu" onLuu={onLuu} /></div>
-      {muc === "san_xuat" && <SanXuatKeHoach kyLoai={kyLoai} ky={ky} />}
+      <div className={muc === "van_tai" || muc === "san_xuat" ? "hidden" : ""}><SanLuongTab nhom="cang" thang={ky} kyLoai={kyLoai} che="mucTieu" onLuu={onLuu} huongHien={muc === "xuat" ? "xuat" : "nhap"} onPhanBo={phanBo} /></div>
+      <div className={muc === "van_tai" ? "" : "hidden"}><SanLuongTab key={`vt-${lanVT}`} nhom="van_tai" thang={ky} kyLoai={kyLoai} che="mucTieu" onLuu={onLuu} locDau={locDau} /></div>
+      {muc === "san_xuat" && <SanXuatKeHoach kyLoai={kyLoai} ky={ky} onPhanBo={phanBo} />}
     </Dialog>
   );
 }

@@ -35,7 +35,7 @@ export default function HopDanVT({ onApDung, onClose }) {
   // Cột Tổng trong file (nếu có) theo hướng, để đối chiếu với Hòa Phát + Thuê ngoài
   const tongFile = (h) => hopLe.filter((x) => x.huong === h && x.tong != null).reduce((a, x) => a + x.tong, 0);
   const ghiHuong = (h, ten) => { const t = tongHuong(h), f = tongFile(h); return `${ten} ${so(t)} t${f && Math.abs(f - t) > 0.5 ? ` (cột Tổng của file: ${so(f)} t)` : ""}`; };
-  const nhomKey = new Set(gop.ds.map((x) => `${x.huong}|${x.loai.toLowerCase()}|${(x.hang || "").toLowerCase()}`)).size;
+  const nhomKey = new Set(gop.ds.map((x) => `${x.huong}|${x.loai.toLowerCase()}|${(x.hang || "").toLowerCase()}|${(x.nv || "").toLowerCase()}`)).size;
   return (
     <Dialog onOpenChange={(o) => !o && onClose()} className="max-w-[min(1000px,calc(100vw-24px))]" title="Dán nhanh / Excel · mục tiêu vận tải"
       description={`Chép bảng từ Excel (Ctrl+C) rồi dán (Ctrl+V), hoặc chọn file Excel. Dòng đầu là tiêu đề: ${COT_DAN_VT.map(([, t]) => t).join(" · ")}. Không cần cột Stt; ô trống hoặc "-" là không có số.`}
@@ -56,14 +56,14 @@ export default function HopDanVT({ onApDung, onClose }) {
       ) : kq.loiCot ? <div className="flex gap-1.5 text-sm text-bad"><MucIcon muc="bad" className="mt-0.5" />{kq.loiCot}</div> : (
         <div className="scroll-x max-h-[50vh] rounded-md border">
           <table className="tbl text-xs">
-            <thead><tr><th>Kết quả</th><th>Loại hàng</th><th>Hướng</th><th>Loại xe</th><th>ĐVT</th><th className="num">Tổng</th><th className="num">Hòa Phát</th><th className="num">Thuê ngoài</th><th>Ghi chú</th></tr></thead>
+            <thead><tr><th>Kết quả</th><th>Loại hàng</th><th>Hướng</th><th>Nghiệp vụ</th><th>Loại xe</th><th>ĐVT</th><th className="num">Tổng</th><th className="num">Hòa Phát</th><th className="num">Thuê ngoài</th><th>Ghi chú</th></tr></thead>
             <tbody>{kq.ds.map((x, i) => (
               <tr key={i}>
                 <td className="min-w-[180px] align-top">
                   {x.loi.length ? x.loi.map((l, j) => <div key={j} className="flex gap-1 text-bad"><MucIcon muc="bad" className="h-3 w-3" />{l}</div>) : <span className="text-ok">Hợp lệ</span>}
                   {x.canh.map((l, j) => <div key={"c" + j} className="flex gap-1 text-warn"><MucIcon muc="warn" className="h-3 w-3" />{l}</div>)}
                 </td>
-                <td>{x.hang || "Mọi hàng"}</td><td>{HUONG_NGAN[x.huong] || ""}</td><td>{x.loai}</td><td>Tấn</td>
+                <td>{x.hang || "Mọi hàng"}</td><td>{HUONG_NGAN[x.huong] || ""}</td><td>{x.nv}</td><td>{x.loai}</td><td>Tấn</td>
                 <td className="num">{x.tong != null ? so(x.tong) : ""}</td><td className="num">{x.hp != null ? so(x.hp) : ""}</td><td className="num">{x.tn != null ? so(x.tn) : ""}</td><td>{x.ghi_chu}</td>
               </tr>))}</tbody>
           </table>
