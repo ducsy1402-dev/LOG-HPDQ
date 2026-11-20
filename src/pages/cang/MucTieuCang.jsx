@@ -112,7 +112,6 @@ export default function MucTieuCang() {
   const [kh, setKh] = useState(undefined); // kế hoạch ngày của kỳ ([] khi chưa chạy SQL 13)
   const [mo, setMo] = useState(null); // dat-mt | xem | ngay | thuc-te
   const [hD, setHD] = useState("xuat"), [nhomD, setNhomD] = useState(""), [hL, setHL] = useState("xuat");
-  const [nhomX, setNhomX] = useState(""); // nhomX: loại hàng của biểu đồ Kế hoạch xuất hàng
   const kyInfo = useMemo(() => khoangKy(kyLoai, ngayTC, homNay), [kyLoai, ngayTC, homNay]);
   const tai = () => setLan((x) => x + 1);
   const du = useSanLuongKy("cang", kyInfo.thangs, khoaKyRieng(kyInfo));
@@ -153,7 +152,8 @@ export default function MucTieuCang() {
   };
   // Biểu đồ "Kế hoạch xuất hàng": xuất kế hoạch / thực tế lũy kế + tồn kho theo ngày, lọc loại hàng
   const dsNhomX = useMemo(() => { if (!du) return []; const m = new Map(); for (const r of [...du.mucTieu, ...(du.mucTieuKy || []), ...du.thucTe]) if (r.huong === "xuat" && r.loai_hang) m.set(plain(r.loai_hang), r.loai_hang); return [...m.values()]; }, [du]);
-  const cX = useMemo(() => (sanSang ? chuoi("xuat", nhomX) : null), [sanSang, du, khMap, kyInfo, nhomX]); // eslint-disable-line react-hooks/exhaustive-deps
+  const nhomHRC = useMemo(() => dsNhomX.find((n) => plain(n) === "hrc") || "HRC", [dsNhomX]); // biểu đồ Kế hoạch xuất hàng chỉ thống kê loại hàng HRC (anh Sỹ 21/11/2026)
+  const cX = useMemo(() => (sanSang ? chuoi("xuat", nhomHRC) : null), [sanSang, du, khMap, kyInfo, nhomHRC]); // eslint-disable-line react-hooks/exhaustive-deps
   // Tiến độ theo loại hàng của hướng chọn: thực tế so mục tiêu của kỳ
   const loai = useMemo(() => {
     if (!sanSang) return [];
@@ -223,7 +223,7 @@ export default function MucTieuCang() {
         </div>)}
 
       <div className="grid gap-3 xl:grid-cols-3">
-        {!chuaCo && cX && <KeHoachXuatHang kyInfo={kyInfo} homNay={homNay} c={cX} nhomX={nhomX} setNhomX={setNhomX} dsNhom={dsNhomX} cao={CAO + 20} nguon={cX.nguon} />}
+        {!chuaCo && cX && <KeHoachXuatHang kyInfo={kyInfo} homNay={homNay} c={cX} nhom={nhomHRC} cao={CAO + 20} />}
         <CoCauTheoCang kyInfo={kyInfo} cao={CAO + 20} />
       </div>
 
