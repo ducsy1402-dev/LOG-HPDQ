@@ -87,7 +87,7 @@ export default function Linetime() {
         </TabsList>
           {tab === "gantt" && <>
             <span className="hidden h-6 w-px shrink-0 bg-border md:block" aria-hidden />
-            <div className="flex min-w-0 flex-wrap items-center gap-1.5" title={quyen.nhap ? (truc === "met" ? "Kéo ngang đổi giờ (tàu chưa cập, bước 30 phút), kéo dọc đặt vị trí mét / đổi bến." : "Kéo thanh tàu chưa cập bến để đổi bến / giờ dự kiến; kéo mép trái / phải thanh tàu để đổi giờ cập / rời (bước 30 phút).") : undefined}>
+            <div className="flex min-w-0 flex-wrap items-center gap-1.5" title={quyen.nhap ? (truc === "met" ? "Kéo ngang đổi giờ (tàu chưa cập, bước 30 phút), kéo dọc đặt vị trí mét / đổi bến; kéo mép trái / phải thanh tàu để đổi giờ cập / rời; nút m trên thanh tàu chỉnh nhanh mét cầu cập." : "Kéo thanh tàu chưa cập bến để đổi bến / giờ dự kiến; kéo mép trái / phải thanh tàu để đổi giờ cập / rời (bước 30 phút).") : undefined}>
             <Button size="sm" variant="outline" onClick={() => setTu(tu - 7 * DAY)} aria-label="Lùi 7 ngày"><ChevronLeft /></Button>
             <Button size="sm" variant="outline" onClick={() => setTu(homNay() - 3 * DAY)}>Hôm nay</Button>
             <Button size="sm" variant="outline" onClick={() => setTu(tu + 7 * DAY)} aria-label="Tới 7 ngày"><ChevronRight /></Button>

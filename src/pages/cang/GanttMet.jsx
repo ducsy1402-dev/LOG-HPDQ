@@ -29,6 +29,7 @@ export default function GanttMet({ voyages, tu, soNgay, pxNgay, che = "ben", gon
   const K = gon ? CO.gon : CO.thuong, LABEL = K.label;
   const { D, quyen, run, api, setVoyageMo, toast } = useApp();
   const [keo, setKeo] = useState(null); // { it, x0, y0, dx, dy, moved }
+  const [gian, setGian] = useState(null); // kéo giãn mép trái / phải thanh tàu: { it, canh: "trai" | "phai", x0, dx, moved }
   const [tro, setTro] = useState(null);
   const den = tu + soNgay * DAY, W = soNgay * pxNgay;
   const xOf = (t) => ((t - tu) / DAY) * pxNgay;
@@ -79,6 +80,28 @@ export default function GanttMet({ voyages, tu, soNgay, pxNgay, che = "ben", gon
     if (r.x === h.it.x && h.it.coDinh) return;
     run(() => api.updateVoyage(v.id, { vi_tri: r.x, ben_ma: r.ben.ben_ma, ben_phu: r.ben.ben_phu || null }), `${v.ten_tau}: bến ${noiHaiBen(r.ben.ben_ma, r.ben.ben_phu)} ${viTriChu(r.x, h.it.L)}`);
   };
+  // ---- Kéo giãn giờ (như Lịch cầu bến › Theo bến): nắm mép PHẢI thanh tàu đổi ETD (đã có ATD thì ATD), mép TRÁI đổi ETB (đã có ATB thì ATB); bước 30 phút, tối thiểu 30 phút ở bến ----
+  // Chỉ mép trái của đoạn đầu và mép phải của đoạn cuối (tàu có chuyển bến: các mốc giữa sửa ở phiếu chuyến). Lưu ngay khi thả.
+  const coGian = (it) => quyen.nhap && !it.v.huy;
+  const moc = (it, canh) => (canh === "trai" ? (it.v.atb ? "atb" : "etb") : (it.v.atd ? "atd" : "etd"));
+  const tenMoc = { atb: "ATB", etb: "ETB", atd: "ATD", etd: "ETD" };
+  const tinhGian = ({ it, canh, dx }) => {
+    const lech = Math.round(((dx / pxNgay) * DAY) / SNAP) * SNAP;
+    return canh === "trai" ? { a: Math.min(it.seg.a + lech, it.seg.b - SNAP), b: it.seg.b } : { a: it.seg.a, b: Math.max(it.seg.b + lech, it.seg.a + SNAP) };
+  };
+  const onDownGian = (e, it, canh) => {
+    if (e.button !== 0) return;
+    e.stopPropagation(); setTro(null);
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setGian({ it, canh, x0: e.clientX, dx: 0, moved: false });
+  };
+  const xongGian = () => {
+    const g = gian; setGian(null);
+    if (!g?.moved) return;
+    const { a, b } = tinhGian(g), m = moc(g.it, g.canh), gia = g.canh === "trai" ? a : b, cu = g.canh === "trai" ? g.it.seg.a : g.it.seg.b;
+    if (gia === cu) return;
+    run(() => api.updateVoyage(g.it.v.id, { [m]: iso(gia) }), `${g.it.v.ten_tau}: ${tenMoc[m]} → ${ngayGio(gia)} (ở bến ${thoiLuong((b - a) / 36e5, { ngan: true })})`);
+  };
   const onDown = (e, it) => {
     if (e.button !== 0) return;
     e.currentTarget.setPointerCapture(e.pointerId);
@@ -86,12 +109,18 @@ export default function GanttMet({ voyages, tu, soNgay, pxNgay, che = "ben", gon
     setKeo({ it, x0: e.clientX, y0: e.clientY, dx: 0, dy: 0, moved: false });
   };
   const onMove = (e) => {
+    if (gian) {
+      const dx = e.clientX - gian.x0;
+      if (!gian.moved && Math.abs(dx) < 4) return;
+      return setGian({ ...gian, dx, cx: e.clientX, cy: e.clientY, moved: true });
+    }
     if (!keo) return;
     const dx = e.clientX - keo.x0, dy = e.clientY - keo.y0;
     if (!keo.moved && Math.hypot(dx, dy) < 5) return;
     setKeo({ ...keo, dx, dy, moved: true, cx: e.clientX, cy: e.clientY });
   };
   const onUp = () => {
+    if (gian) return xongGian();
     if (!keo) return;
     const k = keo; setKeo(null);
     if (!k.moved) return setVoyageMo(k.it.v.id);
@@ -122,7 +151,7 @@ export default function GanttMet({ voyages, tu, soNgay, pxNgay, che = "ben", gon
                 <div className={cn("font-semibold tabular-nums", gon ? "pt-0.5" : "pt-1")}>{pad(d.getDate())}/{pad(d.getMonth() + 1)}</div><div className="text-muted-foreground">{THU[d.getDay()]}</div>
               </div>); })}
           </div>
-          <div className="relative" style={{ height: cao }} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={() => setKeo(null)}>
+          <div className="relative" style={{ height: cao }} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={() => { setKeo(null); setGian(null); }}>
             {ngayDs.map((t, i) => <div key={t} className={cn("absolute inset-y-0 border-r", new Date(t).getDay() === 0 && "bg-muted/40")} style={{ left: LABEL + i * pxNgay, width: pxNgay }} />)}
             {D.now >= tu && D.now <= den && <div className="absolute inset-y-0 z-10 w-0.5 bg-bad/80" style={{ left: LABEL + xOf(D.now) }} title={`Hiện tại ${ngayGio(D.now)}`} />}
             {/* Dải tuyến: ranh giới bến (vạch ngang) và nhãn bến ở cột trái */}
@@ -146,7 +175,10 @@ export default function GanttMet({ voyages, tu, soNgay, pxNgay, che = "ben", gon
               const d = daiCua.get(it.tuyen.ma);
               if (!d) return null;
               const dangKeo = keo?.moved && keo.it === it;
-              const left = Math.max(0, xOf(it.seg.a)), right = Math.min(W, xOf(it.seg.b)), w = Math.max(6, right - left);
+              const gx = gian?.moved && gian.it === it ? tinhGian(gian) : null; // đang kéo giãn thanh này: vẽ theo mốc mới
+              const xa = gx?.a ?? it.seg.a, xb = gx?.b ?? it.seg.b;
+              const left = Math.max(0, xOf(xa)), right = Math.min(W, xOf(xb)), w = Math.max(6, right - left);
+              const gianTrai = coGian(it) && it.seg.dau, gianPhai = coGian(it) && it.seg.cuoi, tayG = Math.min(8, Math.max(4, w / 4));
               const top = yMet(d, it.x), h = Math.max(8, it.L * K.mPx);
               const nutMet = coChinhMet(it);
               const cs = it.st === "lam_hang" ? chiSo(it.v, D.stopsOf(it.v.id), D.now) : null;
@@ -155,7 +187,7 @@ export default function GanttMet({ voyages, tu, soNgay, pxNgay, che = "ben", gon
               const dsStops = D.stopsOf(it.v.id);
               // Toàn thời gian: đoạn chờ bến đỏ ngay trước thanh tàu (chỉ đoạn bến đầu của chuyến) và các vạch mốc
               const choTu = it.seg.dau ? choBatDau(it.v, che) : null, a0 = choTu != null && choTu < it.seg.a ? choTu : null;
-              const choL = a0 != null ? Math.max(0, xOf(a0)) : null, choR = a0 != null ? Math.min(W, xOf(it.seg.a)) : null, coCho = choL != null && choR > choL;
+              const choL = a0 != null ? Math.max(0, xOf(a0)) : null, choR = a0 != null ? Math.min(W, xOf(xa)) : null, coCho = choL != null && choR > choL;
               const vach = che === "toan" ? [it.v.nor, it.v.bd_lam_hang, it.v.kt_lam_hang].filter((t) => t && ms(t) >= tu && ms(t) <= den) : [];
               return (
                 <Fragment key={`${it.v.id}:${it.seg.a}`}>
@@ -170,7 +202,7 @@ export default function GanttMet({ voyages, tu, soNgay, pxNgay, che = "ben", gon
                   onPointerMove={(e) => !keo && e.pointerType === "mouse" && setTro({ x: it, cx: e.clientX, cy: e.clientY })} onPointerLeave={() => setTro(null)}
                   className={cn("absolute z-10 flex touch-none flex-col justify-center overflow-hidden rounded px-1.5 font-medium leading-tight text-white shadow-sm", K.chu,
                     keoDuoc ? "cursor-grab" : "cursor-pointer",
-                    dangKeo && "z-30 cursor-grabbing opacity-90 ring-2 ring-white")}
+                    dangKeo && "z-30 cursor-grabbing opacity-90 ring-2 ring-white", gx && "z-30 ring-2 ring-white")}
                   style={{ left: LABEL + left, width: w, top, height: h, background: mau, transform: dangKeo ? `translate(${doiGioDuoc(it) ? keo.dx : 0}px, ${doiMetDuoc(it) ? keo.dy : 0}px)` : undefined }}
                   aria-label={`${it.v.ten_tau}: ${TRANG_THAI[it.st].ten}`}>
                   {cs && <div className="absolute inset-y-0 left-0 bg-black/25" style={{ width: `${Math.min(100, (cs.hoanTat || 0) * 100)}%` }} />}
@@ -178,13 +210,22 @@ export default function GanttMet({ voyages, tu, soNgay, pxNgay, che = "ben", gon
                   {h >= 26 && <span className="relative truncate opacity-85">{it.v._loaUoc || it.thuNho ? "≈" : ""}{met(it.L)} m · {noiHaiBen(it.seg.ben, it.seg.phu)} {viTriChu(it.x, it.L)}</span>}
                   {/* Nút ghim: mở hộp chỉnh nhanh mét cầu cập (không đổi LOA) */}
                   {nutMet && h >= 14 && <button type="button" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => moHop(e, it)} title="Chỉnh nhanh mét cầu cập (không đổi LOA)" aria-label={`Chỉnh mét cầu cập ${it.v.ten_tau}`}
-                    className="absolute right-0.5 top-0.5 z-20 flex h-3.5 w-3.5 items-center justify-center rounded bg-black/30 text-[0.5625rem] font-bold leading-none text-white opacity-60 hover:bg-black/60 hover:opacity-100">m</button>}
+                    className="absolute right-2 top-0.5 z-20 flex h-3.5 w-3.5 items-center justify-center rounded bg-black/30 text-[0.5625rem] font-bold leading-none text-white opacity-60 hover:bg-black/60 hover:opacity-100">m</button>}
+                  {/* Tay nắm kéo giãn: mép trái đổi ETB / ATB, mép phải đổi ETD / ATD */}
+                  {gianTrai && <span onPointerDown={(e) => onDownGian(e, it, "trai")} title={`Kéo để đổi ${tenMoc[moc(it, "trai")]}`} className="group/g absolute inset-y-0 left-0 z-20 flex cursor-ew-resize items-center justify-center bg-black/0 hover:bg-white/40" style={{ width: tayG }}><i className="h-1/2 w-px bg-white/0 group-hover/g:bg-white" /></span>}
+                  {gianPhai && <span onPointerDown={(e) => onDownGian(e, it, "phai")} title={`Kéo để đổi ${tenMoc[moc(it, "phai")]}`} className="group/g absolute inset-y-0 right-0 z-20 flex cursor-ew-resize items-center justify-center bg-black/0 hover:bg-white/40" style={{ width: tayG }}><i className="h-1/2 w-px bg-white/0 group-hover/g:bg-white" /></span>}
                 </div>
                 </Fragment>);
             })}
           </div>
         </div>
       </div>
+      {gian?.moved && (() => { const g = tinhGian(gian), m = moc(gian.it, gian.canh), lech = gian.canh === "trai" ? g.a - gian.it.seg.a : g.b - gian.it.seg.b; return (
+        <div className="pointer-events-none fixed z-50 rounded-md border bg-popover px-2.5 py-1.5 text-xs shadow-lg" style={{ left: (gian.cx ?? 0) + 16, top: (gian.cy ?? 0) + 16 }}>
+          <div className="font-semibold">{gian.it.v.ten_tau}</div>
+          <div>{tenMoc[m]}: <b className="tabular-nums">{ngayGio(gian.canh === "trai" ? g.a : g.b)}</b>{lech ? <span className="text-muted-foreground"> ({lech > 0 ? "+" : "−"}{thoiLuong(Math.abs(lech) / 36e5, { ngan: true })})</span> : null}</div>
+          <div className="text-muted-foreground">Ở bến {ngayGio(g.a)} → {ngayGio(g.b)} · {thoiLuong((g.b - g.a) / 36e5, { ngan: true })}</div>
+        </div>); })()}
       {/* Đang kéo: mét, bến, giờ cập – rời để căn chỉnh */}
       {/* Hộp chỉnh nhanh mét cầu cập: LOA tàu giữ nguyên, chỉ đổi vị trí mét */}
       {hop && (() => {
@@ -227,11 +268,12 @@ export default function GanttMet({ voyages, tu, soNgay, pxNgay, che = "ben", gon
         <ChuThichCho toan={che === "toan"} />
         {che === "toan" && <span className="flex items-center gap-1"><i className="inline-block h-3 w-0.5 bg-white" />Vạch NOR, bắt đầu / kết thúc làm hàng</span>}
         <span className="flex items-center gap-1"><i className="inline-block h-3 w-4 border-t-2 border-warn" />Đầu góc vuông</span>
+        {quyen.nhap && <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-1 cursor-ew-resize rounded-sm bg-white ring-1 ring-slate-400" />Kéo mép trái / phải thanh tàu để đổi ETB·ATB / ETD·ATD</span>}
         {coSua && <span className="flex items-center gap-1"><i className="inline-flex h-3.5 w-3.5 items-center justify-center rounded bg-slate-500 text-[0.5625rem] font-bold not-italic text-white">m</i>Bấm để chỉnh nhanh mét cầu cập (không đổi LOA)</span>}
         <span>≈ trước tên tàu: trạng thái theo giờ dự kiến · ≈ trước số mét: LOA ước tính (tàu chưa có LOA)</span>
         {chuaXep > 0 && <span>{chuaXep} chuyến chưa có bến (không vẽ trên lịch theo mét)</span>}
       </div>
-      {tro && !keo && !hop && <TheTau x={tro.x} cx={tro.cx} cy={tro.cy} />}
+      {tro && !keo && !hop && !gian && <TheTau x={tro.x} cx={tro.cx} cy={tro.cy} />}
     </>
   );
 }

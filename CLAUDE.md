@@ -226,6 +226,8 @@ Thay đổi CSDL về sau: viết file SQL mới đánh số tiếp (15, 16…),
 ## Toàn màn hình: nội dung vừa khít màn hình (21/11/2026)
 - Mọi khối có nút Toàn màn hình (`Card` ui, `Khung` Tổng quan, hộp thoại, thẻ Thiết bị cơ giới) đánh dấu `data-tmh` khi phủ kín cửa sổ. **`EChart`** (`components/EChart.jsx`) khi ở trong khối đó tự đo phần còn lại (trừ tiêu đề, bộ lọc, ghi chú, lề; nhiều biểu đồ trong một khối thì chia đều) và cao đúng bằng đó (không thấp hơn chiều cao gốc); tính lại mỗi lần vẽ, khi bật / tắt (sự kiện `tmh-doi` do `useToanManHinh` phát) và khi đổi cỡ cửa sổ. Bảng / danh sách có `max-h-[…]` trong khối toàn màn hình dùng hết chiều cao màn hình (`index.css`; thẻ Thiết bị cơ giới: `.tw` ở `thietbi/styles.css`), khối cuộn chứa biểu đồ thì không cắt.
 
+- **Lịch cầu bến › Theo mét** cũng có tay nắm kéo giãn mép trái / phải thanh tàu (đổi ETB·ATB / ETD·ATD, bước 30 phút) như Theo bến (`GanttMet.jsx`, 21/11/2026); nút "m" chỉnh mét dời sang trái một chút để khỏi chồng tay nắm phải.
+
 ## Sửa lỗi 16/11/2026 (nhánh sua-dan-tau-xoa-muc-tieu)
 - **Dán nhanh (mọi hộp dán)**: `tachBang` (`lib/paste.js`) đọc dạng tab theo quy tắc Excel: ô có xuống dòng (Alt+Enter) hoặc có dấu " được Excel bao trong ngoặc kép, nên không bị tách thành dòng mới (lỗi: ô Kho-Bãi nhiều dòng làm bảng tàu lệch cột, "Máy rải liệu" nhảy vào Tên tàu, báo thiếu ETA / ETB / ETD). Các dòng trong một ô nối bằng "; ". Kiểm thử `tach_bang.test.js`.
 - **Đặt mục tiêu sản lượng, bấm x rồi Lưu thì dòng hiện lại**: `SanLuongTab` dựng lại bảng ngay khi lưu bằng số liệu CŨ (chưa tải xong). Nay bảng chỉ dựng lại khi số liệu mới về (`ban`); áp cho cả bảng thực tế.
