@@ -16,7 +16,7 @@ export function Khung({ ten, phu, bo, chiTiet, onChiTiet, className, cao, childr
   const [mo, setMo] = useState(false);
   const coCT = chiTiet || onChiTiet;
   return (
-    <section style={!to && cao ? { height: cao + 12 } : undefined} className={cn("flex min-w-0 flex-col rounded-xl border bg-card p-3", to && "fixed inset-0 z-40 overflow-auto rounded-none border-0 bg-card p-4", className)}>
+    <section data-tmh={to ? "" : undefined} style={!to && cao ? { height: cao + 12 } : undefined} className={cn("flex min-w-0 flex-col rounded-xl border bg-card p-3", to && "fixed inset-0 z-40 overflow-auto rounded-none border-0 bg-card p-4", className)}>
       {/* Đầu khung: tên + dòng phụ (trái, tự cắt bớt chữ) và các nút (phải); không đủ chỗ thì các nút xuống dòng, không đè lên tên */}
       <div className="mb-2 flex flex-wrap items-start gap-x-2 gap-y-1">
         <div className="min-w-0 flex-1 basis-[180px]">

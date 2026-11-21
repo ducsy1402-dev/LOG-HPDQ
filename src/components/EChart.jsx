@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef } from "react";
+import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import * as echarts from "echarts/core";
 import { BarChart, LineChart, PieChart } from "echarts/charts";
 import { GridComponent, TooltipComponent, LegendComponent, MarkLineComponent } from "echarts/components";
@@ -70,6 +70,36 @@ export default function EChart({ option, height = 260, onClick }) {
   bam.current = onClick;
   const { theme } = useApp();
   const to = useContext(PhongToCtx);
+  // TOÀN MÀN HÌNH (anh Sỹ 21/11/2026): khối phủ kín cửa sổ (có data-tmh) thì biểu đồ cao đúng phần còn lại của khối sau khi trừ tiêu đề, bộ lọc, ghi chú… (nhiều biểu đồ trong một khối thì chia đều);
+  // không bao giờ thấp hơn chiều cao gốc. Tính lại mỗi lần vẽ, khi bật / tắt toàn màn hình (sự kiện "tmh-doi") và khi đổi cỡ cửa sổ.
+  const [vua, setVua] = useState(null), vuaRef = useRef(null);
+  const datVua = (m) => { const c = vuaRef.current; if (c === m || (m != null && c != null && Math.abs(c - m) < 2)) return; vuaRef.current = m; setVua(m); }; // chỉ setState khi đổi thật, tránh vòng lặp cập nhật
+  const tinhVua = () => {
+    const goc = el.current?.closest("[data-tmh]");
+    if (!goc) { datVua(null); return; }
+    // Phần KHÔNG phải biểu đồ trên đường từ biểu đồ lên khối: các phần tử anh em xếp dọc (trừ chiều cao biểu đồ chứa trong đó), khoảng cách (gap), lề và đệm của từng tầng cha
+    const bd = goc.querySelectorAll("[data-echart]"), soBd = Math.max(1, bd.length), so0 = (x) => parseFloat(x) || 0;
+    const cao = (e) => { let h = e.offsetHeight; if (e.hasAttribute("data-echart")) return 0; for (const c of e.querySelectorAll("[data-echart]")) h -= c.offsetHeight; return Math.max(0, h); };
+    let thua = 0, nut = el.current;
+    while (nut && nut !== goc) {
+      const cha = nut.parentElement; if (!cha) break;
+      const cs = getComputedStyle(cha), ngang = (cs.display.includes("flex") && cs.flexDirection.startsWith("row")) || (cs.display.includes("grid") && cs.gridTemplateColumns.trim().split(/s+/).length > 1);
+      const anh = ngang ? [] : [...cha.children].filter((c) => c !== nut && !["absolute", "fixed"].includes(getComputedStyle(c).position) && c.offsetHeight > 0);
+      for (const c of anh) { const m = getComputedStyle(c); thua += cao(c) + so0(m.marginTop) + so0(m.marginBottom); }
+      if (!ngang && (cs.display.includes("flex") || cs.display.includes("grid"))) thua += so0(cs.rowGap) * anh.length;
+      thua += so0(cs.paddingTop) + so0(cs.paddingBottom) + so0(cs.borderTopWidth) + so0(cs.borderBottomWidth);
+      const mn = getComputedStyle(nut); thua += so0(mn.marginTop) + so0(mn.marginBottom);
+      nut = cha;
+    }
+    const moi = Math.min(goc.clientHeight, Math.floor((goc.clientHeight - thua) / soBd)); // chặn trên: không bao giờ cao hơn chính khối
+    datVua(moi);
+  };
+  useLayoutEffect(() => { tinhVua(); });
+  useEffect(() => {
+    const lai = () => requestAnimationFrame(tinhVua);
+    window.addEventListener("tmh-doi", lai); window.addEventListener("resize", lai);
+    return () => { window.removeEventListener("tmh-doi", lai); window.removeEventListener("resize", lai); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     chart.current = echarts.init(el.current, null, { renderer: "canvas" });
     chart.current.on("click", (p) => bam.current?.(p));
@@ -104,5 +134,5 @@ export default function EChart({ option, height = 260, onClick }) {
       yAxis: truc(option.yAxis),
     }, true);
   }, [option, theme]);
-  return <div ref={el} style={{ height: to ? `max(${height}px, calc(100dvh - 190px))` : height, width: "100%" }} />;
+  return <div ref={el} data-echart="" style={{ height: vua != null ? Math.max(height, vua) : to ? `max(${height}px, calc(100dvh - 190px))` : height, width: "100%" }} />;
 }

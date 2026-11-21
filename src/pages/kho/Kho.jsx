@@ -13,7 +13,7 @@ import { NGUONG_KHO, TAB_KHO, TAB_KHO_CU, locKhoTheoTab, khaiBaoBai } from "@/li
 import { cn } from "@/lib/utils";
 import { KIEU_TONE, KIEU_NGAN, Chi, Thanh, NgayDay, ThongQua, LuuBai, T_NGAY_DAY, T_LUU_BAI, T_THONG_QUA, T_NHAP_XUAT } from "./khoUi";
 import SoDoKhoBai from "./SoDoKhoBai";
-import BieuDoTon from "./BieuDoTon";
+import BieuDoTonKien, { BieuDoTonRoi } from "./BieuDoTonKien";
 import { useKho } from "./useKho";
 import GiaoDichForm, { SuaKiemKe } from "./GiaoDichForm";
 import NhapXuatBang from "./NhapXuatBang";
@@ -120,7 +120,7 @@ function KhoTab({ tab, kho }) {
         <span className="ml-auto text-xs text-muted-foreground">{tab.ten}: {kho.dong.length} gian / lô · tồn {so(kho.dong.reduce((s, d) => s + d.ton, 0), 0)} t</span>
       </div>
 
-      {kho.dong.length ? <BieuDoTon loai={loai} kho={kho} /> : <Empty>Chưa có gian / lô nào của {tab.ten.toLowerCase()}. Thêm ở Danh mục › Kho bãi (hàng của kho khai ở cột Hàng đang chứa).</Empty>}
+      {kho.dong.length ? (loai === "thanh_pham" ? <BieuDoTonKien loai={loai} kho={kho} /> : <BieuDoTonRoi loai={loai} kho={kho} />) : <Empty>Chưa có gian / lô nào của {tab.ten.toLowerCase()}. Thêm ở Danh mục › Kho bãi (hàng của kho khai ở cột Hàng đang chứa).</Empty>}
 
       {hop("ke-hoach", `Kế hoạch xuất/nhập kho · ${tab.ten}`, "Kế hoạch nhập / xuất của các bãi nhỏ theo ngày, tuần, tháng, năm.", <KeHoachKho loai={loai} kho={kho} nhan={tab.ten} />)}
       {hop("xem-kh", `Xem kế hoạch · ${tab.ten}`, "Kế hoạch so với thực tế theo sổ nhập – xuất.", <XemKeHoach kho={kho} />)}

@@ -18,11 +18,13 @@ export function useToanManHinh() {
     document.documentElement.requestFullscreen?.().catch(() => { /* trình duyệt không cho: vẫn phủ kín cửa sổ */ });
     const tran = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    window.dispatchEvent(new Event("tmh-doi")); // biểu đồ (EChart) co / giãn cho vừa khít màn hình
     return () => {
       window.removeEventListener("keydown", esc, true);
       document.removeEventListener("fullscreenchange", doi);
       document.body.style.overflow = tran;
       if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+      setTimeout(() => window.dispatchEvent(new Event("tmh-doi")), 0);
     };
   }, [on]);
   return [on, () => setOn((x) => !x)];

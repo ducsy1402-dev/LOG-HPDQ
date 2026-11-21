@@ -103,3 +103,13 @@
   ::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground) / 0.5); background-clip: padding-box; border: 2px solid transparent; }
   ::-webkit-scrollbar-track { background: transparent; }
 }
+
+/* Chuyển kho / bãi ở biểu đồ Tồn theo bãi nhỏ (Kho hàng kiện): nội dung mới trượt nhẹ từ phía vừa bấm */
+@keyframes kfade { from { opacity: 0; transform: translateX(var(--dx, 0px)); } to { opacity: 1; transform: none; } }
+.kfade { animation: kfade 0.28s ease-out; }
+@media (prefers-reduced-motion: reduce) { .kfade { animation: none; } }
+
+/* Toàn màn hình (Card, Khung, hộp thoại có data-tmh): bảng / danh sách có giới hạn chiều cao (max-h-[...]) dùng hết chiều cao màn hình, cuộn bên trong nếu dài hơn */
+[data-tmh] [class*="max-h-["] { max-height: calc(100dvh - 170px) !important; }
+/* khối cuộn chứa biểu đồ thì để biểu đồ tự vừa khít (không cắt), tránh vòng lặp đo chiều cao */
+[data-tmh] [class*="max-h-["]:has([data-echart]) { max-height: none !important; overflow: visible !important; }

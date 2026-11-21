@@ -1,5 +1,5 @@
 import { Fragment, useRef, useState } from "react";
-import { Truck, Users, Anchor, Package, Warehouse, HardHat, Plus, Save, Upload, Download, Pencil, Database, Wrench, Construction, Columns3, Trash2, Gauge, ListOrdered, Boxes, Route, MapPinned, Layers, LayoutGrid } from "lucide-react";
+import { Truck, Users, Anchor, Package, Warehouse, HardHat, Plus, Save, Upload, Download, Pencil, Check, X, Database, Wrench, Construction, Columns3, Trash2, Gauge, ListOrdered, Boxes, Route, MapPinned, Layers, LayoutGrid } from "lucide-react";
 import { useApp } from "@/store";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PageHead } from "@/components/common";
@@ -255,7 +255,9 @@ function BangSua({ nguon, icon }) {
   const khoaNhap = cfg.batBuoc || cfg.khoa;
   const [q, setQ] = useState("");
   const [nhap, setNhap] = useState(null);
-  const [sua, setSua] = useState(null); // "moi" = thêm, dòng = sửa
+  const [sua, setSua] = useState(null); // "moi" = thêm (hộp thoại)
+  const [dangSua, setDangSua] = useState(null); // khóa dòng đang SỬA TẠI DÒNG (bút chì → ô nhập ngay trên dòng; ✓ lưu, ✗ hủy; anh Sỹ 21/11/2026)
+  const [fd, setFd] = useState(null); // dữ liệu dòng đang sửa tại dòng
   const [moRong, setMoRong] = useState(null); // khóa dòng đang mở bảng con (cfg.moRong)
   const fileRef = useRef();
   const tenCot = (k) => cfg.cot.find((c) => c[0] === k)?.[1] || k;
@@ -275,7 +277,7 @@ function BangSua({ nguon, icon }) {
     const r = sach(f);
     if (!String(r[khoaNhap] ?? "").trim()) return toast(`Chưa nhập ${tenCot(khoaNhap)}`, "bad");
     if (!idKhoa && moi && goc.some((g) => plain(g[cfg.khoa]) === plain(r[cfg.khoa]))) return toast(`"${r[cfg.khoa]}" đã có trong danh mục`, "bad");
-    if (await cfg.luu([r])) setSua(null);
+    if (await cfg.luu([r])) { setSua(null); setDangSua(null); setFd(null); }
   };
   const xuat = async () => {
     const XLSX = await import("xlsx");
@@ -327,6 +329,22 @@ function BangSua({ nguon, icon }) {
   const c = useChonNhieu();
   const khoaDong = (r) => String(idKhoa ? r.id : r[cfg.khoa]);
   const keysHien = hien.map(khoaDong);
+  const batSua = (r) => { setSua(null); setDangSua(khoaDong(r)); setFd(khoiTaoForm(cfg, r)); };
+  const huySua = () => { setDangSua(null); setFd(null); };
+  // Ô nhập của một cột ngay trên dòng đang sửa (cùng quy tắc với hộp Thêm: cột khóa của dòng đã lưu không đổi được)
+  const oSua = (k, loai, w) => {
+    const khoaCu = (!idKhoa && k === cfg.khoa) || !!cfg.khoaDoc?.includes(k), chon = cfg.chon?.[k], goiY = cfg.goiY?.[k];
+    const dat = (v) => setFd((x) => ({ ...x, [k]: v }));
+    if (loai === "bool") return <input type="checkbox" style={{ width: 18, height: 18 }} checked={!!fd[k]} onChange={(e) => dat(e.target.checked)} aria-label={tenCot(k)} />;
+    if (chon) return <TSelect value={fd[k]} onChange={dat} options={chon} blank={cfg.chonTrong?.[k] ?? "—"} />;
+    return (
+      <>
+        <input className={"inp" + (loai === "so" ? " num" : "") + (k === khoaNhap ? " mono" : "")} style={{ minWidth: Math.min(Math.max(w || 90, 70), 240) }} value={fd[k]} readOnly={khoaCu} inputMode={loai === "so" ? "decimal" : undefined}
+          title={khoaCu ? (cfg.khoaDoc ? "Sửa ở tab Khai báo & quy hoạch" : "Không đổi khóa của dòng đã lưu (xóa rồi thêm mới nếu cần)") : undefined} list={goiY ? tenDlDong(cfg, k) : undefined} aria-label={tenCot(k)}
+          placeholder={cfg.ph?.[k] ?? (loai === "mang" ? "Cách nhau dấu ;" : "")} onChange={(e) => dat(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") luuMot(fd, false); if (e.key === "Escape") huySua(); }} />
+        {goiY && <datalist id={tenDlDong(cfg, k)}>{goiY.map((x) => <option key={x} value={x} />)}</datalist>}
+      </>);
+  };
   const xoaChon = (ks) => { const ds = new Set(ks); return cfg.xoaNhieu(goc.filter((r) => ds.has(khoaDong(r)))); };
 
   return (
@@ -352,22 +370,24 @@ function BangSua({ nguon, icon }) {
                   {k[0] === "$" && quyen.quanTri && coThem && <button type="button" className="ico-x" onClick={() => setXoaCot(cotThem.find((x) => "$" + x.ma === k))} title={`Xóa cột "${t}"`} aria-label={`Xóa cột ${t}`}
                     style={{ marginLeft: 4, border: 0, background: "none", color: "var(--muted)", cursor: "pointer", padding: 0, verticalAlign: "middle" }}><Trash2 size={12} /></button>}</th>)}
                 {(coSua || cfg.nutDong) && <th className="act"></th>}</tr></thead>
-              <tbody>{hien.map((r, i) => (
+              <tbody>{hien.map((r, i) => { const dangR = !!fd && dangSua === khoaDong(r); return (
                 <Fragment key={idKhoa ? r.id ?? i : r[cfg.khoa] ?? i}>
-                  <tr style={c.chon.has(khoaDong(r)) ? { background: "color-mix(in srgb, var(--bad) 6%, transparent)" } : undefined}>
+                  <tr style={dangR ? { background: "color-mix(in srgb, var(--accent, #6366f1) 10%, transparent)" } : c.chon.has(khoaDong(r)) ? { background: "color-mix(in srgb, var(--bad) 6%, transparent)" } : undefined}>
                     {coSua && cfg.xoaNhieu && <OTick c={c} k={khoaDong(r)} ten={o(r, k0, l0)} />}
-                    {cfg.cot.map(([k, , loai, w], j) => (j === 0
-                      ? <td key={k}>{coSua ? <button className="ma" onClick={() => setSua(r)} title="Sửa">{o(r, k, loai)}</button> : <span className="ma" style={{ cursor: "default" }}>{o(r, k, loai)}</span>}</td>
+                    {cfg.cot.map(([k, , loai, w], j) => (dangR ? <td key={k} className={loai === "so" ? "n" : undefined}>{oSua(k, loai, w)}</td> : j === 0
+                      ? <td key={k}>{coSua ? <button className="ma" onClick={() => batSua(r)} title="Sửa tại dòng">{o(r, k, loai)}</button> : <span className="ma" style={{ cursor: "default" }}>{o(r, k, loai)}</span>}</td>
                       : <td key={k} className={loai === "so" ? "n" : undefined} title={loai === "text" && w >= 160 ? r[k] || undefined : undefined}
                           style={loai === "text" && w >= 160 ? { maxWidth: w + 80, overflow: "hidden", textOverflow: "ellipsis" } : undefined}>{o(r, k, loai)}</td>))}
                     {(coSua || cfg.nutDong) && <td className="act"><div className="row" style={{ gap: 4, flexWrap: "nowrap" }}>
                       {cfg.nutDong?.(r, { mo: moRong === khoaDong(r), bam: () => setMoRong((x) => (x === khoaDong(r) ? null : khoaDong(r))) })}
-                      {coSua && <button className="btn sm" onClick={() => setSua(r)} title="Sửa" aria-label="Sửa">{cfg.gonNut ? <Pencil size={13} /> : <><Pencil size={13} />Sửa</>}</button>}
+                      {coSua && (dangR
+                        ? <><button className="btn sm pri" onClick={() => luuMot(fd, false)} title="Lưu dòng (Enter)" aria-label="Lưu dòng"><Check size={13} /></button><button className="btn sm" onClick={huySua} title="Hủy sửa (Esc)" aria-label="Hủy sửa"><X size={13} /></button></>
+                        : <button className="btn sm" onClick={() => batSua(r)} title="Sửa tại dòng" aria-label="Sửa"><Pencil size={13} /></button>)}
                       {coSua && cfg.xoa && <TConfirm onConfirm={() => cfg.xoa(r)} title={`Xóa ${o(r, k0, l0)} khỏi danh mục`} confirmText={cfg.gonNut ? "Xóa?" : "Xác nhận"}>{cfg.gonNut ? <Trash2 size={13} /> : "Xóa"}</TConfirm>}
                     </div></td>}
                   </tr>
                   {cfg.moRong && moRong === khoaDong(r) && <tr><td colSpan={cfg.cot.length + 1 + (coSua && cfg.xoaNhieu ? 1 : 0)} style={{ background: "color-mix(in srgb, var(--accent, #6366f1) 4%, transparent)" }}>{cfg.moRong(r)}</td></tr>}
-                </Fragment>))}</tbody>
+                </Fragment>); })}</tbody>
             </table>
           </div>
         ) : <TEmpty>{goc.length ? "Không có dòng khớp." : `Chưa có dữ liệu.${cfg.chiSua ? " Gian / lô hiện ở đây sau khi quy hoạch ở tab Khai báo & quy hoạch (biểu tượng Quy hoạch trên từng kho / bãi)." : coSua ? " Bấm Import để nạp từ Excel hoặc Thêm để nhập tay." : ""}`}</TEmpty>}
@@ -380,7 +400,7 @@ function BangSua({ nguon, icon }) {
           <div className="small mute" style={{ marginTop: 8 }}>Các cột có sẵn của danh mục không xóa được vì web dùng để tính toán.</div>
         </Modal>)}
       {moCot && <CotThem bang={nguon.bang} ten={cfg.ten} cotGoc={nguon.cot} cot={cotThem} onClose={() => setMoCot(false)} onLuu={(ds) => run(() => api.saveCot(nguon.bang, ds), "Đã lưu cột")} />}
-      {sua && <FormDong cfg={cfg} r={sua === "moi" ? null : sua} onClose={() => setSua(null)} onLuu={luuMot} />}
+      {sua === "moi" && <FormDong cfg={cfg} r={null} onClose={() => setSua(null)} onLuu={luuMot} />}
       {nhap && (
         <Modal title={`Import ${cfg.ten.toLowerCase()}`} onClose={() => setNhap(null)} width={900}
           footer={<><button className="btn" onClick={() => setNhap(null)}>Hủy</button><button className="btn pri" disabled={!nhap.rows.length} onClick={async () => { if (await cfg.luu(nhap.rows.map(gom))) setNhap(null); }}><Save size={14} />Lưu {nhap.rows.length} dòng</button></>}>
@@ -395,7 +415,11 @@ function BangSua({ nguon, icon }) {
   );
 }
 
-// Hộp thêm / sửa một dòng danh mục
+// Dữ liệu ban đầu của một dòng (hộp Thêm và sửa tại dòng dùng chung)
+const khoiTaoForm = (cfg, r) => ({ ...(r?.id != null ? { id: r.id } : {}), _them: r?._them, ...Object.fromEntries(cfg.cot.map(([k, , loai]) => [k, loai === "bool" ? (r ? !!r[k] : !!cfg.macDinh?.[k]) : String(hienO(r ? r[k] : cfg.macDinh?.[k], loai))])) });
+const tenDlDong = (cfg, k) => `dl-${plain(cfg.ten).replace(/[^a-z0-9]+/g, "-")}-${k}`;
+
+// Hộp THÊM một dòng danh mục (sửa dòng đã có làm ngay trên dòng)
 function FormDong({ cfg, r, onClose, onLuu }) {
   const moi = !r;
   const idKhoa = cfg.khoa === "id";

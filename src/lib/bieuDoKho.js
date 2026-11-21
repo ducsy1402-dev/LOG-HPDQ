@@ -90,6 +90,23 @@ export function chuoiTonKho(kyInfo, { kho, loai, giaoDich = [], now, bai = "" })
   return { diem, ds, tong, tongHT };
 }
 
+// Diễn biến tồn THEO LOẠI HÀNG (Kho hàng kiện, 21/11/2026): mỗi loại hàng (nhóm hàng, hoặc từng hàng nếu nhomOf trả chính tên hàng) một đường; tồn cuối mỗi điểm tính ngược từ tồn hiện tại theo sổ.
+// nhomOf(hang) -> tên loại hàng. Trả { diem, ds: [{ k, ten, hienTai, ton: [tấn | null] }], tongHT }
+export function chuoiTonLoaiHang(kyInfo, { kho, loai, nhomOf, giaoDich = [], now }) {
+  const { ngays, buoc, homNay } = kyInfo, loaiOf = loaiCua(kho);
+  const ten = (h) => String(nhomOf(h) || "").trim() || "(chưa có nhóm)";
+  const hienTai = new Map();
+  for (const c of kho.cap) if (c.loai === loai && Math.abs(c.ton) > 1e-6) { const n = ten(c.hang), k = plain(n); const o = hienTai.get(k) || { k, ten: n, ton: 0 }; o.ton += c.ton; hienTai.set(k, o); }
+  const diemMap = new Map(), diem = [];
+  for (const n of ngays) { const k = khoaDiem(buoc, n); if (!diemMap.has(k)) { const o = { nhan: nhanDiem(buoc, n), dau: n }; diemMap.set(k, o); diem.push(o); } }
+  const theoDiem = (tonN) => {
+    const cuoi = new Map(); for (const n of ngays) if (n <= homNay && tonN.has(n)) cuoi.set(khoaDiem(buoc, n), tonN.get(n));
+    return diem.map((o) => { const v = cuoi.get(khoaDiem(buoc, o.dau)); return v == null ? null : Math.round(v * 100) / 100; });
+  };
+  const ds = [...hienTai.values()].map((g) => ({ k: g.k, ten: g.ten, hienTai: g.ton, ton: theoDiem(tonCacNgay(kyInfo, g.ton, giaoDich, (b, h) => loaiOf(b, h) === loai && plain(ten(h)) === g.k, now)) })).sort((a, b) => b.hienTai - a.hienTai);
+  return { diem, ds, tongHT: ds.reduce((s, x) => s + x.hienTai, 0) };
+}
+
 // Tồn phân loại theo điểm của kỳ. declarations: dòng kho_ton_phan_loai { ngay, ten_bai, hang, loai, tan, id }.
 // Lần khai báo mới nhất (ngày ≤ ngày xem) của cùng bãi + hàng + loại là số có hiệu lực. Lưu động = tồn kho − cần giải phóng − đầu cơ.
 export function chuoiPhanLoai(kyInfo, { kho, declarations = [], giaoDich = [], now }) {

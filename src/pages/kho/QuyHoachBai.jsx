@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Plus, Pencil, Save, X } from "lucide-react";
+import { Plus, Pencil, Save, X, Check } from "lucide-react";
 import { ConfirmButton } from "@/thietbi/components/ui";
 import { Trash2 } from "lucide-react";
 import { so } from "@/lib/format";
@@ -48,19 +48,32 @@ export default function QuyHoachBai({ bai, dong, hangHoa, coSua, onLuu, onXoa, t
         <table className="t">
           <thead><tr><th>Gian / lô</th><th className="n">Diện tích phân bổ (m²)</th><th>Thiết bị bãi</th><th>Quy hoạch chứa</th>{coSua && <th className="act"></th>}</tr></thead>
           <tbody>
-            {ds.map((r) => (
-              <tr key={r.id} style={id === r.id ? { background: "color-mix(in srgb, var(--accent, #6366f1) 10%, transparent)" } : undefined}>
+            {ds.map((r) => id === r.id ? (
+              /* Đang sửa TẠI DÒNG: ô nhập ngay trên dòng, ✓ lưu, ✗ hủy (anh Sỹ 21/11/2026) */
+              <tr key={r.id} style={{ background: "color-mix(in srgb, var(--accent, #6366f1) 10%, transparent)" }}>
+                <td><input className="inp" value={f.ten_khu} placeholder="Tên gian / lô *" autoFocus onChange={(e) => set("ten_khu", e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") luu(); if (e.key === "Escape") huy(); }} aria-label="Tên gian / lô" /></td>
+                <td className="n"><input className="inp num" inputMode="decimal" value={f.dien_tich} placeholder={conLai > 0 ? `≤ ${so(conLai + (+r.dien_tich || 0))}` : "m²"} onChange={(e) => set("dien_tich", e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") luu(); if (e.key === "Escape") huy(); }} aria-label="Diện tích phân bổ" /></td>
+                <td><input className="inp" value={f.thiet_bi} placeholder="Cầu trục, cổng trục…" onChange={(e) => set("thiet_bi", e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") luu(); if (e.key === "Escape") huy(); }} aria-label="Thiết bị bãi" /></td>
+                <td><select className="inp" value={f.loai_kho} onChange={(e) => set("loai_kho", e.target.value)} aria-label="Quy hoạch chứa">
+                  <option value="">Trống</option>{QUY_HOACH_CHUA.map(([k, t]) => <option key={k} value={k}>{t}</option>)}</select></td>
+                <td className="act"><div className="row" style={{ gap: 4, flexWrap: "nowrap" }}>
+                  <button className="btn sm pri" onClick={luu} title="Lưu dòng (Enter)" aria-label="Lưu dòng"><Check size={13} /></button>
+                  <button className="btn sm" onClick={huy} title="Hủy sửa (Esc)" aria-label="Hủy sửa"><X size={13} /></button>
+                </div></td>
+              </tr>
+            ) : (
+              <tr key={r.id}>
                 <td><span className="ma" style={{ cursor: "default" }}>{tenKhu(r)}</span></td>
                 <td className="n">{r.dien_tich != null && r.dien_tich !== "" ? so(r.dien_tich, 2) : ""}</td>
                 <td>{r.thiet_bi || ""}</td>
                 <td>{tenQuyHoach(loaiQuyHoach(r))}</td>
                 {coSua && <td className="act"><div className="row" style={{ gap: 4, flexWrap: "nowrap" }}>
-                  <button className="btn sm" title="Sửa quy hoạch" aria-label="Sửa quy hoạch" onClick={() => sua(r)}><Pencil size={13} /></button>
+                  <button className="btn sm" title="Sửa tại dòng" aria-label="Sửa quy hoạch" onClick={() => sua(r)}><Pencil size={13} /></button>
                   <ConfirmButton onConfirm={() => onXoa(r)} confirmText="Xóa?" title={`Xóa quy hoạch gian / lô ${tenKhu(r)} (sổ nhập – xuất đã ghi không mất)`}><Trash2 size={13} /></ConfirmButton>
                 </div></td>}
               </tr>))}
             {!ds.length && <tr><td colSpan={coSua ? 5 : 4} className="mute">Chưa quy hoạch gian / lô nào. Kho / bãi này chưa hiện ở Kho hàng rời hay Kho hàng kiện.</td></tr>}
-            {coSua && (
+            {coSua && id == null && (
               <tr>
                 <td><input className="inp" value={f.ten_khu} placeholder="Tên gian / lô *" onChange={(e) => set("ten_khu", e.target.value)} onKeyDown={(e) => e.key === "Enter" && luu()} /></td>
                 <td className="n"><input className="inp num" inputMode="decimal" value={f.dien_tich} placeholder={conLai > 0 ? `≤ ${so(conLai)}` : "m²"} onChange={(e) => set("dien_tich", e.target.value)} onKeyDown={(e) => e.key === "Enter" && luu()} /></td>
