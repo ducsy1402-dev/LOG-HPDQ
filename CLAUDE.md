@@ -228,6 +228,12 @@ Thay đổi CSDL về sau: viết file SQL mới đánh số tiếp (15, 16…),
 
 - **Lịch cầu bến › Theo mét** cũng có tay nắm kéo giãn mép trái / phải thanh tàu (đổi ETB·ATB / ETD·ATD, bước 30 phút) như Theo bến (`GanttMet.jsx`, 21/11/2026); nút "m" chỉnh mét dời sang trái một chút để khỏi chồng tay nắm phải.
 
+## Danh mục kho bãi: ô vừa gõ vừa chọn, hàng không trùng giữa hai kho, "Chưa phân bổ" (21/11/2026, nhánh danh-muc-kho-chon-go-hang-khong-trung)
+- Bảng danh mục dùng chung: cột có `goiY` dùng ô **ChonGo** (gõ hoặc chọn, có ▾) cả khi sửa tại dòng và ở hộp Thêm. Khai báo kho / bãi: **Phạm vi / Khu vực** gợi ý các khu vực đã có, **Loại kho / bãi** gợi ý Cố định, Tự do và giá trị đã có.
+- **Hàng đang chứa** (tab Kho hàng kiện / Kho hàng rời): hàng đã khai báo ở kho kia (so không phân biệt hoa thường, dấu) thì KHÔNG cho khai báo ở kho này (`hangKhoKhia` trong `nguonKho`, chặn ở `luu` nên áp cả sửa tại dòng, hộp Thêm, Import; danh sách gợi ý cũng bỏ các hàng đó). Chưa chặn lúc đổi "Quy hoạch chứa" của gian / lô ở tab Khai báo & quy hoạch.
+- `cfg.chuaPhanBo` (true = mọi cột trừ cột đúng / sai, hoặc mảng khóa cột): ô chưa có giá trị hiện ********* màu vàng (chỉ hiển thị, không lưu thành giá trị). Đang bật cho mọi cột của hai tab **Kho hàng kiện** / **Kho hàng rời** và của bảng **Khai báo & quy hoạch**.
+- **Khai báo & quy hoạch không được để ô trống**: mọi cột (Tên kho / bãi, Diện tích, Phạm vi / Khu vực, Loại kho / bãi) phải có giá trị (số 0 vẫn là giá trị), có ô trống thì không lưu (sửa tại dòng, hộp Thêm, Import; kiểm ở `kiemTra` của `nguonKhaiBao`). Bảng con Quy hoạch gian / lô chưa áp quy tắc này.
+
 ## Sửa lỗi 16/11/2026 (nhánh sua-dan-tau-xoa-muc-tieu)
 - **Dán nhanh (mọi hộp dán)**: `tachBang` (`lib/paste.js`) đọc dạng tab theo quy tắc Excel: ô có xuống dòng (Alt+Enter) hoặc có dấu " được Excel bao trong ngoặc kép, nên không bị tách thành dòng mới (lỗi: ô Kho-Bãi nhiều dòng làm bảng tàu lệch cột, "Máy rải liệu" nhảy vào Tên tàu, báo thiếu ETA / ETB / ETD). Các dòng trong một ô nối bằng "; ". Kiểm thử `tach_bang.test.js`.
 - **Đặt mục tiêu sản lượng, bấm x rồi Lưu thì dòng hiện lại**: `SanLuongTab` dựng lại bảng ngay khi lưu bằng số liệu CŨ (chưa tải xong). Nay bảng chỉ dựng lại khi số liệu mới về (`ban`); áp cho cả bảng thực tế.
