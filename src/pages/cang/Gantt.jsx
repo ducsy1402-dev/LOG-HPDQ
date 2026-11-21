@@ -61,7 +61,7 @@ export function xepHangBen(D, voyages, tu, den, che, K, opt = {}) {
     if (!k) continue;
     // Toàn thời gian: đoạn chờ bến bắt đầu từ lúc đến neo (NOR); tàu chưa đến neo thì từ ETA dự kiến. Tàu đã cập mà không có NOR thì không có đoạn chờ
     const choTu = choBatDau(v, che);
-    const a0 = choTu != null && choTu < k.a ? choTu : null, la = a0 ?? k.a;
+    const a0 = choTu != null && choTu < k.a ? choTu : null, la = Math.min(a0 ?? k.a, opt.som?.(v) ?? Infinity); // opt.som: mốc sớm hơn (ngày xuất trước khi cập của Kế hoạch ngày) để thanh xếp làn không chồng
     if (k.b < tu || la > den) continue;
     // Chuyển bến / ra neo: mỗi đoạn tàu chiếm một bến là một thanh riêng
     doanBen(v, D.stopsOf(v.id), D.now).forEach((d, i) => {

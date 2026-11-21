@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Eraser, Rows4, Ruler, Save, Wand2 } from "lucide-react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Eraser, Rows4, Save, Wand2 } from "lucide-react";
 import { useApp } from "@/store";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,6 @@ import { ngayCuaThang } from "@/lib/sanLuongTT";
 import { dongHang } from "@/lib/sanLuong";
 import { klCanLam, trangThai, TRANG_THAI, TRANG_THAI_HIEN, doanBen } from "@/lib/linetime";
 import { xepHangBen } from "./Gantt";
-import { cacTuyen, viTriTrenLich } from "@/lib/capBen";
 import { ngayCuaChuyen, chiaDeuTheoGio, thucTeNgay, ngayDia } from "@/lib/keHoachNgay";
 import { cn } from "@/lib/utils";
 import { useNhomHang } from "./useNhomHang";
@@ -29,11 +28,11 @@ const THU = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 const fmt = (n) => (n ? soGon(n) : "");
 const gio = (t) => (t ? new Date(t).toLocaleString("vi-VN", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "");
 const hDua = (v) => (v.huong === "xuat" ? "xuat" : "nhap");
-const LABEL = 118, MPX = 0.6, PAD_MET = 6; // MPX: pixel cho mỗi mét ở chế độ theo mét // bề rộng cột tên cụm bến, chiều cao một làn tàu
+const LABEL = 118; // bề rộng cột tên cụm bến
 
 // Khung nhập theo ngày (hộp nhỏ): các tàu đang làm hàng trong một ngày, mỗi tàu một ô nhập số tấn. Số gõ vào ghi thẳng vào bảng nháp của hộp lớn (chưa lưu).
 // Khung nằm CẠNH line tàu (bên phải), không nổi lên trên: không bao giờ che line hay các dòng cộng, nên vừa gõ vừa thấy số tổng đổi.
-function KhungNgay({ ngay, huong, ds, vid, giaTri, hienThi, datO, goiY, chiaDeu, xoaTau, onDong, nhap, now, tongTau, onTiep }) {
+function KhungNgay({ ngay, huong, ds, dsTruoc = [], hienTruoc = false, vid, giaTri, hienThi, datO, goiY, chiaDeu, xoaTau, onDong, nhap, now, tongTau, onTiep }) {
   const khung = useRef();
   useEffect(() => { // mở khung là gõ được ngay: tàu vừa bấm (hoặc tàu đầu tiên)
     const h = setTimeout(() => {
@@ -42,7 +41,7 @@ function KhungNgay({ ngay, huong, ds, vid, giaTri, hienThi, datO, goiY, chiaDeu,
     }, 60);
     return () => clearTimeout(h);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  const tong = ds.reduce((s, x) => s + giaTri(x.v, ngay), 0);
+  const tong = [...ds, ...dsTruoc].reduce((s, x) => s + giaTri(x.v, ngay), 0);
   const dd = ngay.slice(8) + "/" + ngay.slice(5, 7);
   const dienGoiY = () => { for (const x of ds) { const g = goiY(x.v, ngay); if (g > 0 && !giaTri(x.v, ngay)) datO(x.v, ngay, soGon(g)); } };
   const phim = (e, i) => {
@@ -52,6 +51,33 @@ function KhungNgay({ ngay, huong, ds, vid, giaTri, hienThi, datO, goiY, chiaDeu,
       if (els[i + 1]) { els[i + 1].focus(); els[i + 1].select(); } else e.target.blur();
     }
   };
+  // Một dòng tàu của khung; truoc = tàu xuất sắp cập (ngày này là ngày xuất kho TRƯỚC khi tàu cập: không có gợi ý chia theo giờ, không có đũa phép)
+  const dong1 = (x, i, truoc) => {
+    const { v } = x, st = TRANG_THAI[trangThai(v, now)], kl = klCanLam(v), tt = tongTau(v), g = truoc ? 0 : goiY(v, ngay);
+    return (
+      <div key={v.id} className={cn("group flex items-center gap-2 border-b px-3 py-2 last:border-b-0", String(v.id) === String(vid) && "bg-primary/5")}>
+        <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: st.mau }} title={st.ten} />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5"><b className="truncate">{v.ten_tau}</b><Badge tone={v.huong === "xuat" ? "warn" : "info"} className="shrink-0">{v.huong === "xuat" ? "Xuất" : "Nhập"}</Badge></div>
+          <div className="truncate text-[0.6875rem] text-muted-foreground">{[...new Set(x.dong.map((h) => h.loai))].join(", ") || v.ten_hang || "—"} · {truoc ? `cập ${x.ben[0].slice(8)}/${x.ben[0].slice(5, 7)}` : v.ben_ma ? tenBen(v.ben_ma) : "chưa bến"}</div>
+          <div className="text-[0.6875rem] tabular-nums text-muted-foreground">KL tàu {so(kl, 0)} t · đã KH <b className={cn(kl > 0 && tt > kl + 1 ? "text-bad" : "text-foreground")}>{so(tt, 0)}</b> t{kl > 0 ? ` · còn ${so(Math.max(0, kl - tt), 0)}` : ""}</div>
+        </div>
+        {nhap && <div className="flex shrink-0 flex-col items-end gap-0.5">
+          <div className="flex items-center gap-1">
+            <input data-tau={v.id} className="h-8 w-24 rounded-md border border-input bg-background px-2 text-right tabular-nums focus:border-ring focus:outline-none" inputMode="decimal" placeholder={g > 0 ? soGon(g) : "0"} value={hienThi(v, ngay)}
+              onChange={(e) => datO(v, ngay, e.target.value)} onKeyDown={(e) => phim(e, i)} onFocus={(e) => e.target.select()} aria-label={`${v.ten_tau} ngày ${dd}${truoc ? " (xuất trước khi cập)" : ""}`} />
+            <span className="text-xs text-muted-foreground">t</span>
+          </div>
+          <div className="flex items-center gap-0.5">
+            {!truoc && <button type="button" onClick={() => chiaDeu(v)} className="rounded p-1 text-muted-foreground hover:text-primary" title="Chia khối lượng tàu cho các ngày theo tỉ lệ giờ làm hàng trong từng ngày (từ lúc làm hàng tới ETD)" aria-label={`Chia đều ${v.ten_tau}`}><Wand2 className="h-3.5 w-3.5" /></button>}
+            <button type="button" onClick={() => xoaTau(v)} className="rounded p-1 text-muted-foreground hover:text-bad" title="Xóa kế hoạch của tàu trong tháng" aria-label={`Xóa kế hoạch ${v.ten_tau}`}><Eraser className="h-3.5 w-3.5" /></button>
+          </div>
+        </div>}
+        {!nhap && <b className="tabular-nums">{fmt(giaTri(v, ngay)) || "—"}</b>}
+        {/* Mũi tên hiện khi trỏ vào dòng tàu: mở hộp tiếp theo bên cạnh (Kế hoạch tổng hợp: phân xe, xuất / nhập kho) */}
+        {onTiep && <button type="button" onClick={(e) => onTiep(v, e.currentTarget)} className="shrink-0 rounded p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-primary focus:opacity-100 group-hover:opacity-100" title="Phân xe và xuất / nhập kho của tàu trong ngày" aria-label={`Phân xe và kho: ${v.ten_tau}`}><ChevronRight className="h-5 w-5" /></button>}
+      </div>);
+  };
   return (
     <div className="flex max-h-[68vh] w-full shrink-0 flex-col rounded-lg border bg-card text-sm shadow-sm lg:sticky lg:top-0 lg:w-[380px]">
       <div className="flex items-center gap-2 border-b px-3 py-2">
@@ -59,32 +85,16 @@ function KhungNgay({ ngay, huong, ds, vid, giaTri, hienThi, datO, goiY, chiaDeu,
         <button type="button" onClick={onDong} className="rounded px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-accent hover:text-foreground" title="Đóng khung nhập theo ngày">Đóng</button>
       </div>
       <div ref={khung} className="min-h-0 flex-1 overflow-auto">
-        {ds.length ? ds.map((x, i) => {
-          const { v } = x, st = TRANG_THAI[trangThai(v, now)], kl = klCanLam(v), tt = tongTau(v), g = goiY(v, ngay);
-          return (
-            <div key={v.id} className={cn("group flex items-center gap-2 border-b px-3 py-2 last:border-b-0", String(v.id) === String(vid) && "bg-primary/5")}>
-              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: st.mau }} title={st.ten} />
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5"><b className="truncate">{v.ten_tau}</b><Badge tone={v.huong === "xuat" ? "warn" : "info"} className="shrink-0">{v.huong === "xuat" ? "Xuất" : "Nhập"}</Badge></div>
-                <div className="truncate text-[0.6875rem] text-muted-foreground">{[...new Set(x.dong.map((h) => h.loai))].join(", ") || v.ten_hang || "—"} · {v.ben_ma ? tenBen(v.ben_ma) : "chưa bến"}</div>
-                <div className="text-[0.6875rem] tabular-nums text-muted-foreground">KL tàu {so(kl, 0)} t · đã KH <b className={cn(kl > 0 && tt > kl + 1 ? "text-bad" : "text-foreground")}>{so(tt, 0)}</b> t{kl > 0 ? ` · còn ${so(Math.max(0, kl - tt), 0)}` : ""}</div>
-              </div>
-              {nhap && <div className="flex shrink-0 flex-col items-end gap-0.5">
-                <div className="flex items-center gap-1">
-                  <input data-tau={v.id} className="h-8 w-24 rounded-md border border-input bg-background px-2 text-right tabular-nums focus:border-ring focus:outline-none" inputMode="decimal" placeholder={g > 0 ? soGon(g) : "0"} value={hienThi(v, ngay)}
-                    onChange={(e) => datO(v, ngay, e.target.value)} onKeyDown={(e) => phim(e, i)} onFocus={(e) => e.target.select()} aria-label={`${v.ten_tau} ngày ${dd}`} />
-                  <span className="text-xs text-muted-foreground">t</span>
-                </div>
-                <div className="flex items-center gap-0.5">
-                  <button type="button" onClick={() => chiaDeu(v)} className="rounded p-1 text-muted-foreground hover:text-primary" title="Chia khối lượng tàu cho các ngày theo tỉ lệ giờ làm hàng trong từng ngày (từ lúc làm hàng tới ETD)" aria-label={`Chia đều ${v.ten_tau}`}><Wand2 className="h-3.5 w-3.5" /></button>
-                  <button type="button" onClick={() => xoaTau(v)} className="rounded p-1 text-muted-foreground hover:text-bad" title="Xóa kế hoạch của tàu trong tháng" aria-label={`Xóa kế hoạch ${v.ten_tau}`}><Eraser className="h-3.5 w-3.5" /></button>
-                </div>
-              </div>}
-              {!nhap && <b className="tabular-nums">{fmt(giaTri(v, ngay)) || "—"}</b>}
-              {/* Mũi tên hiện khi trỏ vào dòng tàu: mở hộp tiếp theo bên cạnh (Kế hoạch tổng hợp: phân xe, xuất / nhập kho) */}
-              {onTiep && <button type="button" onClick={(e) => onTiep(v, e.currentTarget)} className="shrink-0 rounded p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-primary focus:opacity-100 group-hover:opacity-100" title="Phân xe và xuất / nhập kho của tàu trong ngày" aria-label={`Phân xe và kho: ${v.ten_tau}`}><ChevronRight className="h-5 w-5" /></button>}
-            </div>);
-        }) : <div className="px-3 py-6 text-center text-xs text-muted-foreground">Không có tàu nào đang làm hàng ngày này (theo bộ lọc).</div>}
+        {ds.map((x, i) => dong1(x, i, false))}
+        {hienTruoc && (
+          <>
+            <div className="sticky top-0 z-10 border-y bg-muted/60 px-3 py-1.5 text-xs font-semibold" title="Ngày này tàu chưa cập: số tấn nhập ở đây là xuất kho TRƯỚC khi tàu cập (kho → tàu), tính vào kế hoạch xuất của ngày này">
+              Xuất kho trước khi tàu cập <span className="font-normal text-muted-foreground">· {dsTruoc.length} tàu xuất sắp cập</span>
+            </div>
+            {dsTruoc.map((x, j) => dong1(x, ds.length + j, true))}
+            {!dsTruoc.length && <div className="px-3 py-3 text-center text-xs text-muted-foreground">Không có tàu xuất nào cập trong 31 ngày tới (theo bộ lọc).</div>}
+          </>)}
+        {!ds.length && !hienTruoc && <div className="px-3 py-6 text-center text-xs text-muted-foreground">Không có tàu nào đang làm hàng ngày này (theo bộ lọc).</div>}
       </div>
       <div className="flex items-center gap-2 border-t px-3 py-2">
         <span className="text-xs text-muted-foreground">Tổng ngày {dd}</span><b className="tabular-nums">{so(tong, 0)} t</b>
@@ -108,9 +118,6 @@ export default function HopKeHoachNgay({ thang0, onClose, onLuu, nhung, tiepTheo
   const [pop, setPop] = useState(null); // hộp nhỏ đang mở: { ngay, huong, vid }
   const [tiep, setTiep] = useState(null); // hộp tiếp theo của một tàu: { v, ngay, neo }
   useEffect(() => { if (!pop) setTiep(null); }, [pop]);
-  // Trục dọc như Linetime › Lịch cầu bến: "ben" mỗi bến một dòng · "met" theo mét dọc từng tuyến bến; nhớ ở máy, mặc định theo lựa chọn ở Linetime
-  const [truc, setTruc] = useState(() => { try { return (localStorage.getItem("lg-khn-truc") ?? localStorage.getItem("lg-gantt-truc")) === "met" ? "met" : "ben"; } catch { return "ben"; } });
-  const doiTruc = (k) => { setPop(null); setTruc(k); try { localStorage.setItem("lg-khn-truc", k); } catch { /* bỏ qua */ } };
   // Ẩn / hiện thanh khối lượng ở dưới cùng (Kế hoạch / Thực nhập, xuất); nhớ trên máy
   // Xem gọn (như Linetime › Gọn): thanh tàu thấp hơn (một dòng ô số), xem được nhiều tàu một lúc; nhớ trên máy
   const [gon, setGon] = useState(() => { try { return localStorage.getItem("lg-khn-gon") === "1"; } catch { return false; } });
@@ -138,19 +145,24 @@ export default function HopKeHoachNgay({ thang0, onClose, onLuu, nhung, tiepTheo
   };
   const goc = useMemo(() => { const m = {}; for (const r of rows || []) m[`${r.voyage_id}|${String(r.ngay).slice(0, 10)}`] = +r.khoi_luong || 0; return m; }, [rows]);
   // Line tàu: chuyến chiếm bến trong tháng, theo giờ cập; lọc theo loại hàng (nhóm hàng) và hướng
+  // Tàu đã gõ số (chưa lưu) trong tháng cũng nằm trong danh sách, để số xuất trước khi cập hiện ngay ra thanh tàu và dòng cộng
+  const suaSig = Object.entries(sua).filter(([, t]) => (t || "").trim()).map(([k]) => k.split("|")[0]).sort().join(",");
+  const suaIds = useMemo(() => new Set(suaSig ? suaSig.split(",") : []), [suaSig]);
   const tatCa = useMemo(() => {
     const t = new Set(ngays);
     return D.voyages.filter((v) => !v.huy).map((v) => ({ v, ben: ngayCuaDoan(v), dong: dongHang(v, nhomHang) }))
-      .filter((x) => x.ben.some((n) => t.has(n)) || ngays.some((n) => `${x.v.id}|${n}` in goc))
+      .filter((x) => x.ben.some((n) => t.has(n)) || ngays.some((n) => `${x.v.id}|${n}` in goc) || suaIds.has(String(x.v.id)))
       .sort((a, b) => (new Date(a.v.atb || a.v.etb || a.v.eta).getTime() || 0) - (new Date(b.v.atb || b.v.etb || b.v.eta).getTime() || 0));
-  }, [D.voyages, nhomHang, ngays, goc]);
-  const dsNhom = useMemo(() => [...new Set(tatCa.flatMap((x) => x.dong.map((h) => h.loai)))].sort((a, b) => a.localeCompare(b, "vi")), [tatCa]);
+  }, [D.voyages, nhomHang, ngays, goc, suaIds]);
+  const tatMap = useMemo(() => new Map(tatCa.map((x) => [x.v.id, x])), [tatCa]);
+  // Danh sách loại hàng của bộ lọc: đang lọc hướng thì chỉ các loại hàng của tàu hướng đó (anh Sỹ 21/11/2026)
+  const nhomCuaHuong = (h) => [...new Set(tatCa.filter((x) => !h || hDua(x.v) === h).flatMap((x) => x.dong.map((d) => d.loai)))].sort((a, b) => a.localeCompare(b, "vi"));
+  const dsNhom = useMemo(() => nhomCuaHuong(loc.huong), [tatCa, loc.huong]); // eslint-disable-line react-hooks/exhaustive-deps
   const loc2 = useMemo(() => tatCa.filter((x) => (!loc.huong || hDua(x.v) === loc.huong) && (!loc.nhom || x.dong.some((h) => plain(h.loai) === plain(loc.nhom)))), [tatCa, loc]);
   const size = Math.min(cua.co, ngays.length), bat = Math.max(0, Math.min(cua.bat, ngays.length - size)), hien = ngays.slice(bat, bat + size);
   const tapHien = useMemo(() => new Set(hien), [hien]);
   const CW = size <= 7 ? 150 : size <= 14 ? 100 : 82; // bề rộng một cột ngày
   // Chỉ hiện tàu có mặt trong cửa sổ (ở bến hoặc đã có kế hoạch trong các ngày đang xem)
-  const tau = useMemo(() => loc2.filter((x) => x.ben.some((n) => tapHien.has(n)) || hien.some((n) => `${x.v.id}|${n}` in goc)), [loc2, tapHien, hien, goc]);
 
   const key = (v, n) => `${v.id}|${n}`;
   const giaTri = (v, n) => { const k = key(v, n); return k in sua ? docSo(sua[k]) || 0 : goc[k] || 0; };
@@ -158,6 +170,20 @@ export default function HopKeHoachNgay({ thang0, onClose, onLuu, nhung, tiepTheo
   const datO = (v, n, txt) => setSua((o) => ({ ...o, [key(v, n)]: txt }));
   const kDirty = Object.keys(sua).filter((k) => (sua[k] || "").trim() !== fmt(goc[k]));
   const tongTau = (v) => ngays.reduce((s, n) => s + giaTri(v, n), 0);
+  // XUẤT KHO TRƯỚC KHI TÀU CẬP (anh Sỹ 21/11/2026): tàu xuất có thể được xuất kho ra những ngày TRƯỚC ngày cập. Các ngày này lưu chung bảng kế hoạch ngày (chuyến + ngày, không cần SQL mới).
+  // truocNgay: tàu xuất -> các ngày liền nhau từ ngày sớm nhất đã có số kế hoạch tới ngày liền trước ngày đầu tiên ở bến (trong tháng đang xem); thanh tàu vẽ một dải nét đứt cho các ngày này.
+  const coSo = (v, n) => { const k = key(v, n); return k in sua ? (sua[k] || "").trim() !== "" : goc[k] > 0; };
+  const truocNgay = useMemo(() => {
+    const m = new Map();
+    for (const x of tatCa) {
+      if (x.v.huong !== "xuat" || !x.ben.length) continue;
+      const dau = x.ben[0], co = ngays.filter((n) => n < dau && coSo(x.v, n));
+      if (co.length) m.set(x.v.id, ngays.filter((n) => n >= co[0] && n < dau));
+    }
+    return m;
+  }, [tatCa, ngays, goc, sua]); // eslint-disable-line react-hooks/exhaustive-deps
+  const somSig = [...truocNgay].map(([id, ds]) => id + ":" + ds[0]).join(",");
+  const tau = useMemo(() => loc2.filter((x) => x.ben.some((n) => tapHien.has(n)) || hien.some((n) => `${x.v.id}|${n}` in goc) || (truocNgay.get(x.v.id) || []).some((n) => tapHien.has(n))), [loc2, tapHien, hien, goc, somSig]); // eslint-disable-line react-hooks/exhaustive-deps
   // Phần của chuyến thuộc loại hàng đang lọc (chuyến nhiều dòng hàng chia theo khối lượng từng dòng); không lọc = cả chuyến
   const phan = (x) => {
     if (!loc.nhom) return 1;
@@ -173,19 +199,11 @@ export default function HopKeHoachNgay({ thang0, onClose, onLuu, nhung, tiepTheo
   const tuMs = new Date(hien[0] + "T00:00:00").getTime(), denMs = tuMs + hien.length * DAY;
   // Hàng bến ghép (B03/05…) giống Lịch cầu bến: cùng cài đặt nút "Bến ghép" ở Linetime (lg-gantt-ghep, mặc định bật)
   const ghep = D.coSql28 && (() => { try { return localStorage.getItem("lg-gantt-ghep") !== "0"; } catch { return true; } })();
-  const hangTat = useMemo(() => xepHangBen(D, loc2.map((x) => x.v), tuMs, denMs, "ben", { row: 30, lan: LH, top: 4 }, { ghep }), [D.voyages, D.berths, D.now, loc2, tuMs, denMs, LH, ghep]); // eslint-disable-line react-hooks/exhaustive-deps
+  const hangTat = useMemo(() => xepHangBen(D, loc2.map((x) => x.v), tuMs, denMs, "ben", { row: 30, lan: LH, top: 4 }, { ghep, som: (v) => { const ds = truocNgay.get(v.id); return ds ? new Date(ds[0] + "T00:00:00").getTime() : null; } }), [D.voyages, D.berths, D.now, loc2, tuMs, denMs, LH, ghep, somSig]); // eslint-disable-line react-hooks/exhaustive-deps
   // Đang lọc (hướng hoặc loại hàng) thì ẩn bến không có tàu nào thuộc bộ lọc trong các ngày đang xem (anh Sỹ 19/11/2026)
   const dangLoc = !!(loc.huong || loc.nhom);
   const hang = useMemo(() => (dangLoc ? hangTat.filter((r) => r.ds.length) : hangTat), [hangTat, dangLoc]);
   const xOf = (t) => ((t - tuMs) / DAY) * CW;
-  // Theo mét (như GanttMet): mỗi tuyến bến một dải, tàu nằm đúng vị trí mét (viTriTrenLich: không chồng, tàu một bến trong bến, tàu hai bến vắt qua ranh giới); chiều cao thanh theo LOA
-  const dai = useMemo(() => {
-    const thu = new Map(D.berths.map((b, i) => [String(b.ma), i]));
-    const ds = [...cacTuyen(D.berths).values()].filter((t) => t.den > t.tu).sort((a, b) => Math.min(...a.bens.map((x) => thu.get(x.ma) ?? 99)) - Math.min(...b.bens.map((x) => thu.get(x.ma) ?? 99)));
-    let y = 0;
-    return ds.map((t) => { const h = (t.den - t.tu) * MPX + PAD_MET * 2, r = { t, y, h }; y += h; return r; });
-  }, [D.berths]);
-  const metTau = useMemo(() => (truc === "met" ? viTriTrenLich(loc2.map((x) => x.v), D.berths, D.stopsOf, tuMs, denMs, D.now) : []), [truc, D.voyages, D.berths, D.now, loc2, tuMs, denMs]); // eslint-disable-line react-hooks/exhaustive-deps
   const thuTu = useMemo(() => new Map(hang.flatMap((r) => r.ds).reverse().map((x, i, a) => [x.v.id, a.length - i])), [hang]);
 
   const chiaDeu = (v) => {
@@ -211,7 +229,24 @@ export default function HopKeHoachNgay({ thang0, onClose, onLuu, nhung, tiepTheo
   const veHomNay = () => { const i = ngays.indexOf(homNay); if (i >= 0) { setPop(null); setCua((o) => ({ ...o, bat: Math.max(0, Math.min(i - 2, ngays.length - Math.min(o.co, ngays.length))) })); } };
   const doiCo = (co) => { setPop(null); setCua((o) => ({ co, bat: co >= 31 ? 0 : Math.max(0, Math.min(o.bat, ngays.length - co)) })); };
   // Tàu của hộp nhỏ: đang làm hàng ngày đó (theo hướng nếu mở từ ô Kế hoạch nhập / xuất), xếp theo thứ tự trên line
-  const dsHop = pop ? loc2.filter((x) => oMo(x, pop.ngay) && (!pop.huong || hDua(x.v) === pop.huong)).sort((a, b) => (thuTu.get(a.v.id) ?? 999) - (thuTu.get(b.v.id) ?? 999)) : [];
+  // Tàu xuất sắp cập (ngày đầu tiên ở bến SAU ngày của hộp): ngày này là xuất kho TRƯỚC khi tàu cập. Gồm tàu cập trong 31 ngày tới (xuất trước nhiều ngày) và tàu đã có số xuất trước ở ngày này.
+  const truocCap = (x, n) => x.v.huong === "xuat" && x.ben.length > 0 && n < x.ben[0];
+  const dsHop = pop ? loc2.filter((x) => oMo(x, pop.ngay) && !truocCap(x, pop.ngay) && (!pop.huong || hDua(x.v) === pop.huong)).sort((a, b) => (thuTu.get(a.v.id) ?? 999) - (thuTu.get(b.v.id) ?? 999)) : [];
+  const dsTruocHop = useMemo(() => {
+    if (!pop || pop.huong === "nhap" || loc.huong === "nhap") return [];
+    const toi = ngayDia(new Date(pop.ngay + "T00:00:00").getTime() + 31 * DAY);
+    return D.voyages.filter((v) => v.huong === "xuat" && !v.huy).map((v) => tatMap.get(v.id) || { v, ben: ngayCuaDoan(v), dong: dongHang(v, nhomHang) })
+      .filter((x) => x.ben.length && x.ben[0] > pop.ngay && (x.ben[0] <= toi || coSo(x.v, pop.ngay)) && (!loc.nhom || x.dong.some((h) => plain(h.loai) === plain(loc.nhom))))
+      .sort((a, b) => (a.ben[0] < b.ben[0] ? -1 : a.ben[0] > b.ben[0] ? 1 : String(a.v.ten_tau).localeCompare(String(b.v.ten_tau), "vi"))).slice(0, 40);
+  }, [pop, loc, D.voyages, tatMap, nhomHang, goc, sua]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Nút "xuất trước" trên thanh tàu: mở hộp nhập của NGÀY LIỀN TRƯỚC ngày cập (kéo cửa sổ ngày tới đó nếu đang ngoài tầm nhìn)
+  const moXuatTruoc = (v, dau) => {
+    const i = ngays.indexOf(dau);
+    if (i <= 0) return toast("Tàu cập từ đầu tháng: chọn tháng trước để lập kế hoạch xuất trước khi cập", "warn");
+    const n = ngays[i - 1];
+    if (!tapHien.has(n)) setCua((o) => ({ ...o, bat: Math.max(0, Math.min(i - 2, ngays.length - Math.min(o.co, ngays.length))) }));
+    setPop({ ngay: n, huong: "xuat", vid: v.id });
+  };
 
   // Lọc theo loại hàng: bên (nhập / xuất) không có tàu nào ứng với loại hàng đó thì ẩn dòng cộng của bên đó (anh Sỹ 17/11/2026)
   const coTauBen = (h) => loc2.some((x) => hDua(x.v) === h);
@@ -225,13 +260,42 @@ export default function HopKeHoachNgay({ thang0, onClose, onLuu, nhung, tiepTheo
   const thanh = (kk, v, a, b, st, top, h) => {
     const stt = TRANG_THAI[st], kl = klCanLam(v), tong = tongTau(v), vuot = kl > 0 && tong > kl + 1;
     const left = Math.max(0, xOf(a)), right = Math.min(W, xOf(b)), w = Math.max(6, right - left), haiDong = h >= 44;
+    // Dải XUẤT TRƯỚC KHI CẬP (nét đứt) bên trái thanh tàu xuất, ở đoạn bến đầu tiên của chuyến: mỗi ngày một ô số tấn như ngày tàu ở bến
+    const x0 = tatMap.get(v.id), dsTr = truocNgay.get(v.id), laDau = !!(x0 && x0.ben[0] && ngayDia(a) === x0.ben[0]);
+    let dai = null;
+    if (dsTr && laDau) {
+      const sx = Math.max(0, xOf(new Date(dsTr[0] + "T00:00:00").getTime())), se = Math.min(W, xOf(new Date(x0.ben[0] + "T00:00:00").getTime()));
+      if (se - sx > 1) dai = (
+        <div key={kk + "p"} className="absolute overflow-hidden rounded-md border-2 border-dashed text-white" style={{ left: sx + 1, width: se - sx - 2, top, height: h, borderColor: stt.mau, background: stt.mau + "40" }}
+          title={`${v.ten_tau}: xuất kho TRƯỚC khi tàu cập (${dsTr.length} ngày, trước ngày ${x0.ben[0].slice(8)}/${x0.ben[0].slice(5, 7)})`}>
+          {haiDong && <div className="flex h-[19px] items-center gap-1.5 px-1.5 text-[0.6875rem] font-semibold leading-none"><span className="truncate">{se - sx > 190 ? `⏪ Xuất trước khi cập · ${v.ten_tau}` : "⏪ xuất trước"}</span>
+            {nhap && ngays.indexOf(dsTr[0]) > 0 && se - sx > 90 && <button type="button" onClick={() => moXuatTruoc(v, dsTr[0])} className="ml-auto shrink-0 rounded bg-black/25 px-1 py-0.5 text-[0.625rem] font-normal hover:bg-black/45" title="Thêm một ngày xuất trước nữa (ngày liền trước ngày đầu của dải này)">{se - sx > 190 ? "+ ngày trước" : "+1"}</button>}</div>}
+          {hien.map((n, i) => {
+            if (!dsTr.includes(n)) return null;
+            const cL = Math.max(sx, i * CW), cR = Math.min(se, (i + 1) * CW);
+            if (cR - cL < 0.5) return null;
+            const k = key(v, n), co = k in sua && sua[k].trim() !== fmt(goc[k]), val = giaTri(v, n);
+            return (
+              <button key={n} type="button" disabled={!nhap} onClick={(e) => moHop(e, { ngay: n, huong: "xuat", vid: v.id })} aria-label={`${v.ten_tau} ngày ${n.slice(8)} (xuất trước khi cập)`}
+                className={cn("absolute flex items-center border-l border-white/15 bg-black/20", nhap && "cursor-pointer hover:bg-black/40", co && "ring-2 ring-inset ring-amber-300", pop?.ngay === n && pop?.vid === v.id && "bg-black/50")}
+                style={{ left: cL - sx - 3, width: cR - cL, top: haiDong ? 19 : 0, height: haiDong ? 25 : h }}>
+                <span className={cn("block w-full truncate px-1 text-right tabular-nums", val ? "font-semibold" : "opacity-50")}>{val ? soGon(val) : nhap && cR - cL > 14 ? "+" : ""}</span>
+              </button>);
+          })}
+        </div>);
+    }
+    const thanhTrong = xOf(b) > 0 && xOf(a) < W; // tàu cập sau cửa sổ ngày thì chỉ vẽ dải xuất trước
     return (
-      <div key={kk} className="absolute overflow-hidden rounded-md text-white shadow-sm" style={{ left: left + 1, width: w - 2, top, height: h, background: stt.mau }}
+      <Fragment key={kk}>
+        {dai}
+        {thanhTrong && (
+      <div className="absolute overflow-hidden rounded-md text-white shadow-sm" style={{ left: left + 1, width: w - 2, top, height: h, background: stt.mau }}
         title={`${v.ten_tau} · ${v.huong === "xuat" ? "Xuất" : "Nhập"} · ${stt.ten}\nBến ${v.ben_ma ? tenBen(v.ben_ma) : "chưa xếp"} · cập ${gio(a)} → rời ${gio(b)}\nKL tàu ${so(kl, 0)} t · KH tháng ${so(tong, 0)} t`}>
         {haiDong && (
           <div className="flex h-[19px] items-center gap-1.5 px-1.5 text-[0.6875rem] font-semibold leading-none">
             <span className="truncate">{v.uu_tien ? "★ " : ""}{v.ten_tau}</span>
             <span className="shrink-0 rounded bg-black/25 px-1 py-0.5 font-normal">{v.huong === "xuat" ? "Xuất" : "Nhập"}</span>
+            {nhap && v.huong === "xuat" && laDau && w > 120 && <button type="button" onClick={() => moXuatTruoc(v, x0.ben[0])} className="shrink-0 rounded bg-black/25 px-1 py-0.5 text-[0.625rem] font-normal hover:bg-black/45" title="Xuất kho cho tàu TRƯỚC ngày cập: bấm để nhập số tấn cho ngày liền trước ngày cập" aria-label={`Xuất trước khi cập: ${v.ten_tau}`}>{w > 250 ? "⏪ xuất trước" : "⏪"}</button>}
             <span className={cn("ml-auto shrink-0 font-normal tabular-nums", vuot && "rounded bg-bad px-1 py-0.5 font-semibold")} title={vuot ? "Kế hoạch trong tháng vượt khối lượng tàu" : "Kế hoạch tháng / khối lượng tàu"}>KH {so(tong, 0)}/{so(kl, 0)} t</span>
           </div>)}
         {/* Mỗi ngày tàu ở bến một ô: nằm đúng phần của ngày đó trên thanh (ngày chỉ ở bến một phần thì ô hẹp hơn) */}
@@ -246,9 +310,9 @@ export default function HopKeHoachNgay({ thang0, onClose, onLuu, nhung, tiepTheo
               <span className={cn("block w-full truncate px-1 text-right tabular-nums", val ? "font-semibold" : "opacity-50")}>{val ? soGon(val) : nhap && cR - cL > 14 ? "+" : ""}</span>
             </button>);
         })}
-      </div>);
+      </div>)}
+      </Fragment>);
   };
-  const chuaBen = loc2.filter((x) => !x.v.ben_ma).length;
 
   const noiDung = (
     <>
@@ -258,11 +322,7 @@ export default function HopKeHoachNgay({ thang0, onClose, onLuu, nhung, tiepTheo
             <NativeSelect className="h-7 w-44 text-xs" value={thang} onChange={(e) => { if (kDirty.length && !confirm("Có số chưa lưu. Bỏ thay đổi để chuyển tháng?")) return; setThang(e.target.value); }} aria-label="Tháng"
               options={Array.from({ length: 13 }, (_, i) => congThang(thangCua(D.now), i - 6)).map((x) => [x, tenThang(x) + (x === thangCua(D.now) ? " (này)" : "")])} />
             <NativeSelect className="h-7 w-40 text-xs" value={loc.nhom} onChange={(e) => { setPop(null); setLoc({ ...loc, nhom: e.target.value }); }} placeholder="Tất cả loại hàng" options={dsNhom} aria-label="Lọc theo loại hàng" />
-            <NativeSelect className="h-7 w-32 text-xs" value={loc.huong} onChange={(e) => { setPop(null); setLoc({ ...loc, huong: e.target.value }); }} placeholder="Nhập + xuất" options={[["nhap", "Hàng nhập"], ["xuat", "Hàng xuất"]]} aria-label="Lọc theo hướng" />
-            <div className="inline-flex rounded-md border p-0.5" role="group" aria-label="Trục dọc" title="Cách xếp tàu giống Linetime › Lịch cầu bến">
-              {[["ben", "Theo bến", "Mỗi bến một dòng"], ["met", "Theo mét", "Dọc theo mét từng tuyến bến: tàu nằm đúng vị trí mét"]].map(([k, t, mo]) => (
-                <Button key={k} size="xs" variant={truc === k ? "secondary" : "ghost"} className={cn(truc === k && "text-primary")} title={mo} aria-pressed={truc === k} onClick={() => doiTruc(k)}>{k === "met" ? <Ruler /> : <Rows4 />}{t}</Button>))}
-            </div>
+            <NativeSelect className="h-7 w-32 text-xs" value={loc.huong} onChange={(e) => { setPop(null); const h = e.target.value; setLoc({ huong: h, nhom: loc.nhom && nhomCuaHuong(h).some((n) => plain(n) === plain(loc.nhom)) ? loc.nhom : "" }); }} placeholder="Nhập + xuất" options={[["nhap", "Hàng nhập"], ["xuat", "Hàng xuất"]]} aria-label="Lọc theo hướng" />
             <Button size="xs" variant={gon ? "secondary" : "outline"} className={cn(gon && "text-primary")} aria-pressed={gon} title="Thanh tàu thấp, xem được nhiều tàu hơn"
               onClick={() => { setPop(null); setGon(!gon); try { localStorage.setItem("lg-khn-gon", gon ? "0" : "1"); } catch { /* bỏ qua */ } }}><Rows4 />Gọn</Button>
             <div className="inline-flex items-center gap-1 rounded-md border px-1" title="Số ngày hiển thị">
@@ -294,7 +354,7 @@ export default function HopKeHoachNgay({ thang0, onClose, onLuu, nhung, tiepTheo
                       <div className="font-semibold tabular-nums">{n.slice(8)}/{n.slice(5, 7)}</div><div className={cn("text-[0.6875rem]", cn0 ? "text-bad" : "text-muted-foreground")}>{THU[d.getDay()]}{hn ? " · nay" : ""}</div></div>; })}
                 </div>
 
-                {truc === "ben" ? hang.map((r) => (
+                {hang.map((r) => (
                   <div key={r.ma || "_"} className={cn("flex border-b", r.cap && "bg-primary/[0.05]")}>
                     <div className={cn("sticky left-0 z-10 flex shrink-0 flex-col justify-center border-r bg-card px-2", r.cap && "border-l-2 border-l-primary/60")} style={{ width: LABEL }}>
                       <span className={cn("font-mono text-[0.8125rem] font-semibold leading-tight", r.cap && "text-primary")}>{r.cap ? `⇕ ${noiHaiBen(r.cap[0], r.cap[1])}` : r.b ? tenBen(r.ma) : "Chưa xếp bến"}</span>
@@ -305,24 +365,8 @@ export default function HopKeHoachNgay({ thang0, onClose, onLuu, nhung, tiepTheo
                       {r.ds.map((x) => thanh(`${x.v.id}:${x.a}`, x.v, x.a, x.b, x.st, x.top, LH - 6))}
                     </div>
                   </div>
-                )) : dai.filter((d) => !dangLoc || metTau.some((it) => it.tuyen.ma === d.t.ma)).map((d) => (
-                  <div key={d.t.ma} className="flex border-b-2 border-muted-foreground/40">
-                    <div className="sticky left-0 z-10 shrink-0 border-r bg-card" style={{ width: LABEL, height: d.h }}>
-                      {d.t.bens.map((b) => (
-                        <div key={b.ma} className="absolute inset-x-0 flex flex-col justify-center overflow-hidden px-2 leading-tight" style={{ top: PAD_MET + (b.tu - d.t.tu) * MPX, height: (b.den - b.tu) * MPX }} title={`Bến ${b.ma}: mét ${b.tu}–${b.den}`}>
-                          <span className="font-mono text-[0.8125rem] font-semibold">{tenBen(b.ma)}</span>
-                          {(b.den - b.tu) * MPX > 30 && <span className="truncate text-[0.6875rem] tabular-nums text-muted-foreground">{b.tu}–{b.den} m</span>}
-                        </div>))}
-                    </div>
-                    <div className="relative shrink-0" style={{ width: W, height: d.h }}>
-                      {luoi}
-                      {d.t.bens.slice(1).map((b) => <div key={b.ma} className="pointer-events-none absolute inset-x-0 border-t border-dashed border-muted-foreground/50" style={{ top: PAD_MET + (b.tu - d.t.tu) * MPX }} />)}
-                      {metTau.filter((it) => it.tuyen.ma === d.t.ma).map((it) => thanh(`${it.v.id}:${it.seg.a}`, it.v, it.seg.a, it.seg.b, trangThai(it.v, D.now), PAD_MET + (it.x - d.t.tu) * MPX, Math.max(8, it.L * MPX)))}
-                    </div>
-                  </div>
                 ))}
-                {truc === "met" && chuaBen > 0 && <div className="px-2 py-1 text-[0.6875rem] text-muted-foreground">{chuaBen} chuyến chưa có bến (không vẽ trên lịch theo mét)</div>}
-                {(truc === "ben" ? !hang.some((r) => r.ds.length) : !metTau.length) && <div className="py-6 text-center text-muted-foreground">Không có chuyến nào trong các ngày này. Bấm ▶ để xem các ngày sau.</div>}
+                {!hang.some((r) => r.ds.length) && <div className="py-6 text-center text-muted-foreground">Không có chuyến nào trong các ngày này. Bấm ▶ để xem các ngày sau.</div>}
 
                 {/* Dòng cộng: kế hoạch (bấm để mở hộp nhỏ) và thực tế */}
                 <div className="sticky bottom-0 z-20 border-t-2 bg-card">
@@ -350,7 +394,7 @@ export default function HopKeHoachNgay({ thang0, onClose, onLuu, nhung, tiepTheo
             </div>
           ) : <Empty>Không có chuyến tàu nào trong {tenThang(thang).toLowerCase()}{loc.nhom || loc.huong ? " ứng với bộ lọc" : ""}. Thêm chuyến ở Khai thác Cảng › Linetime.</Empty>}
           </div>
-          {pop && <KhungNgay key={`${pop.ngay}|${pop.huong}|${pop.vid}`} ngay={pop.ngay} huong={pop.huong} vid={pop.vid} ds={dsHop} nhap={nhap} now={D.now}
+          {pop && <KhungNgay key={`${pop.ngay}|${pop.huong}|${pop.vid}`} ngay={pop.ngay} huong={pop.huong} vid={pop.vid} ds={dsHop} dsTruoc={dsTruocHop} hienTruoc={pop.huong !== "nhap" && loc.huong !== "nhap"} nhap={nhap} now={D.now}
             giaTri={giaTri} hienThi={hienThi} datO={datO} goiY={goiY} chiaDeu={chiaDeu} xoaTau={xoaTau} tongTau={tongTau} onDong={() => setPop(null)}
             onTiep={tiepTheo ? (v, neo) => setTiep({ v, ngay: pop.ngay, neo }) : undefined} />}
           {pop && tiep && tiepTheo({ ...tiep, tong: giaTri(tiep.v, tiep.ngay), onDong: () => setTiep(null) })}
@@ -359,8 +403,9 @@ export default function HopKeHoachNgay({ thang0, onClose, onLuu, nhung, tiepTheo
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-[0.6875rem] text-muted-foreground">
             {TRANG_THAI_HIEN.map(([k, t]) => <span key={k} className="flex items-center gap-1"><i className="inline-block h-2.5 w-4 rounded-sm" style={{ background: t.mau }} />{t.ten}</span>)}
             <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-4 rounded-sm ring-2 ring-amber-400" />Ô đã gõ, chưa lưu</span>
+            <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-4 rounded-sm border-2 border-dashed border-slate-400" />Xuất kho trước khi tàu cập (nét đứt, bên trái thanh tàu xuất)</span>
           </div>
-          <p className="text-[0.6875rem] text-muted-foreground">{nhap ? "Bấm ô ngày của một tàu (hoặc ô Kế hoạch nhập / xuất ở dưới cùng) để mở khung nhập theo ngày bên phải: mỗi tàu đang làm hàng ngày đó có một ô nhập số tấn (Enter sang tàu kế tiếp); số tổng hiện ra các ô bên ngoài. Cây đũa phép chia đều khối lượng tàu theo giờ làm hàng dự kiến, cục tẩy xóa kế hoạch của tàu trong tháng, \"Điền gợi ý\" điền số chia theo giờ cho các tàu còn trống. Bấm Lưu kế hoạch để ghi. Thực nhập / thực xuất lấy từ bảng Sản lượng thực tế." : "Vai trò Xem chỉ xem kế hoạch."}</p>
+          <p className="text-[0.6875rem] text-muted-foreground">{nhap ? "Bấm ô ngày của một tàu (hoặc ô Kế hoạch nhập / xuất ở dưới cùng) để mở khung nhập theo ngày bên phải: mỗi tàu đang làm hàng ngày đó có một ô nhập số tấn (Enter sang tàu kế tiếp); số tổng hiện ra các ô bên ngoài. Cây đũa phép chia đều khối lượng tàu theo giờ làm hàng dự kiến, cục tẩy xóa kế hoạch của tàu trong tháng, \"Điền gợi ý\" điền số chia theo giờ cho các tàu còn trống. Bấm Lưu kế hoạch để ghi. Muốn xuất kho cho tàu xuất TRƯỚC ngày cập: bấm nút \"⏪ xuất trước\" trên thanh tàu (hoặc mở khung của ngày đó, mục \"Xuất kho trước khi tàu cập\") rồi nhập số tấn; các ngày này hiện thành dải nét đứt bên trái thanh tàu và tính vào kế hoạch xuất của ngày đó. Thực nhập / thực xuất lấy từ bảng Sản lượng thực tế." : "Vai trò Xem chỉ xem kế hoạch."}</p>
 
         </div>)}
     </>
