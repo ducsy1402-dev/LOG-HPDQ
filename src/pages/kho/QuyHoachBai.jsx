@@ -26,6 +26,11 @@ export default function QuyHoachBai({ bai, dong, hangHoa, coSua, onLuu, onXoa, t
   const luu = async () => {
     const dt = f.dien_tich === "" ? null : docSo(String(f.dien_tich));
     if (f.dien_tich !== "" && !Number.isFinite(dt)) return toast("Diện tích phân bổ không phải số", "bad");
+    // Không được để ô trống (anh Sỹ 21/11/2026), trừ Thiết bị bãi: phải có tên gian / lô, diện tích phân bổ và quy hoạch chứa (Hàng rời hoặc Hàng kiện)
+    const tenGL = String(f.ten_khu).trim() || "(chưa đặt tên)";
+    if (!String(f.ten_khu).trim()) return toast("Chưa điền Gian / lô. Không được để ô trống (trừ Thiết bị bãi) nên chưa lưu được.", "bad");
+    if (f.dien_tich === "" || f.dien_tich == null) return toast(`Gian / lô "${tenGL}": chưa điền Diện tích phân bổ. Không được để ô trống (trừ Thiết bị bãi) nên chưa lưu được.`, "bad");
+    if (!f.loai_kho) return toast(`Gian / lô "${tenGL}": chưa chọn Quy hoạch chứa (Hàng rời / Hàng kiện). Không được để ô trống (trừ Thiết bị bãi) nên chưa lưu được.`, "bad");
     const r = { ...(id != null ? { id } : {}), ten_khu: String(f.ten_khu).trim(), dien_tich: dt };
     const loi = kiemTraGianLo(r, dong, tong);
     if (loi) return toast(loi, "bad");
@@ -55,7 +60,7 @@ export default function QuyHoachBai({ bai, dong, hangHoa, coSua, onLuu, onXoa, t
                 <td className="n"><input className="inp num" inputMode="decimal" value={f.dien_tich} placeholder={conLai > 0 ? `≤ ${so(conLai + (+r.dien_tich || 0))}` : "m²"} onChange={(e) => set("dien_tich", e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") luu(); if (e.key === "Escape") huy(); }} aria-label="Diện tích phân bổ" /></td>
                 <td><input className="inp" value={f.thiet_bi} placeholder="Cầu trục, cổng trục…" onChange={(e) => set("thiet_bi", e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") luu(); if (e.key === "Escape") huy(); }} aria-label="Thiết bị bãi" /></td>
                 <td><select className="inp" value={f.loai_kho} onChange={(e) => set("loai_kho", e.target.value)} aria-label="Quy hoạch chứa">
-                  <option value="">Trống</option>{QUY_HOACH_CHUA.map(([k, t]) => <option key={k} value={k}>{t}</option>)}</select></td>
+                  <option value="">Chọn quy hoạch…</option>{QUY_HOACH_CHUA.map(([k, t]) => <option key={k} value={k}>{t}</option>)}</select></td>
                 <td className="act"><div className="row" style={{ gap: 4, flexWrap: "nowrap" }}>
                   <button className="btn sm pri" onClick={luu} title="Lưu dòng (Enter)" aria-label="Lưu dòng"><Check size={13} /></button>
                   <button className="btn sm" onClick={huy} title="Hủy sửa (Esc)" aria-label="Hủy sửa"><X size={13} /></button>
@@ -64,9 +69,9 @@ export default function QuyHoachBai({ bai, dong, hangHoa, coSua, onLuu, onXoa, t
             ) : (
               <tr key={r.id}>
                 <td><span className="ma" style={{ cursor: "default" }}>{tenKhu(r)}</span></td>
-                <td className="n">{r.dien_tich != null && r.dien_tich !== "" ? so(r.dien_tich, 2) : ""}</td>
+                <td className="n">{r.dien_tich != null && r.dien_tich !== "" ? so(r.dien_tich, 2) : <span style={{ color: "var(--warn)", fontWeight: 600 }} title="Chưa có giá trị">*****</span>}</td>
                 <td>{r.thiet_bi || ""}</td>
-                <td>{tenQuyHoach(loaiQuyHoach(r))}</td>
+                <td>{loaiQuyHoach(r) === "trong" ? <span style={{ color: "var(--warn)", fontWeight: 600 }} title="Chưa chọn quy hoạch chứa">*****</span> : tenQuyHoach(loaiQuyHoach(r))}</td>
                 {coSua && <td className="act"><div className="row" style={{ gap: 4, flexWrap: "nowrap" }}>
                   <button className="btn sm" title="Sửa tại dòng" aria-label="Sửa quy hoạch" onClick={() => sua(r)}><Pencil size={13} /></button>
                   <ConfirmButton onConfirm={() => onXoa(r)} confirmText="Xóa?" title={`Xóa quy hoạch gian / lô ${tenKhu(r)} (sổ nhập – xuất đã ghi không mất)`}><Trash2 size={13} /></ConfirmButton>
@@ -79,7 +84,7 @@ export default function QuyHoachBai({ bai, dong, hangHoa, coSua, onLuu, onXoa, t
                 <td className="n"><input className="inp num" inputMode="decimal" value={f.dien_tich} placeholder={conLai > 0 ? `≤ ${so(conLai)}` : "m²"} onChange={(e) => set("dien_tich", e.target.value)} onKeyDown={(e) => e.key === "Enter" && luu()} /></td>
                 <td><input className="inp" value={f.thiet_bi} placeholder="Cầu trục, cổng trục…" onChange={(e) => set("thiet_bi", e.target.value)} onKeyDown={(e) => e.key === "Enter" && luu()} /></td>
                 <td><select className="inp" value={f.loai_kho} onChange={(e) => set("loai_kho", e.target.value)}>
-                  <option value="">Trống</option>{QUY_HOACH_CHUA.map(([k, t]) => <option key={k} value={k}>{t}</option>)}</select></td>
+                  <option value="">Chọn quy hoạch…</option>{QUY_HOACH_CHUA.map(([k, t]) => <option key={k} value={k}>{t}</option>)}</select></td>
                 <td className="act"><div className="row" style={{ gap: 4, flexWrap: "nowrap" }}>
                   <button className="btn sm pri" onClick={luu} title={id == null ? "Thêm quy hoạch gian / lô" : "Lưu sửa"}>{id == null ? <Plus size={13} /> : <Save size={13} />}{id == null ? "Quy hoạch" : "Lưu"}</button>
                   {id != null && <button className="btn sm" onClick={huy} title="Hủy sửa" aria-label="Hủy sửa"><X size={13} /></button>}

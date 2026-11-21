@@ -164,8 +164,8 @@ export default function NhapXuatBang({ loaiKho, kho, onDan, onXong }) {
                 <tr key={r._k} className={cn(coSo(r) && "bg-warn/5")}>
                   <td className="whitespace-nowrap">
                     <div className="flex gap-1.5">
-                      <NativeSelect className="h-8 min-w-[120px]" value={r.bai} onChange={(e) => chonBai(r, e.target.value)} placeholder="Chọn bãi" options={baiDs} aria-label="Bãi" />
-                      <NativeSelect className="h-8 min-w-[120px]" value={r.khuKey} onChange={(e) => chonKhu(r, e.target.value)} placeholder={r.bai ? "Chọn gian/lô" : "Chọn bãi trước"} disabled={!r.bai} options={r.bai ? khuCuaBai(r.bai).map((d) => [d.key, tenKhuDong(d)]) : []} aria-label="Gian/lô" />
+                      <ChonGo tuDo={false} className="min-w-[130px]" inputClassName="h-8" value={r.bai} onChange={(v) => chonBai(r, v)} placeholder="Chọn / gõ bãi" options={baiDs} aria-label="Bãi" />
+                      <ChonGo tuDo={false} className="min-w-[130px]" inputClassName="h-8" value={r.khuKey} onChange={(v) => chonKhu(r, v)} placeholder={r.bai ? "Chọn / gõ gian/lô" : "Chọn bãi trước"} disabled={!r.bai} options={r.bai ? khuCuaBai(r.bai).map((d) => [d.key, tenKhuDong(d)]) : []} aria-label="Gian/lô" />
                     </div>
                   </td>
                   <td>
@@ -178,8 +178,8 @@ export default function NhapXuatBang({ loaiKho, kho, onDan, onXong }) {
                   <td className="num"><Input className="ml-auto h-8 w-28 text-right tabular-nums" inputMode="decimal" value={r.dc} placeholder="0" onChange={(e) => dat(r._k, { dc: e.target.value })} aria-label="Khối lượng điều chuyển" /></td>
                   <td className="whitespace-nowrap">
                     <div className="flex gap-1.5">
-                      <NativeSelect className="h-8 min-w-[120px]" value={r.denBai} onChange={(e) => chonDenBai(r, e.target.value)} placeholder="Bãi đến" options={baiDs} aria-label="Bãi đến" />
-                      <NativeSelect className="h-8 min-w-[120px]" value={r.denKhu} onChange={(e) => dat(r._k, { denKhu: e.target.value })} placeholder={r.denBai ? "Gian/lô đến" : "Chọn bãi đến"} disabled={!r.denBai} options={denKhus.map((d) => [d.key, tenKhuDong(d)])} aria-label="Gian/lô đến" />
+                      <ChonGo tuDo={false} className="min-w-[130px]" inputClassName="h-8" value={r.denBai} onChange={(v) => chonDenBai(r, v)} placeholder="Chọn / gõ bãi đến" options={baiDs} aria-label="Bãi đến" />
+                      <ChonGo tuDo={false} className="min-w-[130px]" inputClassName="h-8" value={r.denKhu} onChange={(v) => dat(r._k, { denKhu: v })} placeholder={r.denBai ? "Chọn / gõ gian/lô đến" : "Chọn bãi đến"} disabled={!r.denBai} options={denKhus.map((d) => [d.key, tenKhuDong(d)])} aria-label="Gian/lô đến" />
                     </div>
                   </td>
                   <td><Input className="h-8" value={r.ghi_chu} onChange={(e) => dat(r._k, { ghi_chu: e.target.value })} aria-label="Ghi chú" /></td>
