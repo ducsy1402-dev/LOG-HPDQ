@@ -3,7 +3,7 @@ import { ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLin
 import { SlidersHorizontal, BarChart3, GanttChart, Ship, Plus, AlertTriangle, Anchor, Layers, RotateCcw, Trash2, GripVertical, Truck } from "lucide-react";
 import { useApp } from "../../store";
 import { Card, Kpi, Badge, Modal, Field, Select, Empty, DateInput, DateTimeInput, ConfirmButton, isoToLocal, localToIso, usePalette, MultiSelect } from "../../components/ui";
-import { calc12, cfgOf, capTinhOf, withCap, DOI_GOC, doiCuaViec, byThuTu, hangColor, luoiTuDong, HANG_COLOR, BAI_COLOR, fmtDT, fmtD } from "../../lib/plan";
+import { calc12, cfgOf, capTinhOf, withCap, DOI_GOC, coChiaCangBai, doiCuaViec, byThuTu, hangColor, luoiTuDong, HANG_COLOR, BAI_COLOR, fmtDT, fmtD } from "../../lib/plan";
 import { pad, vn } from "../../lib/utils";
 import { useApp as useLogistics } from "@/store";
 import TimelineCa from "./TimelineCa";
@@ -26,7 +26,7 @@ export function tinhDaiHan(D, LD, pp, doi) {
   const capCangTinh = tinh.cang?.length ? ssDoi.filter((v) => tinh.cang.includes(v.to_xe)).length : null;
   const capBaiTinh = tinh.bai ? ssDoi.filter(theoLoai(tinh.bai)).length - phanBo.filter(theoLoai(tinh.bai)).reduce((a, r) => a + (+r.so_xe || 0), 0) : null;
   // Đội khác Xúc đào không chia cảng / bãi: một con số xe chung của đội (xe sẵn sàng của đội, hoặc nhập tay; dữ liệu cũ thì cộng cảng + bãi cũ)
-  const chung = !goc;
+  const chung = !coChiaCangBai(doi);
   const capChung = chung ? (tinh.tong === "ss" ? ssDoi.length : (+cfg.capCang || 0) + (+cfg.capBai || 0)) : null;
   const capCang = chung ? capChung : capCangTinh ?? (+cfg.capCang || 0), capBai = chung ? 0 : capBaiTinh ?? (+cfg.capBai || 0);
   // Xe tổ cảng cũng nằm trong phần "còn lại" của bãi = bị tính hai lần
@@ -133,8 +133,8 @@ export default function LongTerm() {
                   </Field>
                   <Field label="Xe dành cho bãi">
                     <span className="row cap-row">
-                      <Select className="inp sm" value={tinh.bai ? "con_lai" : "tay"} onChange={(m) => setTinh("bai", m === "con_lai" ? "Bánh xích" : null)} options={[["con_lai", "Xe sẵn sàng còn lại"], ["tay", "Nhập tay"]]} style={{ width: 150 }} aria-label="Cách tính xe bãi" />
-                      {tinh.bai ? <><Select className="inp sm" value={tinh.bai} onChange={(v) => setTinh("bai", v)} options={[...LOAI_XD, "Tất cả"]} style={{ width: 110 }} aria-label="Loại xe" /><b className="mono cap-v">= {capBai}</b></>
+                      <Select className="inp sm" value={tinh.bai ? "con_lai" : "tay"} onChange={(m) => setTinh("bai", m === "con_lai" ? (goc ? "Bánh xích" : "Tất cả") : null)} options={[["con_lai", "Xe sẵn sàng còn lại"], ["tay", "Nhập tay"]]} style={{ width: 150 }} aria-label="Cách tính xe bãi" />
+                      {tinh.bai ? <>{goc && <Select className="inp sm" value={tinh.bai} onChange={(v) => setTinh("bai", v)} options={[...LOAI_XD, "Tất cả"]} style={{ width: 110 }} aria-label="Loại xe" />}<b className="mono cap-v">= {capBai}</b></>
                         : numIn(cfg.capBai, (v) => setCfg("capBai", v ?? 0))}
                     </span>
                   </Field>

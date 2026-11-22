@@ -262,6 +262,9 @@ const r6 = (x) => Math.round(x * 1e6) / 1e6;
 
 // Đội xe gốc của kế hoạch dài hạn: tham số ở gốc (p.capCang, p.capBai, prod) thuộc đội này để dữ liệu cũ vẫn đúng
 export const DOI_GOC = "Xúc đào";
+// Chỉ Xúc đào và Xúc lật chia xe dành cho cảng / bãi (anh Sỹ 22/11/2026); các đội khác để chung một số xe
+export const DOI_CHIA_CANG_BAI = ["Xúc đào", "Xúc lật"];
+export const coChiaCangBai = (doi) => DOI_CHIA_CANG_BAI.includes(doi);
 // Cấu hình riêng của một đội: số xe dành cho cảng / bãi, hệ số ca đầu / ca thứ hai / ca cuối, bảng năng suất theo hàng.
 // Đội chưa đặt hệ số riêng thì lấy hệ số của đội gốc.
 export function cfgOf(params, doi) {
@@ -371,8 +374,8 @@ export function calc12(params, jobs, doi = DOI_GOC) {
   });
   shifts.forEach((s, i) => { s.bai = fixed.reduce((a, f) => a + f.cnt[i], 0); });
 
-  // Chỉ đội gốc (Xúc đào) chia xe cảng / bãi; đội khác để CHUNG (anh Sỹ 22/11/2026): toàn bộ xe nằm ở capCang, capBai = 0, thừa / thiếu tính trên tổng cầu cảng + bãi
-  const chung = doi !== DOI_GOC;
+  // Chỉ Xúc đào và Xúc lật chia xe cảng / bãi; đội khác để CHUNG (anh Sỹ 22/11/2026): toàn bộ xe nằm ở capCang, capBai = 0, thừa / thiếu tính trên tổng cầu cảng + bãi
+  const chung = !coChiaCangBai(doi);
   const capCang = num(cfg.capCang) || 0, capBai = chung ? 0 : num(cfg.capBai) || 0;
   shifts.forEach((s) => {
     s.balCang = capCang - s.cang; s.balBai = capBai - s.bai; s.balChung = s.balCang + s.balBai;
