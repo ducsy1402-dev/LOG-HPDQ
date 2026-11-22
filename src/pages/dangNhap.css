@@ -1,0 +1,80 @@
+/* Trang đăng nhập. --u = 1 điểm ảnh của ảnh nền gốc (1672 px rộng) ở kích thước đang hiển thị; mọi cỡ trong hộp tính theo u. */
+.dn { position: fixed; inset: 0; overflow: hidden; background: #0b2a63; color: #fff; }
+.dn-san {
+  --u: calc(max(100vw, 100dvh * 1.7768) / 1672);
+  position: absolute; left: 50%; top: 50%; width: max(100vw, calc(100dvh * 1.7768)); aspect-ratio: 1672 / 941;
+  transform: translate(-50%, -50%);
+  background: #0b2a63 url("../assets/nen-dang-nhap.webp") center / 100% 100% no-repeat;
+  font-size: calc(var(--u) * 16);
+}
+.dn-dau { display: none; }
+
+/* Hộp đăng nhập đặt đúng vị trí hộp vẽ sẵn trong ảnh (x 1046–1532, y 123–633 của ảnh 1672×941), nhỉnh hơn một chút để che hết mép */
+.dn-the {
+  position: absolute; left: 61.9%; top: 12.3%; width: 30.5%; height: 55.6%;
+  display: flex; flex-direction: column; padding: calc(var(--u) * 26) calc(var(--u) * 40) calc(var(--u) * 22);
+  border-radius: calc(var(--u) * 24); border: 1px solid rgba(255, 255, 255, 0.24);
+  background: linear-gradient(165deg, rgba(36, 74, 140, 0.84), rgba(20, 46, 104, 0.93));
+  -webkit-backdrop-filter: blur(22px); backdrop-filter: blur(22px);
+  box-shadow: 0 calc(var(--u) * 24) calc(var(--u) * 60) rgba(4, 16, 48, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  animation: dn-vao 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.dn-tau { align-self: center; width: calc(var(--u) * 58); height: calc(var(--u) * 58); color: #fff; }
+.dn-the h1 { margin: calc(var(--u) * 8) 0 0; text-align: center; font-size: calc(var(--u) * 31); line-height: 1.15; font-weight: 800; letter-spacing: 0.01em; }
+.dn-phu { margin: calc(var(--u) * 6) 0 calc(var(--u) * 26); text-align: center; font-size: calc(var(--u) * 20); color: rgba(255, 255, 255, 0.92); }
+
+.dn-o { position: relative; display: block; margin-bottom: calc(var(--u) * 17); }
+.dn .dn-o input {
+  width: 100%; height: calc(var(--u) * 58); min-height: 44px; border-radius: calc(var(--u) * 9); border: 1px solid rgba(255, 255, 255, 0.4);
+  background-color: rgba(255, 255, 255, 0.07) !important; color: #fff; font: inherit; font-size: max(16px, calc(var(--u) * 19));
+  padding: 0 calc(var(--u) * 52) 0 calc(var(--u) * 66); transition: border-color 0.15s, background-color 0.15s, box-shadow 0.15s;
+}
+.dn .dn-o input::placeholder { color: rgba(255, 255, 255, 0.68); }
+.dn .dn-o input:hover { border-color: rgba(255, 255, 255, 0.6); }
+.dn .dn-o input:focus { outline: none; border-color: #7cc0ff; background-color: rgba(255, 255, 255, 0.12) !important; box-shadow: 0 0 0 3px rgba(124, 192, 255, 0.35); }
+.dn-bd { position: absolute; left: calc(var(--u) * 22); top: 50%; width: calc(var(--u) * 26); height: calc(var(--u) * 26); min-width: 18px; min-height: 18px; transform: translateY(-50%); color: rgba(255, 255, 255, 0.92); pointer-events: none; }
+.dn-mat { position: absolute; right: calc(var(--u) * 8); top: 50%; display: grid; place-items: center; width: max(44px, calc(var(--u) * 46)); height: max(44px, calc(var(--u) * 46)); transform: translateY(-50%); border: 0; border-radius: 8px; background: none; color: rgba(255, 255, 255, 0.85); cursor: pointer; transition: color 0.15s, background-color 0.15s; }
+.dn-mat:hover { color: #fff; background: rgba(255, 255, 255, 0.1); }
+.dn-mat:focus-visible, .dn-quen:focus-visible, .dn-tick input:focus-visible { outline: 2px solid #7cc0ff; outline-offset: 2px; }
+.dn-mat svg { width: calc(var(--u) * 26); height: calc(var(--u) * 26); min-width: 18px; min-height: 18px; }
+
+.dn-nut {
+  display: flex; align-items: center; justify-content: center; gap: calc(var(--u) * 12); width: 100%; height: calc(var(--u) * 58); min-height: 46px; margin-top: calc(var(--u) * 6);
+  border: 0; border-radius: calc(var(--u) * 9); cursor: pointer; color: #fff; font: inherit; font-size: max(16px, calc(var(--u) * 21)); font-weight: 600;
+  background: linear-gradient(180deg, #2a86ff, #0a5fe0); box-shadow: 0 calc(var(--u) * 8) calc(var(--u) * 22) rgba(10, 95, 224, 0.45);
+  transition: transform 0.12s, filter 0.15s, box-shadow 0.15s;
+}
+.dn-nut svg { width: calc(var(--u) * 26); height: calc(var(--u) * 26); min-width: 18px; min-height: 18px; }
+.dn-nut:hover:not(:disabled) { filter: brightness(1.08); }
+.dn-nut:active:not(:disabled) { transform: translateY(1px) scale(0.99); }
+.dn-nut:focus-visible { outline: 3px solid #bfe0ff; outline-offset: 2px; }
+.dn-nut:disabled { opacity: 0.75; cursor: progress; }
+.dn-quay { animation: dn-quay 0.9s linear infinite; }
+
+.dn-loi { margin-top: calc(var(--u) * 12); padding: calc(var(--u) * 9) calc(var(--u) * 14); border-radius: calc(var(--u) * 8); background: rgba(255, 90, 100, 0.2); border: 1px solid rgba(255, 140, 150, 0.55); color: #ffe3e5; font-size: max(13px, calc(var(--u) * 16)); }
+.dn-hang { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: auto; padding-top: calc(var(--u) * 18); font-size: max(13px, calc(var(--u) * 15.5)); }
+.dn-tick { display: inline-flex; align-items: center; gap: calc(var(--u) * 9); cursor: pointer; color: rgba(255, 255, 255, 0.95); min-height: 32px; }
+.dn-tick input { width: max(16px, calc(var(--u) * 20)); height: max(16px, calc(var(--u) * 20)); accent-color: #2a86ff; cursor: pointer; }
+.dn-quen { border: 0; background: none; padding: 6px 0; color: #9fd0ff; font: inherit; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.dn-quen:hover { color: #fff; }
+.dn-ghi { margin-top: calc(var(--u) * 8); font-size: max(12px, calc(var(--u) * 14.5)); line-height: 1.45; color: rgba(255, 255, 255, 0.85); }
+
+@keyframes dn-vao { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes dn-quay { to { transform: rotate(360deg); } }
+
+/* Điện thoại / khung hẹp hoặc gần vuông: bỏ "sân khấu", dùng ảnh cảnh bến cảng làm nền, hộp đăng nhập ở giữa */
+@media (max-width: 899px), (max-aspect-ratio: 3 / 2) {
+  .dn { overflow-y: auto; background: linear-gradient(180deg, rgba(8, 28, 72, 0.78), rgba(8, 28, 72, 0.9)), #0b2a63 url("../assets/nen-dang-nhap-dd.webp") center / cover no-repeat; }
+  .dn-san { --u: 0.86px; position: relative; left: auto; top: auto; transform: none; width: 100%; min-height: 100dvh; aspect-ratio: auto; background: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; padding: 24px 16px; font-size: 16px; }
+  .dn-dau { display: flex; align-items: center; gap: 14px; width: min(440px, 100%); }
+  .dn-dau img { height: 52px; width: auto; padding: 6px 10px; border-radius: 12px; background: rgba(255, 255, 255, 0.95); }
+  .dn-dau b { display: block; font-size: 1.05rem; line-height: 1.2; font-weight: 800; }
+  .dn-dau span { display: block; margin-top: 3px; font-size: 0.78rem; color: rgba(255, 255, 255, 0.85); }
+  .dn-the { position: relative; left: auto; top: auto; width: min(440px, 100%); height: auto; padding: 26px 24px 20px; }
+  .dn-hang { margin-top: 0; }
+  .dn-phu { margin-bottom: 22px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dn-the { animation: none; }
+  .dn-nut, .dn-o input, .dn-mat { transition: none; }
+}

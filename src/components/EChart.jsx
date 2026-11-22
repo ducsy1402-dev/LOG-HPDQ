@@ -66,7 +66,7 @@ export const PhongToCtx = createContext(false);
 // Biểu đồ ECharts tự đổi màu chữ / lưới theo chế độ sáng tối và tự co giãn theo khung.
 // onClick(params): bấm vào một điểm / cột (params.componentType, params.dataIndex, params.name, params.value…).
 export default function EChart({ option, height = 260, onClick }) {
-  const el = useRef(), chart = useRef(), bam = useRef(onClick), cuoi = useRef(null);
+  const el = useRef(), chart = useRef(), bam = useRef(onClick), cuoi = useRef(null), daVe = useRef(false);
   bam.current = onClick;
   const { theme } = useApp();
   const to = useContext(PhongToCtx);
@@ -111,7 +111,7 @@ export default function EChart({ option, height = 260, onClick }) {
       if (t !== o.__top) { o.__top = t; chart.current?.setOption({ grid: { top: t } }); }
     });
     ro.observe(el.current);
-    return () => { ro.disconnect(); chart.current?.dispose(); };
+    return () => { ro.disconnect(); chart.current?.dispose(); daVe.current = false; };
   }, []);
   useEffect(() => {
     const dark = theme === "dark", chu = dark ? "#c9cfdb" : "#475467", luoi = dark ? "rgba(255,255,255,.07)" : "rgba(16,24,40,.07)", truc0 = dark ? "rgba(255,255,255,.14)" : "rgba(16,24,40,.16)";
@@ -124,7 +124,9 @@ export default function EChart({ option, height = 260, onClick }) {
     const top = lechTop(goc, el.current?.clientWidth);
     goc.__top = top ?? grid.top;
     cuoi.current = goc;
+    const lanDau = !daVe.current; daVe.current = true; // hiệu ứng vẽ chỉ chạy lần đầu hiện ra; đổi số liệu / bộ lọc về sau cập nhật ngay, không vẽ lại từ đầu
     chart.current?.setOption({
+      animation: lanDau,
       textStyle: { fontFamily: "Inter Variable, Be Vietnam Pro, system-ui, sans-serif", color: chu },
       ...op,
       grid: top != null ? { ...grid, top } : grid,

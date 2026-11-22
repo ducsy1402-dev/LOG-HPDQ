@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CheckCircle2, AlertTriangle, X, Search as SearchIcon, ChevronDown } from "lucide-react";
+import { CheckCircle2, AlertTriangle, X, ArrowLeft, Search as SearchIcon, ChevronDown } from "lucide-react";
 import { NgayGio } from "@/components/ui/ngaygio";
 import { useToanManHinh, NutToanManHinh, useTrongHop } from "@/components/ui/toanManHinh";
 import { useApp } from "../store";
@@ -157,10 +157,9 @@ export function Modal({ title, onClose, children, footer, width }) {
   useEsc(onClose);
   return (
     <>
-      <div className="overlay" onClick={onClose} />
-      <div className="modal" style={width ? { "--w": width + "px" } : undefined} role="dialog" aria-modal="true">
-        <div className="modal-h"><h3>{title}</h3><span className="spacer" /><button className="btn ghost icon" onClick={onClose} aria-label="Đóng"><X size={18} /></button></div>
-        <div className="modal-b">{children}</div>
+      <div className="modal" role="dialog" aria-modal="true" aria-label={typeof title === "string" ? title : "Hộp thoại"}>
+        <div className="modal-h"><button className="btn ghost icon nut-lai" onClick={onClose} aria-label="Quay lại" data-tip="Quay lại (Esc)"><ArrowLeft size={20} /></button><h3>{title}</h3></div>
+        <div className="modal-b"><div style={{ maxWidth: !width || width <= 800 ? (width || 720) : undefined, margin: "0 auto" }}>{children}</div></div>
         {footer && <div className="modal-f">{footer}</div>}
       </div>
     </>
@@ -171,9 +170,8 @@ export function Drawer({ head, onClose, children }) {
   useEsc(onClose);
   return (
     <>
-      <div className="overlay" onClick={onClose} />
       <aside className="drawer" role="dialog" aria-modal="true">
-        <div className="drawer-h"><div style={{ flex: 1, minWidth: 0 }}>{head}</div><button className="btn ghost icon" onClick={onClose} aria-label="Đóng"><X size={18} /></button></div>
+        <div className="drawer-h"><button className="btn ghost icon nut-lai" onClick={onClose} aria-label="Quay lại" data-tip="Quay lại (Esc)"><ArrowLeft size={20} /></button><div style={{ flex: 1, minWidth: 0 }}>{head}</div></div>
         <div className="drawer-b">{children}</div>
       </aside>
     </>

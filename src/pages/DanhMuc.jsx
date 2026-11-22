@@ -2,6 +2,7 @@ import { Fragment, useRef, useState } from "react";
 import { Truck, Users, Anchor, Package, Warehouse, HardHat, Plus, Save, Upload, Download, Pencil, Check, X, Database, Wrench, Construction, Columns3, Trash2, Gauge, ListOrdered, Boxes, Route, MapPinned, Layers, LayoutGrid } from "lucide-react";
 import { useApp } from "@/store";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import ThanhTab from "../khung/ThanhTab";
 import { PageHead } from "@/components/common";
 import { plain, matchQ, so, met } from "@/lib/format";
 import { docSo } from "@/lib/paste";
@@ -49,11 +50,14 @@ function TabNho({ khoa, ds }) {
   );
 }
 
-export default function DanhMuc() {
+// tab, onTab: tab chính nằm trong đường dẫn #/danh-muc/<tab> (khung điều hướng truyền vào); tab nhỏ vẫn nhớ trong trình duyệt
+export default function DanhMuc({ tab: tabUrl, onTab }) {
   const { D, quyen, api, run, toast } = useApp();
   const tb = useThietBi();
   const tbD = tb?.D;
-  const [tab, doiTab] = useTabNho("lg-danh-muc-tab", "thiet-bi");
+  const [tabNho, doiNho] = useTabNho("lg-danh-muc-tab", "thiet-bi");
+  const tab = tabUrl ?? tabNho;
+  const doiTab = (t) => { doiNho(t); onTab?.(t); };
   const adminTB = !!tb?.isAdmin;
   // Danh sách lưu nguyên một bản ghi (nhà thầu, thiết bị gắn): gộp các dòng sửa theo khóa rồi lưu cả danh sách
   const gopDs = (ds, rows, khoa) => { const m = new Map(ds.map((x) => [x[khoa], x])); for (const r of rows) m.set(r[khoa], { ...m.get(r[khoa]), ...r }); return [...m.values()]; };
@@ -251,7 +255,7 @@ export default function DanhMuc() {
     <>
       <PageHead title="Danh mục dùng chung" desc="Nhập một lần, dùng cho cả web. Bốn nhóm: thiết bị cơ giới, hàng hóa, kho bãi, cầu bến; mỗi nhóm chia các tab nhỏ." />
       <Tabs value={TABS.some((t) => t[0] === tab) ? tab : "thiet-bi"} onValueChange={doiTab}>
-        <TabsList>{TABS.map(([k, t, I]) => <TabsTrigger key={k} value={k}><I />{t}</TabsTrigger>)}</TabsList>
+        <ThanhTab value={TABS.some((t) => t[0] === tab) ? tab : "thiet-bi"} onChange={doiTab} label="Danh mục" tabs={TABS.map(([k, t, I]) => [k, t, I])} />
         {TABS.map(([k, , , nd]) => <TabsContent key={k} value={k} className="grid gap-3">{nd}</TabsContent>)}
       </Tabs>
     </>

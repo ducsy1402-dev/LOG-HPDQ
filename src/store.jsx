@@ -15,7 +15,7 @@ export function useHash() {
   const doc = () => (location.hash.replace(/^#\/?/, "") || "tong-quan").split("?")[0];
   const [h, setH] = useState(doc);
   useEffect(() => { const f = () => setH(doc()); window.addEventListener("hashchange", f); return () => window.removeEventListener("hashchange", f); }, []);
-  return [h, (p) => { location.hash = "/" + p; }];
+  return [h, (p) => { location.hash = "/" + p; }, (p) => location.replace(location.pathname + location.search + "#/" + p)]; // [đường dẫn, mở trang (có lịch sử), thay đường dẫn hiện tại (không thêm lịch sử)]
 }
 
 export function AppProvider({ children }) {

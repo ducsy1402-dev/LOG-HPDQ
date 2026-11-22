@@ -7,25 +7,25 @@
    Biến HSL theo kiểu shadcn/ui; phần Thiết bị cơ giới dùng cùng bảng màu ở src/thietbi/styles.css. */
 @layer base {
   :root {
-    --background: 220 23% 97%;
+    --background: 216 32% 96.5%;
     --foreground: 224 30% 13%;
     --card: 0 0% 100%;
     --card-foreground: 224 30% 13%;
     --popover: 0 0% 100%;
     --popover-foreground: 224 30% 13%;
-    --primary: 243 75% 59%;
+    --primary: 217 91% 44%;
     --primary-foreground: 0 0% 100%;
     --secondary: 220 18% 94%;
     --secondary-foreground: 224 30% 18%;
     --muted: 220 18% 95%;
     --muted-foreground: 220 9% 43%;
-    --accent-ui: 228 30% 94%;
+    --accent-ui: 216 36% 93%;
     --accent-foreground: 224 30% 13%;
     --destructive: 352 72% 51%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 16% 89%;
+    --border: 216 20% 88%;
     --input: 220 14% 84%;
-    --ring: 243 75% 59%;
+    --ring: 217 91% 44%;
     --ok: 160 84% 30%;
     --warn: 32 92% 42%;
     --bad: 352 72% 51%;
@@ -36,25 +36,25 @@
   }
   /* Giao diện tối: nền than chì ánh xanh, thẻ sáng hơn nền một bậc, chữ trắng ngà (không trắng tinh) cho đỡ chói */
   .dark {
-    --background: 225 22% 7%;
+    --background: 220 38% 7%;
     --foreground: 220 20% 93%;
-    --card: 225 19% 10.5%;
+    --card: 220 32% 10.5%;
     --card-foreground: 220 20% 93%;
-    --popover: 225 19% 12%;
+    --popover: 220 32% 12%;
     --popover-foreground: 220 20% 93%;
-    --primary: 244 88% 72%;
-    --primary-foreground: 240 40% 10%;
+    --primary: 212 96% 66%;
+    --primary-foreground: 220 60% 9%;
     --secondary: 225 15% 16%;
     --secondary-foreground: 220 20% 90%;
     --muted: 225 16% 14%;
     --muted-foreground: 220 11% 64%;
-    --accent-ui: 225 15% 18%;
+    --accent-ui: 220 22% 18%;
     --accent-foreground: 220 20% 95%;
     --destructive: 352 85% 64%;
     --destructive-foreground: 0 0% 100%;
     --border: 225 14% 19%;
     --input: 225 13% 25%;
-    --ring: 244 88% 72%;
+    --ring: 212 96% 66%;
     --ok: 156 60% 52%;
     --warn: 38 92% 60%;
     --bad: 352 85% 67%;
@@ -66,7 +66,7 @@
   html { font-size: 15.2px; } /* thu nhỏ ~95% toàn web: mọi cỡ rem (chữ, biểu tượng, khoảng cách) co theo */
   body { @apply bg-background text-foreground font-sans antialiased; font-size: 0.9rem; font-feature-settings: "cv11", "ss01"; }
   /* Nền tối: một quầng chàm rất nhẹ ở góc trên, không lưới */
-  .dark body { background-image: radial-gradient(1100px 520px at 75% -12%, rgba(99, 102, 241, 0.09), transparent 62%); background-attachment: fixed; }
+  .dark body { background-image: radial-gradient(1100px 520px at 75% -12%, rgba(37, 99, 235, 0.11), transparent 62%); background-attachment: fixed; }
   input[type="datetime-local"]::-webkit-calendar-picker-indicator { opacity: 0.6; cursor: pointer; }
   .dark input[type="datetime-local"]::-webkit-calendar-picker-indicator { filter: invert(1); }
   ::selection { background: hsl(var(--primary) / 0.22); }
@@ -113,3 +113,6 @@
 [data-tmh] [class*="max-h-["] { max-height: calc(100dvh - 170px) !important; }
 /* khối cuộn chứa biểu đồ thì để biểu đồ tự vừa khít (không cắt), tránh vòng lặp đo chiều cao */
 [data-tmh] [class*="max-h-["]:has([data-echart]) { max-height: none !important; overflow: visible !important; }
+
+/* Hộp thoại toàn màn hình: bảng / danh sách có giới hạn chiều cao chừa chỗ cho đầu hộp, bộ lọc và hàng nút ở chân hộp (không cuộn mới thấy nút Lưu) */
+[data-hop][data-tmh] [class*="max-h-"]:not([class*="max-h-none"]):not(:has([data-echart])) { max-height: calc(100dvh - 185px) !important; }
