@@ -295,6 +295,8 @@ export function makeSupabaseApi() {
       if (r.error) {
         let loi = "";
         try { loi = (await r.error.context.json())?.loi || ""; } catch { /* bỏ qua */ }
+        // Không có phản hồi nào (hàm chưa tồn tại dưới đúng tên thì Supabase trả 404 không kèm CORS, trình duyệt chỉ thấy "không gửi được")
+        if (!loi && r.error.name === "FunctionsFetchError") loi = "Không gọi được hàm tao-tai-khoan trên Supabase. Mở Supabase › Edge Functions: phải có đúng một hàm tên tao-tai-khoan (đúng từng chữ, trạng thái Active). Chưa có thì tạo và dán nội dung file supabase/functions/tao-tai-khoan/index.ts.";
         if (!loi && r.error.context?.status === 404) loi = "Chưa đưa hàm tao-tai-khoan lên Supabase (xem hướng dẫn ở đầu file supabase/functions/tao-tai-khoan/index.ts).";
         // Hàm bản cũ (chỉ biết tạo tài khoản) gặp yêu cầu đổi tên / xóa sẽ báo lỗi tên đăng nhập
         if (body.hanh_dong && /Tên đăng nhập chỉ gồm/.test(loi)) loi = "Hàm tao-tai-khoan trên Supabase còn là bản cũ: mở hàm, dán đè nội dung mới của file supabase/functions/tao-tai-khoan/index.ts rồi Deploy.";
