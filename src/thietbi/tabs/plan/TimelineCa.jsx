@@ -41,7 +41,8 @@ const RE_COT = /\b(tu|den)\b|schema cache|column/i; // lỗi do CSDL chưa có c
 const IN_O = "h-full w-full min-w-0 bg-transparent px-1 text-right font-semibold tabular-nums text-white focus:bg-black/40 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none";
 
 export default function TimelineCa({ R, doi, onJob }) {
-  const { api, run, canWrite, isAdmin, D, toast } = useApp();
+  const { api, run, sua, D, toast } = useApp();
+  const canWrite = sua("kh_van_tai"), isAdmin = canWrite;
   const LD = useLogistics()?.D;
   const { shifts, ves, fixed, capCang, capBai } = R;
   const nCa = shifts.length;

@@ -58,7 +58,7 @@ export default function DanhMuc({ tab: tabUrl, onTab }) {
   const [tabNho, doiNho] = useTabNho("lg-danh-muc-tab", "thiet-bi");
   const tab = tabUrl ?? tabNho;
   const doiTab = (t) => { doiNho(t); onTab?.(t); };
-  const adminTB = !!tb?.isAdmin;
+  const adminTB = !!tb?.sua?.("dm_thiet_bi");
   // Danh sách lưu nguyên một bản ghi (nhà thầu, thiết bị gắn): gộp các dòng sửa theo khóa rồi lưu cả danh sách
   const gopDs = (ds, rows, khoa) => { const m = new Map(ds.map((x) => [x[khoa], x])); for (const r of rows) m.set(r[khoa], { ...m.get(r[khoa]), ...r }); return [...m.values()]; };
 

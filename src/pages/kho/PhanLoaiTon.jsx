@@ -39,7 +39,7 @@ export default function PhanLoaiTon({ loai, kho }) {
         Khai báo phần tồn thuộc <b>{LOAI_TON.can_giai_phong.ten.toLowerCase()}</b> ({MO_TA.can_giai_phong}) hoặc <b>{LOAI_TON.dau_co.ten.toLowerCase()}</b> ({MO_TA.dau_co}). Phần còn lại tự là <b>tồn lưu động</b>.
         Khai báo mới thay số cũ của cùng bãi + hàng + loại; nhập 0 tấn để kết thúc phân loại.
       </p>
-      {quyen.kho.nhap && (
+      {quyen.kho.theoLoai(loai) && (
         <div className="flex flex-wrap items-end gap-2 rounded-md border bg-muted/30 p-3">
           <label className="grid gap-1 text-xs">Từ ngày<Input type="date" className="h-8 w-36" value={f.ngay} onChange={(e) => setF({ ...f, ngay: e.target.value })} /></label>
           <label className="grid gap-1 text-xs">Bãi › Hàng
@@ -53,13 +53,13 @@ export default function PhanLoaiTon({ loai, kho }) {
       {hang.length ? (
         <div className="scroll-x max-h-[50vh] rounded-md border">
           <table className="tbl text-xs">
-            <thead><tr><th>Từ ngày</th><th>Bãi</th><th>Hàng</th><th>Loại</th><th className="num">Số tấn</th><th>Ghi chú</th><th>Tình trạng</th>{quyen.kho.quanLy && <th></th>}</tr></thead>
+            <thead><tr><th>Từ ngày</th><th>Bãi</th><th>Hàng</th><th>Loại</th><th className="num">Số tấn</th><th>Ghi chú</th><th>Tình trạng</th>{quyen.kho.theoLoai(loai) && <th></th>}</tr></thead>
             <tbody>{hang.map((r) => (
               <tr key={r.id} className={hieuLuc.has(r.id) ? "" : "text-muted-foreground"}>
                 <td className="whitespace-nowrap tabular-nums">{ngayNam(r.ngay)}</td><td>{r.ten_bai}</td><td>{r.hang}</td>
                 <td><Badge tone={LOAI_TON[r.loai].tone}>{LOAI_TON[r.loai].ten}</Badge></td><td className="num">{so(r.tan, 1)}</td><td>{r.ghi_chu}</td>
                 <td>{hieuLuc.has(r.id) ? (+r.tan > 0 ? <Badge tone="ok">Đang hiệu lực</Badge> : <span>Đã kết thúc</span>) : <span>Đã thay</span>}</td>
-                {quyen.kho.quanLy && <td><ConfirmButton confirmText="Xóa?" onConfirm={() => run(() => api.deleteTonPhanLoai(r.id), "Đã xóa khai báo")}><Trash2 /></ConfirmButton></td>}
+                {quyen.kho.theoLoai(loai) && <td><ConfirmButton confirmText="Xóa?" onConfirm={() => run(() => api.deleteTonPhanLoai(r.id), "Đã xóa khai báo")}><Trash2 /></ConfirmButton></td>}
               </tr>))}</tbody>
           </table>
         </div>

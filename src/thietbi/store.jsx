@@ -129,11 +129,14 @@ export function AppProvider({ children }) {
   const D = useMemo(() => (raw ? derive(raw) : null), [raw]);
   if (api?.demo) window.__qltb = D; // chỉ chế độ demo: hỗ trợ kiểm thử
   const vaiTro = role?.vai_tro;
+  // Quyền chỉnh sửa theo mục (SQL 27): quản trị sửa mọi thứ; tài khoản khác chỉ sửa ở các mục đã được tick.
+  // sua("khai_bao") … dùng trong từng tab; canWrite / isAdmin chung chỉ còn để các nơi chưa phân mục dùng (isAdmin = chỉ quản trị).
+  const quanTri = vaiTro === "quan_tri", nhom = role?.nhom || [];
+  const sua = (...k) => quanTri || k.some((x) => nhom.includes(x));
   const value = {
     api, phase, user, role, D, busy, reload, run, toast, fail, signIn, signOut, theme, setTheme,
     drawer, openVehicle: setDrawer, closeVehicle: () => setDrawer(null), toasts, loadedAt: loadedAt.current, capNhatRef, cheDoRef,
-    // Nhóm van_tai (Kế hoạch vận tải) sửa / thêm / xóa được mọi thứ của Thiết bị cơ giới (CSDL: SQL 16); các nhóm khác chỉ xem phần này
-    nhom: role?.nhom || [], canWrite: vaiTro === "nhap" || vaiTro === "quan_tri" || !!role?.nhom?.includes("van_tai"), isAdmin: vaiTro === "quan_tri" || !!role?.nhom?.includes("van_tai"), demo: !!api?.demo,
+    nhom, sua, canWrite: sua("khai_bao", "dieu_do", "kh_van_tai", "dm_thiet_bi"), isAdmin: quanTri, demo: !!api?.demo,
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

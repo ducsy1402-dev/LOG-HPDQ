@@ -8,7 +8,7 @@ import { Input, Field } from "./components/ui/input";
 import { DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from "./components/ui/menu";
 import { APP_NAME, VAI_TRO, DEMO } from "./config";
 import { cn } from "./lib/utils";
-import { NHOM_QUYEN, BAC, tenDangNhap } from "./lib/quyen";
+import { TEN_SUA, tenDangNhap } from "./lib/quyen";
 import { saoLuuExcel } from "./lib/backup";
 import { ThietBiProvider, useThietBi, TB, TBCho, TBToanCuc } from "./thietbi/Host";
 import KhaiBao from "./thietbi/tabs/KhaiBao";
@@ -92,7 +92,6 @@ function useCaiDat() {
 // Tab / trang đã xem gần nhất: bấm lại một trang ở menu thì mở đúng tab đang xem dở
 const docJson = (k) => { try { return JSON.parse(localStorage.getItem(k) || "{}"); } catch { return {}; } };
 const luuJson = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* bỏ qua */ } };
-const tenVaiTro = (bac) => VAI_TRO[Object.keys(BAC).find((k) => BAC[k] === bac)] || "Xem";
 
 function Main() {
   const { D, role, quyen, user, signOut, theme, setTheme, voyageMo, setVoyageMo, fail, toast, api, busy } = useApp();
@@ -113,7 +112,7 @@ function Main() {
   // ---- Đường dẫn: #/<trang>/<tab>. Đường dẫn cũ / thiếu tab được đổi sang dạng chuẩn ----
   const t0 = tachRoute(route);
   const duoc = !t0.la404 && (nav.some((n) => n.id === t0.trang.id) || (t0.trang.cang && !quyen.coCang));
-  const { trang, tab, canonical } = duoc ? t0 : tachRoute("tong-quan");
+  const { trang, tab, canonical } = duoc ? t0 : tachRoute(nav[0]?.id || "tong-quan"); // không được vào trang này: về trang đầu tiên được xem
   useEffect(() => { const h = CHUYEN_MO_HOP[route]; if (h) { try { sessionStorage.setItem("lg-mo-hop", h); } catch { /* bỏ qua */ } window.dispatchEvent(new Event("lg-mo-hop")); } }, [route]);
   useEffect(() => { if (route !== canonical) thay(canonical); }); // eslint-disable-line react-hooks/exhaustive-deps
   const nho = useRef({ tab: docJson("lg-tab-cuoi"), ph: docJson("lg-ph-cuoi") });
@@ -175,10 +174,10 @@ function Main() {
 
   // ---- Thông tin người dùng + vai trò ----
   const ten = role?.ho_ten || tenDangNhap(user?.email);
-  const vaiTro = quyen.nhom?.length ? quyen.nhom.map((n) => NHOM_QUYEN[n]?.ten || n).join(", ") : tenVaiTro(Math.max(BAC[role?.cang] ?? -1, BAC[role?.thietBi] ?? -1));
+  const vaiTro = quyen.admin ? "Quản trị" : quyen.nhom?.length ? `Chỉnh sửa ${quyen.nhom.length} mục` : "Chỉ xem";
   const menuTaiKhoan = (
     <DropdownMenuContent side="bottom" align="end" className="w-72">
-      <DropdownMenuLabel>{ten}<div className="text-[0.6875rem]">Thiết bị: {VAI_TRO[role?.thietBi] || "—"} · Cảng: {VAI_TRO[role?.cang] || "—"}</div>{quyen.nhom?.length > 0 && <div className="text-[0.6875rem] font-normal">Nhóm quyền: {quyen.nhom.map((n) => NHOM_QUYEN[n]?.ten || n).join(", ")} (chỉ sửa ở khu vực này)</div>}</DropdownMenuLabel>
+      <DropdownMenuLabel>{ten}<div className="text-[0.6875rem]">{quyen.admin ? "Quản trị: xem và sửa tất cả" : quyen.nhom?.length ? "Chỉ sửa ở các mục được cấp" : "Chỉ xem"}</div>{!quyen.admin && quyen.nhom?.length > 0 && <div className="text-[0.6875rem] font-normal">{quyen.nhom.map(TEN_SUA).join(", ")}</div>}</DropdownMenuLabel>
       {tb.D && <>
         <DropdownMenuSeparator />
         <DropdownMenuLabel>Thiết bị cơ giới</DropdownMenuLabel>
@@ -219,7 +218,7 @@ function Main() {
         dangTai={busy || tb.busy} ten={ten} vaiTro={vaiTro} menuTaiKhoan={menuTaiKhoan} coCang={quyen.coCang} />
 
       <main id="noi-dung-chinh" tabIndex={-1} className="mx-auto max-w-[1600px] p-3 pb-[calc(4.75rem+env(safe-area-inset-bottom))] outline-none sm:p-4 lg:pb-4">
-        {D ? dsTrang.map((id) => (
+        {!nav.length ? <div className="mx-auto mt-10 max-w-md rounded-md border border-warn/40 bg-warn/5 px-4 py-3 text-sm">Tài khoản chưa được cấp quyền xem trang nào. Nhờ quản trị cấp ở màn hình Phân quyền.</div> : D ? dsTrang.map((id) => (
           <div key={id} hidden={id !== trang.id} className={id === trang.id ? "pg-vao" : undefined} data-trang={id}>
             <Suspense fallback={<TrangSkeleton />}>{noiDung(id, gan.current[id] || { tab: null, route: id })}</Suspense>
           </div>

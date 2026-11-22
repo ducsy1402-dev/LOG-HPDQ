@@ -57,9 +57,9 @@ export function makeSupabaseApi() {
       const cu = await thu(sb.from("user_roles").select("vai_tro,ho_ten").eq("user_id", userId).maybeSingle());
       const r = await sb.rpc("vai_tro_phan_he", { p_phan_he: "cang" });
       const rk = await sb.rpc("vai_tro_phan_he", { p_phan_he: "kho" });
-      // Nhóm quyền theo khu vực (SQL 16); chưa chạy SQL 16 thì không có nhóm nào
-      const nh = await sb.from("user_nhom").select("nhom").eq("user_id", userId);
-      const chung = { ho_ten: cu?.ho_ten, admin: cu?.vai_tro === "quan_tri", thietBi: cu?.vai_tro || null, nhom: nh.error ? [] : (nh.data || []).map((x) => x.nhom) };
+      // Quyền chỉnh sửa (user_nhom) và quyền xem (user_xem) của SQL 27; chưa chạy SQL 27 thì không có mục sửa nào, xem tất cả
+      const [nh, xm] = await Promise.all([sb.from("user_nhom").select("nhom").eq("user_id", userId), sb.from("user_xem").select("muc").eq("user_id", userId)]);
+      const chung = { ho_ten: cu?.ho_ten, admin: cu?.vai_tro === "quan_tri", thietBi: cu?.vai_tro || null, nhom: nh.error ? [] : (nh.data || []).map((x) => x.nhom), xem: xm.error ? ["tat_ca"] : (xm.data || []).map((x) => x.muc) };
       if (r.error) return { ...chung, cang: null, loi: "chua_sql" };
       return { ...chung, cang: r.data, kho: rk.error ? null : rk.data };
     },
@@ -275,19 +275,31 @@ export function makeSupabaseApi() {
       if (cols.length) ok(await sb.from("danh_muc_cot").upsert(cols.map((c) => ({ ...c, bang, updated_at: now() }))));
     },
 
-    listUsers: async () => ok(await sb.rpc("ds_nguoi_dung")),
-    // Nhóm quyền theo khu vực (SQL 16). null = chưa chạy SQL 16
-    listNhom: async () => { const r = await sb.from("user_nhom").select("*"); return r.error ? null : r.data; },
-    // Đặt nhóm của một tài khoản; tài khoản chưa có vai trò chung thì cấp "xem" (để xem được mọi phần)
-    async setNhom(user_id, nhom, coVaiTro) {
-      ok(await sb.from("user_nhom").delete().eq("user_id", user_id));
-      if (nhom.length) ok(await sb.from("user_nhom").insert(nhom.map((n) => ({ user_id, nhom: n }))));
-      if (nhom.length && !coVaiTro) ok(await sb.from("user_roles").upsert({ user_id, vai_tro: "xem" }));
+    // Màn hình Phân quyền (SQL 27): tài khoản + quyền xem + quyền chỉnh sửa. chuaSql = chưa chạy SQL 27 (chưa có bảng user_xem)
+    async listPhanQuyen() {
+      const [users, xm, nh] = await Promise.all([sb.rpc("ds_nguoi_dung").then(ok), sb.from("user_xem").select("user_id,muc"), sb.from("user_nhom").select("user_id,nhom")]);
+      return { users, xem: xm.error ? [] : xm.data, sua: nh.error ? [] : nh.data, chuaSql: !!xm.error };
     },
-    listModuleRoles: async () => ok(await sb.from("user_module_roles").select("*")),
-    async setModuleRole(user_id, phan_he, vai_tro) {
-      if (!vai_tro) return ok(await sb.from("user_module_roles").delete().eq("user_id", user_id).eq("phan_he", phan_he));
-      return ok(await sb.from("user_module_roles").upsert({ user_id, phan_he, vai_tro, updated_at: now() }));
+    // Ghi lại cả hai danh sách của một tài khoản; tài khoản chưa có vai trò chung thì cấp "xem" (để vào được web)
+    async setQuyenTaiKhoan(user_id, { xem, sua, coVaiTro }) {
+      ok(await sb.from("user_xem").delete().eq("user_id", user_id));
+      ok(await sb.from("user_nhom").delete().eq("user_id", user_id));
+      if (xem.length) ok(await sb.from("user_xem").insert(xem.map((muc) => ({ user_id, muc }))));
+      if (sua.length) ok(await sb.from("user_nhom").insert(sua.map((nhom) => ({ user_id, nhom }))));
+      if (!coVaiTro) ok(await sb.from("user_roles").upsert({ user_id, vai_tro: "xem" }));
+    },
+    async setQuanTri(user_id, bat) { ok(await sb.from("user_roles").upsert({ user_id, vai_tro: bat ? "quan_tri" : "xem" })); },
+    // Thêm tài khoản: Edge Function "tao-tai-khoan" (supabase/functions/tao-tai-khoan/index.ts) giữ khóa bí mật phía Supabase
+    async taoTaiKhoan(body) {
+      const r = await sb.functions.invoke("tao-tai-khoan", { body });
+      if (r.error) {
+        let loi = "";
+        try { loi = (await r.error.context.json())?.loi || ""; } catch { /* bỏ qua */ }
+        if (!loi && r.error.context?.status === 404) loi = "Chưa đưa hàm tao-tai-khoan lên Supabase (xem hướng dẫn ở đầu file supabase/functions/tao-tai-khoan/index.ts).";
+        throw new Error(loi || r.error.message || "Không tạo được tài khoản");
+      }
+      if (r.data?.loi) throw new Error(r.data.loi);
+      return r.data;
     },
   };
 }

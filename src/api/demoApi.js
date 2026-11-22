@@ -53,11 +53,12 @@ export function makeDemoApi() {
   const ghi = (bang, khoa, hanh_dong, cu, moi) => audit.unshift({ id: audit.length + 1, bang, khoa: String(khoa), hanh_dong, cu: clone(cu ?? null), moi: clone(moi ?? null), user_id: "demo", luc: new Date().toISOString() });
   const users = [
     { user_id: "demo", email: "demo@local", ho_ten: "Chế độ demo", vai_tro_cu: "quan_tri" },
-    { user_id: "u2", email: "kehoach@local", ho_ten: "Nhân viên kế hoạch", vai_tro_cu: "nhap" },
-    { user_id: "u3", email: "truongca@local", ho_ten: "Trưởng ca cảng", vai_tro_cu: "xem" },
+    { user_id: "u2", email: "kehoachcauben@hpdq.test", ho_ten: "Kế hoạch cầu bến", vai_tro_cu: "xem" },
+    { user_id: "u3", email: "bgdcty@hpdq.test", ho_ten: "BGD CTY", vai_tro_cu: "xem" },
+    { user_id: "u4", email: "nhaplieu@hpdq.test", ho_ten: "Nhập liệu", vai_tro_cu: "xem" },
   ];
-  const nhomDs = [{ user_id: "u4", nhom: "van_tai" }];
-  const moduleRoles = [{ user_id: "u2", phan_he: "cang", vai_tro: "nhap" }, { user_id: "u3", phan_he: "cang", vai_tro: "quan_ly" }];
+  let xemDs = [{ user_id: "u2", muc: "tat_ca" }, { user_id: "u3", muc: "tat_ca" }, { user_id: "u4", muc: "tong_quan" }, { user_id: "u4", muc: "ke_hoach_th" }];
+  let nhomDs = [{ user_id: "u2", nhom: "linetime" }, { user_id: "u4", nhom: "san_luong" }];
 
   return {
     demo: true,
@@ -68,9 +69,9 @@ export function makeDemoApi() {
     async doiMatKhau() { throw new Error("Chế độ demo không có mật khẩu"); },
     async dauVanTay() { return "demo"; }, // demo một người dùng: dữ liệu chỉ đổi qua chính thao tác của mình (đã tự tải lại)
     async getRole() {
-      // Tài khoản nhóm quyền: vai trò chung "xem" + nhóm (giao diện khóa nút ngoài khu vực của nhóm)
-      if (DEMO_NHOM) return { cang: "xem", kho: "xem", ho_ten: "Demo nhóm " + DEMO_NHOM, admin: false, thietBi: "xem", nhom: DEMO_NHOM === "chi_xem" ? [] : [DEMO_NHOM] };
-      return { cang: role, kho: role, ho_ten: "Chế độ demo", admin: role === "quan_tri", thietBi: role === "quan_ly" ? "nhap" : role, nhom: [] };
+      // Tài khoản thường: vai trò chung "xem" + các mục chỉnh sửa (giao diện khóa nút ngoài các mục đó), quyền xem = Tất cả
+      if (DEMO_NHOM) return { cang: "xem", kho: "xem", ho_ten: "Demo: " + (DEMO_NHOM.join(", ") || "chỉ xem"), admin: false, thietBi: "xem", xem: ["tat_ca"], nhom: DEMO_NHOM };
+      return { cang: role, kho: role, ho_ten: "Chế độ demo", admin: role === "quan_tri", thietBi: role, xem: ["tat_ca"], nhom: [] };
     },
 
     async loadAll({ xemTien }) {
@@ -230,14 +231,21 @@ export function makeDemoApi() {
       db[BANG[bang]] = db[BANG[bang]].filter((x) => !bo.has(x[khoa]));
     },
 
-    async listUsers() { can("quan_tri"); await wait(); return clone(users); },
-    async listModuleRoles() { await wait(); return clone(moduleRoles); },
-    async listNhom() { await wait(); return clone(nhomDs); },
-    async setNhom(user_id, nhom) { can("quan_tri"); await wait(60); for (let i = nhomDs.length - 1; i >= 0; i--) if (nhomDs[i].user_id === user_id) nhomDs.splice(i, 1); for (const n of nhom) nhomDs.push({ user_id, nhom: n }); },
-    async setModuleRole(user_id, phan_he, vai_tro) {
+    async listPhanQuyen() { can("quan_tri"); await wait(); return clone({ users, xem: xemDs, sua: nhomDs, chuaSql: false }); },
+    async setQuyenTaiKhoan(user_id, { xem, sua }) {
       can("quan_tri"); await wait(60);
-      const i = moduleRoles.findIndex((x) => x.user_id === user_id && x.phan_he === phan_he);
-      if (!vai_tro) { if (i >= 0) moduleRoles.splice(i, 1); } else if (i >= 0) moduleRoles[i].vai_tro = vai_tro; else moduleRoles.push({ user_id, phan_he, vai_tro });
+      xemDs = xemDs.filter((x) => x.user_id !== user_id).concat(xem.map((muc) => ({ user_id, muc })));
+      nhomDs = nhomDs.filter((x) => x.user_id !== user_id).concat(sua.map((nhom) => ({ user_id, nhom })));
+    },
+    async setQuanTri(user_id, bat) { can("quan_tri"); await wait(60); const u = users.find((x) => x.user_id === user_id); if (u) u.vai_tro_cu = bat ? "quan_tri" : "xem"; },
+    async taoTaiKhoan(b) {
+      can("quan_tri"); await wait(200);
+      const email = b.ten.includes("@") ? b.ten : `${b.ten}@hpdq.test`;
+      if (users.some((u) => u.email === email)) throw new Error(`Tên đăng nhập "${b.ten}" đã có người dùng`);
+      const user_id = "u" + (users.length + 10);
+      users.push({ user_id, email, ho_ten: b.ho_ten || null, vai_tro_cu: b.quan_tri ? "quan_tri" : "xem" });
+      if (!b.quan_tri) { xemDs = xemDs.concat(b.xem.map((muc) => ({ user_id, muc }))); nhomDs = nhomDs.concat(b.sua.map((nhom) => ({ user_id, nhom }))); }
+      return { ok: true, user_id, email };
     },
   };
 }

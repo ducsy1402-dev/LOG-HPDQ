@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { tinhQuyen, emailTuTenDangNhap, tenDangNhap, DS_NHOM } from "./quyen";
+import { tinhQuyen, emailTuTenDangNhap, tenDangNhap, DS_SUA, DS_XEM, NHOM_SUA, chuanQuyenXem, xemCanCho } from "./quyen";
 
-// Tài khoản của anh Sỹ (SQL 16): vai trò chung "xem" ở mọi phân hệ + một nhóm
-const tk = (...nhom) => tinhQuyen({ cang: "xem", kho: "xem", thietBi: "xem", nhom });
-const tatCa = (q) => [q.nhap, q.quanLy, q.quanTri, q.kho.nhap, q.keHoachNgay, q.sl("cang").datMucTieu, q.sl("cang").nhapThucTe, q.sl("van_tai").datMucTieu, q.sl("van_tai").nhapThucTe, q.suaDmThietBi, q.suaDmHang, q.suaDmKho, q.suaDmCauBen, q.suaThietBi];
+// Tài khoản thường (SQL 27): vai trò chung "xem" ở mọi phân hệ + danh sách mục xem + danh sách mục chỉnh sửa
+const tk = (nhom = [], xem = ["tat_ca"]) => tinhQuyen({ cang: "xem", kho: "xem", thietBi: "xem", xem, nhom });
+const tatCa = (q) => [q.nhap, q.quanLy, q.quanTri, q.kho.nhap, q.keHoachNgay, q.sl().datMucTieu, q.sl().nhapThucTe, q.suaDmThietBi, q.suaDmHang, q.suaDmKho, q.suaDmCauBen, q.suaThietBi];
 
 describe("Tên đăng nhập không đuôi email", () => {
   it("thêm đuôi hpdq.test, giữ nguyên email đầy đủ, bỏ đuôi khi hiển thị", () => {
@@ -16,45 +16,78 @@ describe("Tên đăng nhập không đuôi email", () => {
   });
 });
 
-describe("Quyền theo nhóm", () => {
-  it("bgdcty: xem tất cả, không sửa ở đâu", () => {
+describe("Danh sách mục quyền", () => {
+  it("8 mục xem, 13 mục chỉnh sửa chia 4 khu vực", () => {
+    expect(DS_XEM).toEqual(["tat_ca", "tong_quan", "khai_bao", "dieu_do", "linetime", "ke_hoach_th", "kho", "danh_muc"]);
+    expect(DS_SUA).toHaveLength(13);
+    expect(NHOM_SUA.map((g) => g.muc.length)).toEqual([2, 5, 2, 4]);
+  });
+  it("mỗi mục sửa gắn với một trang xem có thật", () => {
+    for (const g of NHOM_SUA) for (const m of g.muc) expect(DS_XEM).toContain(m.xem);
+  });
+  it("chuẩn hóa quyền xem: Tất cả thì chỉ giữ Tất cả; tick sửa thì tự có quyền xem trang đó", () => {
+    expect(chuanQuyenXem(["kho", "tat_ca", "danh_muc"])).toEqual(["tat_ca"]);
+    expect(chuanQuyenXem(["kho", "tong_quan", "khong_co"])).toEqual(["tong_quan", "kho"]);
+    expect(xemCanCho(["kh_cang", "san_luong", "dm_hang"]).sort()).toEqual(["danh_muc", "ke_hoach_th"]);
+  });
+});
+
+describe("Quyền xem (ẩn / hiện trang)", () => {
+  it("Tất cả: thấy mọi trang; không có mục nào: không thấy trang nào", () => {
+    expect(["tong_quan", "kho", "danh_muc"].map(tk().thay)).toEqual([true, true, true]);
+    expect(["tong_quan", "kho"].map(tk([], []).thay)).toEqual([false, false]);
+  });
+  it("chọn từng trang: chỉ thấy trang đã chọn", () => {
+    const q = tk([], ["tong_quan", "kho"]);
+    expect([q.thay("tong_quan"), q.thay("kho"), q.thay("danh_muc"), q.thay("linetime")]).toEqual([true, true, false, false]);
+  });
+  it("quản trị thấy mọi trang kể cả khi không có mục xem nào", () => {
+    const q = tinhQuyen({ admin: true, cang: "quan_tri", kho: "quan_tri", thietBi: "quan_tri", xem: [], nhom: [] });
+    expect(q.thay("danh_muc")).toBe(true);
+  });
+  it("chưa chạy SQL 27 (không có danh sách xem): xem tất cả", () => {
+    expect(tinhQuyen({ cang: "xem", kho: "xem", thietBi: "xem", nhom: [] }).thay("kho")).toBe(true);
+  });
+});
+
+describe("Quyền chỉnh sửa", () => {
+  it("không tick gì: chỉ xem, không sửa ở đâu", () => {
     const q = tk();
-    expect(tatCa(q)).toEqual(Array(14).fill(false));
+    expect(tatCa(q)).toEqual(Array(12).fill(false));
     expect([q.coCang, q.coThietBi, q.kho.co]).toEqual([true, true, true]);
   });
-  it("kehoachvantailog: thiết bị cơ giới, danh mục thiết bị + hàng hóa, mục tiêu / thực tế vận tải; không đụng linetime, kho, mục tiêu cảng", () => {
-    const q = tk("van_tai");
-    expect([q.suaThietBi, q.suaDmThietBi, q.suaDmHang, q.sl("van_tai").datMucTieu, q.sl("van_tai").nhapThucTe]).toEqual([true, true, true, true, true]);
-    expect([q.nhap, q.kho.nhap, q.keHoachNgay, q.sl("cang").datMucTieu, q.sl("cang").nhapThucTe, q.suaDmKho, q.suaDmCauBen, q.quanTri]).toEqual(Array(8).fill(false));
+  it("Linetime: sửa chuyến tàu, không đụng kế hoạch tổng hợp / kho", () => {
+    const q = tk(["linetime"]);
+    expect([q.nhap, q.quanLy]).toEqual([true, true]);
+    expect([q.quanTri, q.kho.nhap, q.keHoachNgay, q.sl().datMucTieu, q.sl().nhapThucTe, q.suaThietBi, q.suaDmCauBen]).toEqual(Array(7).fill(false));
   });
-  it("kehoachkhobailog: kho bãi + danh mục kho bãi + hàng hóa", () => {
-    const q = tk("kho_bai");
-    expect([q.kho.nhap, q.kho.quanLy, q.suaDmKho, q.suaDmHang]).toEqual([true, true, true, true]);
-    expect([q.nhap, q.suaThietBi, q.suaDmThietBi, q.suaDmCauBen, q.sl("cang").datMucTieu, q.sl("van_tai").nhapThucTe, q.quanTri]).toEqual(Array(7).fill(false));
+  it("từng nút Kế hoạch tổng hợp độc lập nhau", () => {
+    expect([tk(["kh_dai_han"]).sl().datMucTieu, tk(["kh_dai_han"]).keHoachNgay, tk(["kh_dai_han"]).sl().nhapThucTe]).toEqual([true, false, false]);
+    expect([tk(["kh_cang"]).keHoachNgay, tk(["kh_cang"]).sl().datMucTieu]).toEqual([true, false]);
+    expect([tk(["san_luong"]).sl().nhapThucTe, tk(["san_luong"]).sl().datMucTieu, tk(["san_luong"]).keHoachNgay]).toEqual([true, false, false]);
+    expect([tk(["kh_van_tai"]).suaThietBi, tk(["kh_van_tai"]).sl().datMucTieu]).toEqual([true, false]);
   });
-  it("kehoachxuatnhaplog: mục tiêu sản lượng cảng (mục tiêu, kế hoạch ngày, thực tế) + hàng hóa; không đụng vận tải", () => {
-    const q = tk("xuat_nhap");
-    expect([q.sl("cang").datMucTieu, q.sl("cang").nhapThucTe, q.keHoachNgay, q.suaDmHang]).toEqual([true, true, true, true]);
-    expect([q.sl("van_tai").datMucTieu, q.sl("van_tai").nhapThucTe, q.nhap, q.kho.nhap, q.suaThietBi, q.suaDmKho, q.suaDmCauBen]).toEqual(Array(7).fill(false));
+  it("kho: mỗi tab kho một quyền riêng", () => {
+    const k = tk(["kho_hang_kien"]).kho;
+    expect([k.nhap, k.theoLoai("thanh_pham"), k.theoLoai("nguyen_lieu")]).toEqual([true, true, false]);
+    const r = tk(["kho_hang_roi"]).kho;
+    expect([r.nhap, r.theoLoai("thanh_pham"), r.theoLoai("nguyen_lieu")]).toEqual([true, false, true]);
   });
-  it("kehoachcaubenlog: linetime, danh mục cầu bến + hàng hóa; không đặt được mục tiêu sản lượng", () => {
-    const q = tk("cau_ben");
-    expect([q.nhap, q.quanLy, q.suaDmCauBen, q.suaDmHang]).toEqual([true, true, true, true]);
-    expect([q.quanTri, q.kho.nhap, q.keHoachNgay, q.sl("cang").datMucTieu, q.sl("cang").nhapThucTe, q.suaThietBi, q.suaDmKho]).toEqual(Array(7).fill(false));
+  it("từng tab Danh mục độc lập nhau", () => {
+    const q = tk(["dm_hang"]);
+    expect([q.suaDmHang, q.suaDmThietBi, q.suaDmKho, q.suaDmCauBen]).toEqual([true, false, false, false]);
+    expect([tk(["dm_cau_ben"]).suaDmCauBen, tk(["dm_kho"]).suaDmKho, tk(["dm_thiet_bi"]).suaDmThietBi]).toEqual([true, true, true]);
   });
-  it("nhaplieulog: chỉ sản lượng thực tế (cảng và vận tải), không đặt mục tiêu", () => {
-    const q = tk("nhap_lieu");
-    expect([q.sl("cang").nhapThucTe, q.sl("van_tai").nhapThucTe]).toEqual([true, true]);
-    expect([q.sl("cang").datMucTieu, q.sl("van_tai").datMucTieu, q.nhap, q.kho.nhap, q.keHoachNgay, q.suaThietBi, q.suaDmHang, q.suaDmKho, q.suaDmCauBen]).toEqual(Array(9).fill(false));
+  it("Khai báo: sửa phần thiết bị cơ giới, không sửa Điều độ riêng", () => {
+    expect(tk(["khai_bao"]).suaThietBi).toBe(true);
+    expect(tk(["khai_bao"]).co("dieu_do")).toBe(false);
   });
-  it("dieudolog: hiện chỉ xem (quyền sửa để sẵn cho trang Điều độ)", () => {
-    expect(tatCa(tk("dieu_do"))).toEqual(Array(14).fill(false));
+  it("mục lạ (không có trong danh sách) bị bỏ qua", () => {
+    expect(tatCa(tk(["van_tai", "kho_bai", "khong_co"]))).toEqual(Array(12).fill(false));
   });
-  it("tài khoản cũ giữ nguyên: quản trị mọi quyền, nhập liệu Cảng như trước", () => {
-    const qt = tinhQuyen({ cang: "quan_tri", kho: "quan_tri", thietBi: "quan_tri", nhom: [] });
-    expect(tatCa(qt)).toEqual(Array(14).fill(true));
-    const nl = tinhQuyen({ cang: "nhap", kho: null, thietBi: "nhap" });
-    expect([nl.nhap, nl.quanLy, nl.sl("cang").nhapThucTe, nl.sl("cang").datMucTieu, nl.keHoachNgay]).toEqual([true, false, true, false, true]);
+  it("quản trị: mọi quyền", () => {
+    const qt = tinhQuyen({ admin: true, cang: "quan_tri", kho: "quan_tri", thietBi: "quan_tri", xem: [], nhom: [] });
+    expect(tatCa(qt)).toEqual(Array(12).fill(true));
+    expect(qt.kho.theoLoai("thanh_pham") && qt.kho.theoLoai("nguyen_lieu")).toBe(true);
   });
-  it("có đủ 6 nhóm", () => { expect(DS_NHOM).toEqual(["van_tai", "kho_bai", "xuat_nhap", "cau_ben", "nhap_lieu", "dieu_do"]); });
 });

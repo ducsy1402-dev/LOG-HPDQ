@@ -12,7 +12,8 @@ import { useCotThem } from "../components/cotThemTB";
 // Danh mục phương tiện (xe, cẩu…) – chuyển từ tab Tình trạng & sự kiện sang mục Danh mục của web chung.
 // Bấm mã để xem chi tiết xe. Quản trị: Sửa / Xóa từng dòng hoặc tick chọn nhiều dòng rồi xóa một lần, Import, Thêm xe, Đổi tên tổ. Ai cũng Xuất Excel được.
 export default function DanhMucXe() {
-  const { D, isAdmin, openVehicle, api, run, fail } = useApp();
+  const { D, sua: coQuyen, openVehicle, api, run, fail } = useApp();
+  const isAdmin = coQuyen("dm_thiet_bi");
   const [sua, setSua] = useState(null);
   const [doi, setDoi] = useState([]);
   const [qDm, setQDm] = useState("");

@@ -2,7 +2,7 @@ import { LayoutDashboard, Ship, Warehouse, Database, ShieldCheck, ClipboardList,
 import { TEN_KHO_KIEN, TEN_KHO_ROI } from "../lib/kho";
 
 // Danh sách trang của web, gom theo phân hệ. Mỗi trang có thể có tab; tab nào cũng có đường dẫn riêng: #/<trang>/<tab>.
-// Cờ quyền: cang = cần quyền phần Cảng; kho = quyền Kho bãi (hoặc Cảng); tb = quyền Thiết bị cơ giới; quanTri = chỉ quản trị.
+// Cờ quyền: xem = mục Quyền xem của tài khoản (SQL 27, ẩn / hiện trang); cang = cần quyền phần Cảng; kho = quyền Kho bãi (hoặc Cảng); tb = quyền Thiết bị cơ giới; quanTri = chỉ quản trị.
 export const PHAN_HE = [
   { id: "tong-quan", ten: "Tổng quan", icon: LayoutDashboard, don: true },
   { id: "tb", ten: "Thiết bị cơ giới", ngan: "Thiết bị", icon: Truck, tb: true },
@@ -12,15 +12,15 @@ export const PHAN_HE = [
 ];
 
 export const TRANG = [
-  { id: "tong-quan", ten: "Tổng quan", icon: LayoutDashboard, ph: "tong-quan" },
-  { id: "thiet-bi/khai-bao", ten: "Khai báo", icon: ClipboardList, ph: "tb", tb: true,
+  { id: "tong-quan", ten: "Tổng quan", icon: LayoutDashboard, ph: "tong-quan", xem: "tong_quan" },
+  { id: "thiet-bi/khai-bao", ten: "Khai báo", icon: ClipboardList, ph: "tb", tb: true, xem: "khai_bao",
     tabs: [["su-kien", "Tình trạng & sự kiện"], ["quan-so", "Nhân sự & quân số"], ["dau-cuoi-ca", "Thông tin đầu/cuối ca"]] },
-  { id: "thiet-bi/dieu-do", ten: "Điều độ", icon: Gauge, ph: "tb", tb: true },
-  { id: "cang/linetime", ten: "Linetime tàu cập bến", icon: Ship, ph: "cang", cang: true },
-  { id: "cang/muc-tieu", ten: "Kế hoạch tổng hợp", icon: Target, ph: "cang", cang: true },
-  { id: "kho", ten: "Khai thác kho bãi", icon: Warehouse, ph: "kho", kho: true,
+  { id: "thiet-bi/dieu-do", ten: "Điều độ", icon: Gauge, ph: "tb", tb: true, xem: "dieu_do" },
+  { id: "cang/linetime", ten: "Linetime tàu cập bến", icon: Ship, ph: "cang", cang: true, xem: "linetime" },
+  { id: "cang/muc-tieu", ten: "Kế hoạch tổng hợp", icon: Target, ph: "cang", cang: true, xem: "ke_hoach_th" },
+  { id: "kho", ten: "Khai thác kho bãi", icon: Warehouse, ph: "kho", kho: true, xem: "kho",
     tabs: [["overview", "Overview"], ["hang-kien", TEN_KHO_KIEN], ["hang-roi", TEN_KHO_ROI]] },
-  { id: "danh-muc", ten: "Danh mục", icon: Database, ph: "he-thong",
+  { id: "danh-muc", ten: "Danh mục", icon: Database, ph: "he-thong", xem: "danh_muc",
     tabs: [["thiet-bi", "Thiết bị cơ giới"], ["hang", "Hàng hóa"], ["kho", "Kho bãi"], ["ben", "Cầu bến"]] },
   { id: "phan-quyen", ten: "Phân quyền", icon: ShieldCheck, ph: "he-thong", quanTri: true },
 ];
@@ -49,7 +49,7 @@ export function tachRoute(route) {
 export const duongTab = (trang, tab) => `${trang.id}/${tab}`;
 
 // Trang mà vai trò hiện tại được dùng (ẩn hẳn trang không được dùng)
-export const duocDung = (n, quyen) => (!n.quanTri || quyen.quanTri) && (!n.cang || quyen.coCang || quyen.chuaSql) && (!n.tb || quyen.coThietBi) && (!n.kho || quyen.kho?.co || quyen.coCang || quyen.chuaSql);
+export const duocDung = (n, quyen) => (!n.quanTri || quyen.quanTri) && (!n.xem || quyen.thay(n.xem)) && (!n.cang || quyen.coCang || quyen.chuaSql) && (!n.tb || quyen.coThietBi) && (!n.kho || quyen.kho?.co || quyen.coCang || quyen.chuaSql);
 
 // Bỏ dấu, hạ chữ thường: để tìm nhanh gõ không dấu vẫn ra
 export const khongDau = (s) => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D").toLowerCase();

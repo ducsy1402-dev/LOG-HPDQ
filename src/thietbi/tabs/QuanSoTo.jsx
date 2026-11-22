@@ -45,7 +45,8 @@ export default function QuanSoTo() {
 }
 
 function CaQuanSo({ sh }) {
-  const { D, api, run, canWrite } = useApp();
+  const { D, api, run, sua } = useApp();
+  const canWrite = sua("khai_bao");
   const [mo, setMo] = useState(null); // khóa (đội|tổ) đang mở hộp nhập
   const tos = D.shiftByTo(sh);
 

@@ -1,3 +1,4 @@
+-- ⚠ ĐÃ THAY BẰNG sql/27_phan_quyen_moi.sql (Quyền xem · Quyền chỉnh sửa · Quản trị). Sau khi chạy SQL 27 KHÔNG chạy lại file này: nó tạo lại 6 nhóm cũ và bị bảng user_nhom mới từ chối.
 -- 16 · NHÓM QUYỀN THEO KHU VỰC + 7 tài khoản (anh Sỹ 15/11/2026)
 -- Mỗi tài khoản: XEM tất cả các phần; chỉ SỬA / THÊM / XÓA ở khu vực của nhóm mình.
 -- Cách làm: thêm bảng user_nhom (tài khoản thuộc nhóm nào) và các chính sách GHI bổ sung (cộng thêm, không đụng chính sách cũ):

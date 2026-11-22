@@ -132,7 +132,7 @@ export async function demoApi() {
     async signIn() { return this.getSession(); },
     async signOut() { location.href = location.pathname; },
     // Tài khoản nhóm quyền (?demo=van_tai…): vai trò chung "xem" + nhóm; giao diện khóa nút ngoài khu vực của nhóm (tầng giả lập vẫn cho ghi)
-    async getRole() { return DEMO_NHOM ? { vai_tro: "xem", ho_ten: "Demo nhóm " + DEMO_NHOM, nhom: DEMO_NHOM === "chi_xem" ? [] : [DEMO_NHOM] } : { vai_tro: role, ho_ten: "Chế độ demo", nhom: [] }; },
+    async getRole() { return DEMO_NHOM ? { vai_tro: "xem", ho_ten: "Demo: " + (DEMO_NHOM.join(", ") || "chỉ xem"), nhom: DEMO_NHOM } : { vai_tro: role, ho_ten: "Chế độ demo", nhom: [] }; },
     async loadAll({ cutoff, from }) {
       await wait();
       // Thiết bị gắn theo loại: tổng tạm = số xúc đào đang lắp, thêm thiết bị gắn của cẩu cảng
