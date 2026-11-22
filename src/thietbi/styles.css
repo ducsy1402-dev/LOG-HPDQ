@@ -108,7 +108,8 @@ a { color: var(--accent); }
 
 main.page { max-width: 1440px; width: 100%; margin: 0 auto; padding: 18px 20px 60px; flex: 1; }
 .page-h { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 8px; } /* đầu trang gọn một hàng (anh Sỹ 17/11/2026) */
-.page-h h1 { font-size: 1.125rem; font-weight: 600; margin: 0; letter-spacing: -0.2px; }
+.page-h h1 { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; } /* tiêu đề trang ẩn (anh Sỹ 22/11/2026), giữ cho trình đọc màn hình */
+.page-h:not(:has(.tools, button, .seg, .btn, select, input)) { display: none; }
 .page-h .sub { display: none; } /* mô tả dài ẩn cho gọn */
 .page-h .tools { margin-left: auto; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 
@@ -364,7 +365,7 @@ table.t { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 
 .loc-chip { gap: 4px; padding-right: 4px; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .loc-chip button { background: none; border: 0; padding: 0 2px; color: inherit; cursor: pointer; display: inline-flex; opacity: 0.7; }
 .loc-chip button:hover { opacity: 1; }
-.card.card-fs { position: fixed; inset: 0; z-index: 50; margin: 0; border-radius: 0; border: 0; overflow: auto; display: flex; flex-direction: column; }
+.card.card-fs { position: fixed; inset: 0; z-index: 50; background: var(--bg2); margin: 0; border-radius: 0; border: 0; overflow: auto; display: flex; flex-direction: column; }
 .card.card-fs .nc-tw { max-height: none !important; flex: 1; min-height: 240px; }
 /* Toàn màn hình: bảng (.tw) dùng hết chiều cao màn hình, cuộn bên trong nếu dài hơn (anh Sỹ 21/11/2026) */
 .card.card-fs .tw, .card.card-fs .tw.short { max-height: calc(100dvh - 150px); }

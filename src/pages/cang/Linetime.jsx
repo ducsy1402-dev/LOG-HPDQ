@@ -60,10 +60,7 @@ export default function Linetime() {
 
   return (
     <>
-      <PageHead title="Linetime tàu cập bến" desc="Lịch cầu bến, tiến độ theo bến và danh sách chuyến. Bấm vào tàu để mở phiếu chuyến (7 mốc giờ, nhật ký, khoảng dừng, laytime).">
-        {quyen.quanTri && <Button variant="outline" className="text-bad hover:text-bad" onClick={() => setReset(true)} title="Xóa toàn bộ các tàu trong line tàu cập (cần nhập mã xác nhận)"><Trash2 />Reset line tàu</Button>}
-        {quyen.nhap && <><Button variant="outline" onClick={() => setDan(true)}><ClipboardPaste />Dán nhanh</Button><Button onClick={() => setThem(true)}><Plus />Thêm chuyến</Button></>}
-      </PageHead>
+      <PageHead title="Linetime tàu cập bến" />
       <Card className="mb-3">
         <CardContent className="flex flex-wrap items-center gap-2 pt-4">
           <Input className="w-56" placeholder="Tìm tàu, mã chuyến, hàng, đại lý, cẩu…" value={f.q} onChange={(e) => setF({ ...f, q: e.target.value })} />
@@ -71,7 +68,11 @@ export default function Linetime() {
           <NativeSelect className="w-40" value={f.st} onChange={(e) => setF({ ...f, st: e.target.value })} placeholder="Mọi trạng thái (trừ hủy)" options={[...TRANG_THAI_HIEN, ["huy", TRANG_THAI.huy]].map(([k, t]) => [k, t.ten])} />
           <NativeSelect className="w-28" value={f.huong} onChange={(e) => setF({ ...f, huong: e.target.value })} placeholder="Nhập + xuất" options={[["nhap", "Nhập"], ["xuat", "Xuất"]]} />
           {tab === "ds" && <NativeSelect className="w-40" value={f.thang} onChange={(e) => chonThang(e.target.value)} placeholder="Mọi tháng đang tải" options={thangs.map((t) => [t, tenThang(t)])} />}
-          <span className="ml-auto text-xs text-muted-foreground">{loc.length} chuyến</span>
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            <span className="text-xs text-muted-foreground">{loc.length} chuyến</span>
+            {quyen.quanTri && <Button variant="outline" className="text-bad hover:text-bad" onClick={() => setReset(true)} title="Xóa toàn bộ các tàu trong line tàu cập (cần nhập mã xác nhận)"><Trash2 />Reset line tàu</Button>}
+            {quyen.nhap && <><Button variant="outline" onClick={() => setDan(true)}><ClipboardPaste />Dán nhanh</Button><Button onClick={() => setThem(true)}><Plus />Thêm chuyến</Button></>}
+          </div>
         </CardContent>
       </Card>
 

@@ -1,4 +1,4 @@
-import { LayoutDashboard, Ship, Warehouse, Database, ShieldCheck, ClipboardList, Gauge, CalendarRange, Target, Truck, Settings } from "lucide-react";
+import { LayoutDashboard, Ship, Warehouse, Database, ShieldCheck, ClipboardList, Gauge, Target, Truck, Settings } from "lucide-react";
 import { TEN_KHO_KIEN, TEN_KHO_ROI } from "../lib/kho";
 
 // Danh sách trang của web, gom theo phân hệ. Mỗi trang có thể có tab; tab nào cũng có đường dẫn riêng: #/<trang>/<tab>.
@@ -16,8 +16,6 @@ export const TRANG = [
   { id: "thiet-bi/khai-bao", ten: "Khai báo", icon: ClipboardList, ph: "tb", tb: true,
     tabs: [["su-kien", "Tình trạng & sự kiện"], ["quan-so", "Nhân sự & quân số"], ["dau-cuoi-ca", "Thông tin đầu/cuối ca"]] },
   { id: "thiet-bi/dieu-do", ten: "Điều độ", icon: Gauge, ph: "tb", tb: true },
-  { id: "thiet-bi/ke-hoach", ten: "Kế hoạch & báo cáo", icon: CalendarRange, ph: "tb", tb: true,
-    tabs: [["ngay", "Kế hoạch ngày"], ["dai", "Kế hoạch dài hạn"], ["chien-dich", "Chiến dịch"]] },
   { id: "cang/linetime", ten: "Linetime tàu cập bến", icon: Ship, ph: "cang", cang: true },
   { id: "cang/muc-tieu", ten: "Kế hoạch tổng hợp", icon: Target, ph: "cang", cang: true },
   { id: "kho", ten: "Khai thác kho bãi", icon: Warehouse, ph: "kho", kho: true,
@@ -31,8 +29,12 @@ export const TRANG = [
 export const CHUYEN_CU = {
   "thiet-bi/su-kien": "thiet-bi/khai-bao/su-kien",
   "thiet-bi/nhan-su": "thiet-bi/khai-bao/quan-so",
+  "thiet-bi/ke-hoach": "cang/muc-tieu", "thiet-bi/ke-hoach/ngay": "cang/muc-tieu", "thiet-bi/ke-hoach/dai": "cang/muc-tieu", "thiet-bi/ke-hoach/chien-dich": "cang/muc-tieu",
   "kho/hrc": "kho/hang-kien", "kho/thanh-cuon": "kho/hang-kien", "kho/nguyen-lieu": "kho/hang-roi",
 };
+
+// Đường dẫn cũ của "Kế hoạch & báo cáo" không còn trang riêng mà mở hộp Kế hoạch vận tải của Kế hoạch tổng hợp (MucTieuCang đọc sessionStorage "lg-mo-hop")
+export const CHUYEN_MO_HOP = { "thiet-bi/ke-hoach": "van-tai", "thiet-bi/ke-hoach/ngay": "van-tai", "thiet-bi/ke-hoach/dai": "van-tai", "thiet-bi/ke-hoach/chien-dich": "van-tai" };
 
 // Tách đường dẫn thành trang + tab. Không có tab trong đường dẫn thì lấy tab đầu tiên.
 export function tachRoute(route) {

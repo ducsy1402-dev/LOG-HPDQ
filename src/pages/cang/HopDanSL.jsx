@@ -23,6 +23,7 @@ const TRUONG = {
 };
 // Vận tải (mục tiêu vận tải ở Thiết bị cơ giới): Hướng (phục vụ cảng / sản xuất) · Loại xe · Đơn vị (Hòa Phát / Thuê ngoài) · Loại hàng (trống = mọi hàng) · Mục tiêu · Ghi chú
 const TRUONG_VT = {
+  ngay: TRUONG.ngay,
   huong: ["huong", "phuc vu", "muc dich", "huong phuc vu"],
   loai: ["loai xe", "doi xe", "xe", "loai phuong tien", "phuong tien"],
   donVi: ["don vi", "don vi thuc hien", "thuc hien", "nguon xe"],
@@ -82,10 +83,10 @@ function HopDanSLChung({ loai, nhom = "cang", thang, onApDung, onClose }) {
     return { ds };
   }, [bang, tt, thang]);
   const hopLe = kq?.ds?.filter((x) => !x.loi.length) || [];
-  const mau = vt ? "Hướng\tLoại xe\tĐơn vị\tLoại hàng\tMục tiêu\nPhục vụ cảng\tXe ben\tHòa Phát\tQuặng\t90.000\nPhục vụ sản xuất\tXe đầu kéo\tThuê ngoài\tHRC\t60.000" : tt ? "Ngày\tHướng\tLoại hàng\tSản lượng\n05/11\tXuất\tHRC\t4.200\n05/11\tNhập\tQuặng\t12.500" : "Hướng\tLoại hàng\tMục tiêu\nXuất\tHRC\t70.000\nNhập\tQuặng\t400.000";
+  const mau = vt && tt ? "Ngày\tHướng\tLoại xe\tĐơn vị\tLoại hàng\tSản lượng\n01/11/2026\tPhục vụ cảng\tXe ben\tHòa Phát\tQuặng\t1.250\n01/11/2026\tPhục vụ sản xuất\tXe đầu kéo\tThuê ngoài\tHRC\t800" : vt ? "Hướng\tLoại xe\tĐơn vị\tLoại hàng\tMục tiêu\nPhục vụ cảng\tXe ben\tHòa Phát\tQuặng\t90.000\nPhục vụ sản xuất\tXe đầu kéo\tThuê ngoài\tHRC\t60.000" : tt ? "Ngày\tHướng\tLoại hàng\tSản lượng\n05/11\tXuất\tHRC\t4.200\n05/11\tNhập\tQuặng\t12.500" : "Hướng\tLoại hàng\tMục tiêu\nXuất\tHRC\t70.000\nNhập\tQuặng\t400.000";
   return (
     <Dialog onOpenChange={(o) => !o && onClose()} className="max-w-[min(900px,calc(100vw-24px))]" title={tt ? "Dán nhanh / Excel · sản lượng thực tế" : "Dán nhanh / Excel · mục tiêu"}
-      description={`Chép bảng từ Excel (Ctrl+C) rồi dán (Ctrl+V), hoặc chọn file Excel. Dòng đầu là tiêu đề: ${tt ? "Ngày · Hướng · Loại hàng · Sản lượng" : vt ? "Hướng · Loại xe · Đơn vị · Loại hàng · Mục tiêu · Ghi chú (Đơn vị: Hòa Phát hoặc Thuê ngoài; Loại hàng trống = mọi hàng)" : "Hướng · Loại hàng · Mục tiêu · Ghi chú"}. Số đưa vào bảng thay số đang có của đúng ô đó; chưa ghi cho tới khi bấm Lưu.`}
+      description={`Chép bảng từ Excel (Ctrl+C) rồi dán (Ctrl+V), hoặc chọn file Excel. Dòng đầu là tiêu đề: ${tt ? (vt ? "Ngày · Hướng · Loại xe · Đơn vị · Loại hàng · Sản lượng" : "Ngày · Hướng · Loại hàng · Sản lượng") : vt ? "Hướng · Loại xe · Đơn vị · Loại hàng · Mục tiêu · Ghi chú (Đơn vị: Hòa Phát hoặc Thuê ngoài; Loại hàng trống = mọi hàng)" : "Hướng · Loại hàng · Mục tiêu · Ghi chú"}. Số đưa vào bảng thay số đang có của đúng ô đó; chưa ghi cho tới khi bấm Lưu.`}
       footer={<>
         <span className="mr-auto text-sm text-muted-foreground">{kq?.ds ? `${hopLe.length} dòng hợp lệ · ${kq.ds.length - hopLe.length} dòng lỗi (bỏ qua)` : ""}</span>
         {bang && <Button variant="outline" onClick={() => setBang(null)}><RotateCcw />Dán lại</Button>}

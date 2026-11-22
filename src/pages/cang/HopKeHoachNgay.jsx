@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Eraser, Rows4, Save, Wand2 } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Download, Eraser, Rows4, Save, Wand2 } from "lucide-react";
+import { xuatExcel, ngayVN } from "@/lib/xuatExcel";
 import { useApp } from "@/store";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -106,7 +107,7 @@ function KhungNgay({ ngay, huong, ds, dsTruoc = [], hienTruoc = false, vid, giaT
 
 // nhung: dùng làm NỘI DUNG của một tab (không bọc hộp thoại riêng). tiepTheo({ v, ngay, neo, tong, onDong }): hiện mũi tên ở mỗi dòng tàu của khung nhập theo ngày, bấm thì dựng hộp tiếp theo bên cạnh.
 export default function HopKeHoachNgay({ thang0, onClose, onLuu, nhung, tiepTheo }) {
-  const { D, api, quyen, run, toast } = useApp();
+  const { D, api, quyen, run, toast, fail } = useApp();
   const nhomHang = useNhomHang(), nhap = quyen.keHoachNgay;
   const [thang, setThang] = useState(thang0 || thangCua(D.now));
   const [loc, setLoc] = useState({ nhom: "", huong: "" });
@@ -329,6 +330,17 @@ export default function HopKeHoachNgay({ thang0, onClose, onLuu, nhung, tiepTheo
       </Fragment>);
   };
 
+  // Xuất Excel kế hoạch theo ngày: mỗi chuyến một dòng (các chuyến đang lọc), các cột là ngày của tháng; số đang hiện, kể cả số đã gõ chưa lưu
+  const xuatKH = () => {
+    const hang = [["Tàu", "Hướng", "Hàng", "Khối lượng (t)", ...ngays.map(ngayVN), "Tổng kế hoạch (t)"]], tongNgay = ngays.map(() => 0);
+    for (const x of loc2) {
+      const v = x.v, gt = ngays.map((n) => giaTri(v, n)), tong = gt.reduce((s, q) => s + q, 0); gt.forEach((q, i) => { tongNgay[i] += q; });
+      hang.push([v.ten_tau, hDua(v) === "xuat" ? "Xuất" : "Nhập", x.dong.map((d) => d.loai).join(", "), klCanLam(v), ...gt.map((q) => q || ""), tong || ""]);
+    }
+    hang.push(["Cộng", "", "", "", ...tongNgay.map((q) => q || ""), tongNgay.reduce((s, q) => s + q, 0)]);
+    return xuatExcel(`Ke-hoach-cang-${thang}`, [{ ten: `Kế hoạch Cảng ${thang}`, hang }], { toast, fail });
+  };
+
   const noiDung = (
     <>
       {rows === null ? <div className="rounded-md border border-warn/40 bg-warn/5 px-3 py-2 text-sm">Chưa có bảng kế hoạch ngày: quản trị cần chạy <b>sql/13_ke_hoach_san_luong_ngay.sql</b> trong Supabase.</div> : (
@@ -352,6 +364,7 @@ export default function HopKeHoachNgay({ thang0, onClose, onLuu, nhung, tiepTheo
             <span className="text-xs text-muted-foreground">{rows === undefined ? "Đang tải…" : `${tau.length}/${loc2.length} chuyến`}</span>
             <div className="ml-auto flex items-center gap-2">
               {kDirty.length > 0 && <Button size="sm" variant="outline" onClick={() => setSua({})}>Bỏ thay đổi</Button>}
+              <Button size="sm" variant="outline" onClick={xuatKH} title="Xuất bảng ra file Excel"><Download />Xuất Excel</Button>
               {nhap && <Button size="sm" disabled={!kDirty.length} onClick={luu}><Save />Lưu kế hoạch{kDirty.length ? ` (${kDirty.length} ô)` : ""}</Button>}
             </div>
           </div>
@@ -427,7 +440,7 @@ export default function HopKeHoachNgay({ thang0, onClose, onLuu, nhung, tiepTheo
   );
   if (nhung) return noiDung;
   return (
-    <Dialog onOpenChange={(o) => !o && onClose()} className="max-w-[min(1500px,calc(100vw-24px))]" title="Kế hoạch sản lượng theo ngày"
+    <Dialog onOpenChange={(o) => !o && onClose()} className="max-w-[min(1500px,calc(100vw-24px))]" title="Kế hoạch Cảng"
       description="Line tàu cập trong tháng, xếp giống Linetime › Lịch cầu bến (mỗi bến một dòng): bấm một ô ngày để mở khung nhập bên phải, nhập số tấn kế hoạch cho từng tàu đang làm hàng ngày đó.">
       {noiDung}
     </Dialog>

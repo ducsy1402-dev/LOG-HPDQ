@@ -156,3 +156,13 @@ aside.sb { transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1); }
   .sk::after, .vach-tai > span { animation: none; }
   .the-nhac:hover { transform: none; }
 }
+
+/* Các bảng của Danh mục cao tới đáy màn hình (anh Sỹ 22/11/2026): chừa đầu trang, thanh tab, hai hàng tab, tiêu đề + thanh công cụ của bảng */
+[data-trang="danh-muc"] .tw, [data-trang="danh-muc"] .tw.short { max-height: max(260px, calc(100dvh - 260px)) !important; }
+@media (max-width: 1023px) { [data-trang="danh-muc"] .tw, [data-trang="danh-muc"] .tw.short { max-height: max(260px, calc(100dvh - 360px)) !important; } }
+
+/* Bảng kế hoạch / thực tế sản lượng (anh Sỹ 22/11/2026): dòng TỔNG dính đáy khung cuộn, bảng cao vừa màn hình để dòng THÊM nằm ngay dưới luôn thấy */
+.tfoot-cd tfoot { position: sticky; bottom: 0; z-index: 3; }
+.tfoot-cd tfoot td { background: hsl(var(--card)); box-shadow: inset 0 1px 0 hsl(var(--border)); }
+.cao-bang { max-height: max(220px, calc(100dvh - 410px)); }
+[data-tmh] .scroll-x.cao-bang { max-height: max(220px, calc(100dvh - 410px)) !important; }

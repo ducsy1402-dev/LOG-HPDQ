@@ -13,7 +13,6 @@ import { saoLuuExcel } from "./lib/backup";
 import { ThietBiProvider, useThietBi, TB, TBCho, TBToanCuc } from "./thietbi/Host";
 import KhaiBao from "./thietbi/tabs/KhaiBao";
 import DieuDo from "./thietbi/tabs/DieuDo";
-import KeHoachBaoCao from "./thietbi/tabs/KeHoachBaoCao";
 import LookupDialog from "./thietbi/components/LookupDialog";
 import { exportExcel } from "./thietbi/lib/excel";
 import TongQuan from "./pages/TongQuan";
@@ -22,7 +21,7 @@ import TuGhiATD from "./pages/cang/TuGhiATD";
 import TuDoiKeHoach from "./pages/cang/TuDoiKeHoach";
 import PhieuChuyen from "./pages/cang/PhieuChuyen";
 import DangNhap from "./pages/DangNhap";
-import { TRANG, PHAN_HE, tachRoute, duocDung } from "./khung/menu";
+import { TRANG, PHAN_HE, CHUYEN_MO_HOP, tachRoute, duocDung } from "./khung/menu";
 import { ThanhBenMayTinh, NganKeoMenu } from "./khung/ThanhBen";
 import ThanhTren, { ThanhDuoi } from "./khung/ThanhTren";
 import TimNhanh from "./khung/TimNhanh";
@@ -33,8 +32,8 @@ import "./khung/khung.css";
 
 const DanhMuc = lazy(() => import("./pages/DanhMuc"));
 const PhanQuyen = lazy(() => import("./pages/PhanQuyen"));
-const Kho = lazy(() => import("./pages/kho/Kho"));
 const MucTieu = lazy(() => import("./pages/cang/MucTieu"));
+const Kho = lazy(() => import("./pages/kho/Kho"));
 
 // ?xem-dang-nhap: xem thử trang đăng nhập (kể cả khi đang chạy ?demo, vốn bỏ qua đăng nhập); không đăng nhập thật
 const XEM_DANG_NHAP = typeof location !== "undefined" && new URLSearchParams(location.search).has("xem-dang-nhap");
@@ -115,6 +114,7 @@ function Main() {
   const t0 = tachRoute(route);
   const duoc = !t0.la404 && (nav.some((n) => n.id === t0.trang.id) || (t0.trang.cang && !quyen.coCang));
   const { trang, tab, canonical } = duoc ? t0 : tachRoute("tong-quan");
+  useEffect(() => { const h = CHUYEN_MO_HOP[route]; if (h) { try { sessionStorage.setItem("lg-mo-hop", h); } catch { /* bỏ qua */ } window.dispatchEvent(new Event("lg-mo-hop")); } }, [route]);
   useEffect(() => { if (route !== canonical) thay(canonical); }); // eslint-disable-line react-hooks/exhaustive-deps
   const nho = useRef({ tab: docJson("lg-tab-cuoi"), ph: docJson("lg-ph-cuoi") });
   useEffect(() => {
@@ -152,7 +152,6 @@ function Main() {
     switch (id) {
       case "thiet-bi/khai-bao": return <TBCho><KhaiBao tab={g.tab} onTab={(v) => go(`${id}/${v}`)} /></TBCho>;
       case "thiet-bi/dieu-do": return <TBCho><DieuDo /></TBCho>;
-      case "thiet-bi/ke-hoach": return <TBCho><KeHoachBaoCao tab={g.tab} onTab={(v) => go(`${id}/${v}`)} /></TBCho>;
       case "cang/linetime": return quyen.coCang ? <Linetime /> : chuaCaiCang;
       case "cang/muc-tieu": return quyen.coCang ? <MucTieu /> : chuaCaiCang;
       case "kho": return <Kho route={g.route} onTab={(v) => go(`kho/${v}`)} />;

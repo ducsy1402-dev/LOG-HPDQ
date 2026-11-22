@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, ClipboardList, Eye, RefreshCw, Ship, Target, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarDays, ClipboardList, RefreshCw, Truck, Ship, Target, ChevronLeft, ChevronRight } from "lucide-react";
 import { useApp } from "@/store";
 import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/input";
@@ -21,14 +21,14 @@ import { cn } from "@/lib/utils";
 import { useNhomHang } from "./useNhomHang";
 import { HopDatMucTieu, HopThucTe } from "./HopMucTieu";
 import HopKeHoachNgay from "./HopKeHoachNgay";
-import HopXemKeHoachSL from "./HopXemKeHoachSL";
+import HopKeHoachVT from "./HopKeHoachVT";
 import KeHoachXuatHang from "./KeHoachXuatHang";
 
 // Khai thác Cảng › Mục tiêu sản lượng (anh Sỹ chốt 13/11/2026):
-//   hàng nút trên cùng (Đặt mục tiêu · Xem kế hoạch · Kế hoạch ngày · Sản lượng thực tế) và chọn kỳ Tháng / Quý / Năm;
+//   hàng nút trên cùng (Đặt mục tiêu · Kế hoạch ngày · Sản lượng thực tế; đã bỏ nút Xem kế hoạch 22/11/2026) và chọn kỳ Tháng / Quý / Năm;
 //   3 thẻ tàu (HRC · thép thành phẩm · hàng nhập): số lượng đang làm hàng và chờ trong 24 giờ tới, thêm số tàu theo CẢNG TRỰC THUỘC của bến (cột tự thêm ở Danh mục › Cầu bến); bấm số để xem tên tàu;
 //   3 biểu đồ theo kỳ chọn (tháng: điểm theo ngày; quý: theo tuần; năm: theo tháng): lũy kế nhập / xuất; đường kế hoạch – thực tế (lọc loại hàng); tiến độ theo loại hàng.
-// Kế hoạch của biểu đồ: kế hoạch ngày theo tàu (SQL 13) của các tháng đã đặt; tháng chưa đặt dùng mục tiêu chia đều. Vận tải: Thiết bị cơ giới › Kế hoạch & phân bổ.
+// Kế hoạch của biểu đồ: kế hoạch ngày theo tàu (SQL 13) của các tháng đã đặt; tháng chưa đặt dùng mục tiêu chia đều. Vận tải: tab Kế hoạch vận tải của trang này.
 const CAO = 340;
 const HUONG = [["xuat", "Xuất"], ["nhap", "Nhập"]];
 const mauHuong = { nhap: MAU.info, xuat: MAU.tim };
@@ -102,7 +102,7 @@ function TheTau({ ten, mota, tone, lam, cho, cang, onMo }) {
 }
 
 export default function MucTieuCang() {
-  const { D, api, setVoyageMo } = useApp();
+  const { D, api, setVoyageMo, quyen } = useApp();
   const cang = useMemo(() => cangCuaChuyen(D.dmCot, D.berths), [D.dmCot, D.berths]); // null: chưa có cột Cảng trực thuộc ở Danh mục › Cầu bến
   const hangHoa = useThietBi()?.D?.hanghoa || [], nhomHang = useNhomHang();
   const homNay = ngayDia(D.now);
@@ -110,7 +110,12 @@ export default function MucTieuCang() {
   const [ngayTC, setNgayTC] = useState(homNay);
   const [lan, setLan] = useState(0);
   const [kh, setKh] = useState(undefined); // kế hoạch ngày của kỳ ([] khi chưa chạy SQL 13)
-  const [mo, setMo] = useState(null); // dat-mt | xem | ngay | thuc-te
+  const [mo, setMo] = useState(null); // dat-mt | ngay | van-tai | thuc-te
+  // Đường dẫn cũ của "Kế hoạch & báo cáo" (và liên kết từ Điều độ / Tổng quan) mở thẳng hộp Kế hoạch vận tải
+  useEffect(() => {
+    const m = () => { try { if (sessionStorage.getItem("lg-mo-hop") === "van-tai") { sessionStorage.removeItem("lg-mo-hop"); setMo("van-tai"); } } catch { /* bỏ qua */ } };
+    m(); window.addEventListener("lg-mo-hop", m); return () => window.removeEventListener("lg-mo-hop", m);
+  }, []);
   const [hD, setHD] = useState("xuat"), [nhomD, setNhomD] = useState(""), [hL, setHL] = useState("xuat");
   const kyInfo = useMemo(() => khoangKy(kyLoai, ngayTC, homNay), [kyLoai, ngayTC, homNay]);
   const tai = () => setLan((x) => x + 1);
@@ -186,10 +191,10 @@ export default function MucTieuCang() {
   return (
     <div className="grid gap-3">
       <div className="flex flex-wrap items-center gap-2">
-        <h1 className="mr-1 text-lg font-semibold">Kế hoạch tổng hợp</h1>
-        {nut(Target, "Đặt mục tiêu", "dat-mt", "Mục tiêu sản lượng theo tháng / quý / năm")}
-        {nut(Eye, "Xem kế hoạch", "xem", "Xem mục tiêu, kế hoạch ngày và thực tế")}
-        {nut(CalendarDays, "Kế hoạch ngày", "ngay", "Đặt sản lượng kế hoạch từng ngày theo line tàu")}
+        <h1 className="sr-only">Kế hoạch tổng hợp</h1>
+        {nut(Target, "Kế hoạch dài hạn", "dat-mt", "Mục tiêu / kế hoạch sản lượng theo tháng / quý / năm (cảng nhập, cảng xuất, sản xuất, vận tải)")}
+        {nut(CalendarDays, "Kế hoạch Cảng", "ngay", "Đặt sản lượng kế hoạch từng ngày theo line tàu")}
+        {quyen.coThietBi && nut(Truck, "Kế hoạch vận tải", "van-tai", "Kế hoạch ngày, kế hoạch dài hạn và chiến dịch vận chuyển (Thiết bị cơ giới)")}
         {nut(ClipboardList, "Sản lượng thực tế", "thuc-te", "Nhập sản lượng nhập / xuất thực tế theo ngày")}
         {!sanSang && !chuaCo && <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />}
         <div className="ml-auto flex flex-wrap items-center gap-1.5">
@@ -232,7 +237,7 @@ export default function MucTieuCang() {
       </div>
 
       {mo === "dat-mt" && <HopDatMucTieu thang0={thang0} onClose={() => setMo(null)} onLuu={tai} />}
-      {mo === "xem" && <HopXemKeHoachSL thang0={thang0} onClose={() => setMo(null)} />}
+      {mo === "van-tai" && quyen.coThietBi && <HopKeHoachVT onClose={() => setMo(null)} />}
       {mo === "ngay" && <HopKeHoachNgay thang0={thang0} onClose={() => setMo(null)} onLuu={tai} />}
       {mo === "thuc-te" && <HopThucTe thang0={thang0} onClose={() => setMo(null)} onLuu={tai} />}
     </div>

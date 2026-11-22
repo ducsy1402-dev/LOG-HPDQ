@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ClipboardPaste, Copy, Plus, Save, X, RefreshCw, ChevronDown, ChevronRight, Pencil, Check } from "lucide-react";
+import { ClipboardPaste, Copy, Download, Plus, Save, X, RefreshCw, ChevronDown, ChevronRight, Pencil, Check } from "lucide-react";
+import { xuatExcel, ngayVN } from "@/lib/xuatExcel";
 import { useApp } from "@/store";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input, NativeSelect } from "@/components/ui/input";
@@ -11,7 +12,7 @@ import { khoangKy, thangTrongKy, tenKy } from "@/lib/ky";
 import { docSo } from "@/lib/paste";
 import { cn } from "@/lib/utils";
 import { tinhThang, khoaLoai } from "@/lib/sanLuong";
-import { DON_VI, NHOM, tenDonVi, dsDonVi, khoaDong, khoaCua, tuDb, ngayCuaThang, tongTheoCot, nhomDongVT, khoaCot, NGHIEP_VU } from "@/lib/sanLuongTT";
+import { DON_VI, NHOM, tenDonVi, dsDonVi, khoaDong, khoaCua, tuDb, ngayCuaThang, tongTheoCot, nhomDongVT, khoaCot, NGHIEP_VU, HUONG_NGAN } from "@/lib/sanLuongTT";
 import BangMucTieuVT from "./BangMucTieuVT";
 
 const tenKyThuong = (kyLoai, ky) => (kyLoai === "thang" ? tenThang(ky) : tenKy(kyLoai, ky)).toLowerCase();
@@ -107,7 +108,7 @@ function BangMucTieu({ nhom, thang, kyLoai = "thang", mucTieu, mucTieuThang = []
   const [thuMT, daoMT] = useThu(`lg-sl-thu-mt-${nhom}`);
   const [thuH, setThuH] = useState(() => { try { return JSON.parse(localStorage.getItem(`lg-sl-thu-huong-${nhom}`) || "{}"); } catch { return {}; } });
   const daoH = (h) => setThuH((o) => { const n = { ...o, [h]: !o[h] }; try { localStorage.setItem(`lg-sl-thu-huong-${nhom}`, JSON.stringify(n)); } catch { /* bỏ qua */ } return n; });
-  const { D, quyen, api, run, toast } = useApp();
+  const { D, quyen, api, run, toast, fail } = useApp();
   const c = NHOM[nhom], nhomHang = useNhomHang();
   const dsHuong = huongHien ? c.huong.filter(([h]) => h === huongHien) : c.huong; // các hướng đang hiện
   // Các bảng kế hoạch KHÔNG sửa trực tiếp (anh Sỹ 20/11/2026): mỗi dòng có biểu tượng Sửa; bấm mới mở ô nhập của dòng đó (bấm lại, dấu ✓, để khóa)
@@ -212,6 +213,34 @@ function BangMucTieu({ nhom, thang, kyLoai = "thang", mucTieu, mucTieuThang = []
   const tongTH = (huong) => thRows.filter((r) => r.huong === huong && loc(r)).reduce((s, r) => s + (+r.tan || 0), 0);
   const tongAll = (fn) => dsHuong.reduce((s, [h]) => s + fn(h), 0);
   const soCotPhu = (c.coDonVi ? 1 : 0) + (c.coLoaiHang ? 1 : 0);
+  // Xuất Excel bảng mục tiêu / kế hoạch (đúng số đang hiện trên bảng, kể cả số đã gõ chưa lưu)
+  const xuatMucTieu = () => {
+    const hang = [];
+    if (vt) {
+      const num = (k) => (k ? docSo(String(dong[k]?.tan ?? "")) || 0 : 0), keys = (o) => [o.hp, o.tn, ...o.khac].filter(Boolean), gk = (o) => `${o.huong}|${plain(o.loai)}|${plain(o.hang)}`;
+      const dung = new Map(); for (const o of nhomVT) dung.set(gk(o), (dung.get(gk(o)) || 0) + 1);
+      const sigma = (o) => keys(o).reduce((s, k) => s + (tongThang.has(k) ? tongThang.get(k).tan : 0), 0);
+      hang.push(["Loại hàng", "Hướng", "Nghiệp vụ", "Loại xe", "ĐVT", "Hòa Phát (t)", "Thuê ngoài (t)", ...(kyMode ? ["Σ các tháng (t)"] : []), "Thực hiện (t)", "Đạt (%)", "Ghi chú"]);
+      let tHP = 0, tTN = 0, tTT = 0, tSg = 0; const daTT = new Set();
+      for (const o of nhomVT) {
+        const hp = num(o.hp), tn = num(o.tn) + o.khac.reduce((s, k) => s + num(k), 0), tong = hp + tn, nhieu = dung.get(gk(o)) > 1;
+        const tt = keys(o).reduce((s, k) => s + (th.get(dong[k] ? khoaCot(dong[k]) : null) || 0), 0);
+        for (const k of keys(o)) { const ck = dong[k] ? khoaCot(dong[k]) : null; if (ck && !daTT.has(ck)) { daTT.add(ck); tTT += th.get(ck) || 0; } }
+        tHP += hp; tTN += tn; tSg += sigma(o);
+        hang.push([o.hang || "Mọi hàng", HUONG_NGAN[o.huong] || o.huong, o.nv || "", o.loai, "Tấn", hp || "", tn || "", ...(kyMode ? [sigma(o) || ""] : []), nhieu ? "" : tt, !nhieu && tong ? Math.round((tt / tong) * 10000) / 100 : "", [o.hp, o.tn].map((k) => (k ? dong[k]?.ghi_chu : "")).find(Boolean) || ""]);
+      }
+      hang.push(["Tổng", "", "", "", "", tHP, tTN, ...(kyMode ? [tSg] : []), tTT, tHP + tTN ? Math.round((tTT / (tHP + tTN)) * 10000) / 100 : "", ""]);
+    } else {
+      hang.push(["Hướng", c.nhanLoai, ...(c.coLoaiHang ? ["Loại hàng"] : []), "Mục tiêu (t)", ...(kyMode ? ["Σ các tháng (t)"] : []), "Thực hiện (t)", "Đạt (%)", "Ghi chú"]);
+      for (const [huong, ten] of dsHuong) {
+        const ds = Object.entries(dong).filter(([, r]) => r.huong === huong && loc(r)).sort((a, b) => (docSo(b[1].tan) || 0) - (docSo(a[1].tan) || 0) || a[1].loai.localeCompare(b[1].loai, "vi"));
+        for (const [k, r] of ds) { const mt = docSo(r.tan) || 0, tt = th.get(k) || 0; hang.push([ten, r.loai, ...(c.coLoaiHang ? [r.hang || "Mọi hàng"] : []), mt, ...(kyMode ? [tongThang.has(k) ? tongThang.get(k).tan : ""] : []), tt, mt ? Math.round((tt / mt) * 10000) / 100 : "", r.ghi_chu || ""]); }
+        const mtT = tongMT(huong), thT = tongTH(huong);
+        hang.push([`Tổng ${ten}`, "", ...(c.coLoaiHang ? [""] : []), mtT, ...(kyMode ? [""] : []), thT, mtT ? Math.round((thT / mtT) * 10000) / 100 : "", ""]);
+      }
+    }
+    return xuatExcel(`${vt ? "Ke-hoach-van-tai" : "Muc-tieu-cang"}-${thang}`, [{ ten: `${vt ? "Kế hoạch vận tải" : "Mục tiêu"} ${tenK}`, hang }], { toast, fail });
+  };
   return (
     <div className="grid gap-3">
       <div className="flex flex-wrap items-center gap-2">
@@ -219,6 +248,7 @@ function BangMucTieu({ nhom, thang, kyLoai = "thang", mucTieu, mucTieuThang = []
         {sua && kyMode && tongThang.size > 0 && <Button size="sm" variant="outline" onClick={chepTruoc} title="Điền tổng mục tiêu các tháng trong kỳ vào các dòng còn trống"><Copy />Lấy tổng mục tiêu các tháng</Button>}
         {sua && !kyMode && dsTruoc?.length > 0 && <Button size="sm" variant="outline" onClick={chepTruoc} title="Điền mục tiêu tháng trước vào các dòng còn trống"><Copy />Chép mục tiêu {tenThang(truoc).toLowerCase()}</Button>}
         {sua && <Button size="sm" variant="outline" onClick={() => setDan(true)} title="Dán bảng từ Excel hoặc chọn file Excel"><ClipboardPaste />Dán nhanh / Excel</Button>}
+        <Button size="sm" variant="outline" onClick={xuatMucTieu} title="Xuất bảng ra file Excel"><Download />Xuất Excel</Button>
         <div className="ml-auto flex flex-wrap gap-x-5 gap-y-1 text-sm">
           {dsHuong.map(([h, ten]) => <span key={h}><span className="text-muted-foreground">{ten}</span> <b className="tabular-nums">{so(tongMT(h))}</b></span>)}
           {dsHuong.length > 1 && <span><span className="text-muted-foreground">cộng</span> <b className="tabular-nums text-primary">{so(tongAll(tongMT))} t</b></span>}
@@ -235,7 +265,7 @@ function BangMucTieu({ nhom, thang, kyLoai = "thang", mucTieu, mucTieuThang = []
                 className={cn("flex w-full items-center gap-2 bg-muted/30 px-3 py-2 text-left text-sm font-semibold hover:bg-accent", !thuH[huong] && "border-b")}>
                 {thuH[huong] ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}{ten}
                 <span className="ml-auto text-xs font-normal text-muted-foreground">{ds.length} dòng{thuH[huong] ? ` · mục tiêu ${so(mtT)} t · thực hiện ${so(thT)} t${mtT ? ` (${pct(thT / mtT)})` : ""}` : ""}</span></button>
-              {!thuH[huong] && <><div className="scroll-x max-h-[50vh]">
+              {!thuH[huong] && <><div className="scroll-x tfoot-cd cao-bang">
                 <table className="tbl text-xs">
                   <thead><tr><th>{c.nhanLoai}</th>{c.coDonVi && <th>Đơn vị</th>}{c.coLoaiHang && <th>Loại hàng</th>}<th className="num">Mục tiêu (t)</th>{kyMode && <th className="num">Σ các tháng</th>}<th className="num">Thực hiện</th><th className="num">Đạt</th><th>Ghi chú</th>{sua && <th className="w-16" />}</tr></thead>
                   <tbody>
@@ -287,6 +317,7 @@ function BangMucTieu({ nhom, thang, kyLoai = "thang", mucTieu, mucTieuThang = []
 
 // ---------- Quý / năm: sản lượng thực tế từng tháng trong kỳ (chỉ xem; nhập số ở chế độ Tháng) ----------
 function BangTheoThang({ nhom, kyLoai, ky, thangs, mucTieu, thucTe, loc }) {
+  const { toast, fail } = useApp();
   const c = NHOM[nhom];
   const [thu, dao] = useThu(`lg-sl-thu-tt-${nhom}`);
   const cot = useMemo(() => {
@@ -301,15 +332,22 @@ function BangTheoThang({ nhom, kyLoai, ky, thangs, mucTieu, thucTe, loc }) {
   const o = (t, k) => theoThang.get(t + "|" + k) || 0;
   const tongCot = (k) => thangs.reduce((s, t) => s + o(t, k), 0);
   const tongMT = cot.reduce((s, x) => s + x.mt, 0), tongTT = cot.reduce((s, x) => s + tongCot(x.k), 0);
+  const xuatThang = () => {
+    const ten = (x) => (c.coDonVi ? [HUONG_NGAN[x.huong] || x.huong, x.loai, x.hang || "Mọi hàng", tenDonVi(x.donVi)] : [c.huong.find(([h]) => h === x.huong)?.[1] || x.huong, x.loai]).join(" · ");
+    const hang = [["Tháng", ...cot.map(ten), "Tổng"], ...thangs.map((t) => [tenThang(t), ...cot.map((x) => o(t, x.k) || ""), cot.reduce((s, x) => s + o(t, x.k), 0)])];
+    hang.push([`Cộng ${tenKyThuong(kyLoai, ky)}`, ...cot.map((x) => tongCot(x.k)), tongTT], ["Mục tiêu", ...cot.map((x) => x.mt || ""), tongMT], ["Đạt (%)", ...cot.map((x) => (x.mt ? Math.round((tongCot(x.k) / x.mt) * 10000) / 100 : "")), tongMT ? Math.round((tongTT / tongMT) * 10000) / 100 : ""]);
+    return xuatExcel(`San-luong-thuc-te-${c.coDonVi ? "van-tai" : "cang"}-${ky}`, [{ ten: `Thực tế ${tenKyThuong(kyLoai, ky)}`, hang }], { toast, fail });
+  };
   const nhomCot = c.huong.map(([h, ten]) => ({ h, ten, n: cot.filter((x) => x.huong === h).length })).filter((x) => x.n);
   return (
     <div className="grid gap-3">
       <div className="flex flex-wrap items-center gap-2">
         <TieuDeThu thu={thu} dao={dao}>Sản lượng thực tế {tenKyThuong(kyLoai, ky)} theo tháng (tấn)</TieuDeThu>
         <span className="text-xs text-muted-foreground">Cộng từ số nhập theo ngày; muốn nhập hoặc sửa số, chọn chế độ Tháng.</span>
+        <div className="ml-auto"><Button size="sm" variant="outline" onClick={xuatThang} title="Xuất bảng ra file Excel"><Download />Xuất Excel</Button></div>
       </div>
       {thu ? null : cot.length ? (
-        <div className="scroll-x rounded-md border">
+        <div className="scroll-x tfoot-cd cao-bang rounded-md border">
           <table className="tbl text-xs">
             <thead>
               <tr><th rowSpan={2}>Tháng</th>{nhomCot.map((g) => <th key={g.h} colSpan={g.n} className="border-l bg-muted/40 text-center">{g.ten}</th>)}<th rowSpan={2} className="num border-l">Tổng</th></tr>
@@ -343,7 +381,7 @@ function BangTheoThang({ nhom, kyLoai, ky, thangs, mucTieu, thucTe, loc }) {
 // sửa ô thì ghi cả ngày vào một dòng "CA 1" và xóa dòng "CA 2" của ô đó.
 const CA_NGAY = "CA 1", CA_BO = "CA 2";
 function BangThucTe({ nhom, thang, mucTieu, thucTe, loc, onLuu }) {
-  const { D, quyen, api, run, toast } = useApp();
+  const { D, quyen, api, run, toast, fail } = useApp();
   const [thu, dao] = useThu(`lg-sl-thu-tt-${nhom}`);
   const c = NHOM[nhom], nhap = quyen.sl(nhom).nhapThucTe; // nhập thực tế: nhập liệu trở lên, hoặc nhóm nhap_lieu / xuat_nhap (cảng) / van_tai (vận tải)
   const ngays = useMemo(() => ngayCuaThang(thang), [thang]);
@@ -394,8 +432,9 @@ function BangThucTe({ nhom, thang, mucTieu, thucTe, loc, onLuu }) {
   const apDungDan = (ds) => {
     const moi = {}, cotMoi = [], co = new Set(cotTat.map((x) => x.k));
     for (const x of ds) {
-      const k = khoaDong(x.huong, x.loai);
-      if (!co.has(k)) { co.add(k); cotMoi.push({ huong: x.huong, loai: x.loai, donVi: "", hang: "" }); }
+      // Cảng: cột = hướng + loại hàng; vận tải: cột = hướng + loại xe + đơn vị + loại hàng
+      const cotX = c.coDonVi ? { huong: x.huong, loai: x.loai, donVi: x.donVi || DON_VI[0][0], hang: x.hang || "" } : { huong: x.huong, loai: x.loai, donVi: "", hang: "" }, k = khoaCot(cotX);
+      if (!co.has(k)) { co.add(k); cotMoi.push(cotX); }
       moi[kOu(x.ngay, k)] = fmt(x.tan) || "0";
     }
     if (cotMoi.length) setExtra((o) => [...o, ...cotMoi]);
@@ -407,6 +446,15 @@ function BangThucTe({ nhom, thang, mucTieu, thucTe, loc, onLuu }) {
     setThem({ ...them, loai: "", hang: "" });
   };
   const stk = (left) => ({ position: "sticky", left, zIndex: 2 });
+  // Xuất Excel bảng thực tế theo ngày (đúng số đang hiện, kể cả số đã gõ chưa lưu): mỗi ngày một dòng + Cộng tháng, Mục tiêu tháng, Đạt
+  const tenCot = (x) => (c.coDonVi ? [HUONG_NGAN[x.huong] || x.huong, x.loai, x.hang || "Mọi hàng", tenDonVi(x.donVi)] : [c.huong.find(([h]) => h === x.huong)?.[1] || x.huong, x.loai]).join(" · ");
+  const xuatThucTe = () => {
+    const tongAll = cot.reduce((s, x) => s + tongCot(x.k), 0), mtAll = cot.reduce((s, x) => s + x.mt, 0);
+    const hang = [["Ngày", ...cot.map(tenCot), "Tổng ngày"]];
+    for (const n of ngays) hang.push([ngayVN(n), ...cot.map((x) => giaTri(kOu(n, x.k)) || ""), tongDong(n) || ""]);
+    hang.push(["Cộng tháng", ...cot.map((x) => tongCot(x.k)), tongAll], ["Mục tiêu tháng", ...cot.map((x) => x.mt || ""), mtAll || ""], ["Đạt (%)", ...cot.map((x) => (x.mt ? Math.round((tongCot(x.k) / x.mt) * 10000) / 100 : "")), mtAll ? Math.round((tongAll / mtAll) * 10000) / 100 : ""]);
+    return xuatExcel(`San-luong-thuc-te-${c.coDonVi ? "van-tai" : "cang"}-${thang}`, [{ ten: `Thực tế ${tenKyThuong("thang", thang)}`, hang }], { toast, fail });
+  };
   return (
     <div className="grid gap-3">
       <div className="flex flex-wrap items-center gap-2">
@@ -414,12 +462,13 @@ function BangThucTe({ nhom, thang, mucTieu, thucTe, loc, onLuu }) {
         <span className="text-xs text-muted-foreground">Mỗi ngày một dòng</span>
         <div className="ml-auto flex items-center gap-2">
           {kDirty.length > 0 && <Button size="sm" variant="outline" onClick={() => setSua({})}>Bỏ thay đổi</Button>}
-          {nhap && nhom === "cang" && <Button size="sm" variant="outline" onClick={() => setDan(true)} title="Dán bảng từ Excel hoặc chọn file Excel"><ClipboardPaste />Dán nhanh / Excel</Button>}
+          <Button size="sm" variant="outline" onClick={xuatThucTe} title="Xuất bảng ra file Excel"><Download />Xuất Excel</Button>
+          {nhap && <Button size="sm" variant="outline" onClick={() => setDan(true)} title="Dán bảng từ Excel hoặc chọn file Excel"><ClipboardPaste />Dán nhanh / Excel</Button>}
           {nhap && <Button size="sm" disabled={!kDirty.length} onClick={luu}><Save />Lưu số liệu{kDirty.length ? ` (${kDirty.length} ô)` : ""}</Button>}
         </div>
       </div>
       {!thu && <>{cot.length ? (
-        <div className="scroll-x max-h-[70vh] rounded-md border">
+        <div className="scroll-x tfoot-cd cao-bang rounded-md border">
           <table className="tbl text-xs" style={{ borderCollapse: "separate", borderSpacing: 0 }}>
             <thead>
               <tr style={{ position: "sticky", top: 0, zIndex: 4 }} className="bg-card">
@@ -475,7 +524,7 @@ function BangThucTe({ nhom, thang, mucTieu, thucTe, loc, onLuu }) {
           <Button size="sm" variant="outline" disabled={!them.loai.trim()} onClick={themCot}><Plus />Thêm</Button>
         </div>)}
       <p className="text-[0.6875rem] text-muted-foreground">{nhap ? "Gõ số tấn của cả ngày vào ô (vd 12.500), bấm Lưu số liệu. Xóa số trong ô là xóa số của ngày đó. Cột có mục tiêu hiện sẵn; muốn nhập loại khác thì Thêm cột." : "Vai trò Xem chỉ xem số liệu."}</p></>}
-      {dan && <HopDanSL loai="thuc_te" thang={thang} onApDung={apDungDan} onClose={() => setDan(false)} />}
+      {dan && <HopDanSL loai="thuc_te" nhom={nhom} thang={thang} onApDung={apDungDan} onClose={() => setDan(false)} />}
     </div>
   );
 }

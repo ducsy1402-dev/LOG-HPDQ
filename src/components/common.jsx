@@ -76,8 +76,9 @@ export function ConfirmButton({ onConfirm, children, confirmText = "Bấm lần 
 export function PageHead({ title, desc, children }) {
   return (
     // Đầu trang gọn một hàng (anh Sỹ 17/11/2026, theo Mục tiêu sản lượng): tiêu đề cỡ lg, mô tả dài không chiếm dòng riêng mà hiện khi rê chuột vào tiêu đề; nút nằm cùng hàng.
-    <div className="mb-2 flex flex-wrap items-center gap-2">
-      <h1 className="mr-1 text-lg font-semibold" title={typeof desc === "string" ? desc : undefined}>{title}</h1>
+    // Tiêu đề trang không hiện nữa (anh Sỹ 22/11/2026: thanh trên đã có đường dẫn Phân hệ › Trang › Tab); vẫn có <h1> ẩn cho trình đọc màn hình.
+    <div className={desc && typeof desc !== "string" || children ? "mb-2 flex flex-wrap items-center gap-2" : undefined}>
+      <h1 className="sr-only">{title}</h1>
       {desc && typeof desc !== "string" && <div className="text-xs text-muted-foreground">{desc}</div>}
       {children && <div className="flex flex-wrap items-center gap-2">{children}</div>}
     </div>
