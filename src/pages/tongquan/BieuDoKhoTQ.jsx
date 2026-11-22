@@ -12,7 +12,7 @@ import { CAO } from "./BieuDoSanLuongTQ";
 // Mảng Kho bãi của Tổng quan (anh Sỹ chốt 11/2026, chỉnh 22/11/2026): mỗi biểu đồ một khung CỐ ĐỊNH chiều cao, dài thì cuộn trong khung:
 //   Tồn hiện tại (tồn theo hàng, như tab Kho hàng kiện; nút chuyển Hàng kiện / Hàng rời) · Tỉ lệ lấp đầy (chia theo khu vực, bấm bãi mở hộp bãi nhỏ)
 //   · Lũy kế xuất/nhập tồn (một khung, lọc Hàng kiện / Hàng rời và loại hàng) · Diễn biến tồn (tồn theo hàng, như tab Kho hàng kiện; nút chuyển Hàng kiện / Hàng rời)
-//   Đã bỏ hai biểu đồ Cơ cấu tồn kho và Tuổi tồn.
+//   Đã bỏ hai biểu đồ Cơ cấu tồn kho và Tuổi tồn. Xếp hai hàng, mỗi hàng hai biểu đồ (anh Sỹ 22/11/2026).
 // kho: tổng hợp kho (useKho); gd: giao dịch kho đã tải
 const KHO = [["thanh_pham", "Hàng kiện"], ["nguyen_lieu", "Hàng rời"]];
 
@@ -31,7 +31,7 @@ export default function BieuDoKhoTQ({ kyInfo, kho, gd }) {
   }, [kho, kb]);
   const mauLap = (v) => (v >= NGUONG_KHO.do ? MAU.bad : v >= NGUONG_KHO.vang ? MAU.warn : MAU.ok);
   return (
-    <div className="grid gap-2.5 [grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr))]">
+    <div className="grid gap-2.5 lg:grid-cols-2">
       <Khung cao={CAO} ten="Tồn hiện tại" phu="tồn theo hàng · thanh mờ là sức chứa" bo={<Chon gt={loaiTon} dat={setLoaiTon} ds={KHO} />}>
         <TonHienTaiBD kho={kho} loai={loaiTon} cao={250} />
       </Khung>
