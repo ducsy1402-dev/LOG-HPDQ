@@ -1,7 +1,8 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Anchor, Boxes, ChevronDown, Package, Ship, Truck, Wrench, Users, Hourglass, Gauge as IcGauge, ClipboardList } from "lucide-react";
+import { Anchor, Boxes, ChevronDown, Package, Ship, Truck, Users, Hourglass, Gauge as IcGauge, ClipboardList } from "lucide-react";
 import { useApp } from "@/store";
-import { useThietBi } from "@/thietbi/Host";
+import { useThietBi, TBCho } from "@/thietbi/Host";
+import { NangLucBieuDo, tinhDaiHan } from "@/thietbi/tabs/plan/LongTerm";
 import EChart from "@/components/EChart";
 import { so, pct, r2, DAY, HOUR, ngayGio, ngayNam } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -135,10 +136,23 @@ export default function TongQuanMoi({ onMo, go, tongCanhBao }) {
     const hongTheoDoi = {}; for (const e of tb.events) if (e.loai === "Hỏng" && e.ngay_vao >= kyInfo.ngays[0] && e.ngay_vao <= kyInfo.ngays[kyInfo.ngays.length - 1]) { const d = tb.vmap[e.ma_xe]?.doi || "(khác)"; hongTheoDoi[d] = (hongTheoDoi[d] || 0) + 1; }
     return {
       xe: mk(xe, kyInfo), cau: cau.length ? mk(cau, kyInfo) : null, xeT: mk(xe, kyTc), cauT: cau.length ? mk(cau, kyTc) : null, sx: tb.summarize(xe), sc: tb.summarize(cau),
-      nhom, hongLau, ca: ca ? { ten: tb.shiftLabel(ca), thieu: nhapDu.reduce((s, r) => s + Math.max(0, -r.chenh), 0), thua: nhapDu.reduce((s, r) => s + Math.max(0, r.chenh), 0), nhap: nhapDu.length, tong: rows.length } : null,
+      nhom, hongLau, ca: ca ? { ten: tb.shiftLabel(ca), thieu: nhapDu.reduce((s, r) => s + Math.max(0, -r.chenh), 0), thua: nhapDu.reduce((s, r) => s + Math.max(0, r.chenh), 0), nhap: nhapDu.length, tong: rows.length,
+        // Quân số ca hiện tại: tổng đã nhập, tổng cần (xe sẵn sàng cần người của các đội đã nhập) và các đội THIẾU / THỪA (đội đủ thì không hiện)
+        thucTe: nhapDu.reduce((a, r) => a + (r.thucTe || 0), 0), can: nhapDu.reduce((a, r) => a + r.xeCan, 0), lech: nhapDu.filter((r) => r.chenh !== 0).map((r) => ({ doi: r.doi, chenh: r.chenh })).sort((a, b) => a.chenh - b.chenh) } : null,
       hong, hongTheoDoi, quaHan: tb.open.filter((e) => tb.flags(e).some((f) => f.k === "qh")).length, ss: tb.T?.ss ?? NGUONG.ssVang, red: tb.T?.red ?? NGUONG.ssDo,
     };
   }, [coTB, tb, kyInfo, kyT, homNay, D.now]);
+
+  // Năng lực đáp ứng: số ca thiếu xe của từng đội có kế hoạch (tham số đã lưu ở Kế hoạch dài hạn)
+  const nangLuc = useMemo(() => {
+    if (!coTB) return null;
+    const pp = tb.plan?.params?.dai_han; if (!pp) return null;
+    try {
+      return tb.doiList.filter((d) => d !== "Cẩu" && tb.vehicles.some((v) => v.doi === d)).map((doi) => ({ doi, ...tinhDaiHan(tb, D, pp, doi) }))
+        .filter((x) => x.R.ves.some((r) => r.dung > 0) || x.R.fixed.length).map((x) => ({ doi: x.doi, thieu: x.R.kpi.caTHIEU, tong: x.R.shifts.length }))
+        .sort((a, b) => b.thieu - a.thieu || a.doi.localeCompare(b.doi, "vi"));
+    } catch { return null; }
+  }, [coTB, tb, D]);
 
   // ===== Vấn đề cần xử lý =====
   const vanDe = useMemo(() => {
@@ -270,15 +284,22 @@ export default function TongQuanMoi({ onMo, go, tongCanhBao }) {
               diem spark={tbm.xe.theoNgay.map((x) => x.rate)} phu={`Hiện tại ${tbm.xe.rateHT != null ? pct(tbm.xe.rateHT, 1) : "—"} · ${tbm.sx.ready}/${tbm.sx.tong} xe · ngưỡng ${pct(tbm.ss)}`} />
             <TheChiSo icon={IcCau} ten="Cẩu cảng sẵn sàng" giaTri={tbm.cau?.rateTB != null ? pct(tbm.cau.rateTB, 1) : "—"} tone={tbm.cau ? tone(tbm.cau.rateTB, tbm.ss, tbm.red) : null} doi={tbm.cauT?.rateTB != null && tbm.cau?.rateTB != null ? tbm.cau.rateTB - tbm.cauT.rateTB : undefined}
               diem spark={tbm.cau?.theoNgay.map((x) => x.rate)} phu={tbm.cau ? `Hiện tại ${tbm.sc.ready}/${tbm.sc.tong} cẩu sẵn sàng` : "Chưa có cẩu trong danh mục"} />
-            <TheChiSo icon={Wrench} ten="Số lần hỏng trong kỳ" giaTri={`${tbm.xe.soLanHong + (tbm.cau?.soLanHong || 0)}`} donVi="lần" tone={(tbm.xe.soLanHong + (tbm.cau?.soLanHong || 0)) > (tbm.xeT.soLanHong + (tbm.cauT?.soLanHong || 0)) * 1.3 + 1 ? "warn" : null}
-              doi={(tbm.xeT.soLanHong + (tbm.cauT?.soLanHong || 0)) > 0 ? doiSoVoi(tbm.xe.soLanHong + (tbm.cau?.soLanHong || 0), tbm.xeT.soLanHong + (tbm.cauT?.soLanHong || 0)) : undefined} tot="thap"
-              phu={tbm.xe.mttr != null ? `Sửa xong TB ${so(tbm.xe.mttr, 1)} ngày/lần (MTTR xe)` : "Chưa có lần sửa xong trong kỳ"} />
-            <TheChiSo icon={Hourglass} ten="Xe-ngày dừng trong kỳ" giaTri={nghin(tbm.xe.dungXeNgay + (tbm.cau?.dungXeNgay || 0))} donVi="xe-ngày" doi={(tbm.xeT.dungXeNgay + (tbm.cauT?.dungXeNgay || 0)) > 0 ? doiSoVoi(tbm.xe.dungXeNgay + (tbm.cau?.dungXeNgay || 0), tbm.xeT.dungXeNgay + (tbm.cauT?.dungXeNgay || 0)) : undefined} tot="thap"
-              phu={`${tbm.hong} đang hỏng · ${tbm.quaHan} quá hạn sửa`} tone={tbm.quaHan > 0 ? "bad" : tbm.hong > 0 ? "warn" : "ok"} />
-            <TheChiSo icon={Users} ten="Quân số ca hiện tại" giaTri={tbm.ca ? (tbm.ca.nhap ? (tbm.ca.thieu ? `Thiếu ${tbm.ca.thieu}` : tbm.ca.thua ? `Thừa ${tbm.ca.thua}` : "Đủ") : "Chưa nhập") : "—"} tone={tbm.ca?.nhap ? (tbm.ca.thieu ? "bad" : "ok") : null}
-              phu={tbm.ca ? `${tbm.ca.ten} · đã nhập ${tbm.ca.nhap}/${tbm.ca.tong} đội` : "Chưa có lịch ca"} onClick={() => go("thiet-bi/nhan-su")} />
+            {/* Năng lực đáp ứng: số ca thiếu xe của từng đội có kế hoạch (thay hai thẻ Số lần hỏng / Xe-ngày dừng, anh Sỹ 22/11/2026) */}
+            <TheChiSo icon={IcGauge} ten="Năng lực đáp ứng" giaTri={nangLuc ? `${nangLuc.filter((x) => x.thieu > 0).length}/${nangLuc.length}` : "—"} donVi="đội thiếu xe" tone={nangLuc ? (nangLuc.some((x) => x.thieu > 0) ? "bad" : "ok") : null}
+              phu={nangLuc ? `Số ca thiếu xe trong ${nangLuc[0]?.tong ?? 0} ca tới, theo từng đội` : "Chưa có kế hoạch dài hạn"}>
+              {nangLuc?.length > 0 && <span className="mt-1 grid gap-0.5 text-[0.6875rem]">
+                {nangLuc.map((x) => <span key={x.doi} className="flex items-center justify-between gap-2"><span className="truncate">{x.doi}</span><b className={cn("shrink-0 tabular-nums", x.thieu ? "text-bad" : "text-ok")}>{x.thieu ? `${x.thieu}/${x.tong} ca thiếu` : "đủ xe"}</b></span>)}
+              </span>}
+            </TheChiSo>
+            {/* Quân số ca hiện tại + các đội thiếu / thừa so với định biên (đội đủ thì không hiện) */}
+            <TheChiSo icon={Users} ten="Quân số ca hiện tại" giaTri={tbm.ca ? (tbm.ca.nhap ? nghin(tbm.ca.thucTe) : "Chưa nhập") : "—"} donVi={tbm.ca?.nhap ? "người" : undefined} tone={tbm.ca?.nhap ? (tbm.ca.thieu ? "bad" : tbm.ca.thua ? "warn" : "ok") : null}
+              phu={tbm.ca ? `${tbm.ca.ten} · đã nhập ${tbm.ca.nhap}/${tbm.ca.tong} đội${tbm.ca.nhap ? ` · định biên ${nghin(tbm.ca.can)} người` : ""}` : "Chưa có lịch ca"} onClick={() => go("thiet-bi/nhan-su")}>
+              {tbm.ca?.lech?.length > 0 && <span className="mt-1 grid gap-0.5 text-[0.6875rem]">
+                {tbm.ca.lech.map((x) => <span key={x.doi} className="flex items-center justify-between gap-2"><span className="truncate">{x.doi}</span><b className={cn("shrink-0 tabular-nums", x.chenh < 0 ? "text-bad" : "text-warn")}>{x.chenh < 0 ? `thiếu ${-x.chenh}` : `thừa ${x.chenh}`}</b></span>)}
+              </span>}
+            </TheChiSo>
           </>}>
-          <div className="grid gap-2.5 lg:grid-cols-3">
+          <div className="grid gap-2.5 lg:grid-cols-2">
             <Khung cao={CAO} ten="Tỉ lệ sẵn sàng theo ngày" phu={`${kyInfo.nhan} · vạch vàng = ngưỡng ${pct(tbm.ss)}`}>
               <EChart height={230} option={{
                 ...base, tooltip: { trigger: "axis", valueFormatter: (v) => (v == null ? "—" : pct(v, 1)) }, xAxis: { type: "category", data: tbm.xe.theoNgay.map((x) => x.d.slice(8) + "/" + x.d.slice(5, 7)), axisLabel: { fontSize: 10, hideOverlap: true } },
@@ -287,6 +308,7 @@ export default function TongQuanMoi({ onMo, go, tongCanhBao }) {
                   ...(tbm.cau ? [{ name: "Cẩu cảng", type: "line", smooth: true, showSymbol: false, data: tbm.cau.theoNgay.map((x) => r2(x.rate)), itemStyle: { color: MAU.info } }] : [])],
               }} />
             </Khung>
+            <Khung cao={CAO} ten="Năng lực đáp ứng" phu="xe có − xe cần theo ca · theo tham số Kế hoạch dài hạn"><TBCho gon><NangLucBieuDo cao={230} /></TBCho></Khung>
             <Khung cao={CAO} ten="Số lần hỏng theo đội" phu="trong kỳ">
               {Object.keys(tbm.hongTheoDoi).length ? (
                 <EChart height={230} option={{ grid: { left: 4, right: 30, top: 6, bottom: 0, containLabel: true }, tooltip: { axisPointer: { type: "shadow" } }, xAxis: { type: "value", minInterval: 1, axisLabel: { fontSize: 10 } },

@@ -24,18 +24,20 @@ const fmt = (t) => { const d = new Date(t); return `${d.getFullYear()}-${String(
 // Nhóm hàng (loại hàng) để lọc biểu đồ kho: theo cột Nhóm của Danh mục › Hàng hóa
 export const nhomHangKho = (hang, kho) => nhomCua(hang, kho.hangHoa || []) || "";
 // Các nhóm hàng đang có tồn hoặc có kế hoạch trong một loại kho
-export function dsNhomKho(kho, loai, keHoach = []) {
+// theoHang = true (Tổng quan › Lũy kế xuất/nhập tồn, 22/11/2026): liệt kê đúng các HÀNG đang có tồn trong kho đó (không theo nhóm hàng, không thêm hàng chỉ có kế hoạch)
+export function dsNhomKho(kho, loai, keHoach = [], theoHang = false) {
   const dongOk = kho.dong.filter((d) => !d.saiBai), s = new Set();
-  for (const c of kho.cap) if (c.loai === loai && Math.abs(c.ton) > 1e-6) s.add(nhomHangKho(c.hang, kho));
+  for (const c of kho.cap) if (c.loai === loai && Math.abs(c.ton) > 1e-6) s.add(theoHang ? c.hang : nhomHangKho(c.hang, kho));
+  if (theoHang) return [...s].filter(Boolean).sort((a, b) => a.localeCompare(b, "vi"));
   for (const r of keHoach) { const d = khuCuaKeHoach(r, dongOk); if (d?.loai === loai) s.add(r.nhom || nhomHangKho(r.hang || d.hang, kho)); }
   return [...s].filter(Boolean).sort((a, b) => a.localeCompare(b, "vi"));
 }
 
 // Một loại kho (thanh_pham | nguyen_lieu): từng điểm của kỳ có nhập / xuất thực tế và kế hoạch, lũy kế, tồn thực tế và tồn kế hoạch.
 // nhom: chỉ lấy hàng thuộc nhóm hàng này ("" = mọi hàng); bai: chỉ lấy một kho / bãi lớn ("" = tất cả)
-export function chuoiKho(kyInfo, { kho, loai, nhom = "", bai = "", keHoach = [], giaoDich = [], now }) {
+export function chuoiKho(kyInfo, { kho, loai, nhom = "", bai = "", keHoach = [], giaoDich = [], now, theoHang = false }) {
   const { ngays, buoc, homNay } = kyInfo, tap = new Set(ngays), loaiOf = loaiCua(kho);
-  const khop = (hang) => !nhom || plain(nhomHangKho(hang, kho)) === plain(nhom);
+  const khop = (hang) => !nhom || plain(theoHang ? hang : nhomHangKho(hang, kho)) === plain(nhom); // theoHang: "nhom" là tên hàng
   const dongOk = kho.dong.filter((d) => !d.saiBai);
   const nhapTT = new Map(), xuatTT = new Map(), nhapKH = new Map(), xuatKH = new Map();
   const cong = (m, k, v) => m.set(k, (m.get(k) || 0) + v);
@@ -47,7 +49,7 @@ export function chuoiKho(kyInfo, { kho, loai, nhom = "", bai = "", keHoach = [],
   for (const r of keHoach) {
     const d = khuCuaKeHoach(r, dongOk);
     if (!d || d.loai !== loai || (bai && d.ten_bai !== bai)) continue;
-    if (nhom && plain(r.nhom || nhomHangKho(r.hang || d.hang, kho)) !== plain(nhom)) continue;
+    if (nhom && plain(theoHang ? r.hang || d.hang : r.nhom || nhomHangKho(r.hang || d.hang, kho)) !== plain(nhom)) continue;
     const nd = ngayCuaKeHoach(r), moi = (+r.khoi_luong || 0) / nd.length; // kế hoạch ngày / tuần / tháng / năm chia đều theo ngày của kỳ
     for (const n of nd) if (tap.has(n)) cong(r.huong === "xuat" ? xuatKH : nhapKH, n, moi);
   }

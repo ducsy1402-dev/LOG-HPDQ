@@ -53,9 +53,9 @@ const tenBuoc = (k) => (k.buoc === "thang" ? "Tháng" : k.buoc === "tuan" ? "Tu�
 export function KhungKho({ ten = "Lũy kế xuất/nhập tồn", kho, kyInfo, gd, keHoach, now, cao }) {
   const [loai, setLoai] = useState("thanh_pham");
   const [nhomChon, setNhom] = useState("");
-  const nhoms = useMemo(() => dsNhomKho(kho, loai, keHoach), [kho, loai, keHoach]);
+  const nhoms = useMemo(() => dsNhomKho(kho, loai, keHoach, true), [kho, loai, keHoach]); // các hàng đang có trong kho kiện / rời tương ứng
   const nhom = nhoms.includes(nhomChon) ? nhomChon : ""; // đổi kho thì loại hàng không còn trong kho đó về "Mọi loại hàng"
-  const c = useMemo(() => chuoiKho(kyInfo, { kho, loai, nhom, keHoach, giaoDich: gd, now }), [kyInfo, kho, loai, nhom, keHoach, gd, now]);
+  const c = useMemo(() => chuoiKho(kyInfo, { kho, loai, nhom, keHoach, giaoDich: gd, now, theoHang: true }), [kyInfo, kho, loai, nhom, keHoach, gd, now]);
   const opt = {
     ...base, tooltip: { valueFormatter: (v) => (v == null ? "—" : `${so(v)} t`) },
     xAxis: { type: "category", data: c.diem.map((o) => o.nhan), axisLabel: { fontSize: 10, hideOverlap: true } }, yAxis: truc,
@@ -77,7 +77,7 @@ export function KhungKho({ ten = "Lũy kế xuất/nhập tồn", kho, kyInfo, g
       <div className="flex items-center justify-between gap-2">
         <SoLon v={nghin(c.tonHT)} sub={`t tồn · nhập ${nghin(c.tongNhapTT)}${c.coKeHoach ? ` / KH ${nghin(c.tongNhapKH)}` : ""} · xuất ${nghin(c.tongXuatTT)}${c.coKeHoach ? ` / KH ${nghin(c.tongXuatKH)}` : ""}`} />
         {/* Lọc loại hàng của kho đang chọn: nằm trong khung để đầu khung không bị chật */}
-        <ChonDs gt={nhom} dat={setNhom} ds={nhoms} tatCa="Mọi loại hàng" />
+        <ChonDs gt={nhom} dat={setNhom} ds={nhoms} tatCa="Mọi hàng" />
       </div>
       <EChart height={210} option={opt} />
       {!c.coKeHoach && <div className="mt-1 text-[0.6875rem] text-muted-foreground">Chưa có kế hoạch nhập / xuất của kỳ này (Kho › Kế hoạch Xuất/Nhập tồn).</div>}

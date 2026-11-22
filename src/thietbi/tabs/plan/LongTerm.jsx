@@ -159,7 +159,7 @@ export default function LongTerm() {
         </div>
       </Card>
 
-      <Card title="Thừa / thiếu xe theo ca" icon={BarChart3} hint={`Đội ${doi}: xe có − xe cần trong từng ca. Điểm dưới trục (chấm đỏ) là thiếu xe; vùng tô xanh là ca đang diễn ra. Kéo ngang để xem hết.`}>
+      <Card title="Năng lực đáp ứng" icon={BarChart3} hint={`Đội ${doi}: xe có − xe cần trong từng ca. Điểm dưới trục (chấm đỏ) là thiếu xe; vùng tô xanh là ca đang diễn ra. Kéo ngang để xem hết.`}>
         <BalanceChart R={R} />
       </Card>
       </div>
@@ -213,7 +213,7 @@ export function NangLucDapUng() {
 }
 
 // Biểu đồ thừa / thiếu xe theo ca. Trục ngang ghi ngày + ca giống tiêu đề timeline ("14/10" / "N 08h").
-function BalanceChart({ R }) {
+export function BalanceChart({ R, cao }) {
   const P0 = usePalette();
   const P = { ...P0, info: "#3b82f6" }; // đường Cảng: xanh dương (khác màu tím của đường Chung)
   const { shifts, capCang, capBai, chung } = R;
@@ -250,8 +250,11 @@ function BalanceChart({ R }) {
   const nowI = data.findIndex((s) => s.now);
   // Trục tung chia vạch cách nhau 5 xe (anh Sỹ 22/11/2026): làm tròn biên ra bội số của 5, luôn có vạch 0
   const giaTri = data.flatMap((s) => (chung ? [s.chung] : [s.cang, s.bai, s.chung])).filter((x) => Number.isFinite(x));
-  const yMin = Math.min(0, Math.floor(Math.min(0, ...giaTri) / 5) * 5), yMax = Math.max(5, Math.ceil(Math.max(0, ...giaTri) / 5) * 5);
-  const yTicks = Array.from({ length: (yMax - yMin) / 5 + 1 }, (_, k) => yMin + k * 5);
+  // Vạch cách nhau 5 xe; khung thấp (Tổng quan) mà quá dày thì lấy bội số của 5 để mỗi vạch cách nhau ít nhất 14 px
+  const lo = Math.min(0, ...giaTri), hi = Math.max(5, ...giaTri), caoVe = fs ? dim.h : cao, plot = caoVe ? caoVe - 80 : null;
+  const buoc = plot ? 5 * Math.max(1, Math.ceil((((Math.ceil(hi / 5) - Math.floor(lo / 5)) * 14) / plot))) : 5;
+  const yMin = Math.min(0, Math.floor(lo / buoc) * buoc), yMax = Math.max(buoc, Math.ceil(hi / buoc) * buoc);
+  const yTicks = Array.from({ length: Math.round((yMax - yMin) / buoc) + 1 }, (_, k) => yMin + k * buoc);
   return (
     <>
       <div className="legend mb">
@@ -259,7 +262,7 @@ function BalanceChart({ R }) {
         <span><i style={{ background: P.bad }} />Chấm đỏ: thiếu xe</span><span><i style={{ background: P.accent, height: 2 }} />{chung ? "Xe của đội (có − cần)" : "Chung (cảng + bãi)"}</span>
       </div>
       <div ref={hop} style={{ overflowX: "auto" }}>
-        <ComposedChart width={w} height={fs ? Math.max(260, dim.h) : Math.min(440, Math.max(260, yTicks.length * 15 + 70))} data={data} margin={{ top: 10, right: 10, bottom: 22, left: 0 }}>
+        <ComposedChart width={w} height={fs ? Math.max(260, dim.h) : cao ?? Math.min(440, Math.max(260, yTicks.length * 15 + 70))} data={data} margin={{ top: 10, right: 10, bottom: 22, left: 0 }}>
           <CartesianGrid stroke={P.line} vertical={false} />
           {nowI >= 0 && <ReferenceArea x1={nowI} x2={nowI} fill={P.accent} fillOpacity={0.12} stroke={P.accent} strokeOpacity={0.6} />}
           <XAxis dataKey="i" tick={<Tick />} interval={0} axisLine={false} tickLine={false} height={34} />
@@ -344,5 +347,28 @@ function JobDialog({ loai, job, pp, doi, hangAll, onClose }) {
       {isTau && <div className="small mute" style={{ marginTop: 10 }}>Việc cảng nhập tay (ngoài các tàu tự lấy từ Linetime), tính theo ca như tàu với số xe đã nhập. Cần xe của nhiều đội thì thêm cho từng đội.</div>}
       {!isTau && <div className="small mute" style={{ marginTop: 10 }}>Việc bãi không tự tính giờ kết thúc: số xe áp dụng cho mọi ca (ngày và đêm) có giờ nằm từ "Từ giờ" đến "Đến giờ".</div>}
     </Modal>
+  );
+}
+
+// Khung "Năng lực đáp ứng" của Tổng quan › Thiết bị cơ giới (22/11/2026): chọn đội xe, vẽ biểu đồ xe có − xe cần theo ca của đội đó (theo tham số đã lưu ở Kế hoạch dài hạn)
+export function NangLucBieuDo({ cao = 250 }) {
+  const { D } = useApp();
+  const LD = useLogistics()?.D;
+  const pp = D.plan.params.dai_han;
+  const dsDoi = useMemo(() => D.doiList.filter((d) => d !== "Cẩu" && D.vehicles.some((v) => v.doi === d)), [D]);
+  const [doi, setDoi] = useState(() => { try { const x = localStorage.getItem(LS_DOI); return x && D.doiList.includes(x) ? x : DOI_GOC; } catch { return DOI_GOC; } });
+  const dung = dsDoi.includes(doi) ? doi : dsDoi[0];
+  const R = useMemo(() => (dung ? tinhDaiHan(D, LD, pp, dung).R : null), [D, LD, pp, dung]);
+  if (!R) return <Empty>Chưa có đội xe.</Empty>;
+  return (
+    <>
+      <div className="khong-ttb mb-1 flex items-center gap-2 text-xs text-muted-foreground">
+        <select value={dung} onChange={(e) => { setDoi(e.target.value); try { localStorage.setItem(LS_DOI, e.target.value); } catch { /* bỏ qua */ } }} aria-label="Chọn đội xe" className="h-7 rounded-md border border-input bg-background px-2 text-xs text-foreground">
+          {dsDoi.map((d) => <option key={d} value={d}>{d}</option>)}
+        </select>
+        <span>{R.kpi.caTHIEU} / {R.shifts.length} ca thiếu xe</span>
+      </div>
+      <BalanceChart R={R} cao={cao} />
+    </>
   );
 }
