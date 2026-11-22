@@ -193,7 +193,7 @@ function DuBao() {
           </thead>
           <tbody>{ds.map((x) => (
             <tr key={x.doi}>
-              <td><b>{x.doi}</b><div className="small mute">{x.capCang}+{x.capBai} xe</div></td>
+              <td><b>{x.doi}</b><div className="small mute">{x.chung ? `${x.capCang} xe` : `${x.capCang}+${x.capBai} xe`}</div></td>
               {x.R.shifts.slice(0, 12).map((s, i) => (
                 <td key={i} className={"n dd-c " + (s.balChung < 0 ? "bad" : s.balChung === 0 ? "" : "ok")} title={`${fmtD(s.st)} · cảng ${s.balCang >= 0 ? "+" : ""}${s.balCang}, bãi ${s.balBai >= 0 ? "+" : ""}${s.balBai} · ${s.tt}`}>{s.balChung > 0 ? "+" + s.balChung : s.balChung}</td>
               ))}

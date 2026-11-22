@@ -371,10 +371,13 @@ export function calc12(params, jobs, doi = DOI_GOC) {
   });
   shifts.forEach((s, i) => { s.bai = fixed.reduce((a, f) => a + f.cnt[i], 0); });
 
-  const capCang = num(cfg.capCang) || 0, capBai = num(cfg.capBai) || 0;
+  // Chỉ đội gốc (Xúc đào) chia xe cảng / bãi; đội khác để CHUNG (anh Sỹ 22/11/2026): toàn bộ xe nằm ở capCang, capBai = 0, thừa / thiếu tính trên tổng cầu cảng + bãi
+  const chung = doi !== DOI_GOC;
+  const capCang = num(cfg.capCang) || 0, capBai = chung ? 0 : num(cfg.capBai) || 0;
   shifts.forEach((s) => {
     s.balCang = capCang - s.cang; s.balBai = capBai - s.bai; s.balChung = s.balCang + s.balBai;
-    if (s.balCang < 0) s.tt = s.balBai >= -s.balCang ? "MƯỢN BÃI" : "THIẾU";
+    if (chung) s.tt = s.balChung < 0 ? "THIẾU" : "OK";
+    else if (s.balCang < 0) s.tt = s.balBai >= -s.balCang ? "MƯỢN BÃI" : "THIẾU";
     else if (s.balBai < 0) s.tt = s.balCang >= -s.balBai ? "MƯỢN CẢNG" : "THIẾU";
     else s.tt = "OK";
   });
@@ -386,7 +389,7 @@ export function calc12(params, jobs, doi = DOI_GOC) {
     tauCanhBao: ves.filter((r) => ["Trùng bến", "Thiếu bến", "Thiếu dữ liệu", "Chưa có số xe"].includes(r.canh)).length,
     tauMoc: ves.filter((r) => r.bd && r.kt && r.bd <= moc && r.kt >= moc).length,
   };
-  return { shifts, ves, fixed, kpi, moc, capCang, capBai };
+  return { shifts, ves, fixed, kpi, moc, capCang, capBai, chung };
 }
 function num(v) { if (v === null || v === undefined || v === "") return null; const n = Number(v); return Number.isFinite(n) ? n : null; }
 

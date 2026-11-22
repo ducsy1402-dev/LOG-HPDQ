@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
-import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ReferenceArea, Cell } from "recharts";
-import { SlidersHorizontal, BarChart3, GanttChart, Ship, Plus, Save, AlertTriangle, Anchor, Layers, RotateCcw, Trash2, GripVertical, Truck } from "lucide-react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ReferenceArea } from "recharts";
+import { SlidersHorizontal, BarChart3, GanttChart, Ship, Plus, AlertTriangle, Anchor, Layers, RotateCcw, Trash2, GripVertical, Truck } from "lucide-react";
 import { useApp } from "../../store";
 import { Card, Kpi, Badge, Modal, Field, Select, Empty, DateInput, DateTimeInput, ConfirmButton, isoToLocal, localToIso, usePalette, MultiSelect } from "../../components/ui";
 import { calc12, cfgOf, capTinhOf, withCap, DOI_GOC, doiCuaViec, byThuTu, hangColor, luoiTuDong, HANG_COLOR, BAI_COLOR, fmtDT, fmtD } from "../../lib/plan";
@@ -25,7 +25,10 @@ export function tinhDaiHan(D, LD, pp, doi) {
   const theoLoai = (loai) => (x) => !goc || !loai || loai === "Tất cả" || (x.ma ? loaiXucDao(x) : x.loai) === loai;
   const capCangTinh = tinh.cang?.length ? ssDoi.filter((v) => tinh.cang.includes(v.to_xe)).length : null;
   const capBaiTinh = tinh.bai ? ssDoi.filter(theoLoai(tinh.bai)).length - phanBo.filter(theoLoai(tinh.bai)).reduce((a, r) => a + (+r.so_xe || 0), 0) : null;
-  const capCang = capCangTinh ?? (+cfg.capCang || 0), capBai = capBaiTinh ?? (+cfg.capBai || 0);
+  // Đội khác Xúc đào không chia cảng / bãi: một con số xe chung của đội (xe sẵn sàng của đội, hoặc nhập tay; dữ liệu cũ thì cộng cảng + bãi cũ)
+  const chung = !goc;
+  const capChung = chung ? (tinh.tong === "ss" ? ssDoi.length : (+cfg.capCang || 0) + (+cfg.capBai || 0)) : null;
+  const capCang = chung ? capChung : capCangTinh ?? (+cfg.capCang || 0), capBai = chung ? 0 : capBaiTinh ?? (+cfg.capBai || 0);
   // Xe tổ cảng cũng nằm trong phần "còn lại" của bãi = bị tính hai lần
   const trung = tinh.cang?.length && tinh.bai ? ssDoi.filter((v) => tinh.cang.includes(v.to_xe) && theoLoai(tinh.bai)(v)).length : 0;
   // Số xe của từng tàu CHỈ do người lập kế hoạch nhập ở cột "Số xe" của Timeline (dòng plan_jobs "xe_lt:<mã chuyến>"); không lấy từ phiếu chuyến / phương án
@@ -37,7 +40,7 @@ export function tinhDaiHan(D, LD, pp, doi) {
   // Việc tàu nhập tay đời cũ bị bỏ (tàu lấy từ Linetime); việc Cảng nhập tay bằng nút "Thêm việc cảng" thì giữ
   const jobs = [...tauLT, ...baiLT, ...D.plan.jobs.filter((j) => (j.loai !== "tau" || laViecCangTay(j)) && !laDongSoXeBai(j))];
   const R = calc12(withCap(luoiTuDong(pp, LD?.now ?? Date.now()), doi, capCang, capBai), jobs, doi);
-  return { cfg, goc, phanBo, tinh, ssDoi, capCang, capBai, trung, R };
+  return { cfg, goc, chung, phanBo, tinh, ssDoi, capCang, capBai, trung, R };
 }
 
 export default function LongTerm() {
@@ -52,14 +55,23 @@ export default function LongTerm() {
   // Tàu lấy tự động từ Linetime (phương án đã duyệt, chưa duyệt thì phiếu chuyến › Bãi & Thiết bị); việc Cảng / bãi khác nhập tay
   const lg = useLogistics();
   const LD = lg?.D;
-  const { cfg, goc, tinh, ssDoi, capCang, capBai, trung, R } = useMemo(() => tinhDaiHan(D, LD, pp, doi), [D, LD, pp, doi]);
+  const { cfg, goc, chung, tinh, ssDoi, capCang, capBai, trung, R } = useMemo(() => tinhDaiHan(D, LD, pp, doi), [D, LD, pp, doi]);
   const setTinh = (k, v) => setPp((o) => ({ ...o, capTinh: { ...(o.capTinh || {}), [doi]: { ...capTinhOf(o, doi), [k]: v } } }));
   const toCuaDoi = D.toList.filter((t) => D.vehicles.some((v) => v.doi === doi && v.to_xe === t));
-  const luuBar = dirty && <>
-    <span className="small warn">{isAdmin ? "Có thay đổi chưa lưu" : "Đang xem thử, không lưu được (chỉ quản trị)"}</span>
-    <button className="btn sm ghost" onClick={() => setPp(clone(saved))}><RotateCcw size={14} />Hoàn tác</button>
-    {isAdmin && <button className="btn sm pri" onClick={() => run(() => api.savePlanParams("dai_han", pp), "Đã lưu tham số")}><Save size={14} />Lưu tham số</button>}
-  </>;
+  // Tham số TỰ LƯU (anh Sỹ 22/11/2026): quản trị sửa xong, đợi ~1 giây không gõ nữa thì ghi; không còn nút Lưu. Vai trò khác chỉ xem thử (không ghi được).
+  const [luuTT, setLuuTT] = useState(""); // "" | "xong" | "loi"
+  const ppRef = useRef(pp); ppRef.current = pp;
+  useEffect(() => {
+    if (!dirty || !isAdmin) return undefined;
+    const h = setTimeout(async () => { const ok = await run(() => api.savePlanParams("dai_han", ppRef.current)); setLuuTT(ok ? "xong" : "loi"); }, 900);
+    return () => clearTimeout(h);
+  }, [pp, dirty, isAdmin]); // eslint-disable-line react-hooks/exhaustive-deps
+  const luuBar = isAdmin
+    ? (dirty ? <span className={"small " + (luuTT === "loi" ? "bad" : "mute")}>{luuTT === "loi" ? "Chưa lưu được (sửa tiếp để thử lại)" : "Đang tự lưu…"}</span> : luuTT === "xong" ? <span className="small ok">Đã tự lưu</span> : null)
+    : dirty && <>
+      <span className="small warn">Đang xem thử, không lưu được (chỉ quản trị)</span>
+      <button className="btn sm ghost" onClick={() => setPp(clone(saved))}><RotateCcw size={14} />Hoàn tác</button>
+    </>;
   const setP = (k, v) => setPp((o) => ({ ...o, p: { ...o.p, [k]: v } }));
   // Sửa cấu hình của đội đang chọn (đội gốc lưu ở p / prod như cũ, đội khác lưu trong doi[tên đội])
   const setCfg = (k, v) => setPp((o) => {
@@ -84,7 +96,8 @@ export default function LongTerm() {
         <span className={"small " + (R.kpi.caTHIEU ? "bad" : "ok")} style={{ marginLeft: "auto", fontWeight: 600 }}>Số ca thiếu xe: {R.kpi.caTHIEU} / {pp.p.nShifts} ca</span>
       </div>
 
-      <Card className="mb" title={`Tham số · ${doi}`} icon={SlidersHorizontal} right={luuBar}>
+      <div className="dh-hang">
+      <Card title={`Tham số · ${doi}`} icon={SlidersHorizontal} right={luuBar}>
         <div className="grid g-2">
           <div>
             <div className="sec-t">Thời gian & ca</div>
@@ -97,22 +110,36 @@ export default function LongTerm() {
             <div className="small mute" style={{ marginTop: 4 }}>N = ca ngày từ {pad(pp.p.gioN)}h, Đ = ca đêm từ {pad((pp.p.gioN + pp.p.caLen) % 24)}h, mỗi ca {pp.p.caLen}h.</div>
           </div>
           <div>
-            <div className="sec-t">Xe dành cho cảng / bãi · hệ số ca</div>
+            <div className="sec-t">{chung ? "Xe của đội · hệ số ca" : "Xe dành cho cảng / bãi · hệ số ca"}</div>
             <div className="form-grid" style={{ gridTemplateColumns: "minmax(0, 1fr)", gap: 8 }}>
-              <Field label="Xe dành cho cảng">
-                <span className="row cap-row">
-                  <Select className="inp sm" value={tinh.cang?.length ? "to" : "tay"} onChange={(m) => setTinh("cang", m === "to" ? (toCuaDoi.includes("Tổ PVC") ? ["Tổ PVC"] : toCuaDoi.slice(0, 1)) : [])} options={[["to", "Xe sẵn sàng của tổ"], ["tay", "Nhập tay"]]} style={{ width: 150 }} aria-label="Cách tính xe cảng" />
-                  {tinh.cang?.length ? <><MultiSelect prefix="Tổ" value={tinh.cang} onChange={(v) => setTinh("cang", v.length ? v : tinh.cang)} options={toCuaDoi} style={{ width: 150 }} /><b className="mono cap-v">= {capCang}</b></>
-                    : numIn(cfg.capCang, (v) => setCfg("capCang", v ?? 0))}
-                </span>
-              </Field>
-              <Field label="Xe dành cho bãi">
-                <span className="row cap-row">
-                  <Select className="inp sm" value={tinh.bai ? "con_lai" : "tay"} onChange={(m) => setTinh("bai", m === "con_lai" ? (goc ? "Bánh xích" : "Tất cả") : null)} options={[["con_lai", "Xe sẵn sàng còn lại"], ["tay", "Nhập tay"]]} style={{ width: 150 }} aria-label="Cách tính xe bãi" />
-                  {tinh.bai ? <>{goc && <Select className="inp sm" value={tinh.bai} onChange={(v) => setTinh("bai", v)} options={[...LOAI_XD, "Tất cả"]} style={{ width: 110 }} aria-label="Loại xe" />}<b className="mono cap-v">= {capBai}</b></>
-                    : numIn(cfg.capBai, (v) => setCfg("capBai", v ?? 0))}
-                </span>
-              </Field>
+              {chung ? (
+                /* Đội khác Xúc đào: không chia cảng / bãi, một con số xe chung (anh Sỹ 22/11/2026) */
+                <Field label="Xe của đội (dùng chung cho cảng và bãi)">
+                  <span className="row cap-row">
+                    <Select className="inp sm" value={tinh.tong === "ss" ? "ss" : "tay"} onChange={(m) => setTinh("tong", m === "ss" ? "ss" : "tay")} options={[["ss", "Xe sẵn sàng của đội"], ["tay", "Nhập tay"]]} style={{ width: 170 }} aria-label="Cách tính xe của đội" />
+                    {tinh.tong === "ss" ? <b className="mono cap-v">= {capCang}</b>
+                      : numIn(capCang, (v) => { setCfg("capCang", v ?? 0); setCfg("capBai", 0); })}
+                  </span>
+                </Field>
+              ) : (
+                /* Xúc đào: xe cảng và xe bãi cùng một dòng */
+                <div className="row" style={{ gap: "8px 24px", flexWrap: "wrap", alignItems: "flex-start" }}>
+                  <Field label="Xe dành cho cảng">
+                    <span className="row cap-row">
+                      <Select className="inp sm" value={tinh.cang?.length ? "to" : "tay"} onChange={(m) => setTinh("cang", m === "to" ? (toCuaDoi.includes("Tổ PVC") ? ["Tổ PVC"] : toCuaDoi.slice(0, 1)) : [])} options={[["to", "Xe sẵn sàng của tổ"], ["tay", "Nhập tay"]]} style={{ width: 150 }} aria-label="Cách tính xe cảng" />
+                      {tinh.cang?.length ? <><MultiSelect prefix="Tổ" value={tinh.cang} onChange={(v) => setTinh("cang", v.length ? v : tinh.cang)} options={toCuaDoi} style={{ width: 150 }} /><b className="mono cap-v">= {capCang}</b></>
+                        : numIn(cfg.capCang, (v) => setCfg("capCang", v ?? 0))}
+                    </span>
+                  </Field>
+                  <Field label="Xe dành cho bãi">
+                    <span className="row cap-row">
+                      <Select className="inp sm" value={tinh.bai ? "con_lai" : "tay"} onChange={(m) => setTinh("bai", m === "con_lai" ? "Bánh xích" : null)} options={[["con_lai", "Xe sẵn sàng còn lại"], ["tay", "Nhập tay"]]} style={{ width: 150 }} aria-label="Cách tính xe bãi" />
+                      {tinh.bai ? <><Select className="inp sm" value={tinh.bai} onChange={(v) => setTinh("bai", v)} options={[...LOAI_XD, "Tất cả"]} style={{ width: 110 }} aria-label="Loại xe" /><b className="mono cap-v">= {capBai}</b></>
+                        : numIn(cfg.capBai, (v) => setCfg("capBai", v ?? 0))}
+                    </span>
+                  </Field>
+                </div>
+              )}
               <Field label="Hệ số ca (chỉ một số đội xe dùng)">
                 <span className="row cap-row">
                   <label className="row" style={{ gap: 6, cursor: "pointer" }}><input type="checkbox" checked={cfg.heSo !== false} onChange={(e) => setCfg("heSo", e.target.checked)} /><span>Áp dụng</span></label>
@@ -124,14 +151,15 @@ export default function LongTerm() {
                 </span>
               </Field>
             </div>
-            <div className="small mute" style={{ marginTop: 4 }}>Cảng + bãi = {capCang + capBai} xe ({xeSS} sẵn sàng){cfg.heSo === false ? "; không áp dụng hệ số ca (mọi ca 100% số xe)" : ""}.{trung > 0 && <span className="warn"> {trung} xe của {tinh.cang.join(", ")} bị tính cả cảng và bãi.</span>}</div>
+            <div className="small mute" style={{ marginTop: 4 }}>{chung ? `Xe của đội = ${capCang} xe` : `Cảng + bãi = ${capCang + capBai} xe`} ({xeSS} sẵn sàng){cfg.heSo === false ? "; không áp dụng hệ số ca (mọi ca 100% số xe)" : ""}.{trung > 0 && <span className="warn"> {trung} xe của {tinh.cang.join(", ")} bị tính cả cảng và bãi.</span>}</div>
           </div>
         </div>
       </Card>
 
-      <Card className="mb" title="Thừa / thiếu xe theo ca" icon={BarChart3} hint={`Đội ${doi}: xe có − xe cần trong từng ca. Cột dưới trục (màu đỏ) là thiếu xe; vùng tô xanh là ca đang diễn ra. Kéo ngang để xem hết.`}>
+      <Card title="Thừa / thiếu xe theo ca" icon={BarChart3} hint={`Đội ${doi}: xe có − xe cần trong từng ca. Điểm dưới trục (chấm đỏ) là thiếu xe; vùng tô xanh là ca đang diễn ra. Kéo ngang để xem hết.`}>
         <BalanceChart R={R} />
       </Card>
+      </div>
 
       <Card className="mb" title="Timeline theo ca" icon={GanttChart} hint={`Cảng: tàu theo bến như Linetime, nhập số xe ${doi} ngay trên thanh tàu. Bãi: việc bãi theo ca, thêm trực tiếp bằng nút Thêm việc bãi.`}>
         <TimelineCa R={R} doi={doi} onJob={(o) => (o.phieu != null ? lg?.setVoyageMo?.(o.phieu) : setDlg(o))} />
@@ -183,10 +211,27 @@ export function NangLucDapUng() {
 
 // Biểu đồ thừa / thiếu xe theo ca. Trục ngang ghi ngày + ca giống tiêu đề timeline ("14/10" / "N 08h").
 function BalanceChart({ R }) {
-  const P = usePalette();
-  const { shifts, capCang, capBai } = R;
+  const P0 = usePalette();
+  const P = { ...P0, info: "#3b82f6" }; // đường Cảng: xanh dương (khác màu tím của đường Chung)
+  const { shifts, capCang, capBai, chung } = R;
   const data = shifts.map((s, i) => ({ i, d: fmtD(s.st), ca: `${s.lab} ${pad(s.st.getHours())}h`, lab: s.lab, now: s.now, st: s.st, cang: s.balCang, bai: s.balBai, chung: s.balChung, tt: s.tt, cauCang: s.cang, cauBai: s.bai }));
-  const colW = 46, w = Math.max(640, shifts.length * colW + 50);
+  // Toàn màn hình: biểu đồ cao hết phần còn lại của khối và rộng bằng khung (xem EChart: sự kiện "tmh-doi" báo bật / tắt)
+  const hop = useRef(null);
+  const [dim, setDim] = useState({ h: null, w: 0 });
+  const bo = () => {
+    const el = hop.current; if (!el) return;
+    const goc = el.closest("[data-tmh]"), w = el.clientWidth; let h = null;
+    if (goc) { const top = el.getBoundingClientRect().top - goc.getBoundingClientRect().top + goc.scrollTop; h = Math.max(200, Math.floor(goc.clientHeight - top - (parseFloat(getComputedStyle(goc).paddingBottom) || 0) - 28)); }
+    setDim((o) => (o.h === h && Math.abs(o.w - w) < 2 ? o : { h, w }));
+  };
+  useLayoutEffect(() => { bo(); });
+  useEffect(() => {
+    const lai = () => requestAnimationFrame(bo);
+    window.addEventListener("tmh-doi", lai); window.addEventListener("resize", lai);
+    return () => { window.removeEventListener("tmh-doi", lai); window.removeEventListener("resize", lai); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const fs = dim.h != null;
+  const colW = 46, w = Math.max(640, shifts.length * colW + 50, fs ? dim.w : 0);
   const Tick = ({ x, y, payload }) => {
     const s = data[payload.value]; if (!s) return null;
     const c = s.now ? P.accent : s.lab === "N" ? P.ink2 : P.mute;
@@ -196,30 +241,34 @@ function BalanceChart({ R }) {
     if (!active || !payload?.length) return null; const s = payload[0].payload;
     const r = (n, v, c, sub) => <div className="r" key={n}><span><i style={{ background: c }} />{n}{sub && <span className="mute"> {sub}</span>}</span><b className={"mono " + (v < 0 ? "bad" : "")}>{v > 0 ? "+" : ""}{v}</b></div>;
     return <div className="tip"><div className="h">{fmtDT(s.st)} · {s.lab === "N" ? "CA 1 (ngày)" : "CA 2 (đêm)"}{s.now ? " · đang diễn ra" : ""}</div>
-      {r("Cảng", s.cang, P.info, `(có ${capCang}, cần ${s.cauCang})`)}{r("Bãi", s.bai, P.warn, `(có ${capBai}, cần ${s.cauBai})`)}{r("Chung", s.chung, P.accent)}
+      {chung ? r("Chung", s.chung, P.accent, `(có ${capCang}, cần ${s.cauCang + s.cauBai})`) : <>{r("Cảng", s.cang, P.info, `(có ${capCang}, cần ${s.cauCang})`)}{r("Bãi", s.bai, P.warn, `(có ${capBai}, cần ${s.cauBai})`)}{r("Chung", s.chung, P.accent)}</>}
       <div className="r" style={{ marginTop: 4 }}><span>Tình trạng</span><b className={s.tt === "OK" ? "ok" : s.tt === "THIẾU" ? "bad" : "warn"}>{s.tt}</b></div></div>;
   };
   const nowI = data.findIndex((s) => s.now);
+  // Trục tung chia vạch cách nhau 5 xe (anh Sỹ 22/11/2026): làm tròn biên ra bội số của 5, luôn có vạch 0
+  const giaTri = data.flatMap((s) => (chung ? [s.chung] : [s.cang, s.bai, s.chung])).filter((x) => Number.isFinite(x));
+  const yMin = Math.min(0, Math.floor(Math.min(0, ...giaTri) / 5) * 5), yMax = Math.max(5, Math.ceil(Math.max(0, ...giaTri) / 5) * 5);
+  const yTicks = Array.from({ length: (yMax - yMin) / 5 + 1 }, (_, k) => yMin + k * 5);
   return (
     <>
       <div className="legend mb">
-        <span><i style={{ background: P.info }} />Cảng (có − cần)</span><span><i style={{ background: P.warn }} />Bãi (có − cần)</span>
-        <span><i style={{ background: P.bad }} />Cột đỏ: thiếu xe</span><span><i style={{ background: P.accent, height: 2 }} />Chung (cảng + bãi)</span>
+        {!chung && <><span><i style={{ background: P.info }} />Cảng (có − cần)</span><span><i style={{ background: P.warn }} />Bãi (có − cần)</span></>}
+        <span><i style={{ background: P.bad }} />Chấm đỏ: thiếu xe</span><span><i style={{ background: P.accent, height: 2 }} />{chung ? "Xe của đội (có − cần)" : "Chung (cảng + bãi)"}</span>
       </div>
-      <div style={{ overflowX: "auto" }}>
-        <ComposedChart width={w} height={260} data={data} margin={{ top: 10, right: 10, bottom: 22, left: 0 }} barGap={1} barCategoryGap={5}>
+      <div ref={hop} style={{ overflowX: "auto" }}>
+        <ComposedChart width={w} height={fs ? Math.max(260, dim.h) : Math.min(440, Math.max(260, yTicks.length * 15 + 70))} data={data} margin={{ top: 10, right: 10, bottom: 22, left: 0 }}>
           <CartesianGrid stroke={P.line} vertical={false} />
           {nowI >= 0 && <ReferenceArea x1={nowI} x2={nowI} fill={P.accent} fillOpacity={0.12} stroke={P.accent} strokeOpacity={0.6} />}
           <XAxis dataKey="i" tick={<Tick />} interval={0} axisLine={false} tickLine={false} height={34} />
-          <YAxis tick={{ fill: P.mute, fontSize: 11 }} axisLine={false} tickLine={false} width={34} allowDecimals={false} />
+          <YAxis tick={{ fill: P.mute, fontSize: 11 }} axisLine={false} tickLine={false} width={34} allowDecimals={false} domain={[yMin, yMax]} ticks={yTicks} interval={0} />
           <ReferenceLine y={0} stroke={P.mute} />
-          <Tooltip cursor={{ fill: P.raise, opacity: 0.5 }} content={<Tip />} />
-          {[["cang", P.info], ["bai", P.warn]].map(([k, c]) => (
-            <Bar key={k} dataKey={k} isAnimationActive={false} radius={[2, 2, 2, 2]} maxBarSize={16}>
-              {data.map((s) => <Cell key={s.i} fill={s[k] < 0 ? P.bad : c} />)}
-            </Bar>
+          <Tooltip cursor={{ stroke: P.mute, strokeOpacity: 0.5 }} content={<Tip />} />
+          {/* Đường cảng, bãi, chung; điểm nào thiếu xe (dưới 0) vẽ chấm đỏ */}
+          {(chung ? [["chung", P.accent, 2.25]] : [["cang", P.info, 1.75], ["bai", P.warn, 1.75], ["chung", P.accent, 2.25]]).map(([k, c, sw]) => (
+            <Line key={k} dataKey={k} type="monotone" stroke={c} strokeWidth={sw} isAnimationActive={false}
+              dot={({ cx, cy, payload, index }) => (payload[k] < 0 ? <circle key={`${k}${index}`} cx={cx} cy={cy} r={3.5} fill={P.bad} stroke="none" /> : <g key={`${k}${index}`} />)}
+              activeDot={{ r: 4 }} />
           ))}
-          <Line dataKey="chung" type="monotone" stroke={P.accent} strokeWidth={1.5} dot={false} isAnimationActive={false} />
         </ComposedChart>
       </div>
     </>

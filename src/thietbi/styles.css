@@ -626,3 +626,11 @@ button.dd-it:hover { border-color: var(--accent); }
   .topbar, .tabsbar, .toasts { display: none !important; }
   body { background: #fff; }
 }
+
+/* Thanh công cụ Timeline theo ca: ô lọc cao như Kế hoạch sản lượng theo ngày (h-7, chữ nhỏ) */
+.tl-bar .msel-btn { height: 28px; padding-top: 0; padding-bottom: 0; font-size: 0.75rem; }
+
+/* Kế hoạch dài hạn: khối Tham số và Thừa / thiếu xe theo ca nằm ngang hàng (màn hình rộng), xếp dọc khi hẹp */
+.dh-hang { display: grid; gap: 14px; margin-bottom: 14px; grid-template-columns: minmax(0, 1fr); align-items: stretch; }
+.dh-hang > .card { margin-bottom: 0; min-width: 0; }
+@media (min-width: 1100px) { .dh-hang { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
