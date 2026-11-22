@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { useApp } from "@/store";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { NativeSelect } from "@/components/ui/input";
-import EChart from "@/components/EChart";
+import EChart, { tooltipGon } from "@/components/EChart";
 import { so, pct, r2, plain } from "@/lib/format";
 import { khuCuaKeHoach, ngayStr, khaiBaoBai, khoaTenBai } from "@/lib/kho";
 import { chuoiKho } from "@/lib/bieuDoKho";
@@ -123,7 +123,7 @@ export function NhapXuatKeHoach({ kho, loai, dsBai }) {
         {c ? (
           <>
             <EChart height={260} option={{
-              tooltip: { trigger: "axis", valueFormatter: (v) => (v == null ? "—" : `${so(v)} t`) },
+              tooltip: tooltipGon(10),
               legend: { itemWidth: 12, itemHeight: 6, textStyle: { fontSize: 10 } },
               xAxis: { type: "category", data: c.diem.map((o) => o.nhan), axisLabel: { fontSize: 10, hideOverlap: true } }, yAxis: { type: "value", axisLabel: { fontSize: 10 } },
               series: [
@@ -236,7 +236,7 @@ export function DuBaoTonKho({ loai, kho }) {
         </CardHeader>
         <CardContent className="grid gap-2">
           {hien.length ? <EChart height={340} option={{
-            tooltip: { trigger: "axis", valueFormatter: (v) => `${so(v)} t` },
+            tooltip: tooltipGon(10),
             legend: { type: "scroll" },
             xAxis: { type: "category", boundaryGap: false, data: duBao.ngays.map(nhanNgay), axisLabel: { fontSize: 10 } },
             yAxis: { type: "value", axisLabel: { fontSize: 10 } },

@@ -1,3 +1,4 @@
+import { useThoatMuot } from "../khung/dongTac";
 import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, AlertTriangle, Info, XCircle } from "lucide-react";
 import { useApp } from "@/store";
@@ -9,14 +10,17 @@ import { pct } from "@/lib/format";
 
 export function Toasts() {
   const { toasts } = useApp();
+  const ds = useThoatMuot(toasts, (t) => t.id, 220);
   const I = { ok: CheckCircle2, bad: XCircle, warn: AlertTriangle, info: Info };
   return (
     <div className="pointer-events-none fixed bottom-4 right-4 z-[100] flex w-[min(420px,calc(100vw-32px))] flex-col gap-2" role="status" aria-live="polite">
-      {toasts.map((t) => { const Ic = I[t.tone] || Info; return (
-        <div key={t.id} className={cn("pointer-events-auto flex items-start gap-2 rounded-lg border bg-popover px-3 py-2.5 text-sm shadow-lg animate-in fade-in-0 slide-in-from-bottom-2",
-          t.tone === "bad" && "border-bad/50", t.tone === "warn" && "border-warn/50")}>
+      {ds.map(({ x: t, thoat }) => { const Ic = I[t.tone] || Info; return (
+        <div key={t.id} style={{ "--ms": `${t.tone === "bad" ? 6500 : 3800}ms` }}
+          className={cn("toast-tin pointer-events-auto relative flex items-start gap-2 overflow-hidden rounded-lg border bg-popover px-3 py-2.5 text-sm shadow-lg", thoat && "toast-thoat",
+            t.tone === "bad" && "border-bad/50", t.tone === "warn" && "border-warn/50")}>
           <Ic className={cn("mt-0.5 h-4 w-4 shrink-0", t.tone === "bad" ? "text-bad" : t.tone === "warn" ? "text-warn" : "text-ok")} />
           <span>{t.msg}</span>
+          <span className={cn("toast-dem", t.tone === "bad" ? "text-bad" : t.tone === "warn" ? "text-warn" : "text-ok")} aria-hidden="true" />
         </div>); })}
     </div>
   );

@@ -3,7 +3,7 @@ import { Boxes, ChevronDown, LineChart, BarChart3, Hourglass } from "lucide-reac
 import { useApp } from "@/store";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import EChart from "@/components/EChart";
+import EChart, { tooltipGon } from "@/components/EChart";
 import { so, pct, r2, ngayNam } from "@/lib/format";
 import { chuoiTonLoaiHang } from "@/lib/bieuDoKho";
 import { duBaoDay, tonTheoLoaiHang, duBaoTonDiem } from "@/lib/tonLoaiHang";
@@ -150,7 +150,7 @@ export function DienBienTonBD({ kho, loai, nhomOf = TEN_HANG, theo = "hang", cao
         {c ? (c.ds.length ? (
           <>
             <EChart height={cao} option={{
-              tooltip: { trigger: "axis", valueFormatter: (v) => (v == null ? "—" : `${so(v)} t`) },
+              tooltip: tooltipGon(10),
               legend: { type: "scroll", data: hien.map((x) => x.ten), itemWidth: 12, itemHeight: 6, textStyle: { fontSize: 10 } },
               grid: { left: 4, right: 12, top: 36, bottom: 0, containLabel: true },
               xAxis: { type: "category", boundaryGap: false, data: c.diem.map((o) => o.nhan), axisLabel: { fontSize: 10, hideOverlap: true } },

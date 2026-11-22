@@ -1,4 +1,4 @@
-import { Fragment, useContext, useMemo, useState } from "react";
+import { Fragment, useContext, useMemo, useRef, useState } from "react";
 import { PhongToCtx } from "@/components/EChart";
 import { useApp } from "@/store";
 import { trangThai, laUoc, chiSo, TRANG_THAI, TRANG_THAI_HIEN } from "@/lib/linetime";
@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { docSo } from "@/lib/format";
 import { tenBen, noiHaiBen } from "./BangTauBen";
 import { viTriChu } from "@/lib/tenBen";
-import { TheTau, SNAP, THU, KEO_DUOC } from "./Gantt";
+import { TheTau, SNAP, THU, KEO_DUOC, useBeRong, pxVuaKhung, nhanNgay, cotNgayProps } from "./Gantt";
 import { choBatDau, kieuCho, PhanChoHang, ChuThichCho } from "./doanCho";
 import { MAU_CHO } from "@/lib/linetime";
 
@@ -24,13 +24,16 @@ const CO = {
   gon: { mPx: 0.18, label: 80, head: 30, pad: 4, chu: "text-[0.6875rem]" },
 };
 
-export default function GanttMet({ voyages, tu, soNgay, pxNgay, che = "ben", gon = false, maxH: maxHGoc = "70vh" }) {
+export default function GanttMet({ voyages, tu, soNgay, pxNgay: pxGoc, che = "ben", gon = false, maxH: maxHGoc = "70vh" }) {
   const phongTo = useContext(PhongToCtx), maxH = phongTo ? "calc(100dvh - 150px)" : maxHGoc; // khung Tổng quan phóng to: lịch cao hết màn hình
   const K = gon ? CO.gon : CO.thuong, LABEL = K.label;
   const { D, quyen, run, api, setVoyageMo, toast } = useApp();
   const [keo, setKeo] = useState(null); // { it, x0, y0, dx, dy, moved }
   const [gian, setGian] = useState(null); // kéo giãn mép trái / phải thanh tàu: { it, canh: "trai" | "phai", x0, dx, moved }
   const [tro, setTro] = useState(null);
+  const khung = useRef();
+  const rongKhung = useBeRong(khung);
+  const pxNgay = pxGoc === "vua" ? pxVuaKhung(rongKhung, LABEL, soNgay) : pxGoc;
   const den = tu + soNgay * DAY, W = soNgay * pxNgay;
   const xOf = (t) => ((t - tu) / DAY) * pxNgay;
   const coSua = quyen.nhap && D.coSql28;
@@ -142,13 +145,13 @@ export default function GanttMet({ voyages, tu, soNgay, pxNgay, che = "ben", gon
   const dang = keo?.moved ? tinh(keo) : null;
   return (
     <>
-      <div className="scroll-x relative rounded-md border" style={{ maxHeight: maxH }}>
+      <div ref={khung} className="scroll-x relative rounded-md border" style={{ maxHeight: maxH }}>
         <div style={{ width: LABEL + W }} className="relative select-none">
           <div className="sticky top-0 z-20 flex border-b bg-card" style={{ height: K.head }}>
             <div className={cn("sticky left-0 z-30 border-r bg-card px-2 py-1 font-semibold text-muted-foreground", K.chu)} style={{ width: LABEL, minWidth: LABEL }}>Tuyến · mét</div>
-            {ngayDs.map((t) => { const d = new Date(t); return (
-              <div key={t} className={cn("shrink-0 border-r text-center leading-tight", K.chu, d.getDay() === 0 && "bg-muted/60")} style={{ width: pxNgay }}>
-                <div className={cn("font-semibold tabular-nums", gon ? "pt-0.5" : "pt-1")}>{pad(d.getDate())}/{pad(d.getMonth() + 1)}</div><div className="text-muted-foreground">{THU[d.getDay()]}</div>
+            {ngayDs.map((t, i) => { const d = new Date(t), [l1, l2] = nhanNgay(d, pxNgay, i === 0, i); return (
+              <div key={t} {...cotNgayProps(d, pxNgay, i === 0)} className={cn("shrink-0 whitespace-nowrap border-r text-center leading-tight", pxNgay < 24 && (i === 0 || d.getDate() === 1) ? "relative z-[1] overflow-visible" : "overflow-hidden", K.chu, d.getDay() === 0 && "bg-muted/60", pxNgay < 50 && d.getDate() === 1 && "border-l border-l-foreground/40")}>
+                <div className={cn("font-semibold tabular-nums", gon ? "pt-0.5" : "pt-1")}>{l1}</div><div className="min-h-[1em] text-muted-foreground">{l2}</div>
               </div>); })}
           </div>
           <div className="relative" style={{ height: cao }} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={() => { setKeo(null); setGian(null); }}>

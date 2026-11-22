@@ -1,3 +1,4 @@
+import { ThanhTienDo } from "../../khung/dongTac";
 import { cn } from "@/lib/utils";
 import { so, pct, ngayNam } from "@/lib/format";
 import { NGUONG_KHO } from "@/lib/kho";
@@ -10,7 +11,7 @@ export const mauDay = (p) => (p == null ? "bg-muted-foreground/40" : p > 1.0001 
 export const KIEU_TONE = { co_dinh_hang: "info", co_dinh_nhom: "primary", tu_do: "ok", hon_hop: "outline" };
 export const KIEU_NGAN = { co_dinh_hang: "Cố định", co_dinh_nhom: "Nhóm", tu_do: "Tự do" };
 export const Chi = ({ ten, title, children, className }) => <div title={title} className={cn("flex justify-between gap-2", className)}><span className="text-muted-foreground">{ten}</span><span className="text-right tabular-nums">{children}</span></div>;
-export const Thanh = ({ p, className }) => <div className={cn("h-2.5 overflow-hidden rounded-full bg-muted", className)}><div className={cn("h-full", mauDay(p))} style={{ width: `${Math.min(100, (p ?? 0) * 100)}%` }} /></div>;
+export const Thanh = ({ p, className }) => <ThanhTienDo p={p ?? 0} className={className} mau={mauDay(p)} />;
 export const NgayDay = ({ l }) => (!l ? "—" : l.trangThaiDay === "da_day" ? <span className="font-semibold text-bad">Đã đầy</span>
   : l.trangThaiDay === "tang" ? <span className={cn(l.ngayDay < NGUONG_KHO.ngayDayVang && "font-semibold text-warn")}>{ngayNam(l.luc)} · {l.ngayDay < 1 ? "dưới 1" : so(l.ngayDay, l.ngayDay < 10 ? 1 : 0)} ngày</span>
   : l.trangThaiDay ? <span className="text-muted-foreground">Không ({l.trangThaiDay === "giam" ? "tồn đang giảm" : "nhập ≈ xuất"})</span>

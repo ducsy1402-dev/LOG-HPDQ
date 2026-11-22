@@ -21,7 +21,7 @@ export function Dialog({ open = true, onOpenChange, title, description, children
       <D.Portal>
         <D.Content
           data-tmh="" data-hop=""
-          className="fixed inset-0 z-50 flex flex-col bg-background focus:outline-none data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-bottom-2 data-[state=open]:duration-200">
+          className="fixed inset-0 z-50 flex flex-col bg-background focus:outline-none data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-bottom-2 data-[state=open]:duration-200 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-bottom-2 data-[state=closed]:duration-150">
           <div className="flex shrink-0 items-center gap-2 border-b bg-card px-2 py-1.5 sm:px-3">
             <D.Close className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-foreground transition-colors hover:bg-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring" aria-label="Quay lại" data-tip="Quay lại (Esc)">
               <ArrowLeft className="h-5 w-5" />

@@ -127,14 +127,39 @@ export default function EChart({ option, height = 260, onClick }) {
     const lanDau = !daVe.current; daVe.current = true; // hiệu ứng vẽ chỉ chạy lần đầu hiện ra; đổi số liệu / bộ lọc về sau cập nhật ngay, không vẽ lại từ đầu
     chart.current?.setOption({
       animation: lanDau,
+      ...(lanDau ? { animationDuration: 800, animationEasing: "cubicOut", animationDelay: (i) => Math.min(i, 40) * 14, animationDurationUpdate: 400 } : {}),
       textStyle: { fontFamily: "Inter Variable, Be Vietnam Pro, system-ui, sans-serif", color: chu },
       ...op,
       grid: top != null ? { ...grid, top } : grid,
       legend,
-      tooltip: { trigger: "axis", backgroundColor: dark ? "#1c2029" : "#fff", borderColor: dark ? "rgba(255,255,255,.1)" : "rgba(16,24,40,.1)", borderWidth: 1, padding: [8, 12], extraCssText: "border-radius:10px;box-shadow:0 8px 24px rgba(16,24,40,.18);", textStyle: { color: dark ? "#e6e9ef" : "#1d2433", fontSize: 12 }, axisPointer: { lineStyle: { color: truc0 }, shadowStyle: { color: dark ? "rgba(255,255,255,.04)" : "rgba(16,24,40,.04)" } }, valueFormatter: (v) => (typeof v === "number" ? so(v) : v), appendToBody: true, ...option.tooltip }, // appendToBody: hộp chú thích nổi trên cùng, không bị khung cuộn / khung cố định cắt hay đè
+      tooltip: { trigger: "axis", backgroundColor: dark ? "#1c2029" : "#fff", borderColor: dark ? "rgba(255,255,255,.1)" : "rgba(16,24,40,.1)", borderWidth: 1, padding: [8, 12], extraCssText: "border-radius:10px;box-shadow:0 8px 24px rgba(16,24,40,.18);", textStyle: { color: dark ? "#e6e9ef" : "#1d2433", fontSize: 12 }, axisPointer: { lineStyle: { color: truc0 }, shadowStyle: { color: dark ? "rgba(255,255,255,.04)" : "rgba(16,24,40,.04)" } }, valueFormatter: (v) => (typeof v === "number" ? so(v) : v), appendToBody: true, confine: true, ...option.tooltip }, // appendToBody: hộp chú thích nổi trên cùng, không bị khung cuộn / khung cố định cắt hay đè
       xAxis: truc(option.xAxis),
       yAxis: truc(option.yAxis),
     }, true);
   }, [option, theme]);
-  return <div ref={el} data-echart="" style={{ height: vua != null ? Math.max(height, vua) : to ? `max(${height}px, calc(100dvh - 190px))` : height, width: "100%" }} />;
+  return <div ref={el} data-echart="" className="bd-vao" style={{ height: vua != null ? Math.max(height, vua) : to ? `max(${height}px, calc(100dvh - 190px))` : height, width: "100%" }} />;
 }
+
+// Tooltip cho biểu đồ nhiều đường (hàng chục hàng + đường dự báo): chỉ liệt kê các đường CÓ số tại điểm đang trỏ, lớn → nhỏ, tối đa gioiHan dòng,
+// phần còn lại gộp "+ n khác"; đường "<tên> · dự báo" gộp vào đường thực tế cùng tên (điểm chưa có thực tế thì hiện số dự báo, kèm chữ "dự báo").
+const thoat = (t) => String(t ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+export const tooltipGon = (gioiHan = 10, dv = "t") => ({
+  trigger: "axis",
+  formatter: (ps) => {
+    const ds = Array.isArray(ps) ? ps : [ps];
+    const dong = new Map();
+    for (const p of ds) {
+      const du = / · dự báo$/.test(p.seriesName), ten = p.seriesName.replace(/ · dự báo$/, "");
+      const v = Array.isArray(p.value) ? p.value[1] : p.value;
+      if (v == null || v === "" || Number.isNaN(+v)) continue;
+      if (!dong.has(ten) || !du) dong.set(ten, { ten, v: +v, mau: p.color, du });
+    }
+    const ls = [...dong.values()].sort((a, b) => b.v - a.v);
+    const hien = ls.slice(0, gioiHan), con = ls.slice(gioiHan);
+    const dot = (m) => `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:${m}"></span>`;
+    let h = `<div style="font-weight:600;margin-bottom:4px">${thoat(ds[0]?.axisValueLabel ?? ds[0]?.name)}</div>`;
+    for (const x of hien) h += `<div style="display:flex;justify-content:space-between;gap:18px;line-height:1.55"><span>${dot(x.mau)}${thoat(x.ten)}${x.du ? ' <span style="opacity:.6">(dự báo)</span>' : ""}</span><b>${so(x.v)} ${dv}</b></div>`;
+    if (con.length) h += `<div style="margin-top:3px;opacity:.7">+ ${con.length} khác · ${so(con.reduce((t, x) => t + x.v, 0))} ${dv}</div>`;
+    return h || "—";
+  },
+});

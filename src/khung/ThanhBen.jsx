@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef, useState } from "react";
 import * as Dlg from "@radix-ui/react-dialog";
 import { Anchor, PanelLeftClose, PanelLeftOpen, X, Sun, Moon } from "lucide-react";
 import { cn } from "../lib/utils";
@@ -28,13 +29,23 @@ function Muc({ n, dang, gon, chon }) {
 
 // Nội dung dùng chung cho thanh bên máy tính và ngăn kéo điện thoại
 export function NoiDungMenu({ nav, trangId, chon, gon, doiGon, dd, dong, theme, doiTheme, demo }) {
+  const navRef = useRef(null), daDo = useRef(false);
+  const [pill, setPill] = useState({ y: 0, hien: false, muot: false });
+  // Nền chọn (pill) trượt sang mục đang mở; lần đầu đặt thẳng vị trí, không trượt từ đầu menu
+  useLayoutEffect(() => {
+    const el = navRef.current?.querySelector('[aria-current="page"]');
+    if (!el) return setPill((v) => (v.hien ? { ...v, hien: false } : v));
+    setPill((v) => (v.hien && v.y === el.offsetTop ? v : { y: el.offsetTop, hien: true, muot: daDo.current }));
+    daDo.current = true;
+  }, [trangId, gon, nav]);
   return (
     <>
       <div className="sb-dau">
         <Brand gon={gon} />
         {dd && <button type="button" className="sb-icon" onClick={dong} aria-label="Đóng menu"><X className="h-5 w-5" /></button>}
       </div>
-      <nav className="sb-nav" aria-label="Điều hướng chính">
+      <nav ref={navRef} className="sb-nav" aria-label="Điều hướng chính">
+        <span aria-hidden="true" className={cn("sb-pill", pill.muot && "sb-pill-muot")} style={{ transform: `translateY(${pill.y}px)`, opacity: pill.hien ? 1 : 0 }} />
         {PHAN_HE.map((ph) => {
           const ds = nav.filter((n) => n.ph === ph.id);
           if (!ds.length) return null;
