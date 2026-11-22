@@ -75,19 +75,19 @@ export function BoChonBai({ ds, bai, onChange }) {
   const mep = "linear-gradient(to right, transparent, #000 16%, #000 84%, transparent)";
   const cacO = [-2, -1, 0, 1, 2].map((k) => pos + k); // năm ô: hai ô ngoài nằm ngoài khung nhìn, chờ trượt vào
   return (
-    <div className="ml-auto flex items-center gap-0.5 outline-none" role="group" aria-label="Chọn kho / bãi" tabIndex={0} onKeyDown={phim} style={{ "--s": "6.75rem" }}>
-      <span className="mr-2 whitespace-nowrap text-[0.6875rem] tabular-nums text-muted-foreground" title="Thứ tự kho / bãi đang xem trên tổng số">{tatCa ? `${n} kho / bãi` : n ? `${mod(pos + dich, n) + 1}/${n}` : ""}</span>
+    <div className="ml-auto flex w-full items-center gap-0.5 outline-none sm:w-auto" role="group" aria-label="Chọn kho / bãi" tabIndex={0} onKeyDown={phim}>
+      <span className="mr-2 hidden whitespace-nowrap text-[0.6875rem] tabular-nums text-muted-foreground sm:inline" title="Thứ tự kho / bãi đang xem trên tổng số">{tatCa ? `${n} kho / bãi` : n ? `${mod(pos + dich, n) + 1}/${n}` : ""}</span>
       <button type="button" className={nut} onClick={() => chay(-1)} disabled={n < 2} aria-label="Kho / bãi trước"><ChevronLeft className="h-5 w-5" /></button>
-      <div className="relative h-8 w-[calc(var(--s)*3)] overflow-hidden" style={{ maskImage: mep, WebkitMaskImage: mep }}>
+      <div className="relative h-8 min-w-0 flex-1 overflow-hidden sm:w-[20.25rem] sm:flex-none" style={{ maskImage: mep, WebkitMaskImage: mep }}>
         {tatCa ? (
           <span className="kfade absolute inset-0 flex items-center justify-center whitespace-nowrap text-xs font-semibold">Tất cả kho / bãi</span>
         ) : n ? (
-          <div className="flex h-full items-center" style={{ transform: `translateX(calc(var(--s) * ${-1 - dich}))`, transition: dich ? "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)" : "none" }}>
+          <div className="flex h-full items-center" style={{ width: "166.667%", transform: `translateX(${(-1 - dich) * 20}%)`, transition: dich ? "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)" : "none" }}>
             {cacO.map((abs) => {
               const tam = abs === pos + dich, ten = ds[mod(abs, n)];
               return (
                 <button key={abs} type="button" onClick={() => { if (abs === pos - 1) chay(-1); else if (abs === pos + 1) chay(1); }} tabIndex={-1} title={ten}
-                  className={cn("flex w-[var(--s)] shrink-0 items-center justify-center whitespace-nowrap px-1 transition-all duration-300", tam ? "scale-110 text-xs font-semibold text-foreground" : "scale-90 text-[0.6875rem] text-muted-foreground/70 hover:text-foreground")}>
+                  className={cn("flex w-1/5 shrink-0 items-center justify-center whitespace-nowrap px-1 transition-all duration-300", tam ? "scale-110 text-xs font-semibold text-foreground" : "scale-90 text-[0.6875rem] text-muted-foreground/70 hover:text-foreground")}>
                   <span className="truncate">{ten}</span>
                 </button>);
             })}

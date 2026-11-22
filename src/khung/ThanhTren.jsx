@@ -10,7 +10,7 @@ const chuCai = (ten) => { const p = String(ten || "?").trim().split(/\s+/); retu
 // Bộ lọc ngày / bến dùng chung chưa đặt ở đây: mỗi trang đang có bộ lọc riêng theo ngữ cảnh (kỳ Tháng / Quý / Năm, bến, loại hàng…).
 export default function ThanhTren({ phanHe, trang, tabTen, onTim, onMoChuyen, theme, doiTheme, dangTai, ten, vaiTro, menuTaiKhoan, coCang }) {
   return (
-    <header className="tb sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-card/90 px-3 backdrop-blur sm:px-4">
+    <header className="tb sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-card/85 px-3 backdrop-blur sm:px-4">
       <VachTai dang={dangTai} />
       <nav aria-label="Vị trí hiện tại" className="min-w-0 flex-1">
         <ol className="tb-bc">

@@ -5,3 +5,7 @@
 /manifest.webmanifest
   Content-Type: application/manifest+json
   Cache-Control: no-cache
+
+# Ảnh nền: trình duyệt giữ 7 ngày, không tải lại khi chuyển trang / mở lại web (đổi ảnh thì đổi tên file)
+/images/*
+  Cache-Control: public, max-age=604800

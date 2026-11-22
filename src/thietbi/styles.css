@@ -1,15 +1,15 @@
 /* ============ Chủ đề (kiểu web tài chính, đồng bộ src/index.css) ============ */
 :root, :root[data-theme="dark"] {
-  --bg: #0e1016;
-  --bg2: #16191f;
-  --surface: #16191f;
-  --surface2: #1a1d25;
-  --raise: #23262f;
-  --line: rgba(255, 255, 255, 0.07);
-  --line2: rgba(255, 255, 255, 0.13);
+  --bg: hsl(220 62% 13%);
+  --bg2: hsl(220 55% 17%);
+  --surface: hsl(220 55% 17%);
+  --surface2: hsl(220 52% 19%);
+  --raise: hsl(220 48% 23%);
+  --line: rgba(150, 185, 255, 0.13);
+  --line2: rgba(150, 185, 255, 0.22);
   --ink: #e8ebf1;
   --ink2: #c3c8d3;
-  --mute: #959cab;
+  --mute: #a3b2cc;
   --accent: #5aa2ff;
   --accent2: #6366f1;
   --accent-ink: #06142e;
@@ -20,8 +20,8 @@
   --info: #5cb0f0; --info-soft: rgba(92, 176, 240, 0.12);
   --orange: #f59e4b; --orange-soft: rgba(245, 158, 75, 0.12);
   --c-ok: #10b981; --c-info: #6366f1; --c-warn: #f59e0b; --c-bad: #f43f5e;
-  --input: #1c1f27;
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --input: hsl(220 55% 14%);
+  --shadow: 0 1px 2px rgba(2, 10, 30, 0.35);
   --glow: 0 0 0 3px rgba(139, 140, 248, 0.18);
   --grid: transparent;
   color-scheme: dark;
@@ -138,7 +138,7 @@ main.page { max-width: 1440px; width: 100%; margin: 0 auto; padding: 18px 20px 6
 
 /* ============ Thẻ ============ */
 .card {
-  background: var(--surface); border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface) calc(var(--khoi-do-duc, 1) * 100%), transparent); border: 1px solid var(--line);
   border-radius: 12px; box-shadow: var(--shadow); padding: 16px; min-width: 0; position: relative;
 }
 .card-h { display: flex; align-items: center; gap: 10px; margin: -2px 0 12px; flex-wrap: wrap; }

@@ -28,6 +28,7 @@ import ThanhTren, { ThanhDuoi } from "./khung/ThanhTren";
 import TimNhanh from "./khung/TimNhanh";
 import ChuThich from "./khung/ChuThich";
 import { TrangSkeleton } from "./khung/Skeleton";
+import AppBackground from "./khung/AppBackground";
 import "./khung/khung.css";
 
 const DanhMuc = lazy(() => import("./pages/DanhMuc"));
@@ -208,6 +209,7 @@ function Main() {
 
   return (
     <div className="khung-noi min-h-screen lg:pl-[var(--sb-w)]" style={{ "--sb-w": gon ? "68px" : "248px" }}>
+      <AppBackground />
       {quyen.coCang && quyen.nhap && <TuGhiATD />}
       {quyen.coCang && quyen.keHoachNgay && <TuDoiKeHoach />}
       <a href="#noi-dung-chinh" className="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-[60] focus:rounded-md focus:bg-primary focus:px-3 focus:py-2 focus:text-primary-foreground" onClick={(e) => { e.preventDefault(); document.getElementById("noi-dung-chinh")?.focus(); }}>Bỏ qua menu, tới nội dung</a>
