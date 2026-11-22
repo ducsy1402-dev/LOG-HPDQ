@@ -10,10 +10,10 @@
   --ink: #e8ebf1;
   --ink2: #c3c8d3;
   --mute: #959cab;
-  --accent: #8b8cf8;
+  --accent: #5aa2ff;
   --accent2: #6366f1;
-  --accent-ink: #12122a;
-  --accent-soft: rgba(139, 140, 248, 0.14);
+  --accent-ink: #06142e;
+  --accent-soft: rgba(90, 162, 255, 0.14);
   --ok: #4ad295; --ok-soft: rgba(74, 210, 149, 0.12);
   --warn: #f5b546; --warn-soft: rgba(245, 181, 70, 0.12);
   --bad: #f2667d; --bad-soft: rgba(242, 102, 125, 0.12);
@@ -37,10 +37,10 @@
   --ink: #161c2c;
   --ink2: #344054;
   --mute: #667085;
-  --accent: #4f46e5;
+  --accent: #0b5bd3;
   --accent2: #6366f1;
   --accent-ink: #ffffff;
-  --accent-soft: rgba(79, 70, 229, 0.08);
+  --accent-soft: rgba(11, 91, 211, 0.08);
   --ok: #067a57; --ok-soft: rgba(6, 150, 105, 0.09);
   --warn: #b25e09; --warn-soft: rgba(220, 120, 10, 0.1);
   --bad: #d92d48; --bad-soft: rgba(217, 45, 72, 0.08);
@@ -386,20 +386,21 @@ table.t { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 
 /* ============ Lớp phủ ============ */
 .overlay { position: fixed; inset: 0; z-index: 60; background: rgba(2, 6, 14, 0.62); backdrop-filter: blur(3px); animation: fade 0.15s; }
 @keyframes fade { from { opacity: 0; } }
+/* Hộp và ngăn chi tiết mở TOÀN MÀN HÌNH, có nút mũi tên quay lại (anh Sỹ 22/11/2026) */
 .drawer {
-  position: fixed; top: 0; right: 0; bottom: 0; z-index: 61; width: min(560px, 100vw); background: var(--bg2);
-  border-left: 1px solid var(--line2); box-shadow: -20px 0 50px -20px rgba(0, 0, 0, 0.6); display: flex; flex-direction: column; animation: slide 0.2s ease-out;
+  position: fixed; inset: 0; z-index: 61; width: 100vw; background: var(--bg2);
+  display: flex; flex-direction: column; animation: slide 0.2s ease-out;
 }
+.nut-lai { flex-shrink: 0; width: 44px; height: 44px; }
 @keyframes slide { from { transform: translateX(40px); opacity: 0; } }
-.drawer-h { padding: 16px 18px; border-bottom: 1px solid var(--line); display: flex; align-items: flex-start; gap: 10px; }
+.drawer-h { padding: 8px 14px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 10px; }
 .drawer-b { padding: 16px 18px 40px; overflow-y: auto; flex: 1; }
 .modal {
-  position: fixed; z-index: 61; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(var(--w, 720px), calc(100vw - 24px));
-  max-height: calc(100vh - 40px); display: flex; flex-direction: column; background: var(--bg2); border: 1px solid var(--line2); border-radius: 16px; box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.7); animation: fade 0.15s;
+  position: fixed; z-index: 61; inset: 0; width: 100vw; height: 100dvh; display: flex; flex-direction: column; background: var(--bg2); animation: slide 0.2s ease-out;
 }
-.modal-h { padding: 14px 18px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 10px; }
+.modal-h { padding: 8px 14px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 10px; }
 .modal-h h3 { margin: 0; font-size: 0.9375rem; }
-.modal-b { padding: 16px 18px; overflow-y: auto; }
+.modal-b { padding: 16px 18px; overflow-y: auto; flex: 1; min-height: 0; }
 .modal-f { padding: 12px 18px; border-top: 1px solid var(--line); display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
 .spec { display: grid; grid-template-columns: 1fr auto; gap: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
 .spec > div { padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 0.8125rem; }

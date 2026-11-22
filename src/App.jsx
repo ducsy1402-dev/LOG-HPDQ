@@ -1,15 +1,14 @@
-import { useEffect, useState, lazy, Suspense } from "react";
-import { LayoutDashboard, Ship, Warehouse, Boxes, Database, ShieldCheck, Bell, Sun, Moon, LogOut, LogIn, Menu, X, ShieldAlert, Download, UserRound, Anchor, RefreshCw, KeyRound, ClipboardList, Gauge, CalendarRange, FileSpreadsheet, FileText, BookOpen, MonitorDown, Target } from "lucide-react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, lazy, Suspense } from "react";
+import { RefreshCw, KeyRound, LogOut, ShieldAlert, Download, Anchor, FileSpreadsheet, FileText, BookOpen, MonitorDown } from "lucide-react";
 import { AppProvider, useApp, useHash } from "./store";
-import { Toasts, MucIcon } from "./components/common";
+import { Toasts } from "./components/common";
 import { Dialog } from "./components/ui/dialog";
 import { Button } from "./components/ui/button";
 import { Input, Field } from "./components/ui/input";
-import { Badge } from "./components/ui/badge";
-import { Popover, PopoverTrigger, PopoverContent, DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from "./components/ui/menu";
+import { DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from "./components/ui/menu";
 import { APP_NAME, VAI_TRO, DEMO } from "./config";
 import { cn } from "./lib/utils";
-import { NHOM_QUYEN, tenDangNhap } from "./lib/quyen";
+import { NHOM_QUYEN, BAC, tenDangNhap } from "./lib/quyen";
 import { saoLuuExcel } from "./lib/backup";
 import { ThietBiProvider, useThietBi, TB, TBCho, TBToanCuc } from "./thietbi/Host";
 import KhaiBao from "./thietbi/tabs/KhaiBao";
@@ -22,30 +21,22 @@ import Linetime from "./pages/cang/Linetime";
 import TuGhiATD from "./pages/cang/TuGhiATD";
 import TuDoiKeHoach from "./pages/cang/TuDoiKeHoach";
 import PhieuChuyen from "./pages/cang/PhieuChuyen";
-import SapCo from "./pages/SapCo";
-import { tenBenChuyen } from "./lib/tenBen";
+import DangNhap from "./pages/DangNhap";
+import { TRANG, PHAN_HE, tachRoute, duocDung } from "./khung/menu";
+import { ThanhBenMayTinh, NganKeoMenu } from "./khung/ThanhBen";
+import ThanhTren, { ThanhDuoi } from "./khung/ThanhTren";
+import TimNhanh from "./khung/TimNhanh";
+import ChuThich from "./khung/ChuThich";
+import { TrangSkeleton } from "./khung/Skeleton";
+import "./khung/khung.css";
 
 const DanhMuc = lazy(() => import("./pages/DanhMuc"));
 const PhanQuyen = lazy(() => import("./pages/PhanQuyen"));
 const Kho = lazy(() => import("./pages/kho/Kho"));
 const MucTieu = lazy(() => import("./pages/cang/MucTieu"));
 
-// cang: cần quyền phần Cảng; kho: quyền Kho bãi (hoặc Cảng); tb: cần quyền phần Thiết bị cơ giới
-const NAV = [
-  { id: "tong-quan", ten: "Tổng quan", icon: LayoutDashboard },
-  { nhom: "Thiết bị cơ giới", tb: true },
-  { id: "thiet-bi/khai-bao", ten: "Khai báo", icon: ClipboardList, tb: true, alias: ["thiet-bi/su-kien", "thiet-bi/nhan-su"] }, // 2 tab: Tình trạng & sự kiện, Nhân sự & quân số (đường dẫn cũ vẫn mở đúng tab)
-  { id: "thiet-bi/dieu-do", ten: "Điều độ", icon: Gauge, tb: true },
-  { id: "thiet-bi/ke-hoach", ten: "Kế hoạch & báo cáo", icon: CalendarRange, tb: true }, // 3 tab: Kế hoạch ngày, Kế hoạch dài hạn, Chiến dịch
-  { nhom: "Khai thác Cảng", cang: true },
-  { id: "cang/linetime", ten: "Linetime tàu cập bến", icon: Ship, cang: true },
-  { id: "cang/muc-tieu", ten: "Kế hoạch tổng hợp", icon: Target, cang: true }, // trước là "Mục tiêu sản lượng" (anh Sỹ đổi tên 20/11/2026)
-  { nhom: "Kho bãi", kho: true },
-  { id: "kho", ten: "Khai thác kho bãi", icon: Warehouse, kho: true }, // 3 tab: Overview, Kho hàng kiện (thành phẩm), Kho hàng rời (route kho, kho/hang-kien, kho/hang-roi; đường dẫn cũ kho/hrc… vẫn mở đúng tab)
-  { nhom: "Hệ thống" },
-  { id: "danh-muc", ten: "Danh mục", icon: Database },
-  { id: "phan-quyen", ten: "Phân quyền", icon: ShieldCheck, quanTri: true },
-];
+// ?xem-dang-nhap: xem thử trang đăng nhập (kể cả khi đang chạy ?demo, vốn bỏ qua đăng nhập); không đăng nhập thật
+const XEM_DANG_NHAP = typeof location !== "undefined" && new URLSearchParams(location.search).has("xem-dang-nhap");
 
 export default function App() {
   return <AppProvider><Shell /><Toasts /></AppProvider>;
@@ -53,8 +44,8 @@ export default function App() {
 
 function Shell() {
   const { phase } = useApp();
-  if (phase === "loading") return <div className="flex min-h-screen items-center justify-center gap-3 text-muted-foreground"><RefreshCw className="h-5 w-5 animate-spin" />Đang khởi động…</div>;
-  if (phase === "login") return <Login />;
+  if (phase === "loading") return <div role="status" className="fixed inset-0 grid place-items-center text-white" style={{ background: "linear-gradient(180deg,#0d3274,#071b42)" }}><div className="grid justify-items-center gap-3"><div className="sb-logo sk" style={{ width: 52, height: 52, borderRadius: 15 }}><Anchor className="h-6 w-6" strokeWidth={2.3} /></div><div className="text-sm text-white/80">Đang khởi động…</div></div></div>;
+  if (phase === "login" || XEM_DANG_NHAP) return <DangNhap xemThu={XEM_DANG_NHAP} />;
   if (phase === "norole") return <ThongBao />;
   // Phần Thiết bị cơ giới (mã từ web cũ) tải dữ liệu riêng sau khi đã đăng nhập
   return <ThietBiProvider><Main /><TBToanCuc /></ThietBiProvider>;
@@ -70,26 +61,6 @@ function Brand({ nhan }) {
   );
 }
 
-function Login() {
-  const { signIn } = useApp();
-  const [email, setEmail] = useState(""), [pw, setPw] = useState(""), [msg, setMsg] = useState(""), [busy, setBusy] = useState(false);
-  const submit = async (e) => {
-    e.preventDefault(); setBusy(true); setMsg("");
-    try { await signIn(email.trim(), pw); } catch (err) { setMsg(/Invalid login/i.test(err.message) ? "Sai tên đăng nhập (hoặc email) hoặc mật khẩu." : err.message); setBusy(false); }
-  };
-  return (
-    <div className="flex min-h-screen items-center justify-center p-4">
-      <form onSubmit={submit} className="grid w-full max-w-sm gap-4 rounded-xl border bg-card p-6 shadow-lg">
-        <Brand />
-        <div><h1 className="text-lg font-semibold">Đăng nhập</h1><p className="text-xs text-muted-foreground">Dùng tài khoản do quản trị cấp. Hệ thống không cho tự đăng ký.</p></div>
-        <Field label="Tên đăng nhập hoặc email"><Input type="text" required autoComplete="username" autoCapitalize="none" spellCheck={false} placeholder="VD: nhaplieulog" value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
-        <Field label="Mật khẩu"><Input type="password" required autoComplete="current-password" value={pw} onChange={(e) => setPw(e.target.value)} /></Field>
-        <Button disabled={busy}><LogIn />{busy ? "Đang đăng nhập…" : "Đăng nhập"}</Button>
-        {msg && <div className="text-sm text-bad">{msg}</div>}
-      </form>
-    </div>
-  );
-}
 
 function ThongBao() {
   const { signOut, user } = useApp();
@@ -118,53 +89,82 @@ function useCaiDat() {
   return [co, caiDat];
 }
 
+// Tab / trang đã xem gần nhất: bấm lại một trang ở menu thì mở đúng tab đang xem dở
+const docJson = (k) => { try { return JSON.parse(localStorage.getItem(k) || "{}"); } catch { return {}; } };
+const luuJson = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* bỏ qua */ } };
+const tenVaiTro = (bac) => VAI_TRO[Object.keys(BAC).find((k) => BAC[k] === bac)] || "Xem";
+
 function Main() {
   const { D, role, quyen, user, signOut, theme, setTheme, voyageMo, setVoyageMo, fail, toast, api, busy } = useApp();
   const tb = useThietBi();
-  const [route, go] = useHash();
-  const [moMenu, setMoMenu] = useState(false);
+  const [route, go, thay] = useHash();
+  const [moDD, setMoDD] = useState(false);
+  const [moTim, setMoTim] = useState(false);
   const [traCuu, setTraCuu] = useState(false);
+  const [doiMK, setDoiMK] = useState(false);
+  const [hdCai, setHdCai] = useState(null); // null = đóng; "da_cai" | "chua" = hộp hướng dẫn
   const [coCaiDat, caiDat] = useCaiDat();
-  const duoc = (n) => (!n.quanTri || quyen.quanTri) && (!n.cang || quyen.coCang || quyen.chuaSql) && (!n.tb || quyen.coThietBi) && (!n.kho || quyen.kho?.co || quyen.coCang || quyen.chuaSql);
-  const nav = NAV.filter(duoc);
-  // Chuyển trang: lên đầu trang, đóng ngăn chi tiết xe của phần Thiết bị cơ giới nếu đang mở
-  useEffect(() => { window.scrollTo({ top: 0 }); tb?.closeVehicle?.(); }, [route]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ---- Menu: ẩn hẳn những gì vai trò hiện tại không được dùng ----
+  const nav = useMemo(() => TRANG.filter((n) => duocDung(n, quyen)), [quyen]);
+  const [gon, setGon] = useState(() => { try { const v = localStorage.getItem("lg-sb-gon"); if (v != null) return v === "1"; } catch { /* bỏ qua */ } return window.innerWidth < 1360; });
+  const doiGon = () => setGon((g) => { try { localStorage.setItem("lg-sb-gon", g ? "0" : "1"); } catch { /* bỏ qua */ } return !g; });
+
+  // ---- Đường dẫn: #/<trang>/<tab>. Đường dẫn cũ / thiếu tab được đổi sang dạng chuẩn ----
+  const t0 = tachRoute(route);
+  const duoc = !t0.la404 && (nav.some((n) => n.id === t0.trang.id) || (t0.trang.cang && !quyen.coCang));
+  const { trang, tab, canonical } = duoc ? t0 : tachRoute("tong-quan");
+  useEffect(() => { if (route !== canonical) thay(canonical); }); // eslint-disable-line react-hooks/exhaustive-deps
+  const nho = useRef({ tab: docJson("lg-tab-cuoi"), ph: docJson("lg-ph-cuoi") });
+  useEffect(() => {
+    if (tab && nho.current.tab[trang.id] !== tab) { nho.current.tab[trang.id] = tab; luuJson("lg-tab-cuoi", nho.current.tab); }
+    if (nho.current.ph[trang.ph] !== trang.id) { nho.current.ph[trang.ph] = trang.id; luuJson("lg-ph-cuoi", nho.current.ph); }
+  }, [trang.id, trang.ph, tab]);
+  const moTrang = (id) => {
+    const n = TRANG.find((x) => x.id === id), t = nho.current.tab[id];
+    setMoDD(false);
+    go(n?.tabs ? `${id}/${n.tabs.some((x) => x[0] === t) ? t : n.tabs[0][0]}` : id);
+  };
+
+  // ---- Giữ các trang đã xem còn nguyên (ẩn / hiện, không dựng lại): giữ bộ lọc, dữ liệu đang nhập, biểu đồ không vẽ lại; nhớ vị trí cuộn từng trang ----
+  const [daXem, setDaXem] = useState(() => [trang.id]);
+  useEffect(() => { setDaXem((a) => (a.includes(trang.id) ? a : [...a, trang.id])); }, [trang.id]);
+  const dsTrang = daXem.includes(trang.id) ? daXem : [...daXem, trang.id];
+  const gan = useRef({}); // đường dẫn / tab gần nhất của từng trang (trang đang ẩn giữ nguyên)
+  gan.current[trang.id] = { tab, route: canonical };
+  const cuon = useRef({}), hienTai = useRef(trang.id);
+  useEffect(() => { const f = () => { cuon.current[hienTai.current] = window.scrollY; }; window.addEventListener("scroll", f, { passive: true }); return () => window.removeEventListener("scroll", f); }, []);
+  useLayoutEffect(() => { hienTai.current = trang.id; window.scrollTo({ top: cuon.current[trang.id] || 0 }); tb?.closeVehicle?.(); }, [trang.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ---- Phím tắt: Ctrl+K mở ô tìm nhanh ----
+  useEffect(() => {
+    const h = (e) => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); setMoTim((o) => !o); } };
+    window.addEventListener("keydown", h); return () => window.removeEventListener("keydown", h);
+  }, []);
+
   const chuaCaiCang = (
     <div className="rounded-md border border-warn/40 bg-warn/5 px-3 py-2 text-sm">
       Phần Khai thác Cảng chưa sẵn sàng: quản trị cần chạy <b>sql/dung_lai/phan_1_cau_truc.sql</b> rồi <b>phan_2_danh_muc.sql</b> trong Supabase, hoặc tài khoản chưa được cấp quyền Cảng.
     </div>
   );
-  const trang = () => {
-    if (route === "thiet-bi/khai-bao") return <TBCho><KhaiBao /></TBCho>;
-    if (route === "thiet-bi/su-kien") return <TBCho><KhaiBao tab="su-kien" /></TBCho>;
-    if (route === "thiet-bi/nhan-su") return <TBCho><KhaiBao tab="quan-so" /></TBCho>;
-    if (route === "thiet-bi/dieu-do") return <TBCho><DieuDo /></TBCho>;
-    if (route === "thiet-bi/ke-hoach") return <TBCho><KeHoachBaoCao /></TBCho>;
-    if (route.startsWith("cang/") && !quyen.coCang) return chuaCaiCang;
-    if (route === "cang/linetime") return <Linetime />;
-    if (route === "cang/muc-tieu") return <MucTieu />;
-    if (route === "kho" || route.startsWith("kho/")) return <Kho route={route} />;
-    if (route === "danh-muc") return <DanhMuc />;
-    if (route === "phan-quyen" && quyen.quanTri) return <PhanQuyen />;
-    const n = NAV.find((x) => x.id === route);
-    if (n?.sau) return <SapCo muc={n} />;
-    return <TongQuan go={go} />;
+  const noiDung = (id, g) => {
+    switch (id) {
+      case "thiet-bi/khai-bao": return <TBCho><KhaiBao tab={g.tab} onTab={(v) => go(`${id}/${v}`)} /></TBCho>;
+      case "thiet-bi/dieu-do": return <TBCho><DieuDo /></TBCho>;
+      case "thiet-bi/ke-hoach": return <TBCho><KeHoachBaoCao tab={g.tab} onTab={(v) => go(`${id}/${v}`)} /></TBCho>;
+      case "cang/linetime": return quyen.coCang ? <Linetime /> : chuaCaiCang;
+      case "cang/muc-tieu": return quyen.coCang ? <MucTieu /> : chuaCaiCang;
+      case "kho": return <Kho route={g.route} onTab={(v) => go(`kho/${v}`)} />;
+      case "danh-muc": return <DanhMuc tab={g.tab} onTab={(v) => go(`danh-muc/${v}`)} />;
+      case "phan-quyen": return quyen.quanTri ? <PhanQuyen /> : null;
+      default: return <TongQuan go={go} />;
+    }
   };
+
   const saoLuu = async () => { try { await saoLuuExcel(api, D, quyen); toast("Đã xuất file sao lưu Excel"); } catch (e) { fail(e); } };
   const tbExcel = () => tb.D && exportExcel(tb.D).then(() => toast("Đã xuất dữ liệu thiết bị ra Excel")).catch(fail);
   const tbPdf = async () => { if (!tb.D) return; try { const { exportPdf } = await import("./thietbi/lib/pdf"); await exportPdf(tb.D, role?.ho_ten); toast("Đã xuất báo cáo PDF thiết bị"); } catch (e) { fail(e); } };
-
-  // Menu bên trái: máy tính thu thành dải biểu tượng, rê chuột vào thì mở rộng, rời chuột thì tự thu
-  // (giữ mở khi đang mở hộp chuông / tài khoản); điện thoại bấm ☰ để mở, chọn mục xong tự đóng.
-  const [reChuot, setReChuot] = useState(false);
-  const [giu, setGiu] = useState(0); // số hộp nổi (chuông, tài khoản) đang mở từ menu
-  const giuMo = (o) => setGiu((n) => Math.max(0, n + (o ? 1 : -1)));
-  const rong = moMenu || reChuot || giu > 0;
-  const chon = (id) => { go(id); setMoMenu(false); setReChuot(false); };
-  const [doiMK, setDoiMK] = useState(false);
-  const [hdCai, setHdCai] = useState(null); // null = đóng; "da_cai" | "chua" = hộp hướng dẫn
-  // Cài bằng PWA: trình duyệt đã sẵn sàng thì mở thẳng hộp Cài đặt của trình duyệt (tạo biểu tượng như một phần mềm).
-  // Trình duyệt không mở được hộp đó khi máy ĐÃ CÀI phần mềm này (kể cả bản cũ tên khác) hoặc đã từ chối cài gần đây: lúc đó hướng dẫn gỡ bản cũ rồi cài lại.
+  // Cài bằng PWA: trình duyệt sẵn sàng thì mở thẳng hộp Cài đặt; máy ĐÃ CÀI (kể cả bản cũ tên khác) hoặc đã từ chối gần đây thì hướng dẫn gỡ bản cũ rồi cài lại.
   const caiPhanMem = async () => {
     if (coCaiDat) return caiDat();
     if (window.matchMedia?.("(display-mode: standalone)").matches) return toast("Đang mở dạng phần mềm đã cài. Muốn đổi tên hoặc biểu tượng: gỡ phần mềm (menu ⋮ của cửa sổ) rồi mở web trên trình duyệt để cài lại.");
@@ -172,77 +172,62 @@ function Main() {
     try { daCai = ((await navigator.getInstalledRelatedApps?.()) || []).length > 0; } catch { /* trình duyệt không hỗ trợ: coi như chưa biết */ }
     setHdCai(daCai ? "da_cai" : "chua");
   };
-  const nhan = cn("whitespace-nowrap transition-opacity duration-150", rong ? "opacity-100" : "lg:pointer-events-none lg:opacity-0");
-  const dongMenu = "flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm text-muted-foreground hover:bg-accent hover:text-foreground";
+
+  // ---- Thông tin người dùng + vai trò ----
+  const ten = role?.ho_ten || tenDangNhap(user?.email);
+  const vaiTro = quyen.nhom?.length ? quyen.nhom.map((n) => NHOM_QUYEN[n]?.ten || n).join(", ") : tenVaiTro(Math.max(BAC[role?.cang] ?? -1, BAC[role?.thietBi] ?? -1));
+  const menuTaiKhoan = (
+    <DropdownMenuContent side="bottom" align="end" className="w-72">
+      <DropdownMenuLabel>{ten}<div className="text-[0.6875rem]">Thiết bị: {VAI_TRO[role?.thietBi] || "—"} · Cảng: {VAI_TRO[role?.cang] || "—"}</div>{quyen.nhom?.length > 0 && <div className="text-[0.6875rem] font-normal">Nhóm quyền: {quyen.nhom.map((n) => NHOM_QUYEN[n]?.ten || n).join(", ")} (chỉ sửa ở khu vực này)</div>}</DropdownMenuLabel>
+      {tb.D && <>
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel>Thiết bị cơ giới</DropdownMenuLabel>
+        <DropdownMenuItem onSelect={tbExcel}><FileSpreadsheet />Xuất dữ liệu ra Excel</DropdownMenuItem>
+        <DropdownMenuItem onSelect={tbPdf}><FileText />Xuất báo cáo PDF</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => setTraCuu(true)}><BookOpen />Thông số model xe</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => tb.reload(false)}><RefreshCw />Tải lại dữ liệu thiết bị</DropdownMenuItem>
+      </>}
+      <DropdownMenuSeparator />
+      {quyen.coCang && <DropdownMenuItem onSelect={saoLuu}><Download />Sao lưu dữ liệu Cảng (Excel)</DropdownMenuItem>}
+      <DropdownMenuItem onSelect={() => setDoiMK(true)}><KeyRound />Đổi mật khẩu</DropdownMenuItem>
+      <DropdownMenuItem onSelect={caiPhanMem}><MonitorDown />Cài phần mềm</DropdownMenuItem>
+      <DropdownMenuItem onSelect={signOut}><LogOut />Đăng xuất</DropdownMenuItem>
+    </DropdownMenuContent>
+  );
+
+  // ---- Thanh dưới điện thoại: Tổng quan + các phân hệ được dùng; bấm phân hệ thì vào trang đã xem gần nhất của phân hệ đó ----
+  const mucDuoi = PHAN_HE.filter((p) => ["tong-quan", "tb", "cang", "kho"].includes(p.id) && nav.some((n) => n.ph === p.id)).map((p) => {
+    const ds = nav.filter((n) => n.ph === p.id), cuoi = ds.find((n) => n.id === nho.current.ph[p.id]) || ds[0];
+    return { id: p.id, ten: p.ngan || p.ten, icon: p.icon, dang: trang.ph === p.id, chay: () => moTrang(cuoi.id) };
+  });
+  const phanHe = trang.ph === "tong-quan" ? null : PHAN_HE.find((p) => p.id === trang.ph)?.ten;
+  const tabTen = tab ? trang.tabs.find((t) => t[0] === tab)?.[1] : null;
+  const demo = DEMO ? `DEMO · ${VAI_TRO[role?.cang] || "Xem"}` : null;
+  const doiTheme = () => setTheme(theme === "dark" ? "light" : "dark");
+  const menuP = { nav, trangId: trang.id, chon: moTrang, gon, doiGon, theme, doiTheme, demo };
 
   return (
-    <div className="min-h-screen lg:pl-[60px]">
+    <div className="khung-noi min-h-screen lg:pl-[var(--sb-w)]" style={{ "--sb-w": gon ? "68px" : "248px" }}>
       {quyen.coCang && quyen.nhap && <TuGhiATD />}
       {quyen.coCang && quyen.keHoachNgay && <TuDoiKeHoach />}
-      {/* Thanh bên */}
-      <aside onMouseEnter={() => setReChuot(true)} onMouseLeave={() => setReChuot(false)}
-        className={cn("fixed inset-y-0 left-0 z-40 flex w-60 flex-col overflow-hidden border-r bg-card transition-[width,transform] duration-200",
-          moMenu ? "translate-x-0 shadow-xl" : "-translate-x-full lg:translate-x-0", rong ? "lg:w-60 lg:shadow-xl" : "lg:w-[60px]")}>
-        <div className="flex h-14 shrink-0 items-center justify-between border-b px-3"><Brand nhan={nhan} /><Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMoMenu(false)} aria-label="Đóng menu"><X /></Button></div>
-        <nav className="flex-1 overflow-y-auto overflow-x-hidden p-2">
-          {nav.map((n, i) => n.nhom
-            ? (rong ? <div key={i} className="whitespace-nowrap px-2.5 pb-1 pt-4 text-[0.6875rem] font-semibold uppercase tracking-wide text-muted-foreground">{n.nhom}</div>
-              : <div key={i} className="mx-2.5 my-3 h-px bg-border" />)
-            : (
-              <div key={i} className="relative flex items-center">
-                <button onClick={() => chon(n.id)} title={rong ? undefined : n.ten}
-                  className={cn("flex min-w-0 flex-1 items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm transition-colors", (n.id === "kho" ? route === "kho" || route.startsWith("kho/") : route === n.id || n.alias?.includes(route)) ? "bg-primary/15 font-medium text-primary" : "text-muted-foreground hover:bg-accent hover:text-foreground")}>
-                  <n.icon className="h-4 w-4 shrink-0" /><span className={cn(nhan, "truncate")}>{n.ten}</span>{n.sau && <Badge tone="outline" className="ml-auto font-normal">{n.sau}</Badge>}
-                </button>
-                {/* Chuông cảnh báo đặt cạnh mục Tổng quan */}
-                {n.id === "tong-quan" && quyen.coCang && <Chuong onMo={(id) => setVoyageMo(id)} gon={!rong} onOpenChange={giuMo} />}
-              </div>))}
-        </nav>
-        {/* Thao tác chung (trước ở góc phải trên cùng): giao diện sáng / tối, tài khoản */}
-        <div className="shrink-0 border-t p-2">
-          {DEMO && <div className={cn("mb-1 px-1", !rong && "lg:hidden")}><Badge tone="warn">DEMO · {VAI_TRO[role?.cang] || "Xem"}</Badge></div>}
-          <button onClick={() => setTheme(theme === "dark" ? "light" : "dark")} title={rong ? undefined : "Đổi giao diện sáng / tối"} className={dongMenu} aria-label="Đổi giao diện sáng / tối">
-            {theme === "dark" ? <Sun className="h-4 w-4 shrink-0" /> : <Moon className="h-4 w-4 shrink-0" />}<span className={nhan}>{theme === "dark" ? "Giao diện sáng" : "Giao diện tối"}</span>
-            {(busy || tb.busy) && <RefreshCw className="ml-auto h-4 w-4 shrink-0 animate-spin" />}
-          </button>
-          <DropdownMenu onOpenChange={giuMo}>
-            <DropdownMenuTrigger asChild>
-              <button className={dongMenu} aria-label="Tài khoản và thao tác" title={rong ? undefined : "Tài khoản và thao tác"}>
-                <UserRound className="h-4 w-4 shrink-0" /><span className={cn(nhan, "min-w-0 truncate")}>{role?.ho_ten || tenDangNhap(user?.email)}</span>
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent side="right" align="end" className="w-64">
-              <DropdownMenuLabel>{role?.ho_ten || tenDangNhap(user?.email)}<div className="text-[0.6875rem]">Thiết bị: {VAI_TRO[role?.thietBi] || "—"} · Cảng: {VAI_TRO[role?.cang] || "—"}</div>{quyen.nhom?.length > 0 && <div className="text-[0.6875rem] font-normal">Nhóm quyền: {quyen.nhom.map((n) => NHOM_QUYEN[n]?.ten || n).join(", ")} (chỉ sửa ở khu vực này)</div>}</DropdownMenuLabel>
-              {tb.D && <>
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel>Thiết bị cơ giới</DropdownMenuLabel>
-                <DropdownMenuItem onSelect={tbExcel}><FileSpreadsheet />Xuất dữ liệu ra Excel</DropdownMenuItem>
-                <DropdownMenuItem onSelect={tbPdf}><FileText />Xuất báo cáo PDF</DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => setTraCuu(true)}><BookOpen />Thông số model xe</DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => tb.reload(false)}><RefreshCw />Tải lại dữ liệu thiết bị</DropdownMenuItem>
-              </>}
-              <DropdownMenuSeparator />
-              {quyen.coCang && <DropdownMenuItem onSelect={saoLuu}><Download />Sao lưu dữ liệu Cảng (Excel)</DropdownMenuItem>}
-              <DropdownMenuItem onSelect={() => setDoiMK(true)}><KeyRound />Đổi mật khẩu</DropdownMenuItem>
-              <DropdownMenuItem onSelect={caiPhanMem}><MonitorDown />Cài phần mềm</DropdownMenuItem>
-              <DropdownMenuItem onSelect={signOut}><LogOut />Đăng xuất</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <div className={cn("px-2.5 pt-1 text-[0.6875rem] text-muted-foreground", nhan)}>Thiết bị · Cảng · Kho bãi{DEMO && " · Demo"}</div>
-        </div>
-      </aside>
-      {moMenu && <div className="fixed inset-0 z-30 bg-black/50 lg:hidden" onClick={() => setMoMenu(false)} />}
+      <a href="#noi-dung-chinh" className="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-[60] focus:rounded-md focus:bg-primary focus:px-3 focus:py-2 focus:text-primary-foreground" onClick={(e) => { e.preventDefault(); document.getElementById("noi-dung-chinh")?.focus(); }}>Bỏ qua menu, tới nội dung</a>
 
-      {/* Điện thoại: thanh trên cùng chỉ có nút mở menu (tiêu đề trang nằm trong trang) */}
-      <header className="sticky top-0 z-20 flex h-12 items-center gap-2 border-b bg-background/85 px-2 backdrop-blur lg:hidden">
-        <Button variant="ghost" size="icon" onClick={() => setMoMenu(true)} aria-label="Mở menu"><Menu /></Button>
-        <span className="truncate text-sm font-semibold">{APP_NAME}</span>
-        {(busy || tb.busy) && <RefreshCw className="ml-auto h-4 w-4 animate-spin text-muted-foreground" />}
-      </header>
+      <ThanhBenMayTinh {...menuP} />
+      <NganKeoMenu mo={moDD} dong={() => setMoDD(false)} {...menuP} />
+      <ThanhTren phanHe={phanHe} trang={trang.ten} tabTen={tabTen} onTim={() => setMoTim(true)} onMoChuyen={(id) => setVoyageMo(id)} theme={theme} doiTheme={doiTheme}
+        dangTai={busy || tb.busy} ten={ten} vaiTro={vaiTro} menuTaiKhoan={menuTaiKhoan} coCang={quyen.coCang} />
 
-      <main className="mx-auto max-w-[1600px] p-3 sm:p-4">
-        {D && <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Đang tải…</div>}>{trang()}</Suspense>}
+      <main id="noi-dung-chinh" tabIndex={-1} className="mx-auto max-w-[1600px] p-3 pb-[calc(4.75rem+env(safe-area-inset-bottom))] outline-none sm:p-4 lg:pb-4">
+        {D ? dsTrang.map((id) => (
+          <div key={id} hidden={id !== trang.id} className={id === trang.id ? "pg-vao" : undefined} data-trang={id}>
+            <Suspense fallback={<TrangSkeleton />}>{noiDung(id, gan.current[id] || { tab: null, route: id })}</Suspense>
+          </div>
+        )) : <TrangSkeleton />}
       </main>
+
+      <ChuThich />
+      <ThanhDuoi muc={mucDuoi} mo={() => setMoDD(true)} />
+      <TimNhanh mo={moTim} doi={setMoTim} nav={nav} go={go} D={D} coCang={quyen.coCang} moChuyen={(id) => setVoyageMo(id)} />
       {voyageMo != null && D?.vmap.get(voyageMo) && <PhieuChuyen id={voyageMo} onClose={() => setVoyageMo(null)} />}
       {traCuu && tb.D && <TB><LookupDialog initial="specs" onClose={() => setTraCuu(false)} /></TB>}
       {doiMK && <DoiMatKhau onClose={() => setDoiMK(false)} />}
@@ -293,34 +278,5 @@ function HuongDanCai({ onClose, daCai }) {
         <p className="text-[0.6875rem] text-muted-foreground">Tên phần mềm là "Quản trị Logistics". Bản cài cũ vẫn giữ tên cũ cho đến khi gỡ rồi cài lại.</p>
       </div>
     </Dialog>
-  );
-}
-
-// Chuông cảnh báo: số cảnh báo đang mở (đỏ, vàng) của các chuyến chưa rời bến.
-// gon: menu đang thu thành dải biểu tượng (chỉ còn chấm số đè góc biểu tượng Tổng quan)
-function Chuong({ onMo, gon, onOpenChange }) {
-  const { D } = useApp();
-  const ds = D?.alerts || [];
-  const khan = ds.filter((a) => a.muc === "bad").length;
-  return (
-    <Popover onOpenChange={onOpenChange}>
-      <PopoverTrigger asChild>
-        <button className={cn("flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground", gon ? "absolute left-6 top-0.5 h-5" : "relative ml-1 h-9 w-9 shrink-0 hover:bg-accent")} aria-label={`Cảnh báo (${ds.length})`} title="Cảnh báo đang mở">
-          {!gon && <Bell className="h-4 w-4" />}
-          {ds.length > 0 && <span className={cn("min-w-[16px] rounded-full px-1 text-[0.6875rem] font-bold leading-4 text-white", !gon && "absolute -right-0.5 top-0", khan ? "bg-bad" : "bg-warn")}>{ds.length}</span>}
-        </button>
-      </PopoverTrigger>
-      <PopoverContent side="right" align="start" className="w-[min(420px,calc(100vw-24px))]">
-        <div className="flex items-center justify-between border-b px-3 py-2"><span className="text-sm font-semibold">Cảnh báo đang mở</span><span className="text-xs text-muted-foreground">{khan} khẩn · {ds.length - khan} cảnh báo</span></div>
-        <div className="max-h-[60vh] overflow-y-auto">
-          {ds.length ? ds.map((a) => (
-            <button key={a.id} onClick={() => onMo(a.voyage.id)} className="flex w-full items-start gap-2 border-b px-3 py-2 text-left text-sm last:border-0 hover:bg-accent">
-              <MucIcon muc={a.muc} className="mt-0.5" />
-              <span className="min-w-0"><span className="font-medium">{a.voyage.ten_tau}</span>{a.voyage.ben_ma && <span className="text-muted-foreground"> · Bến {tenBenChuyen(a.voyage)}</span>}<span className="block text-xs text-muted-foreground">{a.nd}</span></span>
-            </button>
-          )) : <div className="px-3 py-6 text-center text-sm text-muted-foreground">Không có cảnh báo.</div>}
-        </div>
-      </PopoverContent>
-    </Popover>
   );
 }

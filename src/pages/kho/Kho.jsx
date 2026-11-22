@@ -5,7 +5,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog } from "@/components/ui/dialog";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
+import ThanhTab from "../../khung/ThanhTab";
 
 import { PageHead, Empty, MucIcon } from "@/components/common";
 import { so, pct } from "@/lib/format";
@@ -143,12 +144,13 @@ const tabTheoRoute = (r) => TAB_KHO.find((t) => `kho/${t.id}` === r)?.id || TAB_
 // Khai thác kho bãi (anh Sỹ chốt 16/11/2026): 3 tab
 //   Overview: sơ đồ mọi kho mái che và bãi lộ thiên theo khu vực (bãi nhỏ xếp số tăng dần, chữ A–Z);
 //   Kho hàng kiện (thành phẩm), Kho hàng rời: gian / lô đã quy hoạch ở Danh mục › Khai báo & quy hoạch; 3 biểu đồ + 5 nút thao tác. Cách chia tab: TAB_KHO ở lib/kho.js.
-export default function Kho({ route = "kho" }) {
+export default function Kho({ route = "kho", onTab }) {
   const { D, quyen } = useApp();
   const kho = useKho();
   const [tabId, setTabId] = useState(() => tabTheoRoute(route));
   const [moBai, setMoBai] = useState(null);
   useEffect(() => { setTabId(tabTheoRoute(route)); }, [route]);
+  const doiTab = (v) => { setTabId(v); onTab?.(v); }; // tab nằm trong đường dẫn #/kho/<tab>
   const tab = TAB_KHO.find((t) => t.id === tabId) || TAB_KHO[0];
   const khoTab = useMemo(() => locKhoTheoTab(kho, tab), [kho, tab]);
   // Cảnh báo của tab đang xem (Overview: tất cả)
@@ -158,13 +160,8 @@ export default function Kho({ route = "kho" }) {
   return (
     <>
       <PageHead title="Khai thác kho bãi" desc={`Tồn luôn tính từ sổ nhập – xuất. Sức chứa = sức chứa khả dụng của gian / lô đã quy hoạch ở Danh mục › Kho bãi (để trống thì web tự tính). Vàng từ ${pct(NGUONG_KHO.vang)}, đỏ từ ${pct(NGUONG_KHO.do)} lấp đầy.`} />
-      <Tabs value={tabId} onValueChange={setTabId} className="mt-2">
-        <div className="flex items-center gap-2">
-          <TabsList className="h-8 p-0.5">
-            {TAB_KHO.map((t) => { const Ic = IC_TAB[t.id]; return <TabsTrigger key={t.id} value={t.id} className="h-7 px-2.5 py-0 text-xs [&_svg]:size-3.5"><Ic />{t.ten}</TabsTrigger>; })}
-          </TabsList>
-          <div className="ml-auto"><NutCanhBao ds={canhTab} /></div>
-        </div>
+      <Tabs value={tabId} onValueChange={doiTab} className="mt-2">
+        <ThanhTab value={tabId} onChange={doiTab} label="Khai thác kho bãi" tabs={TAB_KHO.map((t) => [t.id, t.ten, IC_TAB[t.id]])} phai={<NutCanhBao ds={canhTab} />} />
 
         <TabsContent value="overview">
           {kho.bai.length || khaiBaoBai(D.dmBang).size || quyen.kho.quanTri
