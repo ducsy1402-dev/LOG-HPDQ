@@ -1,0 +1,31 @@
+/* Hệ thống nền dùng chung (AppBackground): ảnh cảnh bến cảng Hòa Phát + lớp phủ. Muốn đổi màu / độ đậm chỉ sửa các biến dưới đây.
+   --nen-anh        ảnh nền khu vực quản trị (bản cắt riêng: không chữ, không hộp đăng nhập)
+   --nen-phu        lớp phủ lên ảnh (sáng: trắng; tối: xanh đen). Alpha càng thấp thì ảnh càng rõ
+   --nen-du-phong   nền dự phòng khi ảnh chưa tải xong / tải lỗi
+   --nen-vi-tri     vị trí ảnh (mặc định sát đáy để thấy cẩu, tàu hỏa, xe tải)
+   --khoi-do-duc    độ đặc của thẻ / khối / bảng (1 = đặc hoàn toàn; thấp hơn thì thấy hình nền mờ phía sau)
+   --dn-phu         lớp phủ tăng tương phản của trang đăng nhập (ảnh đăng nhập: xem pages/dangNhap.css) */
+:root {
+  --nen-anh: url("/images/logistics-admin.webp");
+  --nen-phu: rgba(246, 249, 254, 0.8);
+  --nen-du-phong: linear-gradient(180deg, hsl(216 45% 94%) 0%, hsl(216 32% 97%) 100%);
+  --nen-vi-tri: center bottom;
+  --khoi-do-duc: 0.8;
+  --dn-phu: linear-gradient(180deg, rgba(5, 20, 56, 0) 55%, rgba(5, 20, 56, 0.1) 100%);
+}
+.dark {
+  --khoi-do-duc: 0.74;
+  --nen-phu: rgba(12, 26, 56, 0.9);
+  --nen-du-phong: linear-gradient(180deg, hsl(220 62% 15%) 0%, hsl(220 64% 11%) 100%);
+}
+
+/* Một lớp cố định phía sau toàn bộ ứng dụng, dựng một lần (không tải lại khi chuyển trang). Không nhận chuột nên không ảnh hưởng thao tác. */
+.nen-app { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; background: var(--nen-du-phong); }
+.nen-app::before { content: ""; position: absolute; inset: 0; background: var(--nen-anh) var(--nen-vi-tri) / cover no-repeat; opacity: 0; transition: opacity 0.6s ease-out; }
+.nen-san::before { opacity: 1; }
+.nen-app::after { content: ""; position: absolute; inset: 0; background: var(--nen-phu); }
+@media (prefers-reduced-motion: reduce) { .nen-app::before { transition: none; } }
+
+/* Thẻ / khối / bảng hơi trong suốt (--khoi-do-duc). Không áp cho: ô dính (sticky: cột / tiêu đề lịch, bảng cần che nội dung cuộn phía sau), khối đã đặt độ trong riêng (bg-card/…), khối toàn màn hình (data-tmh). */
+:is(.rounded-lg, .rounded-xl, .rounded-2xl)[class*="bg-card"]:not([class*="bg-card/"]):not([data-tmh]):not(.sticky),
+.scroll-x:not([data-tmh]) { background-color: hsl(var(--card) / var(--khoi-do-duc)); }

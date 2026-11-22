@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Ship, User, Lock, Eye, EyeOff, LogIn, Loader2 } from "lucide-react";
 import { useApp } from "../store";
 import logo from "../assets/logo_hoa_phat.png";
+import "../khung/nen.css";
 import "./dangNhap.css";
 
 // Trang đăng nhập: ảnh nền toàn khung (nen-dang-nhap.webp, đã xóa hộp đăng nhập vẽ sẵn trong ảnh) + hộp đăng nhập thật đặt đúng chỗ hộp trong ảnh.

@@ -17,7 +17,7 @@ const rgba = (c, a) => `rgba(${c.join(",")},${a})`;
 const NGOAI = new Set(["right", "left", "top", "bottom", "outside"]);
 const nhanNgoai = (s, chu) => { const l = s.label; if (!l?.show) return l; const ngoai = s.type === "pie" ? !["inside", "center", "inner"].includes(l.position) : NGOAI.has(l.position); return ngoai ? { color: chu, textBorderWidth: 0, ...l } : { textBorderWidth: 0, ...l }; };
 function bong(option, dark, chu) {
-  const pal = option.color || BANG_MAU, nen = dark ? "#16191f" : "#ffffff";
+  const pal = option.color || BANG_MAU, nen = dark ? "#142343" : "#ffffff";
   const ngang = [].concat(option.yAxis || []).some((a) => a?.type === "category");
   const ds = Array.isArray(option.series) ? option.series : option.series ? [option.series] : [];
   const series = ds.map((s0) => {
@@ -132,7 +132,7 @@ export default function EChart({ option, height = 260, onClick }) {
       ...op,
       grid: top != null ? { ...grid, top } : grid,
       legend,
-      tooltip: { trigger: "axis", backgroundColor: dark ? "#1c2029" : "#fff", borderColor: dark ? "rgba(255,255,255,.1)" : "rgba(16,24,40,.1)", borderWidth: 1, padding: [8, 12], extraCssText: "border-radius:10px;box-shadow:0 8px 24px rgba(16,24,40,.18);", textStyle: { color: dark ? "#e6e9ef" : "#1d2433", fontSize: 12 }, axisPointer: { lineStyle: { color: truc0 }, shadowStyle: { color: dark ? "rgba(255,255,255,.04)" : "rgba(16,24,40,.04)" } }, valueFormatter: (v) => (typeof v === "number" ? so(v) : v), appendToBody: true, confine: true, ...option.tooltip }, // appendToBody: hộp chú thích nổi trên cùng, không bị khung cuộn / khung cố định cắt hay đè
+      tooltip: { trigger: "axis", backgroundColor: dark ? "#1b2e55" : "#fff", borderColor: dark ? "rgba(255,255,255,.1)" : "rgba(16,24,40,.1)", borderWidth: 1, padding: [8, 12], extraCssText: "border-radius:10px;box-shadow:0 8px 24px rgba(16,24,40,.18);", textStyle: { color: dark ? "#e6e9ef" : "#1d2433", fontSize: 12 }, axisPointer: { lineStyle: { color: truc0 }, shadowStyle: { color: dark ? "rgba(255,255,255,.04)" : "rgba(16,24,40,.04)" } }, valueFormatter: (v) => (typeof v === "number" ? so(v) : v), appendToBody: true, confine: true, ...option.tooltip }, // appendToBody: hộp chú thích nổi trên cùng, không bị khung cuộn / khung cố định cắt hay đè
       xAxis: truc(option.xAxis),
       yAxis: truc(option.yAxis),
     }, true);

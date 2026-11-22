@@ -4,10 +4,12 @@
   --u: calc(max(100vw, 100dvh * 1.7768) / 1672);
   position: absolute; left: 50%; top: 50%; width: max(100vw, calc(100dvh * 1.7768)); aspect-ratio: 1672 / 941;
   transform: translate(-50%, -50%);
-  background: #0b2a63 url("../assets/nen-dang-nhap.webp") center / 100% 100% no-repeat;
+  background: #0b2a63 url("/images/logistics-background.webp") center / 100% 100% no-repeat; /* ảnh gốc 1672×941, đúng tỉ lệ; sân khấu luôn phủ kín khung (như cover) */
   font-size: calc(var(--u) * 16);
 }
 .dn-dau { display: none; }
+/* Lớp phủ tăng tương phản (biến --dn-phu ở khung/nen.css) nằm dưới hộp đăng nhập */
+.dn-san::before { content: ""; position: absolute; inset: 0; background: var(--dn-phu, none); pointer-events: none; }
 
 /* Hộp đăng nhập đặt đúng vị trí hộp vẽ sẵn trong ảnh (x 1046–1532, y 123–633 của ảnh 1672×941), nhỉnh hơn một chút để che hết mép */
 .dn-the {
@@ -64,7 +66,7 @@
 
 /* Điện thoại / khung hẹp hoặc gần vuông: bỏ "sân khấu", dùng ảnh cảnh bến cảng làm nền, hộp đăng nhập ở giữa */
 @media (max-width: 899px), (max-aspect-ratio: 3 / 2) {
-  .dn { overflow-y: auto; background: linear-gradient(180deg, rgba(8, 28, 72, 0.78), rgba(8, 28, 72, 0.9)), #0b2a63 url("../assets/nen-dang-nhap-dd.webp") center / cover no-repeat; }
+  .dn { overflow-y: auto; background: linear-gradient(180deg, rgba(8, 28, 72, 0.78), rgba(8, 28, 72, 0.9)), #0b2a63 url("/images/logistics-background-mobile.webp") center / cover no-repeat; }
   .dn-san { --u: 0.86px; position: relative; left: auto; top: auto; transform: none; width: 100%; min-height: 100dvh; aspect-ratio: auto; background: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; padding: 24px 16px; font-size: 16px; }
   .dn-dau { display: flex; align-items: center; gap: 14px; width: min(440px, 100%); }
   .dn-dau img { height: 52px; width: auto; padding: 6px 10px; border-radius: 12px; background: rgba(255, 255, 255, 0.95); }
