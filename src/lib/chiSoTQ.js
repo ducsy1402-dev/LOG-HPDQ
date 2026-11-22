@@ -74,8 +74,11 @@ export function chiSoCauBen({ voyages, berths, stopsOf = () => [], tu, den, now 
   const trong = (t) => t != null && t >= tu && t < den;
   const trongDen = (t) => t != null && t >= tu && t < Math.min(den, now); // đến hiện tại: dùng để so với kỳ trước cùng thời gian
   // Thời gian chờ bến: từ NOR (hoặc ETA) tới lúc cập thật (ATB), tàu cập thật trong kỳ
-  const cho = ds.filter((v) => v.atb && trong(ms(v.atb))).map((v) => (ms(v.atb) - t0Cho(v)) / HOUR).filter((h) => Number.isFinite(h) && h >= 0);
-  const oBen = ds.filter((v) => v.atb && v.atd && trong(ms(v.atd))).map((v) => (ms(v.atd) - ms(v.atb)) / HOUR).filter((h) => Number.isFinite(h) && h >= 0);
+  // Chưa nhập ATB / ATD thực tế mà giờ dự kiến (ETB / ETD) đã qua so với hiện tại thì ghi nhận theo giờ dự kiến (anh Sỹ 22/11/2026)
+  const atbHD = (v) => ms(v.atb) ?? (ms(v.etb) != null && ms(v.etb) <= now ? ms(v.etb) : null);
+  const atdHD = (v) => ms(v.atd) ?? (ms(v.etd) != null && ms(v.etd) <= now ? ms(v.etd) : null);
+  const cho = ds.filter((v) => atbHD(v) != null && trong(atbHD(v))).map((v) => (atbHD(v) - t0Cho(v)) / HOUR).filter((h) => Number.isFinite(h) && h >= 0);
+  const oBen = ds.filter((v) => atbHD(v) != null && atdHD(v) != null && trong(atdHD(v))).map((v) => (atdHD(v) - atbHD(v)) / HOUR).filter((h) => Number.isFinite(h) && h >= 0);
   // Tình hình tại thời điểm now
   const tt = ds.map((v) => ({ v, s: trangThai(v, now) }));
   const dangCho = tt.filter((x) => x.s === "cho_neo"), dangO = tt.filter((x) => O_BEN.has(x.s));

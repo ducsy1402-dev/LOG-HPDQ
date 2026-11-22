@@ -1,39 +1,26 @@
 import { useMemo, useState } from "react";
 import { useApp } from "@/store";
-import EChart from "@/components/EChart";
-import { so, pct, r2 } from "@/lib/format";
-import { chuoiPhanLoai, nhomHangKho } from "@/lib/bieuDoKho";
+import { so, pct } from "@/lib/format";
 import { NGUONG_KHO, khaiBaoBai, khoaTenBai } from "@/lib/kho";
 import { MAU } from "./khung";
 import { Khung, ChuaCo, Chon, nghin } from "./khungBD";
 import { ChiTietBai } from "../kho/Kho";
-import { KhungKho, KhungCoCau, KhungTuoi, useTonPhanLoai } from "./KhoiKho";
+import { TonHienTaiBD, DienBienTonBD } from "../kho/BieuDoTonKien";
+import { KhungKho } from "./KhoiKho";
 import { CAO } from "./BieuDoSanLuongTQ";
 
-// Mảng Kho bãi của Tổng quan (anh Sỹ chốt 11/2026): đúng các biểu đồ sau, mỗi biểu đồ một khung CỐ ĐỊNH chiều cao, dài thì cuộn trong khung:
-//   Cơ cấu tồn · Tuổi tồn · Tồn theo loại hàng (nút chuyển thành phẩm / nguyên liệu) · Lấp đầy theo bãi (chia theo khu vực, bấm bãi mở hộp bãi nhỏ)
-//   · Lũy kế xuất nhập tồn kế hoạch / thực tế (kho thành phẩm và kho nguyên liệu)
-// kho: tổng hợp kho (useKho); gd: giao dịch kho đã tải; tuoi: tuổi tồn từng dòng (tuoiTon)
-const chieuCao = (n) => Math.max(250, 40 + n * 26);
-const MAU_LOAI = { thanh_pham: MAU.tim, nguyen_lieu: MAU.primary };
+// Mảng Kho bãi của Tổng quan (anh Sỹ chốt 11/2026, chỉnh 22/11/2026): mỗi biểu đồ một khung CỐ ĐỊNH chiều cao, dài thì cuộn trong khung:
+//   Tồn hiện tại (tồn theo hàng, như tab Kho hàng kiện; nút chuyển Hàng kiện / Hàng rời) · Tỉ lệ lấp đầy (chia theo khu vực, bấm bãi mở hộp bãi nhỏ)
+//   · Lũy kế xuất/nhập tồn (một khung, lọc Hàng kiện / Hàng rời và loại hàng) · Diễn biến tồn (tồn theo hàng, như tab Kho hàng kiện; nút chuyển Hàng kiện / Hàng rời)
+//   Đã bỏ hai biểu đồ Cơ cấu tồn kho và Tuổi tồn.
+// kho: tổng hợp kho (useKho); gd: giao dịch kho đã tải
+const KHO = [["thanh_pham", "Hàng kiện"], ["nguyen_lieu", "Hàng rời"]];
 
-export default function BieuDoKhoTQ({ kyInfo, kho, gd, tuoi }) {
+export default function BieuDoKhoTQ({ kyInfo, kho, gd }) {
   const { D } = useApp();
-  const khaiBao = useTonPhanLoai();
   const keHoach = useMemo(() => D.khoKeHoach || [], [D.khoKeHoach]);
-  const pl = useMemo(() => (kho && gd ? chuoiPhanLoai(kyInfo, { kho, declarations: khaiBao || [], giaoDich: gd, now: D.now }) : null), [kho, gd, kyInfo, khaiBao, D.now]);
-  // Tồn theo loại hàng (nhóm hàng) của một loại kho: nút chuyển Thành phẩm / Nguyên liệu
-  const [loaiKho, setLoaiKho] = useState("thanh_pham");
-  const theoLoai = useMemo(() => {
-    const m = new Map();
-    for (const c of kho.cap) {
-      if (!(c.ton > 1e-6) || (c.loai === "thanh_pham") !== (loaiKho === "thanh_pham")) continue;
-      const ten = nhomHangKho(c.hang, kho) || c.hang;
-      m.set(ten, (m.get(ten) || 0) + c.ton);
-    }
-    return [...m].map(([ten, ton]) => ({ ten, ton })).sort((x, y) => y.ton - x.ton);
-  }, [kho, loaiKho]);
-  // Lấp đầy theo bãi lớn, chia theo khu vực (Danh mục › Khai báo kho / bãi); bãi chưa khai báo sức chứa không có tỉ lệ
+  const [loaiTon, setLoaiTon] = useState("thanh_pham"), [loaiDB, setLoaiDB] = useState("thanh_pham");
+  // Tỉ lệ lấp đầy theo bãi lớn, chia theo khu vực (Danh mục › Khai báo kho / bãi); bãi chưa khai báo sức chứa không có tỉ lệ
   const kb = useMemo(() => khaiBaoBai(D.dmBang), [D.dmBang]);
   const [moBai, setMoBai] = useState(null);
   const nhomKhu = useMemo(() => {
@@ -45,18 +32,10 @@ export default function BieuDoKhoTQ({ kyInfo, kho, gd, tuoi }) {
   const mauLap = (v) => (v >= NGUONG_KHO.do ? MAU.bad : v >= NGUONG_KHO.vang ? MAU.warn : MAU.ok);
   return (
     <div className="grid gap-2.5 [grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr))]">
-      {khaiBao === null ? <Khung cao={CAO} ten="Cơ cấu tồn kho"><ChuaCo>Chưa có bảng phân loại tồn (chạy sql/07).</ChuaCo></Khung>
-        : pl ? <KhungCoCau cao={CAO} p={pl} kyInfo={kyInfo} /> : <Khung cao={CAO} ten="Cơ cấu tồn kho"><ChuaCo>Đang tải…</ChuaCo></Khung>}
-      {tuoi ? <KhungTuoi cao={CAO} tuoi={tuoi} /> : <Khung cao={CAO} ten="Tuổi tồn"><ChuaCo>Đang tải…</ChuaCo></Khung>}
-      <Khung cao={CAO} ten="Tồn theo loại hàng" phu="nhóm hàng" bo={<Chon gt={loaiKho} dat={setLoaiKho} ds={[["thanh_pham", "Thành phẩm"], ["nguyen_lieu", "Nguyên liệu"]]} />}>
-        {theoLoai.length ? (
-          <EChart height={chieuCao(theoLoai.length)} option={{
-            grid: { left: 4, right: 52, top: 6, bottom: 0, containLabel: true }, tooltip: { axisPointer: { type: "shadow" }, valueFormatter: (v) => `${so(v)} t` },
-            xAxis: { type: "value", axisLabel: { fontSize: 10, formatter: nghin } }, yAxis: { type: "category", inverse: true, data: theoLoai.map((d) => d.ten), axisLabel: { fontSize: 10, width: 100, overflow: "truncate" } },
-            series: [{ type: "bar", barMaxWidth: 14, itemStyle: { color: MAU_LOAI[loaiKho], opacity: 0.9 }, data: theoLoai.map((d) => r2(d.ton)), label: { show: true, position: "right", fontSize: 10, formatter: (p) => nghin(p.value) } }],
-          }} />) : <ChuaCo>{loaiKho === "thanh_pham" ? TEN_KHO_KIEN : TEN_KHO_ROI} chưa có tồn.</ChuaCo>}
+      <Khung cao={CAO} ten="Tồn hiện tại" phu="tồn theo hàng · thanh mờ là sức chứa" bo={<Chon gt={loaiTon} dat={setLoaiTon} ds={KHO} />}>
+        <TonHienTaiBD kho={kho} loai={loaiTon} cao={250} />
       </Khung>
-      <Khung cao={CAO} ten="Lấp đầy theo bãi" phu={`theo khu vực · vạch vàng ${pct(NGUONG_KHO.vang)} · bấm bãi xem bãi nhỏ`}>
+      <Khung cao={CAO} ten="Tỉ lệ lấp đầy" phu={`theo khu vực · vạch vàng ${pct(NGUONG_KHO.vang)} · bấm bãi xem bãi nhỏ`}>
         {nhomKhu.length ? (
           <div className="grid gap-2.5 pb-1">
             {nhomKhu.map((k) => (
@@ -78,8 +57,10 @@ export default function BieuDoKhoTQ({ kyInfo, kho, gd, tuoi }) {
               </div>))}
           </div>) : <ChuaCo>Chưa có bãi nào.</ChuaCo>}
       </Khung>
-      <KhungKho cao={CAO} ten="Lũy kế xuất nhập tồn · kho hàng kiện (thành phẩm)" loai="thanh_pham" kho={kho} kyInfo={kyInfo} gd={gd || []} keHoach={keHoach} now={D.now} />
-      <KhungKho cao={CAO} ten="Lũy kế xuất nhập tồn · kho hàng rời" loai="nguyen_lieu" kho={kho} kyInfo={kyInfo} gd={gd || []} keHoach={keHoach} now={D.now} />
+      <KhungKho cao={CAO} kho={kho} kyInfo={kyInfo} gd={gd || []} keHoach={keHoach} now={D.now} />
+      <Khung cao={CAO} ten="Diễn biến tồn" phu={`${kyInfo.nhan} · tồn theo hàng, tính ngược từ tồn hiện tại`} bo={<Chon gt={loaiDB} dat={setLoaiDB} ds={KHO} />}>
+        <DienBienTonBD key={loaiDB} kho={kho} loai={loaiDB} cao={230} kyChung={kyInfo} />
+      </Khung>
       {moBai && kho.bai.some((b) => b.ten_bai === moBai) && <ChiTietBai b={kho.bai.find((b) => b.ten_bai === moBai)} kho={kho} onClose={() => setMoBai(null)} />}
     </div>
   );

@@ -6,7 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import EChart from "@/components/EChart";
 import { so, pct, r2, ngayNam } from "@/lib/format";
 import { chuoiTonLoaiHang } from "@/lib/bieuDoKho";
-import { duBaoDay, tonTheoLoaiHang } from "@/lib/tonLoaiHang";
+import { duBaoDay, tonTheoLoaiHang, duBaoTonDiem } from "@/lib/tonLoaiHang";
+import { khoaDiem } from "@/lib/bieuDoSanLuong";
 import { cn } from "@/lib/utils";
 import { mucDay } from "./khoUi";
 import { TonBaiNho, dsBaiLonCua, HangLoc, useKyKho, NhapXuatKeHoach, DuBaoTonKho, BoChonBai } from "./BieuDoTon";
@@ -20,6 +21,8 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 // Mặc định xem theo HÀNG ĐANG CHỨA trong kho (đúng tên hàng như ở sổ kho / Danh mục kho bãi, VD "Thép cuộn HRC"); nút "Nhóm hàng" gộp theo nhóm trong Danh mục › Hàng hóa (VD "HRC").
 const MAU = { ok: "#10b981", warn: "#f59e0b", bad: "#f43f5e", xam: "#64748b", nhan: "#6366f1" };
 const MAU_DUONG = ["#6366f1", "#14b8a6", "#38bdf8", "#f59e0b", "#a855f7", "#ec4899", "#84cc16", "#f97316", "#06b6d4", "#e11d48", "#8b5cf6", "#22c55e"];
+const KHONG_KH = [];
+const TEN_HANG = (h) => h; // loại hàng = đúng tên hàng (mặc định); hằng số để các useMemo không dựng lại mỗi lần vẽ
 const nghin = (v) => (Math.abs(v) >= 1000 ? `${r2(v / 1000)}k` : v);
 const mauMuc = (lapDay) => { const m = mucDay(lapDay); return m === "xam" || MAU[m] === MAU.xam ? MAU.nhan : MAU[m]; };
 const TT_DAY = {
@@ -53,15 +56,22 @@ function TonBaiNhoMotBai({ kho, loai }) {
 
 // 2. Tồn hiện tại theo loại hàng (cột)
 function TonHienTai({ kho, loai, nhomOf, theo }) {
-  const ds = useMemo(() => tonTheoLoaiHang({ kho, loai, nhomOf }).filter((x) => x.ton > 1e-6 || x.sucChua > 0), [kho, loai, nhomOf]);
-  const tong = ds.reduce((s, x) => s + x.ton, 0), tongSC = ds.reduce((s, x) => s + x.sucChua, 0);
   return (
     <Card>
       <CardHeader><CardTitle><BarChart3 />Tồn hiện tại theo {theo === "nhom" ? "nhóm hàng" : "hàng"}</CardTitle></CardHeader>
-      <CardContent>
+      <CardContent><TonHienTaiBD kho={kho} loai={loai} nhomOf={nhomOf} theo={theo} /></CardContent>
+    </Card>
+  );
+}
+// Phần biểu đồ (dùng lại ở Tổng quan › Kho bãi: khung "Tồn hiện tại"); cao = chiều cao biểu đồ
+export function TonHienTaiBD({ kho, loai, nhomOf = TEN_HANG, theo = "hang", cao = 300 }) {
+  const ds = useMemo(() => tonTheoLoaiHang({ kho, loai, nhomOf }).filter((x) => x.ton > 1e-6 || x.sucChua > 0), [kho, loai, nhomOf]);
+  const tong = ds.reduce((s, x) => s + x.ton, 0), tongSC = ds.reduce((s, x) => s + x.sucChua, 0);
+  return (
+    <>
         {ds.length ? (
           <>
-            <EChart height={300} option={{
+            <div className="overflow-x-auto pb-1"><div style={{ minWidth: ds.length > 8 ? ds.length * 58 : undefined }}><EChart height={cao} option={{
               grid: { left: 4, right: 10, top: 34, bottom: 4, containLabel: true }, legend: { data: ["Tồn", "Sức chứa"], itemWidth: 12, itemHeight: 6, textStyle: { fontSize: 10 } },
               tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: (p) => { const x = ds[p[0].dataIndex]; return `<b>${x.ten}</b><br/>Tồn: ${so(x.ton)} t${x.sucChua > 0 ? `<br/>Sức chứa: ${so(x.sucChua)} t<br/>Lấp đầy: ${pct(x.lapDay)}` : ""}`; } },
               xAxis: { type: "category", data: ds.map((x) => x.ten), axisLabel: { fontSize: 10, interval: 0, width: 80, overflow: "truncate", rotate: ds.length > 6 ? 30 : 0 } },
@@ -71,18 +81,27 @@ function TonHienTai({ kho, loai, nhomOf, theo }) {
                 { name: "Tồn", type: "bar", barMaxWidth: 34, z: 2, data: ds.map((x) => ({ value: r2(Math.max(0, x.ton)), itemStyle: { color: mauMuc(x.lapDay) } })),
                   label: { show: true, position: "top", fontSize: 10, textBorderWidth: 0, formatter: (p) => (ds[p.dataIndex].lapDay != null ? pct(ds[p.dataIndex].lapDay, 0) : nghin(p.value)) } },
               ],
-            }} />
+            }} /></div></div>
             <p className="mt-1 text-xs text-muted-foreground">Tổng tồn <b className="text-foreground">{so(tong, 0)} t</b>{tongSC > 0 ? <> / sức chứa <b className="text-foreground">{so(tongSC, 0)} t</b> ({pct(tong / tongSC, 0)})</> : ""}. Nhãn trên cột là % lấp đầy; thanh mờ là sức chứa của các gian / lô chứa {theo === "nhom" ? "nhóm hàng" : "hàng"} đó (gian / lô nhiều hàng chia theo tỉ lệ tồn).</p>
           </>) : <p className="py-8 text-center text-sm text-muted-foreground">Chưa có tồn kho.</p>}
-      </CardContent>
-    </Card>
+    </>
   );
 }
 
 // 3. Diễn biến tồn theo loại hàng (đường)
 function DienBienTon({ kho, loai, nhomOf, theo }) {
+  return (
+    <Card>
+      <CardHeader><CardTitle><LineChart />Diễn biến tồn theo {theo === "nhom" ? "nhóm hàng" : "hàng"}</CardTitle></CardHeader>
+      <CardContent><DienBienTonBD kho={kho} loai={loai} nhomOf={nhomOf} theo={theo} /></CardContent>
+    </Card>
+  );
+}
+// Phần biểu đồ + bộ lọc (dùng lại ở Tổng quan › Kho bãi: khung "Diễn biến tồn"); cao = chiều cao biểu đồ
+// kyChung: kỳ của cả trang (Tổng quan: thanh chọn kỳ ở đầu trang) thì dùng luôn kỳ đó, không hiện bộ chọn Tháng / Quý / Năm riêng
+export function DienBienTonBD({ kho, loai, nhomOf = TEN_HANG, theo = "hang", cao = 300, kyChung = null }) {
   const { D, api } = useApp();
-  const k = useKyKho(), kyInfo = k.kyInfo, dau = kyInfo.ngays[0];
+  const k0 = useKyKho(), k = kyChung ? { ...k0, kyInfo: kyChung, homNay: kyChung.homNay } : k0, kyInfo = k.kyInfo, dau = kyInfo.ngays[0];
   const [gd, setGd] = useState(null);
   useEffect(() => {
     let huy = false; setGd(null);
@@ -97,6 +116,10 @@ function DienBienTon({ kho, loai, nhomOf, theo }) {
   const dangChon = new Set(chon.length ? chon.filter((x) => tatCaKey.includes(x)) : tatCaKey);
   const hien = c ? c.ds.map((x, i) => ({ ...x, i })).filter((x) => dangChon.has(x.k)) : [];
   const lat = (key) => { const m = new Set(dangChon); if (m.has(key)) m.delete(key); else m.add(key); if (!m.size) return; setChon(m.size === tatCaKey.length ? [] : [...m]); };
+  // Dự báo tồn (anh Sỹ 22/11/2026): luôn vẽ thêm đường NÉT ĐỨT cùng màu từ hôm nay tới hết kỳ; mỗi hàng tự chọn nguồn: có kế hoạch Xuất/Nhập tồn thì theo kế hoạch, không có thì theo trung bình thực tế 30 ngày
+  const keHoach = D.khoKeHoach || KHONG_KH;
+  const db = useMemo(() => (c ? duBaoTonDiem(kyInfo, { c: { ...c, ds: hien }, kho, loai, nhomOf, keHoach, giaoDich: D.giaoDich || [], now: D.now }) : null), [c, hien.map((x) => x.k).join("|"), kyInfo, kho, loai, nhomOf, keHoach, D.giaoDich, D.now]); // eslint-disable-line react-hooks/exhaustive-deps
+  const iHN = c ? c.diem.findIndex((o) => khoaDiem(kyInfo.buoc, o.dau) === khoaDiem(kyInfo.buoc, kyInfo.homNay)) : -1;
   const boLoc = c && c.ds.length > 1 ? (
     <Popover>
       <PopoverTrigger asChild>
@@ -122,24 +145,27 @@ function DienBienTon({ kho, loai, nhomOf, theo }) {
       </PopoverContent>
     </Popover>) : null;
   return (
-    <Card>
-      <CardHeader><CardTitle><LineChart />Diễn biến tồn theo {theo === "nhom" ? "nhóm hàng" : "hàng"}</CardTitle></CardHeader>
-      <CardContent>
-        <HangLoc k={k} dsBai={[]} bai="" setBai={() => {}} anBai them={boLoc} />
+    <>
+        {kyChung ? (boLoc && <div className="mb-1 flex justify-end">{boLoc}</div>) : <HangLoc k={k} dsBai={[]} bai="" setBai={() => {}} anBai them={boLoc} />}
         {c ? (c.ds.length ? (
           <>
-            <EChart height={300} option={{
+            <EChart height={cao} option={{
               tooltip: { trigger: "axis", valueFormatter: (v) => (v == null ? "—" : `${so(v)} t`) },
-              legend: { type: "scroll", itemWidth: 12, itemHeight: 6, textStyle: { fontSize: 10 } },
+              legend: { type: "scroll", data: hien.map((x) => x.ten), itemWidth: 12, itemHeight: 6, textStyle: { fontSize: 10 } },
               grid: { left: 4, right: 12, top: 36, bottom: 0, containLabel: true },
               xAxis: { type: "category", boundaryGap: false, data: c.diem.map((o) => o.nhan), axisLabel: { fontSize: 10, hideOverlap: true } },
               yAxis: { type: "value", axisLabel: { fontSize: 10, formatter: nghin } },
-              series: hien.map((x) => ({ name: x.ten, type: "line", showSymbol: kyInfo.ky !== "thang", symbolSize: 4, data: x.ton, itemStyle: { color: MAU_DUONG[x.i % MAU_DUONG.length] }, lineStyle: { width: 2, color: MAU_DUONG[x.i % MAU_DUONG.length] } })),
+              series: [
+                ...hien.map((x, j) => ({ name: x.ten, type: "line", showSymbol: kyInfo.ky !== "thang", symbolSize: 4, data: x.ton, itemStyle: { color: MAU_DUONG[x.i % MAU_DUONG.length] }, lineStyle: { width: 2, color: MAU_DUONG[x.i % MAU_DUONG.length] },
+                  ...(j === 0 && db?.theo.size && iHN >= 0 ? { markLine: { symbol: "none", silent: true, lineStyle: { color: "#94a3b8", type: "dotted" }, label: { formatter: "Hôm nay", fontSize: 10, color: "#94a3b8" }, data: [{ xAxis: iHN }] } } : {}) })),
+                // Phần dự báo: nét đứt cùng màu với hàng, không vào chú thích
+                ...hien.filter((x) => db?.theo.get(x.k)).map((x) => ({ name: `${x.ten} · dự báo`, type: "line", showSymbol: false, data: db.theo.get(x.k), itemStyle: { color: MAU_DUONG[x.i % MAU_DUONG.length] }, lineStyle: { width: 2, type: "dashed", color: MAU_DUONG[x.i % MAU_DUONG.length] } })),
+              ],
             }} />
-            <p className="mt-1 text-xs text-muted-foreground">{kyInfo.nhan} · tồn hiện tại <b className="text-foreground">{so(hien.reduce((s, x) => s + x.hienTai, 0), 0)} t</b>{hien.length < c.ds.length ? ` (${hien.length}/${c.ds.length} hàng đã chọn)` : ""}. Mỗi đường một {theo === "nhom" ? "nhóm hàng" : "hàng"}; tính ngược từ tồn hiện tại theo sổ nhập – xuất (điểm chưa tới để trống).</p>
+            <p className="mt-1 text-xs text-muted-foreground">{kyInfo.nhan} · tồn hiện tại <b className="text-foreground">{so(hien.reduce((s, x) => s + x.hienTai, 0), 0)} t</b>{hien.length < c.ds.length ? ` (${hien.length}/${c.ds.length} hàng đã chọn)` : ""}. Mỗi đường một {theo === "nhom" ? "nhóm hàng" : "hàng"}; tính ngược từ tồn hiện tại theo sổ nhập – xuất (điểm chưa tới để trống).
+              {db && (db.theo.size ? <> <b className="text-foreground">Nét đứt = dự báo</b> tới hết kỳ: tồn hôm nay + nhập − xuất mỗi ngày, theo {(() => { const kh = [...db.nguon.values()].filter((x) => x === "kh").length, bq = db.nguon.size - kh; return kh && bq ? `kế hoạch Xuất/Nhập tồn (${kh} hàng) hoặc trung bình thực tế 30 ngày gần nhất (${bq} hàng chưa có kế hoạch)` : kh ? "kế hoạch Xuất/Nhập tồn" : "trung bình thực tế 30 ngày gần nhất (chưa có kế hoạch)"; })()}{db.coSo ? `; dự kiến nhập ${so(db.tongNhap, 0)} t, xuất ${so(db.tongXuat, 0)} t.` : "; chưa có nhập / xuất nên tồn giữ nguyên."}</> : " Kỳ đã qua hết nên không có phần dự báo.")}</p>
           </>) : <p className="py-8 text-center text-sm text-muted-foreground">Chưa có tồn kho.</p>) : <p className="py-8 text-center text-sm text-muted-foreground">Đang tải…</p>}
-      </CardContent>
-    </Card>
+    </>
   );
 }
 

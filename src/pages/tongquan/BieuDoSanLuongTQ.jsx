@@ -7,17 +7,15 @@ import { chuyenDaRoi } from "@/lib/linetime";
 import { dongHang } from "@/lib/sanLuong";
 import { cangCuaChuyen, KHONG_CANG } from "@/lib/cangTrucThuoc";
 import { useNhomHang } from "../cang/useNhomHang";
-import { NHOM, tenHuong, tenDonVi } from "@/lib/sanLuongTT";
+import { NHOM, tenDonVi } from "@/lib/sanLuongTT";
 import { tongTheoNhom, chuoiKy } from "@/lib/bieuDoSanLuong";
 import { MAU } from "./khung";
 import { Khung, ChuaCo, Chon, nghin } from "./khungBD";
 
-// Mảng Sản lượng của Tổng quan (anh Sỹ chốt 11/2026): 6 biểu đồ (thêm 1 biểu đồ theo CẢNG TRỰC THUỘC 14/11/2026), mỗi biểu đồ một khung CỐ ĐỊNH chiều cao (CAO), dài thì cuộn trong khung:
-//   1. Cơ cấu sản lượng cảng (loại hàng)            2. Cơ cấu sản lượng theo đơn vị vận chuyển (Hòa Phát / nhà thầu)
-//   3. Lũy kế sản lượng nhập / xuất cảng theo loại hàng   4. Lũy kế sản lượng theo đội xe
-//   5. Lũy kế sản lượng nhập / xuất cảng thực tế – kế hoạch   6. Lũy kế sản lượng phục vụ cảng / phục vụ sản xuất thực tế – kế hoạch
-//   7. Cơ cấu sản lượng theo cảng trực thuộc
-//   Biểu đồ 7 tính từ KL đã làm của các chuyến tàu cập bến trong kỳ, cảng = cột "Cảng trực thuộc" của bến chuyến cập (Danh mục › Cầu bến › Danh sách bến).
+// Mảng Sản lượng của Tổng quan (anh Sỹ chốt 11/2026, đổi tên và bố cục 22/11/2026): 7 biểu đồ, mỗi biểu đồ một khung CỐ ĐỊNH chiều cao (CAO), dài thì cuộn trong khung:
+//   Hàng cơ cấu: Cơ cấu sản lượng qua Cảng (loại hàng) · Cơ cấu sản lượng vận tải (theo đơn vị) · Cơ cấu sản lượng theo đơn vị Cảng (cảng trực thuộc)
+//   Tiến độ Nhập/Xuất Cảng (xem từng hướng, theo loại hàng) · Tiến độ vận tải (theo đội xe, lọc hướng và đơn vị) · Lũy kế sản lượng qua Cảng · Lũy kế sản lượng vận tải
+//   Cơ cấu theo đơn vị Cảng tính từ KL các chuyến tàu đã rời bến trong kỳ, cảng = cột "Cảng trực thuộc" của bến chuyến cập (Danh mục › Cầu bến › Danh sách bến).
 export const CAO = 350;
 const base = { grid: { left: 4, right: 10, top: 30, bottom: 0, containLabel: true }, legend: { top: 0, itemWidth: 12, itemHeight: 6, icon: "roundRect", textStyle: { fontSize: 10 } } };
 const truc = { type: "value", axisLabel: { fontSize: 10, formatter: nghin } };
@@ -27,13 +25,13 @@ const MAU_LAT = ["#6366f1", "#14b8a6", "#38bdf8", "#f59e0b", "#a78bfa", "#ec4899
 const chieuCao = (n) => Math.max(250, 40 + n * 36);
 
 // Biểu đồ lũy kế theo thời gian: mỗi hướng hai đường, lũy kế kế hoạch (nét đứt) và lũy kế thực tế (nét liền). Cảng: nhập, xuất; vận tải: phục vụ cảng, phục vụ sản xuất
-const TEN_NGAN = { nhap: "nhập", xuat: "xuất", phuc_vu_cang: "phục vụ cảng", phuc_vu_san_xuat: "phục vụ sản xuất" };
+const TEN_NGAN = { nhap: "Nhập", xuat: "Xuất", phuc_vu_cang: "PVC", phuc_vu_san_xuat: "PVSX" }; // chú thích ghi tắt: "Nhập - KH", "PVC - TT"…
 function optLuyKe(cs) { // cs: [[huong, chuoiKy của riêng hướng đó]]
   const diem = cs[0][1].diem, series = [];
   for (const [h, c] of cs) {
     const mau = MAU_HUONG[h] || MAU.primary;
-    series.push({ name: `Lũy kế ${TEN_NGAN[h] || h} · kế hoạch`, type: "line", showSymbol: false, data: c.diem.map((o) => r2(o.lkMt)), itemStyle: { color: mau }, lineStyle: { width: 2, type: "dashed", color: mau } });
-    series.push({ name: `Lũy kế ${TEN_NGAN[h] || h} · thực tế`, type: "line", showSymbol: false, connectNulls: false, data: c.diem.map((o) => (o.lkTt == null ? null : r2(o.lkTt))), itemStyle: { color: mau }, lineStyle: { width: 3, color: mau }, areaStyle: { color: mau, opacity: 0.07 } });
+    series.push({ name: `${TEN_NGAN[h] || h} - KH`, type: "line", showSymbol: false, data: c.diem.map((o) => r2(o.lkMt)), itemStyle: { color: mau }, lineStyle: { width: 2, type: "dashed", color: mau } });
+    series.push({ name: `${TEN_NGAN[h] || h} - TT`, type: "line", showSymbol: false, connectNulls: false, data: c.diem.map((o) => (o.lkTt == null ? null : r2(o.lkTt))), itemStyle: { color: mau }, lineStyle: { width: 3, color: mau }, areaStyle: { color: mau, opacity: 0.07 } });
   }
   return {
     ...base, grid: { ...base.grid, top: 56, right: 8 }, tooltip: { trigger: "axis", valueFormatter: (v) => (v == null ? "—" : `${so(v)} t`) },
@@ -98,9 +96,10 @@ export function CoCauTheoCang({ kyInfo, cao }) {
   const [h, setH] = useState(""), [loai, setLoai] = useState("");
   const r = useTheoCang(kyInfo, h, loai);
   return (
-    <Khung cao={cao} ten="Cơ cấu sản lượng theo cảng" phu={`${kyInfo.nhan} · KL các chuyến tàu đã rời bến`}
-      bo={<><Chon gt={h} dat={setH} ds={[["", "Tổng"], ["nhap", "Nhập"], ["xuat", "Xuất"]]} />
-        <NativeSelect className="h-6 w-32 text-[0.6875rem]" value={r?.dsLoai.includes(loai) ? loai : ""} onChange={(e) => setLoai(e.target.value)} placeholder="Mọi loại hàng" options={r?.dsLoai || []} aria-label="Lọc theo loại hàng" /></>}>
+    <Khung cao={cao} ten="Cơ cấu sản lượng theo đơn vị Cảng" phu={`${kyInfo.nhan} · KL các chuyến tàu đã rời bến`}
+      bo={<Chon gt={h} dat={setH} ds={[["", "Tổng"], ["nhap", "Nhập"], ["xuat", "Xuất"]]} />}>
+      {/* Lọc loại hàng nằm trong khung (không ở đầu khung) để tên biểu đồ không bị cắt */}
+      <div className="mb-1 flex justify-end"><NativeSelect className="h-6 w-36 text-[0.6875rem]" value={r?.dsLoai.includes(loai) ? loai : ""} onChange={(e) => setLoai(e.target.value)} placeholder="Mọi loại hàng" options={r?.dsLoai || []} aria-label="Lọc theo loại hàng" /></div>
       {r == null ? CHUA_CO_CANG : r.ds.length ? <BanhVong ds={r.ds.map((o) => ({ name: o.ten, value: r2(o.tong) }))} cao={Math.max(150, cao - 120)} /> : <ChuaCo>Chưa có chuyến tàu nào đã rời bến trong kỳ{loai ? ` với loại hàng ${loai}` : ""}.</ChuaCo>}
       <div className="mt-1 text-[0.6875rem] leading-snug text-muted-foreground">Khối lượng lấy từ <b>khối lượng hàng của các chuyến tàu đã có ATD</b> (chưa ghi ATD mà đã qua ETD thì tính theo ETD), tính vào kỳ theo ngày rời bến; cảng theo bến tàu cập (Danh mục › Cầu bến). Tạm thời, vì chưa nhập khối lượng thực tế theo từng chuyến.</div>
     </Khung>
@@ -112,38 +111,48 @@ const bo = (gt, dat, nhom) => <Chon gt={gt} dat={dat} ds={[["", "Tổng"], ...NH
 
 // cang / vt: dữ liệu đã tải (mục tiêu + thực tế); tdC, tdV: tienDoSanLuong (dòng tóm tắt)
 export default function BieuDoSanLuongTQ({ kyInfo, cang, vt, tdC, tdV }) {
-  const [hCoCau, setHCoCau] = useState(""), [hDV, setHDV] = useState(""), [hLoai, setHLoai] = useState(""), [hDoi, setHDoi] = useState("");
+  const [hCoCau, setHCoCau] = useState(""), [hDV, setHDV] = useState(""), [hLoai, setHLoai] = useState("nhap"), [hDoi, setHDoi] = useState(""), [dvDoi, setDvDoi] = useState("");
   const coCauCang = useMemo(() => [...tongTheoNhom(kyInfo, cang, "cang", (x) => x.loai, (x) => !hCoCau || x.huong === hCoCau)].map(([k, v]) => ({ name: k, value: r2(v.tt) })).filter((d) => d.value > 0).sort((a, b) => b.value - a.value), [kyInfo, cang, hCoCau]);
   const coCauDV = useMemo(() => [...tongTheoNhom(kyInfo, vt, "van_tai", (x) => x.donVi, (x) => !hDV || x.huong === hDV)].map(([k, v]) => ({ name: tenDonVi(k), value: r2(v.tt) })).filter((d) => d.value > 0).sort((a, b) => b.value - a.value), [kyInfo, vt, hDV]);
-  const theoLoai = useMemo(() => [...tongTheoNhom(kyInfo, cang, "cang", (x) => `${x.huong}|${x.loai}`, (x) => !hLoai || x.huong === hLoai)].map(([k, v]) => { const [h, loai] = k.split("|"); return { ...v, ten: `${tenHuong("cang", h)} · ${loai}`, ord: (h === "nhap" ? 0 : 1) + loai }; }).sort((a, b) => a.ord.localeCompare(b.ord, "vi")), [kyInfo, cang, hLoai]);
-  const theoDoi = useMemo(() => [...tongTheoNhom(kyInfo, vt, "van_tai", (x) => x.loai, (x) => !hDoi || x.huong === hDoi)].map(([k, v]) => ({ ...v, ten: k || "(chưa ghi)" })).sort((a, b) => b.tt - a.tt), [kyInfo, vt, hDoi]);
+  // Tiến độ nhập / xuất cảng: chỉ xem MỘT hướng (không có "Tổng"), trục dọc chỉ ghi loại hàng
+  const theoLoai = useMemo(() => [...tongTheoNhom(kyInfo, cang, "cang", (x) => x.loai, (x) => x.huong === hLoai)].map(([k, v]) => ({ ...v, ten: k || "(chưa ghi)" })).sort((a, b) => a.ten.localeCompare(b.ten, "vi")), [kyInfo, cang, hLoai]);
+  const lonDV = (x) => !dvDoi || (dvDoi === "hoa_phat" ? x.donVi === "hoa_phat" : x.donVi !== "hoa_phat"); // Thuê ngoài gồm cả số cũ theo từng nhà thầu (nt:<tên>)
+  const theoDoi = useMemo(() => [...tongTheoNhom(kyInfo, vt, "van_tai", (x) => x.loai, (x) => (!hDoi || x.huong === hDoi) && lonDV(x))].map(([k, v]) => ({ ...v, ten: k || "(chưa ghi)" })).sort((a, b) => b.tt - a.tt), [kyInfo, vt, hDoi, dvDoi]); // eslint-disable-line react-hooks/exhaustive-deps
   const luyKe = (du, nhom) => NHOM[nhom].huong.map(([h]) => [h, chuoiKy(kyInfo, du, nhom, { loc: (x) => x.huong === h })]);
   const csC = useMemo(() => luyKe(cang, "cang"), [kyInfo, cang]); // eslint-disable-line react-hooks/exhaustive-deps
   const csV = useMemo(() => luyKe(vt, "van_tai"), [kyInfo, vt]); // eslint-disable-line react-hooks/exhaustive-deps
   const tieuDe = (td) => (td ? `${nghin(td.tt)} / ${nghin(td.mt)} t · đạt ${td.mt ? pct(td.dat, 1) : "—"}${td.duBaoDat != null && !td.xong ? ` · dự báo ${pct(td.duBaoDat)}` : ""}` : "");
   return (
-    <div className="grid gap-2.5 [grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr))]">
-      <Khung cao={CAO} ten="Cơ cấu sản lượng cảng" phu={`${kyInfo.nhan} · theo loại hàng`} bo={bo(hCoCau, setHCoCau, "cang")}>
+    <div className="grid gap-2.5">
+      <div className="grid gap-2.5 [grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr))]">
+      <Khung cao={CAO} ten="Cơ cấu sản lượng qua Cảng" phu={`${kyInfo.nhan} · theo loại hàng`} bo={bo(hCoCau, setHCoCau, "cang")}>
         {coCauCang.length ? <BanhVong ds={coCauCang} /> : <ChuaCo>Chưa có sản lượng thực tế trong kỳ.</ChuaCo>}
       </Khung>
-      <Khung cao={CAO} ten="Cơ cấu sản lượng theo đơn vị vận chuyển" phu={`${kyInfo.nhan} · Hòa Phát / nhà thầu`} bo={bo(hDV, setHDV, "van_tai")}>
+      <Khung cao={CAO} ten="Cơ cấu sản lượng vận tải" phu="Theo đơn vị" bo={bo(hDV, setHDV, "van_tai")}>
         {coCauDV.length ? <BanhVong ds={coCauDV} /> : <ChuaCo>Chưa có sản lượng vận tải trong kỳ.</ChuaCo>}
       </Khung>
-      <Khung cao={CAO} ten="Lũy kế nhập / xuất cảng theo loại hàng" phu={`${kyInfo.nhan} · kế hoạch – thực tế`} bo={bo(hLoai, setHLoai, "cang")}>
-        {theoLoai.length ? <EChart height={chieuCao(theoLoai.length)} option={optNhom(theoLoai)} /> : <ChuaCo>Chưa có kế hoạch hay số thực tế.</ChuaCo>}
-      </Khung>
-      <Khung cao={CAO} ten="Lũy kế sản lượng theo đội xe" phu={`${kyInfo.nhan} · kế hoạch – thực tế`} bo={bo(hDoi, setHDoi, "van_tai")}>
-        {theoDoi.length ? <EChart height={chieuCao(theoDoi.length)} option={optNhom(theoDoi)} /> : <ChuaCo>Chưa có kế hoạch hay số thực tế vận tải.</ChuaCo>}
-      </Khung>
-      <Khung cao={CAO} ten="Lũy kế nhập / xuất cảng" phu={`${kyInfo.nhan} · thực tế – kế hoạch`}>
+      <CoCauTheoCang kyInfo={kyInfo} cao={CAO} />
+      </div>
+      {/* Hai biểu đồ lũy kế nằm trên hai biểu đồ tiến độ (anh Sỹ 22/11/2026) */}
+      <div className="grid gap-2.5 lg:grid-cols-2">
+      <Khung cao={CAO} ten="Lũy kế sản lượng qua Cảng" phu={`${kyInfo.nhan} · thực tế – kế hoạch`}>
         <div className="mb-1 text-[0.6875rem] text-muted-foreground">{tieuDe(tdC)}</div>
         <EChart height={280} option={optLuyKe(csC)} />
       </Khung>
-      <Khung cao={CAO} ten="Lũy kế phục vụ cảng / phục vụ sản xuất" phu={`${kyInfo.nhan} · thực tế – kế hoạch`}>
+      <Khung cao={CAO} ten="Lũy kế sản lượng vận tải" phu={`${kyInfo.nhan} · thực tế – kế hoạch`}>
         <div className="mb-1 text-[0.6875rem] text-muted-foreground">{tieuDe(tdV)}</div>
         <EChart height={280} option={optLuyKe(csV)} />
       </Khung>
-      <CoCauTheoCang kyInfo={kyInfo} cao={CAO} />
+
+      <Khung cao={CAO} ten="Tiến độ Nhập/Xuất Cảng" phu={`${kyInfo.nhan} · kế hoạch – thực tế theo loại hàng`} bo={<Chon gt={hLoai} dat={setHLoai} ds={NHOM.cang.huong} />}>
+        {theoLoai.length ? <EChart height={chieuCao(theoLoai.length)} option={optNhom(theoLoai)} /> : <ChuaCo>Chưa có kế hoạch hay số thực tế.</ChuaCo>}
+      </Khung>
+      <Khung cao={CAO} ten="Tiến độ vận tải" phu={`${kyInfo.nhan} · kế hoạch – thực tế theo đội xe`}
+        bo={<><Chon gt={hDoi} dat={setHDoi} ds={[["", "Tổng"], ...NHOM.van_tai.huong]} />
+          <NativeSelect className="h-6 w-32 text-[0.6875rem]" value={dvDoi} onChange={(e) => setDvDoi(e.target.value)} placeholder="Mọi đơn vị" options={[["hoa_phat", "Hòa Phát"], ["nha_thau", "Thuê ngoài"]]} aria-label="Lọc theo đơn vị" /></>}>
+        {theoDoi.length ? <EChart height={chieuCao(theoDoi.length)} option={optNhom(theoDoi)} /> : <ChuaCo>Chưa có kế hoạch hay số thực tế vận tải.</ChuaCo>}
+      </Khung>
+      </div>
     </div>
   );
 }

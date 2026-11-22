@@ -5,7 +5,7 @@ import { so, pct, r2, DAY } from "@/lib/format";
 import { chuoiKho, tonTheoTuoi, dsNhomKho, NHOM_TUOI, nhomTuoi } from "@/lib/bieuDoKho";
 import { useKho } from "../kho/useKho";
 import { MAU } from "./khung";
-import { Khung, ChuaCo, ChonDs, BangChiTiet, nghin } from "./khungBD";
+import { Khung, ChuaCo, Chon, ChonDs, BangChiTiet, nghin } from "./khungBD";
 
 // Khối 5 biểu đồ kho phía dưới Linetime (Tổng quan), cùng kỳ (tuần / tháng / quý / năm) với khối sản lượng:
 //  1. Kho thành phẩm và 2. Kho nguyên liệu: kế hoạch – lũy kế nhập / xuất, tồn (kế hoạch lấy từ Kho › Kế hoạch Xuất/Nhập tồn), lọc theo loại hàng (nhóm hàng)
@@ -49,28 +49,36 @@ export function useTonPhanLoai() {
 
 const tenBuoc = (k) => (k.buoc === "thang" ? "Tháng" : k.buoc === "tuan" ? "Tuần từ" : "Ngày");
 
-export function KhungKho({ ten, loai, kho, kyInfo, gd, keHoach, now, cao }) {
-  const [nhom, setNhom] = useState("");
+// Một khung "Lũy kế xuất/nhập tồn" (anh Sỹ 22/11/2026: gộp hai khung kho kiện / kho rời): nút chuyển Kho hàng kiện / Kho hàng rời và lọc loại hàng tương ứng với kho đó
+export function KhungKho({ ten = "Lũy kế xuất/nhập tồn", kho, kyInfo, gd, keHoach, now, cao }) {
+  const [loai, setLoai] = useState("thanh_pham");
+  const [nhomChon, setNhom] = useState("");
   const nhoms = useMemo(() => dsNhomKho(kho, loai, keHoach), [kho, loai, keHoach]);
+  const nhom = nhoms.includes(nhomChon) ? nhomChon : ""; // đổi kho thì loại hàng không còn trong kho đó về "Mọi loại hàng"
   const c = useMemo(() => chuoiKho(kyInfo, { kho, loai, nhom, keHoach, giaoDich: gd, now }), [kyInfo, kho, loai, nhom, keHoach, gd, now]);
   const opt = {
     ...base, tooltip: { valueFormatter: (v) => (v == null ? "—" : `${so(v)} t`) },
     xAxis: { type: "category", data: c.diem.map((o) => o.nhan), axisLabel: { fontSize: 10, hideOverlap: true } }, yAxis: truc,
-    series: [
-      duong("Nhập thực tế", c.diem.map((o) => o.lkNhapTT), MAU.info), duong("Nhập kế hoạch", c.diem.map((o) => r2(o.lkNhapKH)), MAU.info, { net: true }),
-      duong("Xuất thực tế", c.diem.map((o) => o.lkXuatTT), MAU.tim), duong("Xuất kế hoạch", c.diem.map((o) => r2(o.lkXuatKH)), MAU.tim, { net: true }),
-      duong("Tồn thực tế", c.diem.map((o) => o.tonCuoi), MAU.ok, { vung: true }), duong("Tồn kế hoạch", c.diem.map((o) => r2(o.tonKH)), MAU.ok, { net: true }),
+    series: [ // chú thích ghi tắt: TT = thực tế, KH = kế hoạch
+      duong("Nhập - TT", c.diem.map((o) => o.lkNhapTT), MAU.info), duong("Nhập - KH", c.diem.map((o) => r2(o.lkNhapKH)), MAU.info, { net: true }),
+      duong("Xuất - TT", c.diem.map((o) => o.lkXuatTT), MAU.tim), duong("Xuất - KH", c.diem.map((o) => r2(o.lkXuatKH)), MAU.tim, { net: true }),
+      duong("Tồn - TT", c.diem.map((o) => o.tonCuoi), MAU.ok, { vung: true }), duong("Tồn - KH", c.diem.map((o) => r2(o.tonKH)), MAU.ok, { net: true }),
     ],
   };
   const chiTiet = {
-    description: `${kyInfo.nhan}${nhom ? ` · ${nhom}` : " · mọi loại hàng"} · tồn đầu kỳ ${so(c.tonDau)} t`,
+    description: `${kyInfo.nhan} · ${loai === "thanh_pham" ? "Hàng kiện" : "Hàng rời"}${nhom ? ` · ${nhom}` : " · mọi loại hàng"} · tồn đầu kỳ ${so(c.tonDau)} t`,
     node: <BangChiTiet cot={[[tenBuoc(kyInfo), ""], ["Nhập KH", "t"], ["Nhập TT", "t"], ["Xuất KH", "t"], ["Xuất TT", "t"], ["Lũy kế nhập KH", "t"], ["Lũy kế nhập TT", "t"], ["Lũy kế xuất KH", "t"], ["Lũy kế xuất TT", "t"], ["Tồn KH", "t"], ["Tồn TT", "t"]]}
       dong={c.diem.map((o) => [o.nhan, o.nhapKH, o.nhapTT, o.xuatKH, o.xuatTT, o.lkNhapKH, o.lkNhapTT, o.lkXuatKH, o.lkXuatTT, o.tonKH, o.tonCuoi])}
       tong={["Cả kỳ", c.tongNhapKH, c.tongNhapTT, c.tongXuatKH, c.tongXuatTT, null, null, null, null, null, null]} />,
   };
   return (
-    <Khung cao={cao} ten={ten} phu={`${kyInfo.nhan} · kế hoạch – lũy kế nhập / xuất / tồn`} chiTiet={chiTiet} bo={<ChonDs gt={nhom} dat={setNhom} ds={nhoms} tatCa="Mọi loại hàng" />}>
-      <SoLon v={nghin(c.tonHT)} sub={`t tồn · nhập ${nghin(c.tongNhapTT)}${c.coKeHoach ? ` / KH ${nghin(c.tongNhapKH)}` : ""} · xuất ${nghin(c.tongXuatTT)}${c.coKeHoach ? ` / KH ${nghin(c.tongXuatKH)}` : ""}`} />
+    <Khung cao={cao} ten={ten} phu={`${kyInfo.nhan} · TT = thực tế, KH = kế hoạch`} chiTiet={chiTiet}
+      bo={<Chon gt={loai} dat={setLoai} ds={[["thanh_pham", "Hàng kiện"], ["nguyen_lieu", "Hàng rời"]]} />}>
+      <div className="flex items-center justify-between gap-2">
+        <SoLon v={nghin(c.tonHT)} sub={`t tồn · nhập ${nghin(c.tongNhapTT)}${c.coKeHoach ? ` / KH ${nghin(c.tongNhapKH)}` : ""} · xuất ${nghin(c.tongXuatTT)}${c.coKeHoach ? ` / KH ${nghin(c.tongXuatKH)}` : ""}`} />
+        {/* Lọc loại hàng của kho đang chọn: nằm trong khung để đầu khung không bị chật */}
+        <ChonDs gt={nhom} dat={setNhom} ds={nhoms} tatCa="Mọi loại hàng" />
+      </div>
       <EChart height={210} option={opt} />
       {!c.coKeHoach && <div className="mt-1 text-[0.6875rem] text-muted-foreground">Chưa có kế hoạch nhập / xuất của kỳ này (Kho › Kế hoạch Xuất/Nhập tồn).</div>}
     </Khung>

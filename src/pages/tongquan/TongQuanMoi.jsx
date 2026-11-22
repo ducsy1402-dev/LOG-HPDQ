@@ -10,7 +10,6 @@ import { NHOM } from "@/lib/sanLuongTT";
 import { chuoiKy, tongTheoNhom, khoangKy, kyTruoc, kySau } from "@/lib/bieuDoSanLuong";
 import { tuoiTon } from "@/lib/bieuDoKho";
 import { tienDoSanLuong, doiSoVoi, chiSoCauBen, tauTheoNgay, chiSoThietBi, taoVanDe, tone, toneDat, toneNang, NGUONG } from "@/lib/chiSoTQ";
-import GanttMet from "../cang/GanttMet";
 import Gantt from "../cang/Gantt";
 import { tenBen } from "../cang/BangTauBen";
 import { useKho } from "../kho/useKho";
@@ -94,8 +93,8 @@ export default function TongQuanMoi({ onMo, go, tongCanhBao }) {
   // Linetime theo mét: chế độ (chiếm bến / toàn thời gian) và số ngày do người xem chọn, nhớ lại ở máy; bắt đầu từ 2 ngày trước hôm nay (kỳ này) hoặc đầu kỳ đang xem
   const [cheLich, setCheLich] = useState(() => (docLs("lg-tq-che", "toan") === "ben" ? "ben" : "toan"));
   const [soNgayLich, setSoNgayLich] = useState(() => { const n = +docLs("lg-tq-ngay", 10); return NGAY_LICH.includes(n) ? n : 10; });
-  // Hiển thị lại Lịch cầu bến của Khai thác Cảng › Linetime: cùng hai trục (theo bến / theo mét; mặc định như Linetime), thêm lọc hướng nhập / xuất, tới 90 ngày
-  const [trucLich, setTrucLich] = useState(() => (docLs("lg-tq-truc", docLs("lg-gantt-truc", "ben")) === "met" ? "met" : "ben"));
+  // Hiển thị lại Lịch cầu bến của Khai thác Cảng › Linetime, CHỈ theo bến (anh Sỹ 22/11/2026): đủ các bến, kể cả bến ghép (cùng cài đặt "Bến ghép" của Linetime), thêm lọc hướng nhập / xuất, tới 90 ngày
+  const [ghepLich, setGhepLich] = useState(() => docLs("lg-gantt-ghep", "1") === "1");
   const [huongLich, setHuongLich] = useState(() => (["nhap", "xuat"].includes(docLs("lg-tq-huong", "")) ? docLs("lg-tq-huong", "") : ""));
   const pxNgay = Math.max(24, Math.floor((rongLich - 84) / soNgayLich));
   const tuLich = useMemo(() => { if (!laNay) return kyInfo.tu; const d = new Date(D.now); d.setHours(0, 0, 0, 0); return d.getTime() - 2 * DAY; }, [D.now, laNay, kyInfo.tu]);
@@ -215,19 +214,34 @@ export default function TongQuanMoi({ onMo, go, tongCanhBao }) {
               phu={cb.bor != null ? `${cb.soBen} bến · cả kỳ theo kế hoạch ${pct(cb.borCaKy, 1)}` : `Kỳ chưa bắt đầu · theo kế hoạch (${cb.soBen} bến)`} />
             <TheChiSo icon={Hourglass} ten="Chờ bến trung bình" giaTri={cb.choTB != null ? gio1(cb.choTB) : "—"} tone={tone(cb.choTB, NGUONG.choVang, NGUONG.choDo, false)}
               doi={cb.choTB != null && cbT?.choTB != null ? doiSoVoi(cb.choTB, cbT.choTB) : undefined} tot="thap"
-              phu={cb.choTB != null ? `Lâu nhất ${gio1(cb.choMax)} · ${cb.soTauCho} tàu cập trong kỳ` : "Chưa có tàu cập thật (ATB) trong kỳ"} />
+              phu={cb.choTB != null ? `Lâu nhất ${gio1(cb.choMax)} · ${cb.soTauCho} tàu cập trong kỳ · chưa có ATB thì tính theo ETB đã qua` : "Chưa có tàu cập (ATB hoặc ETB đã qua) trong kỳ"} />
             <TheChiSo icon={IcTau} ten="Thời gian tàu ở bến" giaTri={cb.oBenTB != null ? gio1(cb.oBenTB) : "—"} doi={cb.oBenTB != null && cbT?.oBenTB != null ? doiSoVoi(cb.oBenTB, cbT.oBenTB) : undefined} tot="thap"
-              phu={cb.oBenTB != null ? `Trung bình ${cb.soTauRoi} tàu đã rời trong kỳ` : "Chưa có tàu rời (ATD) trong kỳ"} />
+              phu={cb.oBenTB != null ? `Trung bình ${cb.soTauRoi} tàu đã rời trong kỳ · chưa có ATD thì tính theo ETD đã qua` : "Chưa có tàu rời (ATD hoặc ETD đã qua) trong kỳ"} />
             <TheChiSo icon={Ship} ten="Tàu hiện tại" giaTri={`${cb.dangLam}`} donVi="đang làm hàng" tone={cb.dangCho > 2 ? "warn" : null}
               phu={`${cb.dangCho} đang chờ bến · ${cb.dangO} ở bến · ${cb.sapDen} sắp đến (7 ngày)`} />
             <TheChiSo icon={Package} ten="Tàu cập / rời đến nay" giaTri={`${cb.capDen} / ${cb.roiDen}`} doi={cbT ? doiSoVoi(cb.capDen, cbT.capDen) : undefined}
               phu={`Cùng thời gian kỳ trước: ${cbT?.capDen ?? "—"} cập / ${cbT?.roiDen ?? "—"} rời · cả kỳ theo kế hoạch ${cb.capTrongKy} / ${cb.roiTrongKy}`} />
           </>}>
-          <Khung ten="Linetime tàu cập bến" phu={`${soNgayLich} ngày từ ${ngayGio(tuLich).slice(0, 5)} · ${trucLich === "met" ? "theo mét" : "theo bến"} · ${cheLich === "toan" ? "toàn thời gian (gồm chờ bến)" : "chiếm bến"}${huongLich ? ` · hàng ${huongLich === "xuat" ? "xuất" : "nhập"}` : ""}`} onChiTiet={() => onMo("tau")}
+          <div className="grid gap-2.5 lg:grid-cols-2">
+            <Khung cao={CAO} ten="Tỉ lệ chiếm bến" phu="giờ có tàu ở bến ÷ giờ đã qua của kỳ · vạch vàng 85%">
+              <EChart height={Math.max(220, 40 + cb.theoBen.length * 20)} option={{
+                grid: { left: 4, right: 40, top: 4, bottom: 0, containLabel: true }, tooltip: { axisPointer: { type: "shadow" }, valueFormatter: (v) => pct(v, 1) },
+                xAxis: { ...trucPct, max: (v) => Math.max(1, v.max) }, yAxis: { type: "category", inverse: true, data: [...cb.theoBen].sort((a, b) => (b.bor ?? b.borCaKy) - (a.bor ?? a.borCaKy)).map((b) => tenBen(b.ma)), axisLabel: { fontSize: 10, interval: 0 } },
+                series: [{ type: "bar", barMaxWidth: 12, data: [...cb.theoBen].sort((a, b) => (b.bor ?? b.borCaKy) - (a.bor ?? a.borCaKy)).map((b) => { const v = b.bor ?? b.borCaKy; return { value: r2(v), itemStyle: { color: MAU_T[tone(v, NGUONG.borVang, NGUONG.borDo, false)] || MAU.xam } }; }),
+                  label: { show: true, position: "right", fontSize: 10, formatter: (p) => pct(p.value) }, markLine: { symbol: "none", silent: true, lineStyle: { type: "dashed", color: MAU.warn }, label: { show: false }, data: [{ xAxis: NGUONG.borVang }] } }],
+              }} />
+            </Khung>
+            <Khung cao={CAO} ten="Số lượng tàu chờ" phu={kyInfo.nhan}>
+              <EChart height={CAO - 50} option={{
+                ...base, tooltip: { trigger: "axis", valueFormatter: (v) => `${v} tàu` }, xAxis: { type: "category", data: tauNgay.map((x) => x.ngay.slice(8) + "/" + x.ngay.slice(5, 7)), axisLabel: { fontSize: 10, hideOverlap: true } }, yAxis: { type: "value", minInterval: 1, axisLabel: { fontSize: 10 } },
+                series: [{ name: "Tàu ở bến", type: "bar", stack: "t", barMaxWidth: 16, itemStyle: { color: MAU.ok, opacity: 0.85 }, data: tauNgay.map((x) => x.oBen) }, { name: "Tàu chờ bến", type: "bar", stack: "t", barMaxWidth: 16, itemStyle: { color: MAU.bad, opacity: 0.85 }, data: tauNgay.map((x) => x.cho) }],
+              }} />
+            </Khung>
+          </div>
+          <Khung ten="Linetime tàu cập bến" phu={`${soNgayLich} ngày từ ${ngayGio(tuLich).slice(0, 5)} · theo bến · ${cheLich === "toan" ? "toàn thời gian (gồm chờ bến)" : "chiếm bến"}${huongLich ? ` · hàng ${huongLich === "xuat" ? "xuất" : "nhập"}` : ""}`}
             bo={<div className="flex flex-wrap items-center gap-1.5">
-              <div className="inline-flex overflow-hidden rounded border border-border/70 text-[0.6875rem]" role="group" aria-label="Trục dọc">
-                {[["ben", "Theo bến"], ["met", "Theo mét"]].map(([k, t]) => <button key={k} type="button" aria-pressed={trucLich === k} onClick={() => { setTrucLich(k); luuLs("lg-tq-truc", k); }} className={cn("px-1.5 py-0.5", trucLich === k ? "bg-primary/20 font-semibold text-primary" : "text-muted-foreground hover:bg-accent")}>{t}</button>)}
-              </div>
+              <button type="button" aria-pressed={ghepLich} title="Hiện hàng riêng cho các bến ghép (B03/05, B05/10…), cùng cài đặt với Linetime" onClick={() => { setGhepLich(!ghepLich); luuLs("lg-gantt-ghep", ghepLich ? "0" : "1"); }}
+                className={cn("rounded border border-border/70 px-1.5 py-0.5 text-[0.6875rem]", ghepLich ? "bg-primary/20 font-semibold text-primary" : "text-muted-foreground hover:bg-accent")}>Bến ghép</button>
               <select value={huongLich} onChange={(e) => { setHuongLich(e.target.value); luuLs("lg-tq-huong", e.target.value); }} className="rounded border border-border/70 bg-transparent px-1 py-0.5 text-[0.6875rem] text-muted-foreground" aria-label="Lọc theo hướng">
                 <option value="">Nhập + xuất</option><option value="nhap">Hàng nhập</option><option value="xuat">Hàng xuất</option>
               </select>
@@ -238,32 +252,14 @@ export default function TongQuanMoi({ onMo, go, tongCanhBao }) {
                 {NGAY_LICH.map((n) => <option key={n} value={n}>{n} ngày</option>)}
               </select>
             </div>}>
-            <div ref={khungLich} className="min-w-0">{trucLich === "met"
-              ? <GanttMet voyages={tauLich} tu={tuLich} soNgay={soNgayLich} pxNgay={pxNgay} che={cheLich} gon maxH="520px" />
-              : <Gantt voyages={tauLich} tu={tuLich} soNgay={soNgayLich} pxNgay={pxNgay} che={cheLich} gon maxH="520px" />}</div>
+            <div ref={khungLich} className="min-w-0"><Gantt voyages={tauLich} tu={tuLich} soNgay={soNgayLich} pxNgay={pxNgay} che={cheLich} gon ghep={ghepLich} maxH="520px" /></div>
           </Khung>
-          <div className="grid gap-2.5 lg:grid-cols-2">
-            <Khung cao={CAO} ten="Chiếm bến từng bến" phu="cao nhất ở trên · vạch vàng 85%">
-              <EChart height={Math.max(220, 40 + cb.theoBen.length * 20)} option={{
-                grid: { left: 4, right: 40, top: 4, bottom: 0, containLabel: true }, tooltip: { axisPointer: { type: "shadow" }, valueFormatter: (v) => pct(v, 1) },
-                xAxis: { ...trucPct, max: (v) => Math.max(1, v.max) }, yAxis: { type: "category", inverse: true, data: [...cb.theoBen].sort((a, b) => (b.bor ?? b.borCaKy) - (a.bor ?? a.borCaKy)).map((b) => tenBen(b.ma)), axisLabel: { fontSize: 10 } },
-                series: [{ type: "bar", barMaxWidth: 12, data: [...cb.theoBen].sort((a, b) => (b.bor ?? b.borCaKy) - (a.bor ?? a.borCaKy)).map((b) => { const v = b.bor ?? b.borCaKy; return { value: r2(v), itemStyle: { color: MAU_T[tone(v, NGUONG.borVang, NGUONG.borDo, false)] || MAU.xam } }; }),
-                  label: { show: true, position: "right", fontSize: 10, formatter: (p) => pct(p.value) }, markLine: { symbol: "none", silent: true, lineStyle: { type: "dashed", color: MAU.warn }, label: { show: false }, data: [{ xAxis: NGUONG.borVang }] } }],
-              }} />
-            </Khung>
-            <Khung cao={CAO} ten="Tàu ở bến và tàu chờ theo ngày" phu={kyInfo.nhan}>
-              <EChart height={CAO - 50} option={{
-                ...base, tooltip: { trigger: "axis", valueFormatter: (v) => `${v} tàu` }, xAxis: { type: "category", data: tauNgay.map((x) => x.ngay.slice(8) + "/" + x.ngay.slice(5, 7)), axisLabel: { fontSize: 10, hideOverlap: true } }, yAxis: { type: "value", minInterval: 1, axisLabel: { fontSize: 10 } },
-                series: [{ name: "Tàu ở bến", type: "bar", stack: "t", barMaxWidth: 16, itemStyle: { color: MAU.ok, opacity: 0.85 }, data: tauNgay.map((x) => x.oBen) }, { name: "Tàu chờ bến", type: "bar", stack: "t", barMaxWidth: 16, itemStyle: { color: MAU.bad, opacity: 0.85 }, data: tauNgay.map((x) => x.cho) }],
-              }} />
-            </Khung>
-          </div>
         </MangTQ>)}
 
       {/* ===== KHO BÃI: biểu đồ, khung cố định có thanh cuộn ===== */}
       {coKho && (
         <MangTQ id="mang-kho" icon={IcKho} ten="Kho bãi" mota={`${kyInfo.nhan} · tồn, tuổi tồn, lấp đầy, xuất nhập tồn`} loai="kho" tone={toneKho} thu={thu["mang-kho"]} onThu={() => doiThu("mang-kho")}>
-          {khoK ? <BieuDoKhoTQ kyInfo={kyInfo} kho={kho} gd={gd} tuoi={khoK.tuoi} /> : <ChuaCo>Đang tải số liệu kho…</ChuaCo>}
+          {khoK ? <BieuDoKhoTQ kyInfo={kyInfo} kho={kho} gd={gd} /> : <ChuaCo>Đang tải số liệu kho…</ChuaCo>}
         </MangTQ>)}
 
       {/* ===== THIẾT BỊ ===== */}

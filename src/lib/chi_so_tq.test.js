@@ -70,6 +70,13 @@ describe("Cầu bến", () => {
     const c = chiSoCauBen({ voyages: hai, berths, tu, den, now });
     expect(c.theoBen[0].bor).toBeCloseTo(72 / 120, 3);
   });
+  it("chưa nhập ATB / ATD thực tế: ghi nhận theo ETB / ETD khi giờ dự kiến đã qua", () => {
+    // ETA 01/11 00:00 (chờ từ ETA), ETB 01/11 12:00 → chờ 12 giờ; ETD 03/11 12:00 → ở bến 48 giờ; ETB / ETD sau hiện tại thì chưa tính
+    const du = [{ id: 1, ben_ma: "B07", eta: iso(T("01T00:00")), etb: iso(T("01T12:00")), etd: iso(T("03T12:00")) }, { id: 2, ben_ma: "B07", eta: iso(T("05T00:00")), etb: iso(T("08T00:00")), etd: iso(T("09T00:00")) }];
+    const c = chiSoCauBen({ voyages: du, berths, tu, den, now });
+    expect(c.choTB).toBe(12); expect(c.soTauCho).toBe(1);
+    expect(c.oBenTB).toBe(48); expect(c.soTauRoi).toBe(1);
+  });
   it("kỳ chưa bắt đầu: BOR thực tế rỗng, có BOR cả kỳ theo kế hoạch", () => {
     const c = chiSoCauBen({ voyages: vs, berths, tu: T("20T00:00"), den: T("30T00:00"), now });
     expect(c.bor).toBeNull();
