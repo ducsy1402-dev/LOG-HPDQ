@@ -5,8 +5,9 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { NativeSelect } from "@/components/ui/input";
-import logo from "@/assets/logo_hoa_phat.png?inline";
-import { CANG, duLieuKeHoachCang, xuatPdfKeHoachCang, xuatExcelKeHoachCang } from "@/lib/keHoachCang";
+import logo from "@/assets/logo_hoa_phat.png";
+import { CANG, duLieuKeHoachCang, xuatExcelKeHoachCang } from "@/lib/keHoachCang";
+import XemTruocKeHoach from "./XemTruocKeHoach";
 import { TrangThaiBadge, Empty } from "@/components/common";
 import { trangThai } from "@/lib/linetime";
 import { so, ngayGio, ms, DAY } from "@/lib/format";
@@ -28,6 +29,7 @@ export const trongKeHoachNgay = (v, now, lech = 0) => { const t = gioCap(v), tu 
 export default function KeHoachNgay({ voyages, chiXem = false }) {
   const { D, setVoyageMo, fail } = useApp();
   const [lech, setLech] = useState(0);
+  const [xemTruoc, setXemTruoc] = useState(false); // hộp xem trước PDF
   const [cang, setCang] = useState(() => { try { return localStorage.getItem("lg-kh-cang") || "hpdq"; } catch { return "hpdq"; } });
   const chonCang = (x) => { setCang(x); try { localStorage.setItem("lg-kh-cang", x); } catch { /* bỏ qua */ } };
   const tu = mocNgay(D.now, lech), den = tu + DAY;
@@ -52,7 +54,7 @@ export default function KeHoachNgay({ voyages, chiXem = false }) {
         <div className="ml-auto flex flex-wrap items-center gap-1">
           {!chiXem && <>
           <NativeSelect className="h-8 w-48" value={cang} onChange={(e) => chonCang(e.target.value)} options={[...CANG.map((c) => [c.ma, c.ten]), ["tat_ca", "Cả 3 cảng"]]} aria-label="Cảng in kế hoạch" title="Chọn cảng để in kế hoạch điều động tàu cập / rời cảng" />
-          <Button size="sm" variant="outline" onClick={() => xuatPdfKeHoachCang(du, cang, logo).catch(fail)} title={`In kế hoạch điều động tàu cập / rời cảng (PDF): ${tongDong} dòng, tàu cập / rời / shifting từ ${GIO_MOC}h ${ngayGio(tu).slice(0, 5)} đến ${GIO_MOC}h ${ngayGio(den).slice(0, 5)}`}><FileText />PDF</Button>
+          <Button size="sm" variant="outline" onClick={() => setXemTruoc(true)} title={`Xem trước rồi tải / in kế hoạch điều động tàu cập / rời cảng (PDF): ${tongDong} dòng, tàu cập / rời / shifting từ ${GIO_MOC}h ${ngayGio(tu).slice(0, 5)} đến ${GIO_MOC}h ${ngayGio(den).slice(0, 5)}`}><FileText />PDF</Button>
           <Button size="sm" variant="outline" onClick={() => xuatExcelKeHoachCang(du, cang, logo).catch(fail)} title="Xuất kế hoạch điều động tàu cập / rời cảng (Excel)"><FileSpreadsheet />Excel</Button>
           </>}
           <Button size="sm" variant="outline" onClick={() => setLech(lech - 1)} aria-label="Ngày trước"><ChevronLeft /></Button>
@@ -61,7 +63,7 @@ export default function KeHoachNgay({ voyages, chiXem = false }) {
         </div>
       </CardHeader>
       <CardContent>
-        {!chiXem && <div className="mb-2 text-xs text-muted-foreground">In PDF / Excel: kế hoạch điều động tàu cập / rời cảng theo biểu mẫu của cảng đã chọn ({tongDong} dòng: tàu rời, tàu cập, shifting trong khoảng này){du.chuaXep > 0 ? ` · ${du.chuaXep} tàu chưa xếp bến nên chưa vào phiếu` : ""}.</div>}
+        {!chiXem && <div className="mb-2 text-xs text-muted-foreground">Xem trước / in PDF, Excel: kế hoạch điều động tàu cập / rời cảng theo biểu mẫu của cảng đã chọn ({tongDong} dòng: tàu rời, tàu cập, shifting trong khoảng này){du.chuaXep > 0 ? ` · ${du.chuaXep} tàu chưa xếp bến nên chưa vào phiếu` : ""}.</div>}
         {ds.length ? (
           <div className="scroll-x max-h-[65vh]">
             <table className="tbl">
@@ -87,6 +89,7 @@ export default function KeHoachNgay({ voyages, chiXem = false }) {
           </div>
         ) : <Empty>Không có tàu cập bến từ {GIO_MOC}h {ngayGio(tu).slice(0, 5)} đến {GIO_MOC}h {ngayGio(den).slice(0, 5)}.</Empty>}
       </CardContent>
+      {xemTruoc && <XemTruocKeHoach du={du} cang={cang} setCang={chonCang} logo={logo} fail={fail} tuDen={`${GIO_MOC}h ${ngayGio(tu).slice(0, 5)} đến ${GIO_MOC}h ${ngayGio(den).slice(0, 5)}`} onClose={() => setXemTruoc(false)} />}
     </Card>
   );
 }

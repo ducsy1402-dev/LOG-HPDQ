@@ -3,11 +3,13 @@ import { Upload, Plus, FileText, Printer, ClipboardList, Filter, ListChecks, Clo
 import { useApp } from "../../store";
 import { docSo } from "@/lib/format";
 import { Card, Kpi, Badge, Select, Search, Modal, Field, Empty, ConfirmButton, Seg, MultiSelect } from "../../components/ui";
-import logo from "../../assets/logo_hpdq.png?inline";
+import logo from "../../assets/logo_hpdq.png";
+import XemTruocPdf from "@/components/XemTruocPdf";
+import { blobPdfKeHoach, tenFilePdfKeHoach, MAU_PDF_KE_HOACH } from "../../lib/pdfKeHoach";
 import { laNhuCauPA } from "@/lib/phuongAn";
 import {
   MIN, rulesOf, mapLoaiPt, dungLoai, dungTaiTrong, readDemandFile, buildDemands, buildShifts, caList, caKeTiep, offsets, offTxt, gioChon, dodaiNC, thieuTT, khoaNC, mauTuPC, pcTuMau,
-  hm, dm, dmy, hcWindow, planWarnings, SOFT_WARN, buildSignHtml, buildToHtml, buildBPHtml, printHtml, klCua, matchPlan,
+  hm, dm, dmy, hcWindow, planWarnings, SOFT_WARN, klCua, matchPlan,
   soPT, demPT, tenPT, sortPT, DEFAULT_NHA_THAU, exportPlanExcel, laNhuCauHC, caCuaGio,
 } from "../../lib/plan";
 import { shortTo } from "../../lib/utils";
@@ -30,6 +32,7 @@ export default function ShortTerm() {
   const [mapDlg, setMapDlg] = useState(false);
   const [ntDlg, setNtDlg] = useState(false);
   const [ttDlg, setTtDlg] = useState(false);
+  const [xemPdf, setXemPdf] = useState(null); // hộp xem trước PDF: null | "ky" | "to" | "bp"
   const fileRef = useRef();
 
   const win = P.params.ngan_han || { winA: 30, winB: 30 };
@@ -220,15 +223,11 @@ export default function ShortTerm() {
     }
   };
 
-  const doPrint = async (kind) => {
+  // PDF: mở hộp xem trước (web tự dựng PDF A4 ngang, không qua hộp thoại in của trình duyệt) rồi tải / in
+  const doPrint = (kind) => {
     // In đúng các dòng đang hiển thị ở bảng "Kế hoạch đã gán xe" (theo bộ lọc)
     if (!shownAsg.length) return toast(asg.length ? "Không có dòng kế hoạch nào khớp bộ lọc để xuất" : "Chưa có xe nào được gán, chưa có gì để xuất", "bad");
-    try {
-      const x = { asgs: shownAsg, demOf, shOf, D };
-      const html = kind === "ky" ? buildSignHtml({ ...x, logo }) : kind === "bp" ? buildBPHtml(x) : buildToHtml(x);
-      toast('Hộp thoại in đang mở: chọn máy in "Lưu dưới dạng PDF" (đã đặt sẵn A4 ngang) rồi bấm Lưu.');
-      await printHtml(html);
-    } catch (e) { fail(e); }
+    setXemPdf(kind);
   };
 
   const doExcel = async (ky, to, bp) => {
@@ -388,6 +387,12 @@ export default function ShortTerm() {
       {gan && <GanDialog d={gan} sh={shOf(gan.ca)} win={win} rules={rules} asg={asg} asgOf={asgOf} nhaThau={nhaThau} onClose={() => setGan(null)} onBoSung={() => { setDemDlg(gan); setGan(null); }} />}
       {ntDlg && <NhaThauDialog list={nhaThau} onClose={() => setNtDlg(false)} />}
       {ttDlg && <ToTruongDialog onClose={() => setTtDlg(false)} />}
+      {xemPdf && (() => {
+        const x = { asgs: shownAsg, demOf, shOf, D };
+        return <XemTruocPdf tieuDe="Xem trước PDF Kế hoạch ngày" moTa={`Khổ A4 ngang · ${shownAsg.length} dòng đang hiển thị (theo bộ lọc)`} tabs={MAU_PDF_KE_HOACH} tab={xemPdf} setTab={setXemPdf}
+          dau={JSON.stringify(shownAsg.map((a) => [a.id, a.ma_xe, a.nha_thau, a.ghi_chu, a.ca_bat_dau, a.bat_dau_phut, a.ket_thuc_phut, a.khoi_luong]))}
+          lay={(k) => blobPdfKeHoach(k, x, logo)} tenFile={(k) => tenFilePdfKeHoach(k, x)} onClose={() => setXemPdf(null)} />;
+      })()}
       {demDlg && <DemandDialog d={demDlg.id ? demDlg : null} cas={cas} win={win} asg={asg} onClose={() => setDemDlg(null)} />}
       {mapDlg && <MapPtDialog demands={demands} onClose={() => setMapDlg(false)} />}
       {imp && (

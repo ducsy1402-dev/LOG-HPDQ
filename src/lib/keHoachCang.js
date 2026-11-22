@@ -73,7 +73,7 @@ export function docPdfKeHoachCang(du, dsCang, logo) {
   dsCang.forEach((c, i) => {
     const dl = du.theoCang[c.ma];
     const trang = i ? { pageBreak: "before" } : {};
-    if (c.congTy) content.push({ ...trang, margin: [4, 0, 0, 2], columns: [{ width: 140, stack: [{ image: logo, width: 105, alignment: "center", margin: [0, 0, 0, 3] }, ...c.congTy.map((t) => ({ text: t, bold: true, fontSize: 9, alignment: "center" }))] }] });
+    if (c.congTy) content.push({ ...trang, margin: [4, 0, 0, 2], columns: [{ width: 140, stack: [...(logo ? [{ image: logo, width: 105, alignment: "center", margin: [0, 0, 0, 3] }] : []), ...c.congTy.map((t) => ({ text: t, bold: true, fontSize: 9, alignment: "center" }))] }] });
     content.push({ ...(c.congTy ? {} : trang), text: c.tieuDe, bold: true, fontSize: 14, alignment: "center", margin: [0, c.congTy ? 4 : 0, 0, c.ngayDuoiTieuDe ? 1 : 5] });
     if (c.ngayDuoiTieuDe) content.push({ text: `Ngày ${d} Tháng ${m} Năm ${y}`, italics: true, alignment: "center", fontSize: 9.5, margin: [0, 0, 0, 4] });
     const body = [COT.map((t) => ({ text: t, bold: true, alignment: "center", fontSize: 8.5 }))];
@@ -93,9 +93,28 @@ export function docPdfKeHoachCang(du, dsCang, logo) {
   });
   return { pageSize: "A4", pageOrientation: "portrait", pageMargins: [40, 30, 40, 40], defaultStyle: { font: "Roboto", fontSize: 9 }, content, footer: (cur, tong) => ({ text: `${cur}/${tong}`, alignment: "center", fontSize: 8, margin: [0, 8, 0, 0] }) };
 }
+// Logo: vite trả về ĐƯỜNG DẪN ảnh (không phải dữ liệu ảnh), nhưng pdfmake / exceljs cần dữ liệu ảnh (data URL) nên tải ảnh về đổi sang data URL một lần; không tải được thì bỏ logo
+const nhoLogo = new Map();
+export async function logoDataUrl(logo) {
+  if (!logo || String(logo).startsWith("data:")) return logo || null;
+  if (nhoLogo.has(logo)) return nhoLogo.get(logo);
+  let d = null;
+  try {
+    const b = await (await fetch(logo)).blob();
+    if (String(b.type).startsWith("image/")) d = await new Promise((xong, loi) => { const r = new FileReader(); r.onload = () => xong(r.result); r.onerror = loi; r.readAsDataURL(b); });
+  } catch { /* không có logo */ }
+  nhoLogo.set(logo, d);
+  return d;
+}
+// Blob PDF để XEM TRƯỚC trong hộp thoại (iframe) trước khi tải / in
+export async function blobPdfKeHoachCang(du, ma, logo) {
+  const [pdfMake, anh] = await Promise.all([taiPdfMake(), logoDataUrl(logo)]);
+  return new Promise((xong, loi) => { try { pdfMake.createPdf(docPdfKeHoachCang(du, cangChon(ma), anh)).getBlob(xong); } catch (e) { loi(e); } });
+}
+export const tenFilePdfKeHoachCang = (du, ma) => tenFileChon(du, ma, "pdf");
 export async function xuatPdfKeHoachCang(du, ma, logo) {
-  const pdfMake = await taiPdfMake();
-  pdfMake.createPdf(docPdfKeHoachCang(du, cangChon(ma), logo)).download(tenFileChon(du, ma, "pdf"));
+  const [pdfMake, anh] = await Promise.all([taiPdfMake(), logoDataUrl(logo)]);
+  pdfMake.createPdf(docPdfKeHoachCang(du, cangChon(ma), anh)).download(tenFileChon(du, ma, "pdf"));
 }
 
 // ---------- Excel ----------
@@ -141,7 +160,7 @@ export async function bookExcelKeHoachCang(du, dsCang, logo) {
   return wb;
 }
 export async function xuatExcelKeHoachCang(du, ma, logo) {
-  const wb = await bookExcelKeHoachCang(du, cangChon(ma), logo);
+  const wb = await bookExcelKeHoachCang(du, cangChon(ma), await logoDataUrl(logo));
   const buf = await wb.xlsx.writeBuffer();
   const url = URL.createObjectURL(new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
   const a = document.createElement("a"); a.href = url; a.download = tenFileChon(du, ma, "xlsx"); document.body.appendChild(a); a.click(); a.remove();
