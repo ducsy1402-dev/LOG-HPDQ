@@ -6,4 +6,4 @@ export const TabsList = ({ className, ...p }) => <T.List className={cn("inline-f
 export const TabsTrigger = ({ className, ...p }) => (
   <T.Trigger className={cn("inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1 text-[0.8125rem] font-medium transition-all hover:text-foreground data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm dark:data-[state=active]:bg-accent [&_svg]:size-4", className)} {...p} />
 );
-export const TabsContent = ({ className, ...p }) => <T.Content className={cn("mt-3 focus-visible:outline-none", className)} {...p} />;
+export const TabsContent = ({ className, ...p }) => <T.Content className={cn("mt-3 focus-visible:outline-none data-[state=inactive]:hidden", className)} {...p} />;

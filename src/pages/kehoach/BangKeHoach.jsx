@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { Check, ClipboardPaste, Pencil, Plus, X } from "lucide-react";
+import { Check, ClipboardPaste, Download, Pencil, Plus, X } from "lucide-react";
+import { xuatExcel } from "@/lib/xuatExcel";
 import { useApp } from "@/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +20,7 @@ import HopDanKeHoach from "./HopDanKeHoach";
 // Mỗi bảng có nút Dán nhanh / Excel, dòng thêm đủ các trường của bảng (hàng đã có thì cập nhật số), nút xóa hàng khỏi kế hoạch. Kỳ lập kế hoạch: Tháng / Quý / Năm.
 // onPhanBo(huongVT): gọi sau khi phân bổ vận tải xong (chỉ kế hoạch sản xuất: bấm Tổng có thêm mục Phân bổ vận tải)
 export default function BangKeHoach({ loai, ky, nhanKy, data, kho, sua, dsHang, loaiXe, onLuu, onPhanBo }) {
-  const { api, run } = useApp();
+  const { api, run, toast, fail } = useApp();
   const nhomHang = useNhomHang();
   const cfg = KE_HOACH[loai], bb = cfg.boBien;
   const [pop, setPop] = useState(null); // { hang, kieu: "kho" | "bo" | "bien", neo }
@@ -28,6 +29,7 @@ export default function BangKeHoach({ loai, ky, nhanKy, data, kho, sua, dsHang, 
   const [them, setThem] = useState({ hang: "", bo: "", bien: "", tong: "" });
   const dong = useMemo(() => dongKeHoach(data?.th, loai), [data, loai]);
   const cong = dong.reduce((s, x) => ({ bo: s.bo + x.bo, bien: s.bien + x.bien, tong: s.tong + x.tong }), { bo: 0, bien: 0, tong: 0 });
+  const xuat = () => xuatExcel(`${loai.replace(/_/g, "-")}-${ky}`, [{ ten: `${cfg.ten} ${nhanKy}`.slice(0, 31), hang: [["Loại hàng", "Tổng (t)", ...(bb ? ["Đường bộ (t)", "Đường biển (t)"] : [])], ...dong.map((x) => [x.hang, x.tong, ...(bb ? [x.bo, x.bien] : [])]), ["Cộng", cong.tong, ...(bb ? [cong.bo, cong.bien] : [])]] }], { toast, fail });
   const bam = (hang, kieu) => (e) => setPop({ hang, kieu, neo: e.currentTarget });
   // Hàm vẽ (không phải component): nếu là component khai báo trong hàm này thì mỗi lần vẽ lại nút bị tạo mới và ô neo của hộp nhỏ bị gỡ khỏi trang
   const so1 = (x, kieu, gt, dam) => (
@@ -55,8 +57,9 @@ export default function BangKeHoach({ loai, ky, nhanKy, data, kho, sua, dsHang, 
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <span className="text-xs text-muted-foreground">{cfg.ten} · {nhanKy} (tấn)</span>
         <Button size="sm" variant="outline" className="ml-auto" disabled={!sua} onClick={() => setDan(true)}><ClipboardPaste />Dán nhanh / Excel</Button>
+        <Button size="sm" variant="outline" onClick={xuat} title="Xuất bảng ra file Excel"><Download />Xuất Excel</Button>
       </div>
-      <div className="overflow-x-auto rounded-md border">
+      <div className="scroll-x tfoot-cd cao-bang rounded-md border">
         <table className="tbl w-full text-sm">
           <thead><tr><th className="text-left">Loại hàng</th><th className={thL}>Tổng (t)</th>{bb && <><th className={thL}>{loai === "nhap_mua" ? "Nhập đường bộ (t)" : "Đường bộ (t)"}</th><th className={thL}>{loai === "nhap_mua" ? "Nhập đường biển (t)" : "Đường biển (t)"}</th></>}<th className="w-16" /></tr></thead>
           <tbody>

@@ -33,8 +33,10 @@ export function HopDatMucTieu({ thang0, onClose, onLuu }) {
   const phanBo = (huongVT) => { setLocDau(huongVT); setLanVT((n) => n + 1); setMuc("van_tai"); }; // sau khi phân bổ vận tải: chuyển sang mục Kế hoạch vận tải (tab Phục vụ cảng / Phục vụ sản xuất)
   const [muc, setMuc] = useState("nhap"); // nhap | xuat | van_tai | san_xuat; các bảng mục tiêu luôn được dựng sẵn, chỉ ẩn / hiện, để chuyển mục không mất số đang gõ
   return (
-    <Dialog onOpenChange={(o) => !o && onClose()} className={RONG} title="Đặt mục tiêu sản lượng" description="Kế hoạch nhập Cảng, kế hoạch xuất Cảng (theo loại hàng), kế hoạch sản xuất và kế hoạch vận tải (loại xe, Hòa Phát / Thuê ngoài) của tháng, quý hoặc năm. Chỉ Quản lý / Quản trị đặt mục tiêu.">
+    <Dialog onOpenChange={(o) => !o && onClose()} className={RONG} title="Kế hoạch dài hạn" description="Kế hoạch nhập Cảng, kế hoạch xuất Cảng (theo loại hàng), kế hoạch sản xuất và kế hoạch vận tải (loại xe, Hòa Phát / Thuê ngoài) của tháng, quý hoặc năm. Chỉ Quản lý / Quản trị đặt mục tiêu.">
       <div className="mb-3 flex flex-wrap items-center gap-2">
+        <MucTab muc={muc} setMuc={setMuc} ds={[["nhap", "Kế hoạch nhập Cảng"], ["xuat", "Kế hoạch xuất Cảng"], ["san_xuat", "Kế hoạch sản xuất"], ["van_tai", "Kế hoạch vận tải"]]} />
+        <div className="ml-auto flex flex-wrap items-center gap-2">
         <div className="inline-flex overflow-hidden rounded-md border" role="tablist" aria-label="Kỳ mục tiêu">
           {KY.map(([k, ten]) => (
             <button key={k} type="button" role="tab" aria-selected={kyLoai === k} onClick={() => { setKyLoai(k); luu("lg-mt-ky", k); }}
@@ -42,8 +44,8 @@ export function HopDatMucTieu({ thang0, onClose, onLuu }) {
         </div>
         <NativeSelect className="h-7 w-48 text-xs" value={ky} onChange={(e) => setChon((o) => ({ ...o, [kyLoai]: e.target.value }))}
           options={dsChon[kyLoai].map(([x, ten]) => [x, ten + (x === hienTai[kyLoai] ? " (này)" : "")])} aria-label={KY.find(([k]) => k === kyLoai)[1]} />
+        </div>
       </div>
-      <MucTab muc={muc} setMuc={setMuc} ds={[["nhap", "Kế hoạch nhập Cảng"], ["xuat", "Kế hoạch xuất Cảng"], ["san_xuat", "Kế hoạch sản xuất"], ["van_tai", "Kế hoạch vận tải"]]} />
       <div className={muc === "van_tai" || muc === "san_xuat" ? "hidden" : ""}><SanLuongTab nhom="cang" thang={ky} kyLoai={kyLoai} che="mucTieu" onLuu={onLuu} huongHien={muc === "xuat" ? "xuat" : "nhap"} onPhanBo={phanBo} /></div>
       <div className={muc === "van_tai" ? "" : "hidden"}><SanLuongTab key={`vt-${lanVT}`} nhom="van_tai" thang={ky} kyLoai={kyLoai} che="mucTieu" onLuu={onLuu} locDau={locDau} /></div>
       {muc === "san_xuat" && <SanXuatKeHoach kyLoai={kyLoai} ky={ky} onPhanBo={phanBo} />}
@@ -54,7 +56,7 @@ export function HopDatMucTieu({ thang0, onClose, onLuu }) {
 // Thanh chọn mục của hộp (kiểu ô trượt như các nhóm nút khác)
 function MucTab({ muc, setMuc, ds }) {
   return (
-    <div className="mb-3 inline-flex gap-0.5 rounded-md bg-muted p-0.5 text-sm" role="tablist" aria-label="Mục">
+    <div className="inline-flex gap-0.5 rounded-md bg-muted p-0.5 text-sm" role="tablist" aria-label="Mục">
       {ds.map(([k, ten]) => (
         <button key={k} type="button" role="tab" aria-selected={muc === k} onClick={() => setMuc(k)}
           className={cn("rounded px-3 py-1 font-medium transition-colors", muc === k ? "bg-card text-foreground shadow-sm dark:bg-accent" : "text-muted-foreground hover:text-foreground")}>{ten}</button>))}
@@ -69,10 +71,12 @@ export function HopThucTe({ thang0, onClose, onLuu }) {
   return (
     <Dialog onOpenChange={(o) => !o && onClose()} className={RONG} title="Sản lượng thực tế" description="Nhập sản lượng thực tế theo ngày, mỗi ngày một dòng (tấn): cảng nhập / xuất, hoặc vận tải (kế hoạch sản xuất). Cột có mục tiêu hiện sẵn; loại hàng khác thì Thêm cột.">
       <div className="mb-3 flex flex-wrap items-center gap-2">
+        <MucTab muc={muc} setMuc={setMuc} ds={[["cang", "Cảng nhập / xuất"], ["van_tai", "Vận tải"]]} />
+        <div className="ml-auto flex flex-wrap items-center gap-2">
         <NativeSelect className="h-7 w-48 text-xs" value={thang} onChange={(e) => setThang(e.target.value)} aria-label="Tháng"
           options={Array.from({ length: 13 }, (_, i) => congThang(thangCua(D.now), i - 6)).map((x) => [x, tenThang(x) + (x === thangCua(D.now) ? " (này)" : "")])} />
+        </div>
       </div>
-      <MucTab muc={muc} setMuc={setMuc} ds={[["cang", "Cảng nhập / xuất"], ["van_tai", "Vận tải"]]} />
       <div className={muc === "cang" ? "" : "hidden"}><SanLuongTab nhom="cang" thang={thang} kyLoai="thang" che="thucTe" onLuu={onLuu} /></div>
       <div className={muc === "van_tai" ? "" : "hidden"}><SanLuongTab nhom="van_tai" thang={thang} kyLoai="thang" che="thucTe" onLuu={onLuu} /></div>
     </Dialog>

@@ -37,7 +37,7 @@ export default function BangMucTieuVT({ ds, dong, th, dangSua, batSua, kyMode, t
   const ghiChu = (o) => [o.hp, o.tn].map((k) => (k ? dong[k]?.ghi_chu : "")).find(Boolean) || "";
   return (
     <div className="rounded-md border">
-      <div className="scroll-x max-h-[60vh]">
+      <div className="scroll-x tfoot-cd cao-bang">
         <table className="tbl text-xs">
           <thead><tr><th>Loại hàng</th><th>Hướng</th><th>Nghiệp vụ</th><th>Loại xe</th><th>ĐVT</th><th className="num">Hòa Phát</th><th className="num">Thuê ngoài</th>
             {kyMode && <th className="num">Σ các tháng</th>}<th className="num">Thực hiện</th><th className="num">Đạt</th><th>Ghi chú</th>{sua && <th className="w-16" />}</tr></thead>
