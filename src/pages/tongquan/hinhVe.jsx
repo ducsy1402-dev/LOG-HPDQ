@@ -20,8 +20,8 @@ export function Gauge({ v, max = 1, vung = [], mau = MAU.primary, size = 132, cl
         <svg viewBox="0 0 120 72" className="absolute inset-0 h-full w-full" aria-hidden>
           <path d={cung(60, 60, 46, 0, 1)} fill="none" stroke="currentColor" strokeOpacity={0.1} strokeWidth={7} strokeLinecap="round" />
           {vung.map(([a, b, c], i) => <path key={i} d={cung(60, 60, 53, a / max, Math.min(1, b / max))} fill="none" stroke={c} strokeOpacity={0.5} strokeWidth={2} />)}
-          {t > 0 && <path d={cung(60, 60, 46, 0, t)} fill="none" stroke={mau} strokeWidth={7} strokeLinecap="round" />}
-          {v != null && <circle cx={kx} cy={ky} r={3.6} fill="hsl(var(--card))" stroke={mau} strokeWidth={2} />}
+          {t > 0 && <path className="gauge-ve" pathLength={1} d={cung(60, 60, 46, 0, t)} fill="none" stroke={mau} strokeWidth={7} strokeLinecap="round" />}
+          {v != null && <circle className="gauge-kim" cx={kx} cy={ky} r={3.6} fill="hsl(var(--card))" stroke={mau} strokeWidth={2} />}
         </svg>
         <div className="absolute inset-x-0 flex justify-center leading-none" style={{ bottom: "16%" }}>{children}</div>
       </div>

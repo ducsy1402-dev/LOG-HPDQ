@@ -28,6 +28,31 @@ const CO = {
 export const THU = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 export const KEO_DUOC = new Set(["du_kien", "cho_neo"]);
 
+// ---- Lịch nhiều ngày: cột ngày tự co theo bề rộng khung ----
+// pxNgay = "vua": mọi ngày vừa khít khung (không phải cuộn ngang); không nhỏ hơn PX_MIN, không lớn hơn 120 px.
+export const PX_MIN = 11;
+export const pxVuaKhung = (rong, label, soNgay) => Math.max(PX_MIN, Math.min(120, Math.floor((rong - label - 12) / Math.max(1, soNgay))));
+export function useBeRong(ref) {
+  const [w, setW] = useState(0);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setW(el.clientWidth));
+    ro.observe(el); setW(el.clientWidth);
+    return () => ro.disconnect();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  return w;
+}
+// Chữ tiêu đề một cột ngày theo độ rộng cột: rộng = "dd/mm" + thứ; hẹp dần = chỉ số ngày, thứ viết tắt, rồi chỉ số ngày + mốc tháng ("/mm") ở ngày 1 và cột đầu
+export function nhanNgay(d, px, dau, i = 0) {
+  const dd = pad(d.getDate()), mm = pad(d.getMonth() + 1), dauThang = dau || d.getDate() === 1;
+  if (px >= 50) return [`${dd}/${mm}`, THU[d.getDay()]];
+  if (px >= 36) return [dauThang ? `${dd}/${mm}` : dd, THU[d.getDay()]];
+  if (px < 20 && i % 2 === 1 && !dauThang) return ["", ""]; // cột rất hẹp: chỉ ghi số ngày ở cột chẵn (đủ chỗ cho chữ)
+  return [dd, dauThang ? `/${mm}` : px >= 24 ? THU[d.getDay()] : ""];
+}
+export const cotNgayProps = (d, px, dau) => ({ title: `${THU[d.getDay()]} ${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`, style: { width: px, ...(px < 24 ? { fontSize: "0.625rem" } : {}) } });
+
 // Xếp các thanh chồng nhau trong cùng bến thành nhiều làn
 function chiaLan(ds) {
   const lan = [];
@@ -92,7 +117,7 @@ export function xepHangBen(D, voyages, tu, den, che, K, opt = {}) {
 // che = "ben": chỉ thời gian chiếm bến; "toan": thêm đoạn chờ bến (màu đỏ: từ NOR, tàu chưa đến neo thì từ ETA, tới lúc cập), vạch NOR và làm hàng.
 // Mọi chế độ: khoảng dừng "Chờ hàng" / "Chờ bãi" (chờ đủ hàng, chờ có bãi nhập) vẽ màu xanh lá trên thanh tàu.
 // gon: dòng thấp, chữ nhỏ để xem được nhiều bến một lúc. maxH: chiều cao tối đa khung lịch (toàn màn hình thì cao hơn).
-export default function Gantt({ voyages, tu, soNgay, pxNgay, che = "ben", gon = false, maxH = "70vh", ghep = false, giaDuoc = false }) {
+export default function Gantt({ voyages, tu, soNgay, pxNgay: pxGoc, che = "ben", gon = false, maxH = "70vh", ghep = false, giaDuoc = false }) {
   const K = gon ? CO.gon : CO.thuong, ROW = K.row, LABEL = K.label;
   const { D, quyen, run, api, setVoyageMo, toast } = useApp();
   const hienGhep = ghep && D.coSql28; // hàng bến ghép chỉ khi CSDL đã có cột bến phụ (SQL 28)
@@ -100,6 +125,8 @@ export default function Gantt({ voyages, tu, soNgay, pxNgay, che = "ben", gon = 
   const [gian, setGian] = useState(null); // kéo giãn thanh tàu: { x, canh: "trai" | "phai", x0, dx, cx, cy, moved }
   const [tro, setTro] = useState(null); // { x, cx, cy } thanh tàu đang trỏ chuột
   const khung = useRef();
+  const rongKhung = useBeRong(khung);
+  const pxNgay = pxGoc === "vua" ? pxVuaKhung(rongKhung, LABEL, soNgay) : pxGoc;
   const den = tu + soNgay * DAY, W = soNgay * pxNgay;
   const xOf = (t) => ((t - tu) / DAY) * pxNgay;
 
@@ -190,9 +217,9 @@ export default function Gantt({ voyages, tu, soNgay, pxNgay, che = "ben", gon = 
           {/* Tiêu đề ngày */}
           <div className="sticky top-0 z-20 flex border-b bg-card" style={{ height: K.head }}>
             <div className={cn("sticky left-0 z-30 border-r bg-card px-2 py-1 font-semibold text-muted-foreground", K.chu)} style={{ width: LABEL, minWidth: LABEL }}>Bến</div>
-            {ngayDs.map((t) => { const d = new Date(t), cn0 = d.getDay() === 0; return (
-              <div key={t} className={cn("shrink-0 border-r text-center leading-tight", K.chu, cn0 && "bg-muted/60")} style={{ width: pxNgay }}>
-                <div className={cn("font-semibold tabular-nums", gon ? "pt-0.5" : "pt-1")}>{pad(d.getDate())}/{pad(d.getMonth() + 1)}</div><div className="text-muted-foreground">{THU[d.getDay()]}</div>
+            {ngayDs.map((t, i) => { const d = new Date(t), cn0 = d.getDay() === 0, [l1, l2] = nhanNgay(d, pxNgay, i === 0, i); return (
+              <div key={t} {...cotNgayProps(d, pxNgay, i === 0)} className={cn("shrink-0 whitespace-nowrap border-r text-center leading-tight", pxNgay < 24 && (i === 0 || d.getDate() === 1) ? "relative z-[1] overflow-visible" : "overflow-hidden", K.chu, cn0 && "bg-muted/60", pxNgay < 50 && d.getDate() === 1 && "border-l border-l-foreground/40")}>
+                <div className={cn("font-semibold tabular-nums", gon ? "pt-0.5" : "pt-1")}>{l1}</div><div className="min-h-[1em] text-muted-foreground">{l2}</div>
               </div>); })}
           </div>
           {/* Hàng bến */}

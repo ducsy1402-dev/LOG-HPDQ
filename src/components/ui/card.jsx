@@ -9,7 +9,7 @@ export function Card({ className, ...p }) {
   const [on, doi] = useToanManHinh();
   return (
     <ToanManHinhCtx.Provider value={trongHop ? null : { on, doi }}>
-      <div data-tmh={on ? "" : undefined} className={cn("relative rounded-lg border bg-card text-card-foreground shadow-sm", className, on && "fixed inset-0 z-[45] m-0 h-[100dvh] max-h-none w-screen max-w-none !self-auto overflow-auto rounded-none border-0 p-2 shadow-none")} {...p} />
+      <div data-tmh={on ? "" : undefined} className={cn("hien-vao relative rounded-lg border bg-card text-card-foreground shadow-sm transition-shadow duration-200 hover:shadow-md", className, on && "fixed inset-0 z-[45] m-0 h-[100dvh] max-h-none w-screen max-w-none !self-auto overflow-auto rounded-none border-0 p-2 shadow-none")} {...p} />
     </ToanManHinhCtx.Provider>
   );
 }

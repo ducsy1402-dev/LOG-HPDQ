@@ -98,7 +98,7 @@ function LichCauBen() {
   // Độ rộng mỗi ngày vừa khung (trừ cột tên bến của chế độ gọn), tối thiểu 36px thì kéo ngang
   const khung = useRef(), [rong, setRong] = useState(1040);
   useEffect(() => { const ro = new ResizeObserver(([e]) => setRong(e.contentRect.width)); ro.observe(khung.current); return () => ro.disconnect(); }, []);
-  const pxNgay = Math.max(36, Math.floor((rong - 62) / soNgay));
+  const pxNgay = Math.max(12, Math.floor((rong - 62) / soNgay));
   return (
     <>
       <div className="mb-2 flex flex-wrap items-center gap-2 text-sm">

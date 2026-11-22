@@ -1,3 +1,4 @@
+import { SoDem } from "../../khung/dongTac";
 import { ArrowDownRight, ArrowUpRight, Minus, ChevronLeft, ChevronRight, ChevronDown, AlertTriangle, CheckCircle2, Siren } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { pct, so } from "@/lib/format";
@@ -43,8 +44,8 @@ export function TheChiSo({ icon: Ic, ten, giaTri, donVi, tone, doi, tot = "cao",
   const Tag = onClick ? "button" : "div";
   return (
     <Tag type={onClick ? "button" : undefined} onClick={onClick}
-      className={cn("group relative flex min-w-0 flex-col gap-1 overflow-hidden rounded-xl border bg-card p-3 text-left transition-all",
-        onClick && "hover:border-primary/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", className)}>
+      className={cn("hien-vao group relative flex min-w-0 flex-col gap-1 overflow-hidden rounded-xl border bg-card p-3 text-left transition-all",
+        onClick && "the-nhac hover:border-primary/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", className)}>
       <div className="flex items-center gap-1.5 text-[0.6875rem] font-medium uppercase tracking-wide text-muted-foreground">
         {Ic && <Ic className="h-4 w-4 shrink-0 text-primary/80" />}
         <span className="truncate">{ten}</span>
@@ -52,12 +53,12 @@ export function TheChiSo({ icon: Ic, ten, giaTri, donVi, tone, doi, tot = "cao",
       </div>
       {gauge ? (
         <div className="flex items-center gap-2">
-          <Gauge {...gauge} size={gauge.size || 112}><span className={cn("text-lg font-semibold tabular-nums", CHU[tone])}>{giaTri}</span></Gauge>
+          <Gauge {...gauge} size={gauge.size || 112}><span className={cn("text-lg font-semibold tabular-nums", CHU[tone])}><SoDem value={giaTri} /></span></Gauge>
           <div className="min-w-0 flex-1 text-[0.6875rem] leading-snug text-muted-foreground">{children}</div>
         </div>
       ) : (
         <div className="flex items-baseline gap-1.5">
-          <span className={cn("text-[1.625rem] font-semibold leading-none tabular-nums tracking-tight", CHU[tone])}>{giaTri}</span>
+          <span className={cn("text-[1.625rem] font-semibold leading-none tabular-nums tracking-tight", CHU[tone])}><SoDem value={giaTri} /></span>
           {donVi && <span className="text-xs text-muted-foreground">{donVi}</span>}
         </div>
       )}
@@ -92,11 +93,11 @@ export function ThanhKy({ ky, dat, ds, nhan, truoc, sau, veNay, laNay, className
 export function TheSucKhoe({ icon: Ic, ten, giaTri, nhan, tone, gauge, dong, onClick }) {
   const T = ICON_TONE[tone];
   return (
-    <button type="button" onClick={onClick} className="flex min-w-0 flex-col items-center gap-1.5 rounded-xl border bg-card p-3 text-center transition-all hover:border-primary/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+    <button type="button" onClick={onClick} className="hien-vao the-nhac flex min-w-0 flex-col items-center gap-1.5 rounded-xl border bg-card p-3 text-center transition-all hover:border-primary/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
       <div className="flex w-full min-w-0 flex-wrap items-center gap-1.5 text-xs font-semibold text-muted-foreground">{Ic && <Ic className="h-4 w-4 shrink-0 text-primary" />}<span className="truncate">{ten}</span>
         <span className={cn("ml-auto inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-[0.625rem] font-semibold", tone ? NHAN_TONE[tone] : "bg-muted text-muted-foreground")}>{T && <T className="h-3 w-3" />}{tone ? TEN_TONE[tone] : "Chưa có số liệu"}</span>
       </div>
-      <Gauge {...gauge} size={136} duoi={nhan}><span className={cn("text-[1.3rem] font-semibold tabular-nums tracking-tight", CHU[tone])}>{giaTri}</span></Gauge>
+      <Gauge {...gauge} size={136} duoi={nhan}><span className={cn("text-[1.3rem] font-semibold tabular-nums tracking-tight", CHU[tone])}><SoDem value={giaTri} /></span></Gauge>
       <div className="min-h-[28px] text-[0.6875rem] leading-snug text-muted-foreground">{dong}</div>
     </button>
   );

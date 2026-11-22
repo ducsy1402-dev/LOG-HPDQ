@@ -2,6 +2,7 @@ import { ChevronRight, Search, Sun, Moon, RefreshCw, ChevronDown } from "lucide-
 import { DropdownMenu, DropdownMenuTrigger } from "../components/ui/menu";
 import { cn } from "../lib/utils";
 import Chuong from "./Chuong";
+import { VachTai } from "./dongTac";
 
 const chuCai = (ten) => { const p = String(ten || "?").trim().split(/\s+/); return (p[p.length - 1][0] || "?").toUpperCase(); };
 
@@ -10,6 +11,7 @@ const chuCai = (ten) => { const p = String(ten || "?").trim().split(/\s+/); retu
 export default function ThanhTren({ phanHe, trang, tabTen, onTim, onMoChuyen, theme, doiTheme, dangTai, ten, vaiTro, menuTaiKhoan, coCang }) {
   return (
     <header className="tb sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-card/90 px-3 backdrop-blur sm:px-4">
+      <VachTai dang={dangTai} />
       <nav aria-label="Vị trí hiện tại" className="min-w-0 flex-1">
         <ol className="tb-bc">
           {phanHe && <li className="tb-bc-ph"><span>{phanHe}</span><ChevronRight aria-hidden="true" /></li>}

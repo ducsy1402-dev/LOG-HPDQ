@@ -21,7 +21,8 @@ import SapDen from "./SapDen";
 import KeHoachNgay from "./KeHoachNgay";
 
 const homNay = () => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime(); };
-const ZOOM = [36, 56, 84, 120];
+// "vua" = các ngày vừa khít bề rộng khung (cột tự co theo số ngày, không phải cuộn ngang); các mức sau là độ rộng cố định mỗi ngày (px)
+const ZOOM = ["vua", 36, 56, 84, 120];
 
 export default function Linetime() {
   const { D, quyen, setVoyageMo, tuThang, moRongKhoang } = useApp();
@@ -29,7 +30,7 @@ export default function Linetime() {
   const [f, setF] = useState({ q: "", ben: "", st: "", huong: "", thang: "" });
   const [tu, setTu] = useState(() => homNay() - 3 * DAY);
   const [soNgay, setSoNgay] = useState(30);
-  const [zoom, setZoom] = useState(1);
+  const [zoom, setZoom] = useState(0);
   // Chế độ xem lịch cầu bến: "ben" chỉ thời gian chiếm bến, "toan" thêm đoạn chờ bến từ NOR hoặc ETA; gon: dòng thấp, chữ nhỏ
   const doc = (k, md) => { try { return localStorage.getItem(k) ?? md; } catch { return md; } };
   const ghi = (k, v) => { try { localStorage.setItem(k, v); } catch { /* bỏ qua */ } };
@@ -92,8 +93,8 @@ export default function Linetime() {
             <Button size="sm" variant="outline" onClick={() => setTu(homNay() - 3 * DAY)}>Hôm nay</Button>
             <Button size="sm" variant="outline" onClick={() => setTu(tu + 7 * DAY)} aria-label="Tới 7 ngày"><ChevronRight /></Button>
             <span className="text-sm tabular-nums">{ngayGio(tu).slice(0, 5)} → {ngayGio(tu + (soNgay - 1) * DAY).slice(0, 5)}</span>
-            <NativeSelect className="h-8 w-[6.4rem] pl-2 pr-6" value={soNgay} onChange={(e) => setSoNgay(+e.target.value)} options={[[14, "14 ngày"], [30, "30 ngày"], [45, "45 ngày"], [60, "60 ngày"], [90, "90 ngày"]]} />
-            <Button size="icon" variant="ghost" disabled={zoom === 0} onClick={() => setZoom(zoom - 1)} aria-label="Thu nhỏ"><ZoomOut /></Button>
+            <NativeSelect className="h-8 w-[7.4rem] pl-2 pr-6" value={soNgay} onChange={(e) => setSoNgay(+e.target.value)} options={[[14, "14 ngày"], [30, "30 ngày"], [45, "45 ngày"], [60, "60 ngày"], [90, "90 ngày"]]} />
+            <Button size="icon" variant="ghost" disabled={zoom === 0} onClick={() => setZoom(zoom - 1)} aria-label="Thu nhỏ cột ngày" title={zoom === 1 ? "Thu nhỏ: vừa khít khung" : "Thu nhỏ cột ngày"}><ZoomOut /></Button>
             <Button size="icon" variant="ghost" disabled={zoom === ZOOM.length - 1} onClick={() => setZoom(zoom + 1)} aria-label="Phóng to"><ZoomIn /></Button>
             <div className="inline-flex rounded-md border p-0.5" role="group" aria-label="Trục dọc">
               {[["ben", "Theo bến", "Mỗi bến một dòng"], ["met", "Theo mét", "Dọc theo mét từng tuyến bến: tàu nằm đúng vị trí mét, kéo dọc để đặt vị trí / đổi bến, kéo ngang để đổi giờ"]].map(([k, t, mo]) => (

@@ -97,7 +97,7 @@ export default function TongQuanMoi({ onMo, go, tongCanhBao }) {
   // Hiển thị lại Lịch cầu bến của Khai thác Cảng › Linetime, CHỈ theo bến (anh Sỹ 22/11/2026): đủ các bến, kể cả bến ghép (cùng cài đặt "Bến ghép" của Linetime), thêm lọc hướng nhập / xuất, tới 90 ngày
   const [ghepLich, setGhepLich] = useState(() => docLs("lg-gantt-ghep", "1") === "1");
   const [huongLich, setHuongLich] = useState(() => (["nhap", "xuat"].includes(docLs("lg-tq-huong", "")) ? docLs("lg-tq-huong", "") : ""));
-  const pxNgay = Math.max(24, Math.floor((rongLich - 84) / soNgayLich));
+  const pxNgay = Math.max(12, Math.floor((rongLich - 84) / soNgayLich));
   const tuLich = useMemo(() => { if (!laNay) return kyInfo.tu; const d = new Date(D.now); d.setHours(0, 0, 0, 0); return d.getTime() - 2 * DAY; }, [D.now, laNay, kyInfo.tu]);
   const tauLich = useMemo(() => D.voyages.filter((v) => !v.huy && (!huongLich || (v.huong === "xuat" ? "xuat" : "nhap") === huongLich)), [D.voyages, huongLich]);
 
