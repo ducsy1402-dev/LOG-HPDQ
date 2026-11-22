@@ -5,7 +5,8 @@ import { Modal, Badge } from "../../components/ui";
 
 // Danh mục nhà thầu (đơn vị thực hiện) dùng khi gán xe nhà thầu. Quản trị sửa, các vai trò khác chỉ xem.
 export default function NhaThauDialog({ list, onClose }) {
-  const { api, run, isAdmin, toast, D } = useApp();
+  const { api, run, sua, toast, D } = useApp();
+  const isAdmin = sua("kh_van_tai");
   const [rows, setRows] = useState(() => list.map((x) => ({ ten: "", lien_he: "", ghi_chu: "", dang_dung: true, ...x })));
   const set = (i, k, v) => setRows((o) => o.map((r, j) => (j === i ? { ...r, [k]: v } : r)));
   // Số dòng kế hoạch đang dùng mỗi nhà thầu (chỉ để tham khảo khi xóa)

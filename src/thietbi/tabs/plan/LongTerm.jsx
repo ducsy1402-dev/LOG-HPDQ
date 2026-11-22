@@ -47,7 +47,8 @@ export function tinhDaiHan(D, LD, pp, doi) {
 }
 
 export default function LongTerm() {
-  const { D, api, run, canWrite, isAdmin } = useApp();
+  const { D, api, run, sua } = useApp();
+  const canWrite = sua("kh_van_tai"), isAdmin = canWrite;
   const P = D.plan;
   const saved = P.params.dai_han;
   const [pp, setPp] = useState(() => clone(saved));
@@ -282,7 +283,8 @@ export function BalanceChart({ R, cao }) {
 }
 
 function JobDialog({ loai, job, pp, doi, hangAll, onClose }) {
-  const { D, api, run, toast, isAdmin } = useApp();
+  const { D, api, run, toast, sua } = useApp();
+  const isAdmin = sua("kh_van_tai");
   const isTau = loai === "tau";
   const [f, setF] = useState(() => job ? { ...job, bat_dau: isoToLocal(job.bat_dau), doi: doiCuaViec(job), so_xe_tay: job.so_xe_tay ?? job.so_xe_doi?.[doiCuaViec(job)] ?? "",
     soXe: Math.max(+job.xe_ngay || 0, +job.xe_dem || 0), // việc bãi: một ô Số xe chung cho cả ngày lẫn đêm

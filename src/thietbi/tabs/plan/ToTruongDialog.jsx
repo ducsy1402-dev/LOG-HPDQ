@@ -8,7 +8,8 @@ import { matchQ } from "../../lib/utils";
 // Danh bạ tổ trưởng: tổ đi ca có tổ trưởng riêng từng kíp A / B / C, tổ hành chính chỉ một tổ trưởng (cột HC).
 // Dùng cho cột SĐT của PDF / Excel theo BPSD. Quản trị sửa, các vai trò khác chỉ xem.
 export default function ToTruongDialog({ onClose }) {
-  const { D, api, run, isAdmin } = useApp();
+  const { D, api, run, sua } = useApp();
+  const isAdmin = sua("kh_van_tai");
   const [q, setQ] = useState("");
   const [rows, setRows] = useState(() => {
     const cu = Object.fromEntries((D.toTruong?.list || []).map((x) => [x.to, x]));

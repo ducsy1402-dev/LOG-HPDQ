@@ -26,7 +26,8 @@ export function SpecTable({ spec }) {
 }
 
 export default function VehicleDrawer() {
-  const { D, drawer, closeVehicle, canWrite, isAdmin, api, run } = useApp();
+  const { D, drawer, closeVehicle, sua, api, run } = useApp();
+  const canWrite = sua("khai_bao"), isAdmin = sua("dm_thiet_bi");
   const [mode, setMode] = useState(null); // 'event' | 'edit'
   const v = D?.vmap[drawer];
   if (!drawer || !D) return null;

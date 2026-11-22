@@ -23,7 +23,8 @@ const NO_F = { ca: [], bp: [], lpt: [], doi: [], to: [], st: [], q: "" };
 const NHA_THAU = "Nhà thầu";
 
 export default function ShortTerm() {
-  const { D, api, run, toast, fail, canWrite, isAdmin, openVehicle, reload } = useApp();
+  const { D, api, run, toast, fail, sua, openVehicle, reload } = useApp();
+  const canWrite = sua("kh_van_tai"), isAdmin = canWrite;
   const P = D.plan;
   const [f, setF] = useState(NO_F);
   const [gan, setGan] = useState(null);       // nhu cầu đang gán xe
@@ -436,7 +437,8 @@ function KlO({ a, d, upd, sua }) {
 
 // Một dòng kế hoạch: sửa giờ, ghi chú, khối lượng, gỡ xe
 function PlanRow({ a, d, sh, warns, coKL }) {
-  const { D, api, run, canWrite, openVehicle } = useApp();
+  const { D, api, run, sua, openVehicle } = useApp();
+  const canWrite = sua("kh_van_tai");
   const v = D.vmap[a.ma_xe];
   const opts = () => gioChon(sh, a.bat_dau_phut, a.ket_thuc_phut).map((o) => [String(o), offTxt(sh, o)]);
   const upd = (patch, msg) => run(() => api.updateAssignment(a.id, patch), msg);

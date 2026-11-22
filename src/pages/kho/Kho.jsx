@@ -103,7 +103,7 @@ function KhoTab({ tab, kho }) {
   const { quyen } = useApp();
   const [mo, setMo] = useState(null); // ke-hoach | xem-kh | nhap (gồm lịch sử) | phan-loai | dan
   const [sua, setSua] = useState(null); // lượt đang sửa (mở từ Lịch sử)
-  const loai = tab.loai, nhap = quyen.kho.nhap;
+  const loai = tab.loai, nhap = quyen.kho.theoLoai(loai);
   const tenBai = useMemo(() => new Set(kho.dong.map((d) => d.ten_bai)), [kho]);
   const dong = () => { setMo(null); };
   // Gọi như HÀM (không đặt thành thẻ <Hop>): định nghĩa component ngay trong KhoTab sẽ là kiểu mới sau mỗi lần dữ liệu cập nhật,

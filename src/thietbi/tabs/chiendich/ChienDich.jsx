@@ -21,7 +21,8 @@ const TEN_TT = Object.fromEntries(TRANG_THAI_CD);
 const TONE_TT = { ke_hoach: "info", dang_chay: "ok", xong: "", huy: "bad" };
 
 export default function ChienDich() {
-  const { api, canWrite, toast, fail } = useApp();
+  const { api, sua: coQuyen, toast, fail } = useApp();
+  const canWrite = coQuyen("kh_van_tai");
   const [ds, setDs] = useState(undefined); // undefined: đang tải · null: chưa chạy SQL 17
   const [chon, setChon] = useState(() => doc("qltb-cd-chon", ""));
   const [nhap, setNhap] = useState(null);  // bản đang sửa

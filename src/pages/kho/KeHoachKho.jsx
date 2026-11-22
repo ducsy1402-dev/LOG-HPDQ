@@ -42,7 +42,7 @@ export function ChonKy({ loai, ky, coKy, homNay, onDoi }) {
 
 export default function KeHoachKho({ loai, kho, nhan = "" }) {
   const { D, quyen, api, run, toast } = useApp();
-  const sua = quyen.kho.nhap, coKy = !!D.coSql12, homNay = ngayStr(D.now);
+  const sua = quyen.kho.theoLoai(loai), coKy = !!D.coSql12, homNay = ngayStr(D.now);
   const [loaiKy, setLoaiKy] = useState("thang"), [ky, setKy] = useState(() => kyHienTai("thang", ngayStr(D.now)));
   const [dan, setDan] = useState(false);
   const dong = useMemo(() => kho.dong.filter((d) => d.loai === loai && !d.saiBai).sort((a, b) => ss(a.ten_bai, b.ten_bai) || ss(a.ten, b.ten)), [kho, loai]);

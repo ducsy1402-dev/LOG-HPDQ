@@ -90,7 +90,8 @@ export function KhoiQuanSo() {
 }
 
 function ShiftCard({ sh, kip, rows, tag }) {
-  const { D, api, run, canWrite } = useApp();
+  const { D, api, run, sua } = useApp();
+  const canWrite = sua("khai_bao");
   const init = () => Object.fromEntries(rows.map((r) => [r.doi, { tt: r.thucTe ?? "", gc: r.ghiChu }]));
   const sig = JSON.stringify(rows.map((r) => [r.doi, r.thucTe, r.ghiChu]));
   const [f, setF] = useState(init);
@@ -200,7 +201,8 @@ export function DanhSachNhanSu() {
 }
 
 function StaffList({ onImport }) {
-  const { D, isAdmin, api, run, fail } = useApp();
+  const { D, sua, api, run, fail } = useApp();
+  const isAdmin = sua("dm_thiet_bi");
   const [q, setQ] = useState("");
   // Bộ lọc chọn nhiều: mảng rỗng = tất cả. Mặc định chỉ người đang làm việc.
   const [doi, setDoi] = useState([]);

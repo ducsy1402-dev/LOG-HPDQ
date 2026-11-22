@@ -21,7 +21,7 @@ export function LichSuKho({ kho, loai, onSua }) {
   const { D, quyen, run, api, toast } = useApp();
   const [qSo, setQSo] = useState("");
   const [dangSua, setDangSua] = useState(null); // lượt đang SỬA TẠI DÒNG: { id, ngay, so_luong, ghi_chu } (anh Sỹ 21/11/2026); tồn đầu / kiểm kê vẫn mở hộp riêng
-  const tp = loai === "thanh_pham", nhap = quyen.kho.nhap;
+  const tp = loai === "thanh_pham", nhap = quyen.kho.theoLoai(loai);
   const keys = useMemo(() => new Set(kho.dong.map((d) => d.key)), [kho]);
   const gd = useMemo(() => (D.giaoDich || []).filter((g) => keys.has(kho.gan(g.ten_bai, g.hang, g.ten_khu)) || (g.den_bai && keys.has(kho.gan(g.den_bai, g.hang, g.den_khu))))
     .sort((a, b) => String(b.ngay).localeCompare(String(a.ngay)) || b.id - a.id), [D.giaoDich, keys, kho]);
@@ -73,7 +73,7 @@ export function LichSuKho({ kho, loai, onSua }) {
                 <td className={cn("text-xs text-muted-foreground", !dangG && "max-w-[260px] truncate")} title={dangG ? undefined : [g.chung_tu, g.ghi_chu].filter(Boolean).join(" · ")}>{dangG ? <Input className="h-8 min-w-[160px]" value={dangSua.ghi_chu} placeholder="Ghi chú" onChange={(e) => setDangSua({ ...dangSua, ghi_chu: e.target.value })} onKeyDown={(e) => phim(e, g)} aria-label="Ghi chú" /> : [g.chung_tu, g.ghi_chu].filter(Boolean).join(" · ")}</td>
                 {nhap && <td className="whitespace-nowrap">{dangG
                   ? <><Button size="icon" variant="ghost" className="h-7 w-7 text-primary" title="Lưu (Enter)" aria-label="Lưu lượt" onClick={() => luuSua(g)}><Check /></Button><Button size="icon" variant="ghost" className="h-7 w-7" title="Hủy sửa (Esc)" aria-label="Hủy sửa" onClick={() => setDangSua(null)}><X /></Button></>
-                  : <Button size="icon" variant="ghost" className="h-7 w-7" title={g.loai === "dau_ky" ? "Tồn đầu kỳ: khai lại ở bảng nhập liệu" : suaTaiDong(g) ? "Sửa tại dòng" : "Sửa lượt này"} aria-label="Sửa lượt này" onClick={() => batSua(g)}><Pencil /></Button>}{quyen.kho.quanLy && <ConfirmButton confirmText="Xóa?" onConfirm={() => run(() => api.deleteGiaoDich(g.id), "Đã xóa lượt")}><Trash2 /></ConfirmButton>}</td>}
+                  : <Button size="icon" variant="ghost" className="h-7 w-7" title={g.loai === "dau_ky" ? "Tồn đầu kỳ: khai lại ở bảng nhập liệu" : suaTaiDong(g) ? "Sửa tại dòng" : "Sửa lượt này"} aria-label="Sửa lượt này" onClick={() => batSua(g)}><Pencil /></Button>}{quyen.kho.theoLoai(loai) && <ConfirmButton confirmText="Xóa?" onConfirm={() => run(() => api.deleteGiaoDich(g.id), "Đã xóa lượt")}><Trash2 /></ConfirmButton>}</td>}
               </tr>); })}</tbody>
           </table>
         </div>

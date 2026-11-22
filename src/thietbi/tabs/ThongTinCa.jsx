@@ -57,7 +57,8 @@ export default function ThongTinCa() {
 }
 
 function CaThongTin({ sh, loai }) {
-  const { D, canWrite } = useApp();
+  const { D, sua } = useApp();
+  const canWrite = sua("khai_bao");
   const [mo, setMo] = useState(null); // khóa (đội|tổ) đang mở hộp nhập
   const cheDo = sh.hc ? "HC" : "Đi ca";
   // Xe của từng (đội, tổ) trong ca này (cùng chế độ Đi ca / HC như tab Nhân sự & quân số); tổ có xe của nhiều đội thì mỗi đội một nút riêng
@@ -105,7 +106,8 @@ function CaThongTin({ sh, loai }) {
 
 // Hộp nhập thông tin đầu/cuối ca của một tổ: sẵn đủ xe của tổ, chỉ chọn tình trạng và gõ vị trí / BPSD
 function HopNhap({ sh, loai, to, doi, vs, khai, onClose }) {
-  const { D, api, run, canWrite } = useApp();
+  const { D, api, run, sua } = useApp();
+  const canWrite = sua("khai_bao");
   const macDinh = (ma) => THEO_TRANG_THAI[D.stateOf(ma)] || "san_sang"; // gợi ý theo tình trạng hiện tại của xe
   const [ds, setDs] = useState(() => vs.map((v) => v.ma).sort((a, b) => a.localeCompare(b, "vi", { numeric: true })).map((ma) => {
     const r = khai.find((x) => x.ma_xe === ma);

@@ -22,7 +22,8 @@ export default function TinhTrang() {
 const thuocNhom = (nhom) => (v) => (nhom === "cau" ? v?.doi === "Cẩu" : v && v.doi !== "Cẩu");
 
 function SuKien({ nhom, tab }) {
-  const { D, api, run, canWrite, isAdmin, openVehicle } = useApp();
+  const { D, api, run, sua, openVehicle } = useApp();
+  const canWrite = sua("khai_bao"), isAdmin = canWrite;
   // Bộ lọc chọn nhiều: mảng rỗng = tất cả. Bộ lọc Đội chỉ áp cho khối "Xem nhanh" (biểu đồ), không áp cho danh sách bên dưới.
   const [doi, setDoi] = useState([]);
   const [q, setQ] = useState("");
@@ -189,7 +190,8 @@ export function MaXeSanSang({ doi = [] }) {
 // ---------- Thiết bị gắn: đếm theo loại (tổng, hỏng, sẵn sàng), không theo dõi mã từng chiếc ----------
 const DUNG_CHO = ["Xúc đào", "Cẩu cảng", "Khác"];
 function ThietBiGan({ tab }) {
-  const { D, api, run, canWrite, isAdmin } = useApp();
+  const { D, api, run, sua: coQuyen } = useApp();
+  const canWrite = coQuyen("khai_bao", "dm_thiet_bi"), isAdmin = canWrite;
   const [loc, setLoc] = useState("");
   const [sua, setSua] = useState(null); // {} = thêm, dòng = sửa
   const ds = D.tbGanSl;
