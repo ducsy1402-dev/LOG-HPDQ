@@ -289,17 +289,26 @@ export function makeSupabaseApi() {
       if (!coVaiTro) ok(await sb.from("user_roles").upsert({ user_id, vai_tro: "xem" }));
     },
     async setQuanTri(user_id, bat) { ok(await sb.from("user_roles").upsert({ user_id, vai_tro: bat ? "quan_tri" : "xem" })); },
-    // Thêm tài khoản: Edge Function "tao-tai-khoan" (supabase/functions/tao-tai-khoan/index.ts) giữ khóa bí mật phía Supabase
-    async taoTaiKhoan(body) {
+    // Thêm / đổi tên đăng nhập / xóa tài khoản: Edge Function "tao-tai-khoan" (supabase/functions/tao-tai-khoan/index.ts) giữ khóa bí mật phía Supabase
+    async goiHamTaiKhoan(body) {
       const r = await sb.functions.invoke("tao-tai-khoan", { body });
       if (r.error) {
         let loi = "";
         try { loi = (await r.error.context.json())?.loi || ""; } catch { /* bỏ qua */ }
         if (!loi && r.error.context?.status === 404) loi = "Chưa đưa hàm tao-tai-khoan lên Supabase (xem hướng dẫn ở đầu file supabase/functions/tao-tai-khoan/index.ts).";
-        throw new Error(loi || r.error.message || "Không tạo được tài khoản");
+        // Hàm bản cũ (chỉ biết tạo tài khoản) gặp yêu cầu đổi tên / xóa sẽ báo lỗi tên đăng nhập
+        if (body.hanh_dong && /Tên đăng nhập chỉ gồm/.test(loi)) loi = "Hàm tao-tai-khoan trên Supabase còn là bản cũ: mở hàm, dán đè nội dung mới của file supabase/functions/tao-tai-khoan/index.ts rồi Deploy.";
+        throw new Error(loi || r.error.message || "Không thực hiện được");
       }
       if (r.data?.loi) throw new Error(r.data.loi);
       return r.data;
     },
+    taoTaiKhoan(body) { return this.goiHamTaiKhoan({ ...body, hanh_dong: undefined }); },
+    // Sửa tên: họ tên hiển thị ghi thẳng bảng user_roles; tên đăng nhập (email) phải qua hàm
+    async suaTaiKhoan(user_id, { ho_ten, ten, vaiTro }) {
+      if (ten) await this.goiHamTaiKhoan({ hanh_dong: "doi_ten", user_id, ten });
+      if (ho_ten !== undefined) ok(await sb.from("user_roles").upsert({ user_id, ho_ten: ho_ten || null, vai_tro: vaiTro || "xem" }));
+    },
+    xoaTaiKhoan(user_id) { return this.goiHamTaiKhoan({ hanh_dong: "xoa", user_id }); },
   };
 }

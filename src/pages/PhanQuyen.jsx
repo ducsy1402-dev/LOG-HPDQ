@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ShieldCheck, Info, ChevronDown, UserPlus, Wand2 } from "lucide-react";
+import { ShieldCheck, Info, ChevronDown, UserPlus, Wand2, Pencil, Trash2 } from "lucide-react";
 import { useApp } from "@/store";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -139,12 +139,43 @@ function HopThem({ onClose, onXong }) {
   );
 }
 
+// Hộp sửa tên tài khoản: họ tên hiển thị (ghi thẳng CSDL) và tên đăng nhập (qua Edge Function tao-tai-khoan)
+function HopSua({ u, onClose, onXong }) {
+  const { api, toast } = useApp();
+  const ten0 = tenDangNhap(u.email);
+  const [hoTen, setHoTen] = useState(u.ho_ten || ""), [ten, setTen] = useState(ten0);
+  const [loi, setLoi] = useState(""), [dang, setDang] = useState(false);
+  const gui = async (e) => {
+    e.preventDefault(); setLoi("");
+    const t = ten.trim().toLowerCase(), doiTen = t !== ten0.toLowerCase(), doiHo = hoTen.trim() !== (u.ho_ten || "");
+    if (!doiTen && !doiHo) return onClose();
+    if (doiTen && !/^[a-z0-9._-]{3,40}(@[a-z0-9.-]+\.[a-z]{2,})?$/.test(t)) return setLoi("Tên đăng nhập chỉ gồm chữ không dấu, số, dấu . _ - (3 đến 40 ký tự).");
+    setDang(true);
+    try {
+      await api.suaTaiKhoan(u.user_id, { ho_ten: doiHo ? hoTen.trim() : undefined, ten: doiTen ? t : undefined, vaiTro: u.vai_tro_cu });
+      toast(doiTen ? `Đã đổi tên đăng nhập thành ${t}. Người dùng đăng nhập bằng tên mới, mật khẩu giữ nguyên.` : "Đã lưu họ tên");
+      onXong();
+    } catch (err) { setLoi(err.message || String(err)); setDang(false); }
+  };
+  return (
+    <Dialog onOpenChange={(o) => !o && onClose()} className="max-w-md" title="Sửa tài khoản" description={`Đang sửa ${ten0}.`}>
+      <form onSubmit={gui} className="grid gap-3">
+        <Field label="Họ tên hiển thị"><Input autoFocus autoComplete="off" placeholder="VD: Kế hoạch xuất nhập LOG" value={hoTen} onChange={(e) => setHoTen(e.target.value)} /></Field>
+        <Field label="Tên đăng nhập" hint={`Gõ không đuôi (web tự thêm @${TEN_MIEN_TAI_KHOAN}). Đổi tên thì người dùng phải đăng nhập bằng tên mới; mật khẩu và quyền giữ nguyên.`}><Input autoComplete="off" value={ten} onChange={(e) => setTen(e.target.value)} /></Field>
+        {loi && <div role="alert" className="rounded-md border border-bad/40 bg-bad/5 px-3 py-2 text-sm text-bad">{loi}</div>}
+        <div className="flex justify-end gap-2"><Button type="button" variant="ghost" onClick={onClose}>Hủy</Button><Button disabled={dang}>{dang ? "Đang lưu…" : "Lưu"}</Button></div>
+      </form>
+    </Dialog>
+  );
+}
+
 // Bảng phân quyền: mỗi tài khoản một dòng, bốn cột Tài khoản · Quyền xem · Quyền chỉnh sửa · Quản trị. Quản trị là quản trị mọi phần.
 export default function PhanQuyen() {
   const { api, fail, run, user } = useApp();
   const [dl, setDl] = useState(null); // { users, xem, sua, chuaSql }
   const [q, setQ] = useState("");
   const [them, setThem] = useState(false);
+  const [sua1, setSua1] = useState(null); // tài khoản đang sửa tên
   const tai = () => api.listPhanQuyen().then(setDl).catch(fail);
   useEffect(() => { tai(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -161,12 +192,18 @@ export default function PhanQuyen() {
     if (await run(() => api.setQuanTri(u.user_id, bat), bat ? `Đã cho ${tenDangNhap(u.email)} quyền quản trị` : `Đã bỏ quyền quản trị của ${tenDangNhap(u.email)}`)) tai();
   };
 
+  const xoa = async (u) => {
+    const ten = tenDangNhap(u.email);
+    if (!window.confirm(`Xóa tài khoản ${ten}${u.ho_ten ? ` (${u.ho_ten})` : ""}?\nNgười này không đăng nhập được nữa và việc xóa KHÔNG hoàn tác được. Dữ liệu đã nhập vào web không mất.`)) return;
+    if (await run(() => api.xoaTaiKhoan(u.user_id), `Đã xóa tài khoản ${ten}`)) tai();
+  };
+
   return (
     <>
       <PageHead title="Phân quyền"><Button size="sm" onClick={() => setThem(true)}><UserPlus />Thêm tài khoản</Button></PageHead>
       <div className="mb-3 grid gap-1 rounded-md border border-info/40 bg-info/5 px-3 py-2 text-sm">
         <div className="flex gap-2"><Info className="mt-0.5 h-4 w-4 shrink-0 text-info" /><span><b>Quyền xem</b>: trang nào hiện trên menu của tài khoản. <b>Quyền chỉnh sửa</b>: chỉ được thêm / sửa / xóa ở các mục đã tick (chặn thật ở CSDL). <b>Quản trị</b>: xem và sửa tất cả, đặt quyền, thêm tài khoản.</span></div>
-        <div className="pl-6 text-xs text-muted-foreground">Chọn xong, đóng ô chọn là web tự lưu. Tick một mục chỉnh sửa thì web tự thêm quyền xem của trang đó. Đổi mật khẩu người khác: Supabase › Authentication › Users.</div>
+        <div className="pl-6 text-xs text-muted-foreground">Chọn xong, đóng ô chọn là web tự lưu. Tick một mục chỉnh sửa thì web tự thêm quyền xem của trang đó. Bút chì sửa họ tên / tên đăng nhập, thùng rác xóa tài khoản. Đổi mật khẩu người khác: Supabase › Authentication › Users.</div>
       </div>
       {dl?.chuaSql && <div className="mb-3 rounded-md border border-warn/40 bg-warn/5 px-3 py-2 text-sm">Cần chạy <b>sql/27_phan_quyen_moi.sql</b> trong Supabase để dùng bảng phân quyền mới.</div>}
       <Card>
@@ -175,7 +212,7 @@ export default function PhanQuyen() {
           {dl == null ? <div className="text-sm text-muted-foreground">Đang tải…</div> : dl.users.length ? (
             <div className="scroll-x">
               <table className="tbl">
-                <thead><tr><th>Tài khoản</th><th className="w-[250px]">Quyền xem</th><th className="w-[310px]">Quyền chỉnh sửa</th><th className="w-24 text-center">Quản trị</th></tr></thead>
+                <thead><tr><th>Tài khoản</th><th className="w-[250px]">Quyền xem</th><th className="w-[310px]">Quyền chỉnh sửa</th><th className="w-24 text-center">Quản trị</th><th className="w-20"><span className="sr-only">Sửa, xóa</span></th></tr></thead>
                 <tbody>{dl.users.filter((u) => matchQ(q, u.email, u.ho_ten)).map((u) => {
                   const admin = u.vai_tro_cu === "quan_tri", xem = xemCua[u.user_id] || [], sua = suaCua[u.user_id] || [];
                   const la = user?.id === u.user_id;
@@ -193,6 +230,10 @@ export default function PhanQuyen() {
                         </OChon></td>
                       </>}
                       <td className="text-center"><CongTat bat={admin} doi={(b) => doiQuanTri(u, b)} khoa={la} ten={`Quản trị: ${tenDangNhap(u.email)}`} title={la ? "Không tự bỏ quyền quản trị của chính mình" : undefined} /></td>
+                      <td><div className="flex justify-end gap-1">
+                        <Button size="icon" variant="ghost" className="h-8 w-8" title="Sửa tên tài khoản" aria-label={`Sửa ${tenDangNhap(u.email)}`} onClick={() => setSua1(u)}><Pencil /></Button>
+                        <Button size="icon" variant="ghost" className="h-8 w-8 hover:text-bad" disabled={la} title={la ? "Không tự xóa tài khoản của chính mình" : "Xóa tài khoản"} aria-label={`Xóa ${tenDangNhap(u.email)}`} onClick={() => xoa(u)}><Trash2 /></Button>
+                      </div></td>
                     </tr>);
                 })}</tbody>
               </table>
@@ -200,6 +241,7 @@ export default function PhanQuyen() {
           ) : <Empty>Chưa có tài khoản.</Empty>}
         </CardContent>
       </Card>
+      {sua1 && <HopSua u={sua1} onClose={() => setSua1(null)} onXong={() => { setSua1(null); tai(); }} />}
       {them && <HopThem onClose={() => setThem(false)} onXong={() => { setThem(false); tai(); }} />}
     </>
   );

@@ -238,6 +238,18 @@ export function makeDemoApi() {
       nhomDs = nhomDs.filter((x) => x.user_id !== user_id).concat(sua.map((nhom) => ({ user_id, nhom })));
     },
     async setQuanTri(user_id, bat) { can("quan_tri"); await wait(60); const u = users.find((x) => x.user_id === user_id); if (u) u.vai_tro_cu = bat ? "quan_tri" : "xem"; },
+    async suaTaiKhoan(user_id, { ho_ten, ten }) {
+      can("quan_tri"); await wait(80);
+      const u = users.find((x) => x.user_id === user_id); if (!u) return;
+      if (ten) { const email = ten.includes("@") ? ten : `${ten}@hpdq.test`; if (users.some((x) => x.email === email && x.user_id !== user_id)) throw new Error(`Tên đăng nhập "${ten}" đã có người dùng`); u.email = email; }
+      if (ho_ten !== undefined) u.ho_ten = ho_ten || null;
+    },
+    async xoaTaiKhoan(user_id) {
+      can("quan_tri"); await wait(80);
+      if (user_id === "demo") throw new Error("Không tự xóa tài khoản của chính mình");
+      const i = users.findIndex((x) => x.user_id === user_id); if (i >= 0) users.splice(i, 1);
+      xemDs = xemDs.filter((x) => x.user_id !== user_id); nhomDs = nhomDs.filter((x) => x.user_id !== user_id);
+    },
     async taoTaiKhoan(b) {
       can("quan_tri"); await wait(200);
       const email = b.ten.includes("@") ? b.ten : `${b.ten}@hpdq.test`;
