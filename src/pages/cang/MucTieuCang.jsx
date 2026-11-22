@@ -14,7 +14,7 @@ import { klCanLam } from "@/lib/linetime";
 import { mocDuKien } from "@/lib/xepBen";
 import { tenBen } from "./BangTauBen";
 import { KY, khoangKy, kyTruoc, kySau, chuoiKy, tongTheoNhom } from "@/lib/bieuDoSanLuong";
-import { keHoachTheoNgay, keHoachTheoDiem, luyKe, demTau, ngayDia, hangChinh } from "@/lib/keHoachNgay";
+import { keHoachTheoNgay, keHoachTheoDiem, luyKe, demTau, ngayDia, hangChinh, docKeHoachDich } from "@/lib/keHoachNgay";
 import { useThietBi } from "@/thietbi/Host";
 import { useSanLuongKy, khoaKyRieng } from "../tongquan/KhoiSanLuong";
 import { cn } from "@/lib/utils";
@@ -117,7 +117,7 @@ export default function MucTieuCang() {
   const du = useSanLuongKy("cang", kyInfo.thangs, khoaKyRieng(kyInfo));
   useEffect(() => {
     let huy = false;
-    api.docKeHoachNgay(kyInfo.ngays[0], kyInfo.ngays[kyInfo.ngays.length - 1]).then((r) => { if (!huy) setKh(r || []); }).catch(() => { if (!huy) setKh([]); });
+    docKeHoachDich(api, D.voyages, D.now, kyInfo.ngays[0], kyInfo.ngays[kyInfo.ngays.length - 1]).then((r) => { if (!huy) setKh(r || []); }).catch(() => { if (!huy) setKh([]); });
     return () => { huy = true; };
   }, [api, kyInfo, lan, D]);
 

@@ -9,7 +9,7 @@ import { taoNhomHang } from "@/lib/sanLuong";
 import { xepHangBen } from "@/pages/cang/Gantt";
 import { tenBen, noiHaiBen } from "@/pages/cang/BangTauBen";
 import { Button } from "@/components/ui/button";
-import { dongSoXeTau, dongSoXeBai, DAU_SO_XE_TAU, DAU_SO_XE_BAI } from "@/lib/tauDaiHan";
+import { dongSoXeTau, dongSoXeBai, DAU_SO_XE_TAU, DAU_SO_XE_BAI, DAU_BAI_TAU, tenViecBai } from "@/lib/tauDaiHan";
 import { MultiSelect } from "../../components/ui";
 import { fmtD, fmtDT, BAI_COLOR, doiCuaViec } from "../../lib/plan";
 import { pad } from "../../lib/utils";
@@ -88,7 +88,9 @@ export default function TimelineCa({ R, doi, onJob }) {
       const ov = dongGhi(it), tau = it.kind === "tauLT";
       return run(() => (ov ? api.updatePlanJob(ov.id, patch) : api.insertPlanJob({ loai: tau ? "tau" : "bai", ten: it.ten, hang: "", vi_tri: "", doi, so_xe_tay: null, so_xe_doi: null, ...(tau ? {} : { xe_ngay: 0, xe_dem: 0 }), ghi_chu: (tau ? DAU_SO_XE_TAU : DAU_SO_XE_BAI) + it.job.lt, ...patch })), msg);
     }
-    return run(() => api.updatePlanJob(it.job.id, patch), msg);
+    // Việc bãi chạy theo tàu: ghi luôn mốc giờ hiện tại (đã dời theo tàu) để lần sau không dời số xe sửa tay thêm lần nữa
+    const j = it.job, theo = j.theoTau && j.tu ? { tu: j.tu, den: j.den, tu_ngay: j.tu_ngay, den_ngay: j.den_ngay, ghi_chu: DAU_BAI_TAU + j.theoTau } : {};
+    return run(() => api.updatePlanJob(j.id, { ...theo, ...patch }), msg);
   };
   const soNen = (it) => (it.kind === "tauLT" || it.kind === "cangTay" ? it.dung ?? null : it.n === it.d ? it.n : null); // số xe cả việc (bãi: nếu CA1 / CA2 khác nhau thì để trống)
   const luuNen = (it, txt) => {
@@ -112,15 +114,14 @@ export default function TimelineCa({ R, doi, onJob }) {
   const xoaViec = (it) => { if (window.confirm(`Xóa hẳn việc "${it.ten}"?`)) run(() => api.deletePlanJob(it.job.id), `Đã xóa ${it.ten}`); };
   // Thêm tàu vào việc bãi: chỉ lấy "tên tàu - loại hàng - khối lượng" và mốc thời gian (không lấy số xe); sau đó nhập số xe ngay trên thanh việc bãi
   const themBai = (r) => {
-    const klTxt = r.kl ? ` - ${Number(r.kl).toLocaleString("vi-VN", { maximumFractionDigits: 0 })} t` : "";
-    const ten = `${r.ten}${r.hang ? " - " + r.hang : ""}${klTxt}`;
+    const ten = tenViecBai(r.ten, r.hang, r.kl);
     if (D.plan.jobs.some((j) => j.loai === "bai" && j.ten === ten && doiCuaViec(j) === doi)) return toast(`Đã có việc bãi "${ten}"`, "warn");
     // Mốc thời gian = đúng thanh tàu ở bến trên Linetime (cập → rời, gộp các đoạn nếu tàu chuyển bến), không dùng giờ làm hàng tính theo năng suất
     const v = (LD?.voyages || []).find((x) => String(x.id) === String(r.job.lt));
     const doan = v ? doanBen(v, LD.stopsOf?.(v.id) || [], LD.now) : [];
     const a = doan.length ? Math.min(...doan.map((d) => d.a)) : r.bd?.getTime() ?? null, b = doan.length ? Math.max(...doan.map((d) => d.b)) : r.kt?.getTime() ?? null;
     if (a == null) return toast(`Tàu ${r.ten} chưa có mốc thời gian ở bến`, "warn");
-    const base = { loai: "bai", ten, hang: r.hang || "", vi_tri: "", tu_ngay: ngayStr(new Date(a)), den_ngay: b != null ? ngayStr(new Date(b)) : null, xe_ngay: 0, xe_dem: 0, doi, khoi_luong: r.kl ?? null, con_lai: null };
+    const base = { loai: "bai", ten, hang: r.hang || "", vi_tri: "", tu_ngay: ngayStr(new Date(a)), den_ngay: b != null ? ngayStr(new Date(b)) : null, xe_ngay: 0, xe_dem: 0, doi, khoi_luong: r.kl ?? null, con_lai: null, ghi_chu: DAU_BAI_TAU + r.job.lt }; // ghi_chu: việc bãi chạy theo tàu (tàu đổi giờ thì việc dời theo)
     const full = { ...base, tu: new Date(a).toISOString(), den: b != null ? new Date(b).toISOString() : null };
     // Chưa chạy SQL 15 (chưa có cột tu / den): ghi theo ngày
     run(async () => {
@@ -300,7 +301,7 @@ export default function TimelineCa({ R, doi, onJob }) {
                     <div className="sticky left-0 z-10 flex shrink-0 items-center gap-1 border-r bg-card px-2" style={{ width: LABEL }} title={f.cv}>
                       <span className="flex min-w-0 flex-col">
                         <span className="truncate font-semibold">{f.cv}</span>
-                        <span className="truncate text-[0.6875rem] text-muted-foreground">{[f.hang, f.ben].filter(Boolean).join(" · ") || (manual ? "nhập tay" : "theo Linetime")}</span>
+                        <span className="truncate text-[0.6875rem] text-muted-foreground">{[f.hang, f.ben].filter(Boolean).join(" · ") || (manual ? "nhập tay" : "theo Linetime")}{f.job.theoTau ? <span title="Mốc giờ và số xe tự dời theo thanh tàu trên Linetime"> · theo tàu</span> : null}</span>
                       </span>{nutTD(it)}
                     </div>
                     <div className="relative shrink-0" style={{ width: W, height: LH }}>

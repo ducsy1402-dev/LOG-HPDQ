@@ -1,6 +1,6 @@
 // Backend giả lập cho ?demo: cùng giao diện với supabaseApi, dữ liệu nằm trong bộ nhớ (mất khi tải lại trang).
 // Kiểm tra quyền giống RLS để thử vai trò: ?demo=xem | nhap | quan_ly (mặc định quản trị).
-import { chiaDeuTheoGio } from "../lib/keHoachNgay";
+import { chiaDeuTheoGio, dauMocKH } from "../lib/keHoachNgay";
 import { klCanLam } from "../lib/linetime";
 import { demoData } from "../data/demoData";
 import { DEMO_ROLE, DEMO_NHOM } from "../config";
@@ -34,7 +34,7 @@ export function makeDemoApi() {
   db.keHoachNgay = []; db.nextId.kn = 0;
   for (const v of db.voyages) {
     if (v.huy || !(klCanLam(v) > 0)) continue;
-    for (const [ngay, tan] of chiaDeuTheoGio(v, klCanLam(v) * 0.9)) if (tan > 0) db.keHoachNgay.push({ id: ++db.nextId.kn, voyage_id: v.id, ngay, khoi_luong: tan, ghi_chu: null, updated_at: null });
+    for (const [ngay, tan] of chiaDeuTheoGio(v, klCanLam(v) * 0.9)) if (tan > 0) db.keHoachNgay.push({ id: ++db.nextId.kn, voyage_id: v.id, ngay, khoi_luong: tan, ghi_chu: dauMocKH(v), updated_at: null });
   }
   // Kế hoạch tổng hợp mẫu (tháng hiện tại): xuất bán, sản xuất, nhập mua
   { const d = new Date(), ky = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -195,7 +195,7 @@ export function makeDemoApi() {
       can("nhap"); await wait();
       for (const r of rows) {
         db.keHoachNgay = db.keHoachNgay.filter((x) => !(x.voyage_id === r.voyage_id && x.ngay === r.ngay));
-        if (r.khoi_luong != null) db.keHoachNgay.push({ id: ++db.nextId.kn, voyage_id: r.voyage_id, ngay: r.ngay, khoi_luong: r.khoi_luong, ghi_chu: null, updated_at: new Date().toISOString() });
+        if (r.khoi_luong != null) db.keHoachNgay.push({ id: ++db.nextId.kn, voyage_id: r.voyage_id, ngay: r.ngay, khoi_luong: r.khoi_luong, ghi_chu: r.ghi_chu ?? null, updated_at: new Date().toISOString() });
       }
     },
     async saveKeHoachKho({ them = [], sua = [], xoa = [] }) {

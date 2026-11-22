@@ -98,3 +98,30 @@ export const DAU_SO_XE_BAI = "xe_bai_lt:";
 export const dongSoXeBai = (jobs, lt, doi) => (jobs || []).find((j) => j.loai === "bai" && j.ghi_chu === DAU_SO_XE_BAI + lt && (j.doi || "Xúc đào") === doi) || null;
 export const laDongSoXeBai = (j) => j?.loai === "bai" && String(j.ghi_chu || "").startsWith(DAU_SO_XE_BAI);
 export const dongSoXeTau = (jobs, lt, doi) => (jobs || []).find((j) => j.loai === "tau" && j.ghi_chu === DAU_SO_XE_TAU + lt && (j.doi || "Xúc đào") === doi) || null;
+
+// Việc bãi THÊM TỪ TÀU (nút "+bãi" ở Timeline theo ca) chạy THEO TÀU (anh Sỹ 22/11/2026): ghi_chu = "bai_tau:<mã chuyến>".
+// Mốc giờ của việc luôn lấy lại từ thanh tàu ở bến trên Linetime (cập → rời, gộp các đoạn khi tàu chuyển bến); tàu dời / đổi giờ thì việc bãi dời theo,
+// số xe từng ca (tự tính theo khoảng thời gian) dời theo; số xe sửa tay từng ca (so_xe_doi.ca) dời nguyên số ca tương ứng.
+// Việc đã thêm trước đây (chưa có dấu) được nhận lại theo tên "tên tàu - hàng - khối lượng t" nếu chỉ khớp đúng một tàu.
+export const DAU_BAI_TAU = "bai_tau:";
+export const tenViecBai = (ten, hang, kl) => `${ten}${hang ? " - " + hang : ""}${kl ? ` - ${Number(kl).toLocaleString("vi-VN", { maximumFractionDigits: 0 })} t` : ""}`;
+export function viecBaiTheoTau(job, { voyages = [], stopsOf, now = Date.now(), tauLT = [], caMs = 12 * 36e5, doanBen }) {
+  if (!job || job.loai !== "bai" || laDongSoXeBai(job)) return job;
+  let lt = null;
+  const m = /^bai_tau:(.+)$/.exec(String(job.ghi_chu || ""));
+  if (m) lt = m[1];
+  else if (!job.ghi_chu) { const kq = tauLT.filter((r) => tenViecBai(r.ten, r.hang, r.khoi_luong) === job.ten); if (kq.length === 1) lt = String(kq[0].lt); }
+  if (lt == null) return job;
+  const v = voyages.find((x) => String(x.id) === String(lt));
+  const doan = v ? doanBen(v, stopsOf?.(v.id) || [], now) : [];
+  if (!doan.length) return job;
+  const a = Math.min(...doan.map((d) => d.a)), b = Math.max(...doan.map((d) => d.b));
+  const tuCu = job.tu ? new Date(job.tu).getTime() : null, denCu = job.den ? new Date(job.den).getTime() : null;
+  let ca = job.so_xe_doi?.ca;
+  if (ca && tuCu != null) { // dời số xe sửa tay: số ca nguyên gần nhất với độ dời của giờ bắt đầu
+    const n = Math.round((a - tuCu) / caMs);
+    if (n !== 0) ca = Object.fromEntries(Object.entries(ca).map(([k, x]) => [new Date(new Date(k).getTime() + n * caMs).toISOString(), x]));
+  }
+  const doi = tuCu == null || denCu == null || Math.abs(a - tuCu) > 6e4 || Math.abs(b - denCu) > 6e4;
+  return { ...job, tu: new Date(a).toISOString(), den: new Date(b).toISOString(), tu_ngay: ngayStr(a), den_ngay: ngayStr(b), ...(ca ? { so_xe_doi: { ...(job.so_xe_doi || {}), ca } } : {}), theoTau: String(lt), daDoi: doi };
+}

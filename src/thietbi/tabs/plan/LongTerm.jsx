@@ -7,7 +7,8 @@ import { calc12, cfgOf, capTinhOf, withCap, DOI_GOC, coChiaCangBai, doiCuaViec, 
 import { pad, vn } from "../../lib/utils";
 import { useApp as useLogistics } from "@/store";
 import TimelineCa from "./TimelineCa";
-import { viecTauTuLinetime, viecBaiTuLinetime, laViecCangTay, DAU_VIEC_CANG, DAU_SO_XE_TAU, dongSoXeTau, dongSoXeBai, laDongSoXeBai } from "@/lib/tauDaiHan";
+import { viecTauTuLinetime, viecBaiTuLinetime, viecBaiTheoTau, DAU_BAI_TAU, laViecCangTay, DAU_VIEC_CANG, DAU_SO_XE_TAU, dongSoXeTau, dongSoXeBai, laDongSoXeBai } from "@/lib/tauDaiHan";
+import { doanBen } from "@/lib/linetime";
 import { tenBen } from "@/pages/cang/BangTauBen";
 
 const clone = (x) => JSON.parse(JSON.stringify(x));
@@ -38,7 +39,9 @@ export function tinhDaiHan(D, LD, pp, doi) {
   const baiLT = viecBaiTuLinetime(LD, doi, { cranes: cranesLT, now: LD?.now })
     .map((j) => { const ov = dongSoXeBai(D.plan.jobs, j.lt, doi); return ov ? { ...j, ...(ov.so_xe_tay != null ? { xe_ngay: ov.so_xe_tay, xe_dem: ov.so_xe_tay, nguon_xe: "nhập tay" } : {}), xe_ca: ov.so_xe_doi?.ca || null } : j; });
   // Việc tàu nhập tay đời cũ bị bỏ (tàu lấy từ Linetime); việc Cảng nhập tay bằng nút "Thêm việc cảng" thì giữ
-  const jobs = [...tauLT, ...baiLT, ...D.plan.jobs.filter((j) => (j.loai !== "tau" || laViecCangTay(j)) && !laDongSoXeBai(j))];
+  // Việc bãi thêm từ tàu (+bãi) chạy theo tàu: mốc giờ lấy lại từ thanh tàu ở bến, số xe dời theo (viecBaiTheoTau)
+  const theoTau = { voyages: LD?.voyages || [], stopsOf: LD?.stopsOf, now: LD?.now ?? Date.now(), tauLT, caMs: (+pp.p?.caLen || 12) * 36e5, doanBen };
+  const jobs = [...tauLT, ...baiLT, ...D.plan.jobs.filter((j) => (j.loai !== "tau" || laViecCangTay(j)) && !laDongSoXeBai(j)).map((j) => viecBaiTheoTau(j, theoTau))];
   const R = calc12(withCap(luoiTuDong(pp, LD?.now ?? Date.now()), doi, capCang, capBai), jobs, doi);
   return { cfg, goc, chung, phanBo, tinh, ssDoi, capCang, capBai, trung, R };
 }
@@ -298,6 +301,9 @@ function JobDialog({ loai, job, pp, doi, hangAll, onClose }) {
       rec = { loai, ten: f.ten.trim(), hang: String(f.hang ?? "").trim(), vi_tri: String(f.vi_tri ?? "").trim(), tu_ngay: f.tuG ? f.tuG.slice(0, 10) : null, den_ngay: f.denG ? f.denG.slice(0, 10) : null, tu: localToIso(f.tuG) || null, den: localToIso(f.denG) || null, xe_ngay: n(f.soXe) || 0, xe_dem: n(f.soXe) || 0, doi: f.doi || DOI_GOC, khoi_luong: kl0, con_lai: cl0 };
       if (!rec.ten) return toast("Cần nhập tên công việc", "bad");
       if (rec.tu && rec.den && rec.den <= rec.tu) return toast("Giờ kết thúc phải sau giờ bắt đầu", "bad");
+      // Việc bãi đang chạy theo tàu: sửa mốc giờ bằng tay thì cắt liên kết (không chạy theo tàu nữa); không sửa giờ thì giữ liên kết
+      if (job?.theoTau && (f.tuG !== isoToLocal(job.tu) || f.denG !== isoToLocal(job.den))) rec.ghi_chu = null;
+      else if (job?.theoTau) rec.ghi_chu = DAU_BAI_TAU + job.theoTau; // việc nhận theo tên (chưa có dấu) thì ghi dấu luôn
     }
     // Chưa chạy SQL 15 (chưa có cột tu / den): ghi lại không có mốc giờ, chỉ theo ngày như cũ
     const ghi = async () => {

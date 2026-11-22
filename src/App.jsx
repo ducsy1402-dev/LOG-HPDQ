@@ -20,6 +20,7 @@ import { exportExcel } from "./thietbi/lib/excel";
 import TongQuan from "./pages/TongQuan";
 import Linetime from "./pages/cang/Linetime";
 import TuGhiATD from "./pages/cang/TuGhiATD";
+import TuDoiKeHoach from "./pages/cang/TuDoiKeHoach";
 import PhieuChuyen from "./pages/cang/PhieuChuyen";
 import SapCo from "./pages/SapCo";
 import { tenBenChuyen } from "./lib/tenBen";
@@ -177,6 +178,7 @@ function Main() {
   return (
     <div className="min-h-screen lg:pl-[60px]">
       {quyen.coCang && quyen.nhap && <TuGhiATD />}
+      {quyen.coCang && quyen.keHoachNgay && <TuDoiKeHoach />}
       {/* Thanh bên */}
       <aside onMouseEnter={() => setReChuot(true)} onMouseLeave={() => setReChuot(false)}
         className={cn("fixed inset-y-0 left-0 z-40 flex w-60 flex-col overflow-hidden border-r bg-card transition-[width,transform] duration-200",

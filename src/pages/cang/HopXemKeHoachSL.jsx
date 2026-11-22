@@ -5,7 +5,7 @@ import { NativeSelect } from "@/components/ui/input";
 import { Empty } from "@/components/common";
 import { so, pct, plain, thangCua, tenThang, congThang } from "@/lib/format";
 import { ngayCuaThang } from "@/lib/sanLuongTT";
-import { keHoachTheoNgay, tongNgay, thucTeNgay } from "@/lib/keHoachNgay";
+import { keHoachTheoNgay, tongNgay, thucTeNgay, docKeHoachDich } from "@/lib/keHoachNgay";
 import { cn } from "@/lib/utils";
 import { useNhomHang } from "./useNhomHang";
 
@@ -24,7 +24,7 @@ export default function HopXemKeHoachSL({ thang0, onClose }) {
   const ngays = useMemo(() => ngayCuaThang(thang), [thang]);
   useEffect(() => {
     let huy = false; setKq(undefined);
-    Promise.all([api.docSanLuongThang("cang", thang), api.docKeHoachNgay(ngays[0], ngays[ngays.length - 1])])
+    Promise.all([api.docSanLuongThang("cang", thang), docKeHoachDich(api, D.voyages, D.now, ngays[0], ngays[ngays.length - 1])])
       .then(([sl, kh]) => { if (!huy) setKq({ sl, kh: kh || [] }); }).catch(() => { if (!huy) setKq(null); });
     return () => { huy = true; };
   }, [api, thang, ngays]);

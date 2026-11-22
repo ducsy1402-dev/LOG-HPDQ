@@ -12,7 +12,7 @@ import { ngayCuaThang } from "@/lib/sanLuongTT";
 import { dongHang } from "@/lib/sanLuong";
 import { klCanLam, trangThai, TRANG_THAI, TRANG_THAI_HIEN, doanBen } from "@/lib/linetime";
 import { xepHangBen } from "./Gantt";
-import { ngayCuaChuyen, chiaDeuTheoGio, thucTeNgay, ngayDia } from "@/lib/keHoachNgay";
+import { ngayCuaChuyen, chiaDeuTheoGio, thucTeNgay, ngayDia, dichKeHoach, dauMocKH } from "@/lib/keHoachNgay";
 import { cn } from "@/lib/utils";
 import { useNhomHang } from "./useNhomHang";
 import { tenBen, noiHaiBen } from "./BangTauBen";
@@ -110,7 +110,7 @@ export default function HopKeHoachNgay({ thang0, onClose, onLuu, nhung, tiepTheo
   const nhomHang = useNhomHang(), nhap = quyen.keHoachNgay;
   const [thang, setThang] = useState(thang0 || thangCua(D.now));
   const [loc, setLoc] = useState({ nhom: "", huong: "" });
-  const [rows, setRows] = useState(undefined); // kế hoạch đã lưu; undefined: đang tải · null: chưa chạy SQL 13
+  const [raw, setRaw] = useState(undefined); // kế hoạch đã lưu trong CSDL (rộng hơn tháng ±60 ngày, để dời theo lịch tàu); undefined: đang tải · null: chưa chạy SQL 13
   const [thucTe, setThucTe] = useState([]);
   const [lan, setLan] = useState(0);
   const [sua, setSua] = useState({}); // ô đã gõ: "mã chuyến|ngày" -> chữ
@@ -131,11 +131,15 @@ export default function HopKeHoachNgay({ thang0, onClose, onLuu, nhung, tiepTheo
     setCua((c) => ({ ...c, bat: i >= 0 && c.co < 31 ? Math.max(0, Math.min(i - 2, ngays.length - c.co)) : 0 }));
   }, [ngays]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
-    let huy = false; setRows(undefined); setSua({}); setPop(null);
-    Promise.all([api.docKeHoachNgay(ngays[0], ngays[ngays.length - 1]), api.docSanLuongThang("cang", thang).catch(() => null)])
-      .then(([r, sl]) => { if (!huy) { setRows(r); setThucTe(sl?.thucTe || []); } }).catch(() => { if (!huy) setRows(null); });
+    let huy = false; setRaw(undefined); setSua({}); setPop(null);
+    const moc = (n, k) => ngayDia(new Date(n + "T00:00:00").getTime() + k * DAY);
+    Promise.all([api.docKeHoachNgay(moc(ngays[0], -60), moc(ngays[ngays.length - 1], 60)), api.docSanLuongThang("cang", thang).catch(() => null)])
+      .then(([r, sl]) => { if (!huy) { setRaw(r); setThucTe(sl?.thucTe || []); } }).catch(() => { if (!huy) setRaw(null); });
     return () => { huy = true; };
   }, [api, ngays, thang, lan]);
+  // Kế hoạch đã dời theo lịch tàu hiện tại (lịch tàu đổi thì khối lượng các ngày chia lại theo tỉ lệ thời gian); rows: các ngày của tháng đang xem
+  const dich = useMemo(() => (raw ? dichKeHoach(raw, new Map(D.voyages.map((v) => [v.id, v])), D.now) : null), [raw, D.voyages, D.now]);
+  const rows = useMemo(() => (raw === undefined ? undefined : raw === null ? null : dich.rows.filter((r) => r.ngay >= ngays[0] && r.ngay <= ngays[ngays.length - 1])), [raw, dich, ngays]);
 
   // Các ngày tàu CÓ MẶT ở bến: ngày giao với các đoạn chiếm bến (cùng đoạn bến mà Lịch cầu bến vẽ); rời đúng 0:00 thì ngày đó không tính
   const ngayCuaDoan = (v) => {
@@ -213,15 +217,26 @@ export default function HopKeHoachNgay({ thang0, onClose, onLuu, nhung, tiepTheo
   };
   const xoaTau = (v) => setSua((o) => { const n = { ...o }; for (const d of ngays) if (goc[key(v, d)] || key(v, d) in o) n[key(v, d)] = ""; return n; });
   const luu = async () => {
-    const out = [];
+    const suaChuyen = new Map(); // mã chuyến -> Map ngày -> tấn | null (số vừa gõ)
     for (const k of kDirty) {
       const [vid, ngay] = k.split("|"), txt = (sua[k] || "").trim(), tan = txt ? docSo(txt) : null;
       if (txt && !(tan >= 0)) return toast(`Ngày ${ngay.slice(8)}/${ngay.slice(5, 7)}: "${txt}" không phải số tấn`, "bad");
       if (tan == null && !(k in goc)) continue;
-      out.push({ voyage_id: +vid, ngay, khoi_luong: tan });
+      if (!suaChuyen.has(+vid)) suaChuyen.set(+vid, new Map());
+      suaChuyen.get(+vid).set(ngay, tan);
     }
-    if (!out.length) { setSua({}); return; }
-    if (await run(() => api.saveKeHoachNgay(out), `Đã lưu kế hoạch ngày (${out.length} ô)`)) { setLan((x) => x + 1); onLuu?.(); }
+    if (!suaChuyen.size) { setSua({}); return; }
+    // Mỗi chuyến có số vừa sửa số được GHI LẠI TOÀN BỘ các dòng (đã dời theo lịch tàu hiện tại, kèm dấu mốc lịch tàu), dòng cũ ở ngày không còn thì xóa;
+    // không ghi lẻ từng ô để khỏi lẫn dòng chưa dời với dòng đã dời
+    const out = [];
+    for (const [vid, sm] of suaChuyen) {
+      const v = D.voyages.find((x) => x.id === vid), dau = v ? dauMocKH(v) : null;
+      const moi = new Map(dich.rows.filter((r) => r.voyage_id === vid).map((r) => [r.ngay, +r.khoi_luong || 0]));
+      for (const [ngay, tan] of sm) { if (tan > 0) moi.set(ngay, tan); else moi.delete(ngay); }
+      for (const [ngay, tan] of moi) if (tan > 0) out.push({ voyage_id: vid, ngay, khoi_luong: tan, ghi_chu: dau });
+      for (const r of raw.filter((x) => x.voyage_id === vid)) { const n = String(r.ngay).slice(0, 10); if (!(moi.get(n) > 0)) out.push({ voyage_id: vid, ngay: n, khoi_luong: null }); }
+    }
+    if (await run(() => api.saveKeHoachNgay(out), `Đã lưu kế hoạch ngày (${kDirty.length} ô)`)) { setLan((x) => x + 1); onLuu?.(); }
   };
 
   const moHop = (e, o) => setPop(o); // bấm một ô (của tàu hoặc dòng cộng): mở khung nhập theo ngày bên phải

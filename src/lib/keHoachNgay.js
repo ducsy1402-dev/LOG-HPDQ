@@ -2,7 +2,7 @@
 //   • chia khối lượng một chuyến cho các ngày làm hàng;
 //   • gộp kế hoạch ngày theo (ngày, hướng, nhóm hàng); so với thực tế (bảng san_luong_cang) và mục tiêu tháng;
 //   • đếm tàu đang làm hàng / chờ trong 24 giờ tới cho ba thẻ (HRC, thép thành phẩm, hàng nhập).
-import { trangThai, klCanLam } from "./linetime";
+import { trangThai, klCanLam, chuyenDaRoi } from "./linetime";
 import { mocDuKien, THU_TUC_SAU_HANG, ROI_SAU_THU_TUC } from "./xepBen";
 import { dongHang } from "./sanLuong";
 import { laHRC, loaiKhoTuHang } from "./kho";
@@ -109,4 +109,77 @@ export function demTau(voyages, now, hangHoa = []) {
   const theoGio = (a, b) => (ms(a.etb || a.eta) ?? 0) - (ms(b.etb || b.eta) ?? 0);
   for (const k of Object.keys(out)) { out[k].lam.sort(theoGio); out[k].cho.sort(theoGio); }
   return out;
+}
+
+// ---- Kế hoạch ngày DỜI THEO LỊCH TÀU (anh Sỹ 22/11/2026) ----
+// Mỗi dòng kế hoạch ngày ghi kèm "dấu mốc" ở cột ghi_chu: khoảng làm hàng của chuyến lúc lập kế hoạch ("ben:<từ ms>|<đến ms>"). Khi lịch tàu đổi (khoảng làm hàng hiện tại
+// khác dấu mốc), khối lượng các ngày được CHIA LẠI theo tỉ lệ thời gian: ngày trước giờ bắt đầu (xuất kho trước khi cập) dời theo giờ bắt đầu, ngày sau giờ kết thúc dời theo giờ kết thúc,
+// các ngày trong khoảng làm hàng co giãn theo độ dài mới; mỗi ngày cũ chia cho các ngày mới theo phần thời gian trùng nhau, tổng khối lượng giữ nguyên.
+// Tàu đã rời bến thì không dời nữa (kế hoạch đã qua giữ nguyên để so với thực tế).
+export const DAU_MOC_KH = "ben:";
+export const dauMocKH = (v) => { const k = khoangLamHang(v); return k ? `${DAU_MOC_KH}${Math.round(k.a)}|${Math.round(k.b)}` : null; };
+export const docMocKH = (s) => { const m = /^ben:(\d+)\|(\d+)$/.exec(String(s || "")); return m ? { a: +m[1], b: +m[2] } : null; };
+const anhThoiGian = (t, cu, moi) => (t < cu.a ? moi.a + (t - cu.a) : t > cu.b ? moi.b + (t - cu.b) : moi.a + ((t - cu.a) * (moi.b - moi.a)) / (cu.b - cu.a));
+// ngayTan: Map ngày -> tấn (khoảng cũ cu -> khoảng mới moi, ms) → Map ngày mới -> tấn
+export function dichNgay(ngayTan, cu, moi) {
+  const out = new Map();
+  for (const [ngay, tan] of ngayTan) {
+    if (!(tan > 0)) continue;
+    const d0 = new Date(ngay + "T00:00:00").getTime(), n0 = anhThoiGian(d0, cu, moi), n1 = anhThoiGian(d0 + DAY, cu, moi), dai = n1 - n0;
+    const phan = [];
+    for (let t = dauNgay(n0); t < n1; t += DAY) { const p = (Math.min(n1, t + DAY) - Math.max(n0, t)) / dai; if (p > 1e-9) phan.push([ngayDia(t), p]); }
+    const le = Number.isInteger(tan) ? 1 : 100; // tấn nguyên thì chia ra tấn nguyên, tấn lẻ thì 2 số lẻ; phần dư dồn vào ngày nhiều nhất
+    let da = 0, lon = 0;
+    const kq = phan.map(([n, p], i) => { const x = Math.round(tan * p * le) / le; da += x; if (p > phan[lon][1]) lon = i; return [n, x]; });
+    if (kq.length) kq[lon][1] = Math.round((kq[lon][1] + tan - da) * 100) / 100;
+    for (const [n, x] of kq) if (x > 0) out.set(n, Math.round(((out.get(n) || 0) + x) * 100) / 100);
+  }
+  return out;
+}
+// rows: dòng kế hoạch ngày { voyage_id, ngay, khoi_luong, ghi_chu }. Trả { rows: đã dời, doi: Set mã chuyến có dời }; dòng không có dấu mốc / chuyến đã rời / khoảng không đổi thì giữ nguyên
+export function dichKeHoach(rows, vmap, now = Date.now()) {
+  const nhom = new Map(), giu = [];
+  for (const r of rows || []) {
+    const v = vmap.get(r.voyage_id);
+    if (!v || !docMocKH(r.ghi_chu) || chuyenDaRoi(v, now)) { giu.push(r); continue; }
+    const k = `${r.voyage_id}|${r.ghi_chu}`; if (!nhom.has(k)) nhom.set(k, []); nhom.get(k).push(r);
+  }
+  const doi = new Set(), moiRows = [];
+  for (const ds of nhom.values()) {
+    const vid = ds[0].voyage_id, v = vmap.get(vid), cu = docMocKH(ds[0].ghi_chu), moi = khoangLamHang(v);
+    if (!moi || (Math.abs(moi.a - cu.a) < 6e4 && Math.abs(moi.b - cu.b) < 6e4)) { moiRows.push(...ds); continue; }
+    doi.add(vid);
+    const m = dichNgay(new Map(ds.map((r) => [String(r.ngay).slice(0, 10), +r.khoi_luong || 0])), cu, moi), dau = dauMocKH(v);
+    for (const [ngay, tan] of m) moiRows.push({ voyage_id: vid, ngay, khoi_luong: tan, ghi_chu: dau, doi: true });
+  }
+  // Gộp các dòng trùng (chuyến, ngày): dòng đã dời có thể rơi cùng ngày với dòng giữ nguyên
+  const gop = new Map();
+  for (const r of [...giu, ...moiRows]) {
+    const k = `${r.voyage_id}|${String(r.ngay).slice(0, 10)}`, x = gop.get(k);
+    if (x) gop.set(k, { ...x, khoi_luong: Math.round(((+x.khoi_luong || 0) + (+r.khoi_luong || 0)) * 100) / 100, doi: x.doi || r.doi });
+    else gop.set(k, { ...r, ngay: String(r.ngay).slice(0, 10) });
+  }
+  return { rows: [...gop.values()], doi };
+}
+// Việc cần ghi lại CSDL để kế hoạch ngày khớp lịch tàu: dòng chưa có dấu mốc (chuyến chưa rời) được gắn dấu mốc hiện tại; chuyến lịch đã đổi thì ghi lại toàn bộ dòng đã dời.
+// Trả { ops: [{ voyage_id, ngay, khoi_luong | null, ghi_chu }] (cho saveKeHoachNgay), doi: Set mã chuyến đã dời }
+export function canGhiLaiKeHoach(raw, vmap, now = Date.now()) {
+  const { rows, doi } = dichKeHoach(raw, vmap, now), ops = [];
+  for (const vid of doi) {
+    const moiNgay = new Set(rows.filter((r) => r.voyage_id === vid).map((r) => r.ngay));
+    for (const r of raw.filter((x) => x.voyage_id === vid)) { const n = String(r.ngay).slice(0, 10); if (!moiNgay.has(n)) ops.push({ voyage_id: vid, ngay: n, khoi_luong: null, ghi_chu: null }); }
+    for (const r of rows.filter((x) => x.voyage_id === vid)) ops.push({ voyage_id: vid, ngay: r.ngay, khoi_luong: r.khoi_luong, ghi_chu: dauMocKH(vmap.get(vid)) });
+  }
+  for (const r of raw) { // dòng cũ chưa có dấu mốc: gắn dấu (không đổi số)
+    const v = vmap.get(r.voyage_id);
+    if (!v || docMocKH(r.ghi_chu) || chuyenDaRoi(v, now) || doi.has(r.voyage_id) || !(+r.khoi_luong >= 0)) continue;
+    const dau = dauMocKH(v); if (dau) ops.push({ voyage_id: r.voyage_id, ngay: String(r.ngay).slice(0, 10), khoi_luong: +r.khoi_luong, ghi_chu: dau });
+  }
+  return { ops, doi };
+}
+// Đọc kế hoạch ngày đã dời theo lịch tàu hiện tại cho khoảng ngày [tu, den]; null = chưa có bảng (chưa chạy SQL 13)
+export async function docKeHoachDich(api, voyages, now, tu, den) {
+  const raw = await api.docKeHoachNgay(ngayDia(new Date(tu + "T00:00:00").getTime() - 60 * DAY), ngayDia(new Date(den + "T00:00:00").getTime() + 60 * DAY));
+  if (!raw) return null;
+  return dichKeHoach(raw, new Map((voyages || []).map((v) => [v.id, v])), now).rows.filter((r) => r.ngay >= tu && r.ngay <= den);
 }

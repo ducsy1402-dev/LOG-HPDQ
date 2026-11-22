@@ -213,7 +213,8 @@ export function makeSupabaseApi() {
     async saveKeHoachNgay(rows) {
       const xoa = new Map();
       for (const r of rows.filter((x) => x.khoi_luong == null)) { if (!xoa.has(r.voyage_id)) xoa.set(r.voyage_id, []); xoa.get(r.voyage_id).push(r.ngay); }
-      const ghi = rows.filter((x) => x.khoi_luong != null).map((r) => ({ voyage_id: r.voyage_id, ngay: r.ngay, khoi_luong: r.khoi_luong, updated_at: now() }));
+      // ghi_chu = dấu mốc lịch tàu lúc lập kế hoạch ("ben:<từ>|<đến>", xem dauMocKH ở lib/keHoachNgay.js): lịch tàu đổi thì khối lượng các ngày dời theo
+      const ghi = rows.filter((x) => x.khoi_luong != null).map((r) => ({ voyage_id: r.voyage_id, ngay: r.ngay, khoi_luong: r.khoi_luong, ...("ghi_chu" in r ? { ghi_chu: r.ghi_chu } : {}), updated_at: now() }));
       await song([...[...xoa].map(([vid, ngays]) => async () => ok(await sb.from("ke_hoach_san_luong_ngay").delete().eq("voyage_id", vid).in("ngay", ngays))),
         ...chunk(ghi, 300).map((g) => async () => ok(await sb.from("ke_hoach_san_luong_ngay").upsert(g, { onConflict: "voyage_id,ngay" })))]);
     },
