@@ -21,7 +21,7 @@ export default function XemTruocPdf({ tieuDe, moTa, tabs = [], tab = "", setTab,
   const tai = () => { if (!url) return; const a = document.createElement("a"); a.href = url; a.download = tenFile(tab); document.body.appendChild(a); a.click(); a.remove(); };
   const inRa = () => { try { ifr.current?.contentWindow?.focus(); ifr.current?.contentWindow?.print(); } catch { window.open(url, "_blank"); } };
   return (
-    <Dialog onOpenChange={(o) => !o && onClose()} className="h-[92vh] max-w-[min(1100px,calc(100vw-24px))]" title={tieuDe} description={moTa}
+    <Dialog onOpenChange={(o) => !o && onClose()} nho="46rem" title={tieuDe} description={moTa}
       footer={<>
         {them}
         <Button variant="outline" disabled={!url} onClick={() => window.open(url, "_blank")}><ExternalLink />Mở tab mới</Button>
@@ -36,8 +36,8 @@ export default function XemTruocPdf({ tieuDe, moTa, tabs = [], tab = "", setTab,
                 className={`rounded-md border px-2.5 py-1 text-xs font-medium transition-colors ${tab === k ? "border-primary/50 bg-primary/15 text-primary" : "text-muted-foreground hover:bg-accent hover:text-foreground"}`}>{nhan}</button>))}
             {ghiChu && <span className="ml-auto text-xs text-warn">{ghiChu}</span>}
           </div>)}
-        {/* Hộp toàn màn hình: khung xem PDF cao theo màn hình (trước đây chỉ cao ~220 px vì khung cha không có chiều cao) */}
-        <div className="relative overflow-hidden rounded-md border bg-muted/40" style={{ height: "calc(100dvh - 250px)", minHeight: 320 }}>
+        {/* Hộp nhỏ (anh Sỹ 24/11/2026): khung xem PDF cao vừa phải; điện thoại hộp toàn màn hình thì khung cao theo màn hình */}
+        <div className="relative h-[calc(100dvh-250px)] min-h-[280px] overflow-hidden rounded-md border bg-muted/40 sm:h-[min(56vh,520px)]">
           {url ? <iframe ref={ifr} key={url} src={`${url}#navpanes=0&view=FitH`} title="Xem trước PDF" className="h-full w-full bg-white" />
             : loi ? <div className="flex h-full items-center justify-center p-4 text-center text-sm text-bad">Không dựng được PDF: {loi}</div>
               : <div className="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground"><RefreshCw className="h-4 w-4 animate-spin" />Đang dựng bản xem trước…</div>}

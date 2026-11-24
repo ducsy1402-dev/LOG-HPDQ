@@ -3,7 +3,7 @@ import { ChevronDown, ChevronLeft, ChevronRight, Eraser, ExternalLink, Pencil, P
 import { useApp } from "../../store";
 import { useApp as useLogistics } from "@/store";
 import { cn } from "@/lib/utils";
-import { plain } from "@/lib/format";
+import { plain, so as soVN } from "@/lib/format";
 import { trangThai, TRANG_THAI, TRANG_THAI_HIEN, doanBen } from "@/lib/linetime";
 import { taoNhomHang } from "@/lib/sanLuong";
 import { xepHangBen } from "@/pages/cang/Gantt";
@@ -54,7 +54,8 @@ export default function TimelineCa({ R, doi, onJob }) {
   // Xem gọn (như Linetime › Gọn): dòng thấp, chữ nhỏ, cột hẹp để xem được nhiều tàu một lúc; nhớ trên máy
   const [gon, setGon] = useState(() => doc("qltb-tl-gon", "0") === "1");
   // Cột đầu rộng hơn vì ghi tên tàu + thông tin (bến, hướng, hàng, còn %) và các nút +bãi / phiếu chuyến (anh Sỹ 24/11/2026)
-  const LABEL = gon ? 168 : 214, LH = gon ? 36 : 50, TOP = gon ? 17 : 22;
+  // Mỗi việc MỘT dòng thấp (24/11/2026): thanh chỉ còn các ô số xe từng ca; số xe cả việc, tên, bến, khối lượng, số máng nằm ở cột đầu
+  const LABEL = gon ? 232 : 282, LH = gon ? 34 : 42, TOP = 0;
   const [soNgay, setSoNgay] = useState(() => (["7", "14", "21", "99"].includes(doc("qltb-tl-ngay", "99")) ? +doc("qltb-tl-ngay", "99") : 99));
   const [batRaw, setBat] = useState(0);
   const [thu, setThu] = useState(() => ({ cang: doc("qltb-tl-thu-cang", "0") === "1", bai: doc("qltb-tl-thu-bai", "0") === "1", tong: doc("qltb-tl-thu-tong", "0") === "1" }));
@@ -153,7 +154,6 @@ export default function TimelineCa({ R, doi, onJob }) {
     const left = Math.max(0, xOf(a)), right = Math.min(W, xOf(b)), w = Math.max(10, right - left);
     return (
       <div key={kk} className="absolute overflow-hidden rounded-md text-white shadow-sm" style={{ left: left + 1, width: w - 2, top, height: h, background: mau }} title={title}>
-        <div className="flex items-center gap-1 px-1.5 text-[0.6875rem] font-semibold leading-none" style={{ height: TOP }}>{typeof tren === "function" ? tren(w) : tren}</div>
         {ca.map((s, i) => {
           const cL = Math.max(left, i * CWC), cR = Math.min(right, (i + 1) * CWC);
           if (cR - cL < 0.5) return null;
@@ -167,8 +167,8 @@ export default function TimelineCa({ R, doi, onJob }) {
   const oNen = (it, tay, ph = "xe") => canWrite
     ? <input key={it.id + ":" + (soNen(it) ?? "")} type="number" min="0" inputMode="numeric" defaultValue={soNen(it) ?? ""} placeholder={ph} aria-label={`Số xe ${it.ten}`} title="Số xe của việc (nhập tay); các ca tự chạy theo số này"
         onClick={(e) => e.stopPropagation()} onFocus={(e) => e.target.select()} onBlur={(e) => luuNen(it, e.target.value)} onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-        className={cn(gon ? "h-[14px] w-9 text-[0.625rem]" : "h-[18px] w-10", "rounded border bg-black/30 px-1 text-center font-semibold tabular-nums text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-white/70 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none", "border-white/30")} />
-    : <b className="rounded bg-black/25 px-1 py-0.5 tabular-nums">{soNen(it) ?? "–"} xe</b>;
+        className={cn(gon ? "h-5 w-11 text-[0.6875rem]" : "h-6 w-12 text-xs", "shrink-0 rounded border bg-background px-1 text-center font-semibold tabular-nums placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none")} />
+    : <b className="shrink-0 rounded bg-muted px-1 py-0.5 tabular-nums">{soNen(it) ?? "–"} xe</b>;
   const oCaFn = (it) => (canWrite ? (i, g, v) => {
     const daSua = caHienCo(it)[shifts[g].st.toISOString()] != null;
     return <input key={`${it.id}:${g}:${v}`} type="number" min="0" inputMode="numeric" defaultValue={v || ""} aria-label={`${it.ten} ca ${fmtD(shifts[g].st)} ${shifts[g].lab}`} title={daSua ? "Ca sửa tay (xóa số để chạy tự động lại)" : "Số xe tự chạy; gõ số khác để sửa tay ca này"}
@@ -251,24 +251,26 @@ export default function TimelineCa({ R, doi, onJob }) {
                 const pc = rr.kl > 0 ? Math.max(0, Math.min(100, Math.round(((rr.conlai ?? rr.kl) / rr.kl) * 100))) : null;
                 const ben = [...new Set(e.segs.map((s) => s.ben))].join(" → "), xuat = e.v.huong === "xuat";
                 const B = "rounded p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground";
+                const klTxt = rr.kl > 0 ? `${soVN(rr.kl)} t` : null, mangTxt = e.v.so_mang != null && e.v.so_mang !== "" ? `${e.v.so_mang} máng` : null;
+                const thongTin = [ben, xuat ? "Xuất" : "Nhập", rr.hang, klTxt, mangTxt, pc != null ? `còn ${pc}%` : null].filter(Boolean).join(" · ");
                 return (
                   <div key={e.id} className="flex border-b">
-                    <div className="sticky left-0 z-10 flex shrink-0 items-center gap-1 border-r bg-card px-2" style={{ width: LABEL }} title={`${e.v.ten_tau} · ${xuat ? "Xuất" : "Nhập"}\nBến ${ben}`}>
-                      <span className="flex min-w-0 flex-col">
-                        <span className="truncate font-semibold">{e.v.uu_tien ? "★ " : ""}{e.v.ten_tau}</span>
-                        <span className="truncate text-[0.6875rem] text-muted-foreground">{ben} · {xuat ? "Xuất" : "Nhập"}{rr.hang ? ` · ${rr.hang}` : ""}{pc != null ? ` · còn ${pc}%` : ""}</span>
+                    <div className="sticky left-0 z-10 flex shrink-0 flex-col justify-center border-r bg-card px-2" style={{ width: LABEL }} title={`${e.v.ten_tau} · ${thongTin}`}>
+                      <span className="flex items-center gap-1">
+                        <span className="min-w-0 flex-1 truncate font-semibold">{e.v.uu_tien ? "★ " : ""}{e.v.ten_tau}</span>
+                        <span className="flex shrink-0 items-center gap-0.5">
+                          {oNen(it, tay)}
+                          {canWrite && <button type="button" onClick={() => themBai(rr)} className={cn(B, "px-1 text-[0.625rem] font-semibold")} title="Thêm vào việc bãi: lấy tên tàu - loại hàng - khối lượng và mốc thời gian, không lấy số xe">+bãi</button>}
+                          {nutTD(it)}
+                        </span>
                       </span>
-                      <span className="ml-auto flex shrink-0 items-center">
-                        {canWrite && <button type="button" onClick={() => themBai(rr)} className={cn(B, "px-1 text-[0.625rem] font-semibold")} title="Thêm vào việc bãi: lấy tên tàu - loại hàng - khối lượng và mốc thời gian, không lấy số xe">+bãi</button>}
-                        {nutTD(it)}
-                      </span>
+                      <span className="truncate text-[0.6875rem] leading-tight text-muted-foreground">{thongTin}</span>
                     </div>
                     <div className="relative shrink-0" style={{ width: W, height: LH }}>
                       {luoi}
                       {e.segs.map((x) => thanh({
-                        kk: `${e.id}:${x.a}`, a: x.a, b: x.b, mau: TRANG_THAI[x.st].mau, top: 3, h: LH - 6, cnt: rr.cnt,
+                        kk: `${e.id}:${x.a}`, a: x.a, b: x.b, mau: TRANG_THAI[x.st].mau, top: 4, h: LH - 8, cnt: rr.cnt,
                         title: `${e.v.ten_tau} · ${xuat ? "Xuất" : "Nhập"} · ${TRANG_THAI[x.st].ten}\nBến ${x.ben} · ${hhmm(x.a)} → ${hhmm(x.b)}\nKhối lượng còn lại ${pc == null ? "?" : pc + "%"} · số xe ${rr.dung ?? "chưa nhập"}`,
-                        tren: <><span className="min-w-0 flex-1 truncate">{e.v.ten_tau}</span><span className="shrink-0">{oNen(it, tay)}</span></>,
                         oCa: oCaFn(it),
                       }))}
                     </div>
@@ -281,14 +283,15 @@ export default function TimelineCa({ R, doi, onJob }) {
                 const it = { ...r, kind: "cangTay" };
                 return (
                   <div key={r.id} className="flex border-b">
-                    <div className="sticky left-0 z-10 flex shrink-0 items-center gap-1 border-r bg-card px-2" style={{ width: LABEL }}>
-                      <span className="flex min-w-0 flex-col"><span className="truncate font-semibold">{r.ten}</span><span className="text-[0.6875rem] text-muted-foreground">việc cảng nhập tay</span></span>{nutTD(it)}
+                    <div className="sticky left-0 z-10 flex shrink-0 flex-col justify-center border-r bg-card px-2" style={{ width: LABEL }}>
+                      <span className="flex items-center gap-1"><span className="min-w-0 flex-1 truncate font-semibold">{r.ten}</span><span className="flex shrink-0 items-center gap-0.5">{oNen(it, r.job.so_xe_tay != null)}{nutTD(it)}</span></span>
+                      <span className="truncate text-[0.6875rem] leading-tight text-muted-foreground">{["việc cảng nhập tay", r.kl > 0 ? `${soVN(r.kl)} t` : null].filter(Boolean).join(" · ")}</span>
                     </div>
                     <div className="relative shrink-0" style={{ width: W, height: LH }}>
                       {luoi}
                       {r.bd && r.kt && thanh({
-                        kk: r.id, a: r.bd.getTime(), b: r.kt.getTime(), mau: "#64748b", top: 3, h: LH - 6, cnt: r.cnt, title: `${r.ten} · ${hhmm(r.bd)} → ${hhmm(r.kt)}`,
-                        tren: <><span className="min-w-0 flex-1 truncate">{r.ten}</span><span className="shrink-0">{oNen(it, r.job.so_xe_tay != null)}</span></>, oCa: oCaFn(it),
+                        kk: r.id, a: r.bd.getTime(), b: r.kt.getTime(), mau: "#64748b", top: 4, h: LH - 8, cnt: r.cnt, title: `${r.ten} · ${hhmm(r.bd)} → ${hhmm(r.kt)}`,
+                        oCa: oCaFn(it),
                       })}
                     </div>
                   </div>
@@ -306,20 +309,22 @@ export default function TimelineCa({ R, doi, onJob }) {
                 const a = idx.length ? (tuJ ?? shifts[idx[0]].st.getTime()) : null, b = idx.length ? (denJ ?? shifts[idx[idx.length - 1]].en.getTime()) : null;
                 const trongKhung = a != null && b > tuMs && a < denMs;
                 const tay = !manual && dongSoXeBai(D.plan.jobs, f.job.lt, doi)?.so_xe_tay != null;
+                const vTau = (LD?.voyages || []).find((v) => v.id != null && (String(v.id) === String(f.job.lt) || String(v.id) === String(f.job.theoTau))); // tàu của việc bãi (nếu có) để ghi số máng
+                const thongTinB = [f.hang, f.ben, f.kl > 0 ? `${soVN(f.kl)} t` : null, vTau?.so_mang != null && vTau.so_mang !== "" ? `${vTau.so_mang} máng` : null].filter(Boolean).join(" · ") || (manual ? "nhập tay" : "theo Linetime");
                 return (
                   <div key={f.id} className="flex border-b">
-                    <div className="sticky left-0 z-10 flex shrink-0 items-center gap-1 border-r bg-card px-2" style={{ width: LABEL }} title={f.cv}>
-                      <span className="flex min-w-0 flex-col">
-                        <span className="truncate font-semibold">{f.cv}</span>
-                        <span className="truncate text-[0.6875rem] text-muted-foreground">{[f.hang, f.ben].filter(Boolean).join(" · ") || (manual ? "nhập tay" : "theo Linetime")}{f.job.theoTau ? <span title="Mốc giờ và số xe tự dời theo thanh tàu trên Linetime"> · theo tàu</span> : null}</span>
-                      </span>{nutTD(it)}
+                    <div className="sticky left-0 z-10 flex shrink-0 flex-col justify-center border-r bg-card px-2" style={{ width: LABEL }} title={f.cv}>
+                      <span className="flex items-center gap-1">
+                        <span className="min-w-0 flex-1 truncate font-semibold">{f.cv}</span>
+                        <span className="flex shrink-0 items-center gap-0.5">{oNen(it, tay, f.n === f.d ? "xe" : `${f.n}/${f.d}`)}{nutTD(it)}</span>
+                      </span>
+                      <span className="truncate text-[0.6875rem] leading-tight text-muted-foreground">{thongTinB}{f.job.theoTau ? <span title="Mốc giờ và số xe tự dời theo thanh tàu trên Linetime"> · theo tàu</span> : null}</span>
                     </div>
                     <div className="relative shrink-0" style={{ width: W, height: LH }}>
                       {luoi}
                       {trongKhung && thanh({
-                        kk: f.id, a, b, mau: BAI_COLOR, top: 3, h: LH - 6, cnt: f.cnt,
+                        kk: f.id, a, b, mau: BAI_COLOR, top: 4, h: LH - 8, cnt: f.cnt,
                         title: `${f.cv}${f.hang ? " · " + f.hang : ""}\nSố xe ${f.n === f.d ? f.n : `${f.n} (ngày) / ${f.d} (đêm)`}`,
-                        tren: <><span className="min-w-0 flex-1 truncate">{f.cv}</span><span className="shrink-0">{oNen(it, tay, f.n === f.d ? "xe" : `${f.n}/${f.d}`)}</span></>,
                         oCa: oCaFn(it),
                       })}
                       {!trongKhung && <div className="absolute inset-y-0 left-2 flex items-center text-[0.6875rem] text-muted-foreground">{a == null ? "Chưa có mốc thời gian" : "Ngoài khoảng đang xem"}</div>}
@@ -361,7 +366,7 @@ export default function TimelineCa({ R, doi, onJob }) {
           {TRANG_THAI_HIEN.map(([k, t]) => <span key={k} className="flex items-center gap-1"><i className="inline-block h-2.5 w-4 rounded-sm" style={{ background: t.mau }} />{t.ten}</span>)}
           <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-4 rounded-sm" style={{ background: BAI_COLOR }} />việc bãi</span>
         </div>
-        <p className="text-[0.6875rem] text-muted-foreground">Thanh tàu đặt theo giờ thật như Linetime. Ô SỐ XE trên thanh (tàu và việc bãi) do anh / chị nhập, các ca TỰ CHẠY theo số này (tàu: theo hệ số ca); muốn sửa ca nào thì gõ thẳng vào ô ca đó, xóa số để ca đó chạy tự động lại. Biểu tượng ở cột tên việc: Sửa, Xóa (việc nhập tay), mở phiếu chuyến và xóa số đã nhập (việc từ Linetime). +bãi thêm tàu vào việc bãi (tên tàu - loại hàng - khối lượng và mốc thời gian, không lấy số xe).</p>
+        <p className="text-[0.6875rem] text-muted-foreground">Thanh tàu đặt theo giờ thật như Linetime. Mỗi việc một dòng: ô SỐ XE ở cột đầu (cạnh tên tàu / việc bãi) do anh / chị nhập, các ca TỰ CHẠY theo số này (tàu: theo hệ số ca); muốn sửa ca nào thì gõ thẳng vào ô ca đó trên thanh, xóa số để ca đó chạy tự động lại. Dòng chữ nhỏ dưới tên: bến, hướng, hàng, khối lượng, số máng, % còn lại. Biểu tượng ở cột tên việc: Sửa, Xóa (việc nhập tay), mở phiếu chuyến và xóa số đã nhập (việc từ Linetime). +bãi thêm tàu vào việc bãi (tên tàu - loại hàng - khối lượng và mốc thời gian, không lấy số xe).</p>
       </div>
     </div>
   );

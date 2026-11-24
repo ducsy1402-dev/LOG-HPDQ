@@ -1,15 +1,12 @@
-// Báo cáo PDF (pdfmake, font Roboto có đủ dấu tiếng Việt). Thư viện được tải khi bấm nút.
+// Báo cáo PDF (pdfmake; font Times cỡ 13, chữ căn giữa theo chiều dọc ô: xem lib/pdfBang.js). Thư viện được tải khi bấm nút.
 import { diffDays, vn, pct, pad } from "./utils";
 import { chenhLabel, laBDDK } from "./compute";
+import { taiPdfMake } from "@/lib/bieuMauPA";
+import { bangVuaVan, PDF_FONT, PDF_CO } from "@/lib/pdfBang";
 
 const C = { ink: "#0f172a", mute: "#64748b", line: "#e2e8f0", head: "#0e7490", headBg: "#ecfeff", ok: "#059669", warn: "#d97706", bad: "#e11d48", info: "#2563eb", zebra: "#f8fafc" };
 
-async function loadPdfMake() {
-  const [{ default: pdfMake }, fonts] = await Promise.all([import("pdfmake/build/pdfmake"), import("pdfmake/build/vfs_fonts")]);
-  const vfs = fonts.default?.pdfMake?.vfs || fonts.pdfMake?.vfs || fonts.default || fonts.vfs;
-  pdfMake.vfs = vfs;
-  return pdfMake;
-}
+const loadPdfMake = () => taiPdfMake();
 
 const th = (t, align = "left") => ({ text: t, style: "th", alignment: align });
 const n = (v, color) => ({ text: v == null ? "–" : String(v), alignment: "right", color });
@@ -22,11 +19,12 @@ const bar = (r, T, w = 70) => ({
       { type: "rect", x: 0, y: 0, w, h: 5, r: 2, color: "#e2e8f0" },
       { type: "rect", x: 0, y: 0, w: Math.max(0.5, w * (Number.isFinite(r) ? r : 0)), h: 5, r: 2, color: rateColor(r, T) },
     ] },
-  ], margin: [0, 4, 0, 0],
+  ], margin: [0, 6, 0, 0], rongCo: w,
 });
 
-const table = (widths, head, body, opts = {}) => ({
-  table: { headerRows: 1, widths, body: [head, ...body], dontBreakRows: true },
+// Bề rộng cột tự tính theo chữ (tham số widths bỏ qua, giữ để khỏi sửa các chỗ gọi); trang A4 ngang lề 28 → vùng chữ 786 pt
+const table = (_widths, head, body, opts = {}) => { const { widths, body: rows } = bangVuaVan([head, ...body], { usable: 786, padX: 5 }); return {
+  table: { headerRows: 1, widths, body: rows, dontBreakRows: true },
   layout: {
     hLineWidth: (i, node) => (i === 0 || i === 1 || i === node.table.body.length ? 0.8 : 0.4),
     vLineWidth: () => 0,
@@ -35,7 +33,7 @@ const table = (widths, head, body, opts = {}) => ({
     paddingLeft: () => 5, paddingRight: () => 5, paddingTop: () => 3.5, paddingBottom: () => 3.5,
   },
   margin: [0, 0, 0, 12],
-});
+}; };
 
 export async function exportPdf(D, who, action = "download") {
   const pdfMake = await loadPdfMake();
@@ -48,7 +46,7 @@ export async function exportPdf(D, who, action = "download") {
 
   // 1. Thẻ tổng quan
   const tile = (label, value, color = C.ink, sub) => ({
-    stack: [{ text: label, fontSize: 7.5, color: C.mute }, { text: String(value), fontSize: 17, bold: true, color, margin: [0, 2, 0, 0] }, sub ? { text: sub, fontSize: 7, color: C.mute } : ""],
+    stack: [{ text: label, color: C.mute }, { text: String(value), bold: true, color, margin: [0, 2, 0, 0] }, sub ? { text: sub, color: C.mute } : ""],
     margin: [6, 6, 6, 6],
   });
   const tiles = {
@@ -92,8 +90,8 @@ export async function exportPdf(D, who, action = "download") {
     const col = e.loai === "Hỏng" ? C.bad : e.loai === "BD chiến lược" || e.loai === "Bảo trì CBM" ? C.warn : C.info;
     return [
       { text: e.ma_xe, bold: true }, { text: (v.to_xe || "").replace(/^Tổ\s+/, ""), color: C.mute }, { text: e.loai, color: col, bold: true },
-      { text: [e.nhom, e.mo_ta].filter(Boolean).join(" – "), fontSize: 7.5 }, vn(e.ngay_vao), n(diffDays(e.ngay_vao, D.today)), vn(e.ngay_du_kien),
-      { text: e.phu_tung || "", fontSize: 7.5 }, { text: D.flags(e).map((f) => f.label).join("\n"), color: C.bad, fontSize: 7.5 },
+      { text: [e.nhom, e.mo_ta].filter(Boolean).join(" – ") }, vn(e.ngay_vao), n(diffDays(e.ngay_vao, D.today)), vn(e.ngay_du_kien),
+      { text: e.phu_tung || "" }, { text: D.flags(e).map((f) => f.label).join("\n"), color: C.bad },
     ];
   });
 
@@ -103,30 +101,30 @@ export async function exportPdf(D, who, action = "download") {
   const warn = [];
   for (const sh of shifts) for (const r of D.shiftRows(sh)) {
     const tone = r.chenh == null ? C.mute : r.chenh < 0 ? C.bad : r.chenh > 0 ? C.info : C.ok;
-    qsBody.push([`${vn(sh.ngay)}`, sh.ca, { text: r.kip || "chưa chọn", color: r.kip ? C.ink : C.warn }, r.doi, n(r.dinhBien), n(r.thucTe), n(r.xeCan), { text: chenhLabel(r.chenh), bold: true, color: tone }, { text: r.ghiChu, fontSize: 7.5 }]);
+    qsBody.push([`${vn(sh.ngay)}`, sh.ca, { text: r.kip || "chưa chọn", color: r.kip ? C.ink : C.warn }, r.doi, n(r.dinhBien), n(r.thucTe), n(r.xeCan), { text: chenhLabel(r.chenh), bold: true, color: tone }, { text: r.ghiChu }]);
     if (r.chenh != null && r.chenh < 0) warn.push(`${sh.ca} ${vn(sh.ngay)} – ${r.doi}: thiếu ${-r.chenh} người (có ${r.thucTe}, cần ${r.xeCan})`);
   }
 
   const stamp = `${pad(now.getHours())}:${pad(now.getMinutes())} ${vn(D.today)}`;
   const doc = {
     pageSize: "A4", pageOrientation: "landscape", pageMargins: [28, 54, 28, 36],
-    defaultStyle: { font: "Roboto", fontSize: 8.5, color: C.ink, lineHeight: 1.15 },
+    defaultStyle: { font: PDF_FONT, fontSize: PDF_CO, color: C.ink, lineHeight: 1.15 },
     styles: {
-      th: { bold: true, fontSize: 7.5, color: C.head },
-      h2: { fontSize: 11, bold: true, color: C.head, margin: [0, 6, 0, 6] },
-      note: { fontSize: 7.5, color: C.mute, italics: true },
+      th: { bold: true, color: C.head },
+      h2: { bold: true, color: C.head, margin: [0, 6, 0, 6] },
+      note: { color: C.mute, italics: true },
     },
     header: (page) => ({
       margin: [28, 18, 28, 0],
       columns: [
-        { stack: [{ text: "BÁO CÁO TÌNH TRẠNG THIẾT BỊ", bold: true, fontSize: 13, color: C.head }, { text: `Ngày ${vn(D.today)} · xuất lúc ${stamp}${who ? " · " + who : ""}`, fontSize: 8, color: C.mute }] },
-        { text: page === 1 ? "" : "Tình trạng thiết bị", alignment: "right", color: C.mute, fontSize: 8, margin: [0, 6, 0, 0] },
+        { stack: [{ text: "BÁO CÁO TÌNH TRẠNG THIẾT BỊ", bold: true, color: C.head }, { text: `Ngày ${vn(D.today)} · xuất lúc ${stamp}${who ? " · " + who : ""}`, color: C.mute }] },
+        { text: page === 1 ? "" : "Tình trạng thiết bị", alignment: "right", color: C.mute, margin: [0, 6, 0, 0] },
       ],
     }),
-    footer: (cur, total) => ({ margin: [28, 8, 28, 0], columns: [{ text: "Hệ thống quản lý thiết bị", color: C.mute, fontSize: 7.5 }, { text: `Trang ${cur}/${total}`, alignment: "right", color: C.mute, fontSize: 7.5 }] }),
+    footer: (cur, total) => ({ margin: [28, 8, 28, 0], columns: [{ text: "Hệ thống quản lý thiết bị", color: C.mute }, { text: `Trang ${cur}/${total}`, alignment: "right", color: C.mute }] }),
     content: [
       tiles,
-      alerts.length ? { text: "Cảnh báo: " + alerts.join(" · "), color: C.bad, bold: true, fontSize: 8.5, margin: [0, 2, 0, 4] } : "",
+      alerts.length ? { text: "Cảnh báo: " + alerts.join(" · "), color: C.bad, bold: true, margin: [0, 2, 0, 4] } : "",
       { text: "* BDĐK: xe đang bảo dưỡng định kỳ, vẫn tính là sẵn sàng. Xe sẵn sàng = không hỏng, không BD chiến lược.", style: "note", margin: [0, 0, 0, 6] },
       { text: "1. Tình trạng theo đội xe", style: "h2" },
       table(sumW, sumHead("Đội xe"), doiBody, { totalLast: true }),

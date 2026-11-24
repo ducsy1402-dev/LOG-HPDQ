@@ -265,7 +265,7 @@ function TbGanDialog({ x, onClose }) {
     if (await run(() => api.saveTbGanSl(rec), moi ? `Đã thêm ${ten}` : `Đã lưu ${ten}`)) onClose();
   };
   return (
-    <Modal title={moi ? "Thêm loại thiết bị gắn" : `Sửa ${x.ten}`} onClose={onClose} width={560}
+    <Modal title={moi ? "Thêm loại thiết bị gắn" : `Sửa ${x.ten}`} onClose={onClose} nho width={560}
       footer={<><button className="btn" onClick={onClose}>Hủy</button><button className="btn pri" onClick={luu}>Lưu</button></>}>
       <div className="form-grid">
         <Field label="Loại thiết bị gắn *" className="wide"><input className="inp" list="dl-tbg" value={f.ten} onChange={set("ten")} placeholder="VD: Mâm từ" /><datalist id="dl-tbg">{goiY.map((t) => <option key={t} value={t} />)}</datalist></Field>

@@ -4,10 +4,11 @@
 import { duLieuTrinhKy, duLieuTheoTo, duLieuTheoBP, COT_KY, COT_TO, KIEU_NHOM } from "./plan";
 import { taiPdfMake } from "@/lib/bieuMauPA";
 import { logoDataUrl } from "@/lib/keHoachCang";
+import { bangVuaVan, PDF_FONT, PDF_CO } from "@/lib/pdfBang";
 
 const p2 = (n) => String(n).padStart(2, "0");
 const ymd = (t) => { const d = new Date(t); return `${d.getFullYear()}${p2(d.getMonth() + 1)}${p2(d.getDate())}`; };
-const A4_NGANG = { pageSize: "A4", pageOrientation: "landscape", pageMargins: [34, 26, 34, 30], defaultStyle: { font: "Roboto", fontSize: 8 } };
+const A4_NGANG = { pageSize: "A4", pageOrientation: "landscape", pageMargins: [34, 26, 34, 30], defaultStyle: { font: PDF_FONT, fontSize: PDF_CO } };
 const VIEN = { hLineWidth: () => 0.5, vLineWidth: () => 0.5, hLineColor: () => "#000", vLineColor: () => "#000", paddingLeft: () => 2.5, paddingRight: () => 2.5, paddingTop: () => 1.5, paddingBottom: () => 1.5 };
 // Số và chữ như bản in cũ: khối lượng có dấu ngăn nghìn; cột SĐT tách các số bằng khoảng trắng để tự xuống hàng giữa các số
 const oChu = (v, i, kl, sdt) => {
@@ -15,36 +16,36 @@ const oChu = (v, i, kl, sdt) => {
   const s = String(v ?? "");
   return i === sdt ? s.replace(/\s*[,;/]\s*|\s+/g, " ").trim() : s;
 };
-const tieuDeCot = (cot) => cot.map((c) => ({ text: c.replace(/^(T\.gian|Loại|Đơn vị|Số) /, "$1\n"), bold: true, alignment: "center", fontSize: 7.5 }));
-// pdfmake: bề rộng cột KHÔNG gồm lề trong ô (paddingLeft + paddingRight = 5 pt) và nét kẻ (0,5 pt) nên bảng rộng hơn tổng "widths" cả n × 5,5 pt: lỗi cũ làm bảng tràn khỏi trang, cột cuối (Ghi chú) bị cắt (anh Sỹ 24/11/2026).
-// Vùng chữ A4 ngang = 842 − 2 × 34 (lề) = 774 pt; chia phần còn lại cho các cột theo tỉ lệ.
-const rongTheo = (chars, tong = 772 - chars.length * 5.5) => { const t = chars.reduce((a, b) => a + b, 0); return chars.map((c) => (c * tong) / t); };
+const tieuDeCot = (cot) => cot.map((c) => ({ text: c.replace(/^(T\.gian|Loại|Đơn vị|Số) /, "$1\n"), bold: true, alignment: "center"  }));
+// Cột tự vừa chữ (font Times 13), chữ căn giữa theo chiều dọc ô: xem lib/pdfBang.js. Vùng chữ A4 ngang = 842 − 2 × 34 (lề) = 774 pt.
+const VUNG = 774;
 
 // Mẫu trình ký: logo + mã biểu mẫu, tiêu đề, bảng 13 cột chia theo ca, tổng, ngày ký và ba chữ ký
 function docTrinhKy(x, logo) {
   const { cas, total } = duLieuTrinhKy(x);
   const d0 = new Date(cas[0].start);
   const TRAI = [2, 3, 4], N = COT_KY.length;
-  const body = [tieuDeCot(COT_KY)];
+  const body0 = [tieuDeCot(COT_KY)];
   for (const ca of cas) {
     const nen = "#f2f2f2";
-    body.push([{ text: "", fillColor: nen }, { text: ca.label, bold: true, colSpan: N - 1, fillColor: nen }, ...Array(N - 2).fill({})]);
-    for (const r of ca.dong) body.push(r.map((v, i) => ({ text: oChu(v, i, 5, -1), alignment: TRAI.includes(i) ? "left" : "center" })));
+    body0.push([{ text: "", fillColor: nen }, { text: ca.label, bold: true, colSpan: N - 1, fillColor: nen }, ...Array(N - 2).fill({})]);
+    for (const r of ca.dong) body0.push(r.map((v, i) => ({ text: oChu(v, i, 5, -1), alignment: TRAI.includes(i) ? "left" : "center" })));
   }
   const tong = Array(N).fill("").map((_, i) => ({ text: i === 1 ? "Tổng" : i === 10 ? String(total) : "", bold: true, alignment: "center", fillColor: "#f2f2f2" }));
-  body.push(tong);
+  body0.push(tong);
+  const { widths, body } = bangVuaVan(body0, { usable: VUNG });
   const doc = {
     ...A4_NGANG,
     content: [
-      { columns: [logo ? { image: logo, fit: [150, 42] } : { text: "" }, { text: "BM.07D/HD.05.02\nNgày hiệu lực: 25/09/2025\nLần sửa đổi: 00", alignment: "right", fontSize: 9, lineHeight: 1.2 }] },
-      { text: "KẾ HOẠCH KHAI THÁC LOGISTICS SẢN XUẤT NGÀY", bold: true, fontSize: 14, alignment: "center", margin: [0, 6, 0, 8] },
-      { table: { headerRows: 1, widths: rongTheo([5, 11, 42, 22, 22, 10, 7, 9, 9, 14, 8, 22, 14]), body, dontBreakRows: true }, layout: VIEN },
+      { columns: [logo ? { image: logo, fit: [150, 42] } : { text: "" }, { text: "BM.07D/HD.05.02\nNgày hiệu lực: 25/09/2025\nLần sửa đổi: 00", alignment: "right", lineHeight: 1.2 }] },
+      { text: "KẾ HOẠCH KHAI THÁC LOGISTICS SẢN XUẤT NGÀY", bold: true, alignment: "center", margin: [0, 6, 0, 8] },
+      { table: { headerRows: 1, widths, body, dontBreakRows: true }, layout: VIEN },
       { unbreakable: true, stack: [
         { text: `Quảng Ngãi, ngày ${d0.getDate()} tháng ${d0.getMonth() + 1} năm ${d0.getFullYear()}`, italics: true, alignment: "right", margin: [0, 10, 0, 6] },
         { columns: [["TP/BP", "[03]"], ["Phụ trách", "[02]"], ["Người lập", "[01]"]].map(([ten, ma]) => ({ stack: [{ text: ten, bold: true, alignment: "center" }, { text: ma, alignment: "center", margin: [0, 2, 0, 60] }] })) },
       ] },
     ],
-    footer: (cur, tongTrang) => ({ text: `${cur}/${tongTrang}`, alignment: "center", fontSize: 7.5, margin: [0, 6, 0, 0] }),
+    footer: (cur, tongTrang) => ({ text: `${cur}/${tongTrang}`, alignment: "center", margin: [0, 6, 0, 0] }),
   };
   return { doc, ten: `Ke_hoach_trinh_ky_${ymd(cas[0].start)}` };
 }
@@ -54,16 +55,17 @@ function docNhom(cas, tieuDe, tenFile) {
   const COT = cas.cot || COT_TO, K = KIEU_NHOM.get(COT), TRAI = K.trai, N = COT.length, SDT = K.sdt, KL = K.kl;
   const content = [];
   cas.forEach((ca, i) => {
-    const body = [tieuDeCot(COT)];
+    const body0 = [tieuDeCot(COT)];
     for (const t of ca.to) {
-      body.push([{ text: t.ten, bold: true, colSpan: N, fillColor: "#dde7f3" }, ...Array(N - 1).fill({})]);
-      for (const r of t.dong) body.push(r.map((v, j) => ({ text: oChu(v, j, KL, SDT), alignment: TRAI.includes(j) ? "left" : "center" })));
+      body0.push([{ text: t.ten, bold: true, colSpan: N, fillColor: "#dde7f3" }, ...Array(N - 1).fill({})]);
+      for (const r of t.dong) body0.push(r.map((v, j) => ({ text: oChu(v, j, KL, SDT), alignment: TRAI.includes(j) ? "left" : "center" })));
     }
-    content.push({ text: tieuDe, bold: true, fontSize: 14, alignment: "center", margin: [0, 0, 0, 3], ...(i ? { pageBreak: "before" } : {}) });
+    const { widths, body } = bangVuaVan(body0, { usable: VUNG });
+    content.push({ text: tieuDe, bold: true, alignment: "center", margin: [0, 0, 0, 3], ...(i ? { pageBreak: "before" } : {}) });
     content.push({ text: ca.tieuDe, italics: true, alignment: "center", margin: [0, 0, 0, 6] });
-    content.push({ table: { headerRows: 1, widths: rongTheo(K.rong), body, dontBreakRows: true }, layout: VIEN });
+    content.push({ table: { headerRows: 1, widths, body, dontBreakRows: true }, layout: VIEN });
   });
-  return { doc: { ...A4_NGANG, content, footer: (cur, tongTrang) => ({ text: `${cur}/${tongTrang}`, alignment: "center", fontSize: 7.5, margin: [0, 6, 0, 0] }) }, ten: `${tenFile}_${ymd(cas[0].start)}` };
+  return { doc: { ...A4_NGANG, content, footer: (cur, tongTrang) => ({ text: `${cur}/${tongTrang}`, alignment: "center", margin: [0, 6, 0, 0] }) }, ten: `${tenFile}_${ymd(cas[0].start)}` };
 }
 
 export const MAU_PDF_KE_HOACH = [["ky", "Trình ký"], ["to", "Theo tổ"], ["bp", "Theo bộ phận sử dụng"]];

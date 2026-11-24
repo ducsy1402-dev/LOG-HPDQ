@@ -10,7 +10,7 @@ import { duBaoDay, tonTheoLoaiHang, duBaoTonDiem } from "@/lib/tonLoaiHang";
 import { khoaDiem } from "@/lib/bieuDoSanLuong";
 import { cn } from "@/lib/utils";
 import { mucDay } from "./khoUi";
-import { TonBaiNho, dsBaiLonCua, HangLoc, useKyKho, NhapXuatKeHoach, DuBaoTonKho, BoChonBai } from "./BieuDoTon";
+import { TonBaiNho, dsBaiLonCua, HangLoc, useKyKho, NhapXuatKeHoach, BoChonBai } from "./BieuDoTon";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 
 // Bốn khung của tab Kho hàng kiện (thành phẩm) ở Khai thác kho bãi (anh Sỹ 21/11/2026):
@@ -225,7 +225,7 @@ export default function BieuDoTonKien({ loai, kho }) {
   );
 }
 
-// Kho hàng rời (21/11/2026): giữ biểu đồ Nhập / xuất kho kế hoạch – thực tế và Dự báo tồn kho; Tồn theo bãi nhỏ dạng băng chuyền như Kho hàng kiện;
+// Kho hàng rời (21/11/2026): giữ biểu đồ Nhập / xuất kho kế hoạch – thực tế (biểu đồ Dự báo tồn kho đã bỏ 24/11/2026); Tồn theo bãi nhỏ dạng băng chuyền như Kho hàng kiện;
 // "Tồn kho · các kho / bãi theo ngày" được thay bằng Diễn biến tồn theo hàng; thêm bảng Dự báo tồn nếu không xuất bán.
 export function BieuDoTonRoi({ loai, kho }) {
   const dsBai = useMemo(() => dsBaiLonCua(kho, loai), [kho, loai]);
@@ -235,10 +235,7 @@ export function BieuDoTonRoi({ loai, kho }) {
         <TonBaiNhoMotBai kho={kho} loai={loai} />
         <NhapXuatKeHoach kho={kho} loai={loai} dsBai={dsBai} />
       </div>
-      <div className="grid gap-3 lg:grid-cols-2">
-        <DienBienTon kho={kho} loai={loai} nhomOf={theoHang} theo="hang" />
-        <DuBaoTonKho kho={kho} loai={loai} />
-      </div>
+      <DienBienTon kho={kho} loai={loai} nhomOf={theoHang} theo="hang" />
       <DuBaoTon kho={kho} loai={loai} nhomOf={theoHang} theo="hang" />
     </div>
   );

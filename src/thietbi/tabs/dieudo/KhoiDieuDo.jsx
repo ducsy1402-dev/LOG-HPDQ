@@ -133,7 +133,7 @@ export function HopXeRanh({ doi, xe, onClose }) {
   const { D, openVehicle } = useApp();
   const theoTo = useMemo(() => { const m = new Map(); for (const x of xe) { if (!m.has(x.to)) m.set(x.to, []); m.get(x.to).push(x); } return [...m.entries()]; }, [xe]);
   return (
-    <Modal title={`Xe rảnh · ${doi} (${xe.length})`} onClose={onClose} width={520}
+    <Modal title={`Xe rảnh · ${doi} (${xe.length})`} onClose={onClose} nho width={520}
       footer={<button type="button" className="btn" onClick={onClose}>Đóng</button>}>
       <div className="small mute mb">Xe sẵn sàng của ca này chưa được gán vào nhu cầu nào trong Kế hoạch ngày. Bấm mã xe để xem chi tiết.</div>
       {theoTo.map(([to, ds]) => (

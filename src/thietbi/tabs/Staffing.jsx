@@ -290,7 +290,7 @@ function StaffForm({ s, onClose }) {
     if (await run(() => api.upsertStaff([rec]), (isNew ? "Đã thêm " : "Đã cập nhật ") + `${rec.ma} · ${rec.ho_ten}`)) onClose();
   };
   return (
-    <Modal title={isNew ? "Thêm nhân sự" : `Sửa nhân sự ${s.ma}`} onClose={onClose} width={640}
+    <Modal title={isNew ? "Thêm nhân sự" : `Sửa nhân sự ${s.ma}`} onClose={onClose} nho width={640}
       footer={<><button className="btn" onClick={onClose}>Hủy</button><button className="btn pri" onClick={save}><Save size={14} />Lưu</button></>}>
       <div className="form-grid">
         <Field label="Mã nhân viên *"><input className="inp mono" value={f.ma} onChange={set("ma")} readOnly={!isNew} placeholder="VD: HPDQ02100" /></Field>

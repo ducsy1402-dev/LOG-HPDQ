@@ -6,6 +6,7 @@
 import { ms } from "./format";
 import { taiPdfMake } from "./bieuMauPA";
 import { noiHaiBen } from "./tenBen";
+import { bangVuaVan, PDF_FONT, PDF_CO } from "./pdfBang";
 
 export const CANG = [
   { ma: "hpdq", ten: "Hòa Phát Dung Quất", tenNgan: "HPDQ", tieuDe: "KẾ HOẠCH ĐIỀU ĐỘNG TÀU CẬP/RỜI CẢNG", congTy: ["CÔNG TY CỔ PHẦN THÉP", "HÒA PHÁT DUNG QUẤT"], logo: true, ngayDuoiTieuDe: false, ky: "hpdq" },
@@ -73,25 +74,27 @@ export function docPdfKeHoachCang(du, dsCang, logo) {
   dsCang.forEach((c, i) => {
     const dl = du.theoCang[c.ma];
     const trang = i ? { pageBreak: "before" } : {};
-    if (c.congTy) content.push({ ...trang, margin: [4, 0, 0, 2], columns: [{ width: 140, stack: [...(logo ? [{ image: logo, width: 105, alignment: "center", margin: [0, 0, 0, 3] }] : []), ...c.congTy.map((t) => ({ text: t, bold: true, fontSize: 9, alignment: "center" }))] }] });
-    content.push({ ...(c.congTy ? {} : trang), text: c.tieuDe, bold: true, fontSize: 14, alignment: "center", margin: [0, c.congTy ? 4 : 0, 0, c.ngayDuoiTieuDe ? 1 : 5] });
-    if (c.ngayDuoiTieuDe) content.push({ text: `Ngày ${d} Tháng ${m} Năm ${y}`, italics: true, alignment: "center", fontSize: 9.5, margin: [0, 0, 0, 4] });
-    const body = [COT.map((t) => ({ text: t, bold: true, alignment: "center", fontSize: 8.5 }))];
+    if (c.congTy) content.push({ ...trang, margin: [4, 0, 0, 2], columns: [{ width: 170, stack: [...(logo ? [{ image: logo, width: 105, alignment: "center", margin: [0, 0, 0, 3] }] : []), ...c.congTy.map((t) => ({ text: t, bold: true, alignment: "center" }))] }] });
+    content.push({ ...(c.congTy ? {} : trang), text: c.tieuDe, bold: true, alignment: "center", margin: [0, c.congTy ? 4 : 0, 0, c.ngayDuoiTieuDe ? 1 : 5] });
+    if (c.ngayDuoiTieuDe) content.push({ text: `Ngày ${d} Tháng ${m} Năm ${y}`, italics: true, alignment: "center", margin: [0, 0, 0, 4] });
+    const body0 = [COT.map((t) => ({ text: t, bold: true, alignment: "center" }))];
     const phan = [];
     for (const [k, ten] of CAC_PHAN) {
-      body.push([{ text: ten, colSpan: 8, bold: true, fontSize: 10, margin: [0, 1, 0, 1] }, ...Array(7).fill({})]);
-      phan.push(body.length - 1);
-      for (const r of dongPhan(dl[k])) body.push(r.map((t, j) => ({ text: t, fontSize: 8.5, alignment: j >= 2 && j <= 4 ? "right" : j === 5 || j === 6 ? "center" : "left", margin: [0, 0, 0, 0] })));
+      body0.push([{ text: ten, colSpan: 8, bold: true }, ...Array(7).fill({})]);
+      phan.push(body0.length - 1);
+      for (const r of dongPhan(dl[k])) body0.push(r.map((t, j) => ({ text: t, alignment: j >= 2 && j <= 4 ? "right" : j === 5 || j === 6 ? "center" : "left" })));
     }
+    // Cột vừa chữ, thừa chia cho các cột (tên tàu, ghi chú giãn nhiều nhất); chữ căn giữa theo chiều dọc ô
+    const { widths, body } = bangVuaVan(body0, { usable: 595.28 - 80, padX: 3 });
     content.push({
-      table: { headerRows: 1, widths: [72, "*", 30, 44, 58, 32, 32, 118], body, dontBreakRows: true },
+      table: { headerRows: 1, widths, body, dontBreakRows: true },
       layout: { hLineWidth: (i2, nd) => (i2 === 0 || i2 === nd.table.body.length || phan.includes(i2) || phan.includes(i2 - 1) || i2 === 1 ? 0.8 : 0.3), vLineWidth: (i2, nd) => (i2 === 0 || i2 === nd.table.widths.length ? 0.8 : 0.3),
         hLineColor: () => "#777", vLineColor: () => "#777", paddingLeft: () => 3, paddingRight: () => 3, paddingTop: () => 1.5, paddingBottom: () => 1.5 },
     });
-    if (c.ky === "hpdq") content.push({ margin: [0, 8, 0, 0], stack: [{ text: `Quảng Ngãi, ngày ${d} tháng ${m} năm ${y}`, italics: true, alignment: "right", fontSize: 9.5, margin: [0, 0, 30, 4] }, { text: "KT. GIÁM ĐỐC BP. LOGISTICS", bold: true, alignment: "right", fontSize: 9, margin: [0, 0, 20, 0] }, { text: "PHÓ GIÁM ĐỐC BP. LOGISTICS", bold: true, alignment: "right", fontSize: 9, margin: [0, 0, 20, 0] }] });
-    if (c.ky === "cth") content.push({ margin: [0, 12, 0, 0], stack: [{ text: "CÔNG TY CỔ PHẦN", bold: true, alignment: "center", fontSize: 11, margin: [200, 0, 0, 0] }, { text: "CẢNG TỔNG HỢP HÒA PHÁT", bold: true, alignment: "center", fontSize: 11, margin: [200, 0, 0, 0] }] });
+    if (c.ky === "hpdq") content.push({ margin: [0, 8, 0, 0], stack: [{ text: `Quảng Ngãi, ngày ${d} tháng ${m} năm ${y}`, italics: true, alignment: "right", margin: [0, 0, 30, 4] }, { text: "KT. GIÁM ĐỐC BP. LOGISTICS", bold: true, alignment: "right", margin: [0, 0, 20, 0] }, { text: "PHÓ GIÁM ĐỐC BP. LOGISTICS", bold: true, alignment: "right", margin: [0, 0, 20, 0] }] });
+    if (c.ky === "cth") content.push({ margin: [0, 12, 0, 0], stack: [{ text: "CÔNG TY CỔ PHẦN", bold: true, alignment: "center", margin: [200, 0, 0, 0] }, { text: "CẢNG TỔNG HỢP HÒA PHÁT", bold: true, alignment: "center", margin: [200, 0, 0, 0] }] });
   });
-  return { pageSize: "A4", pageOrientation: "portrait", pageMargins: [40, 30, 40, 40], defaultStyle: { font: "Roboto", fontSize: 9 }, content, footer: (cur, tong) => ({ text: `${cur}/${tong}`, alignment: "center", fontSize: 8, margin: [0, 8, 0, 0] }) };
+  return { pageSize: "A4", pageOrientation: "portrait", pageMargins: [40, 30, 40, 40], defaultStyle: { font: PDF_FONT, fontSize: PDF_CO }, content, footer: (cur, tong) => ({ text: `${cur}/${tong}`, alignment: "center", margin: [0, 8, 0, 0] }) };
 }
 // Logo: vite trả về ĐƯỜNG DẪN ảnh (không phải dữ liệu ảnh), nhưng pdfmake / exceljs cần dữ liệu ảnh (data URL) nên tải ảnh về đổi sang data URL một lần; không tải được thì bỏ logo
 const nhoLogo = new Map();
