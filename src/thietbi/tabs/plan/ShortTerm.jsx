@@ -140,7 +140,9 @@ export default function ShortTerm() {
   useEffect(() => {
     for (const d of demands) if (asgOf(d).length) daTuGan.current.add(d.id);
     if (!canWrite || !choCoDinh.length) return;
-    const moi = choCoDinh.filter((d) => !daTuGan.current.has(d.id));
+    // Chỉ tự gán nhu cầu của ca chưa kết thúc: ca đã qua không cần gán thêm (và tránh gán lặp khi xe đã gán của ca cũ nằm ngoài khoảng tải)
+    const bayGio = Date.now();
+    const moi = choCoDinh.filter((d) => !daTuGan.current.has(d.id) && new Date(d.tg_ket_thuc).getTime() > bayGio);
     if (!moi.length) return;
     moi.forEach((d) => daTuGan.current.add(d.id));
     apDungCoDinh(moi);
@@ -534,7 +536,7 @@ function GanDialog({ d, sh, win, rules, asg, asgOf, nhaThau, onClose, onBoSung }
     {ngoaiGio ? " Đang chọn ngoài giờ nhu cầu: vẫn gán được, dòng kế hoạch sẽ có cảnh báo mềm." : " Chọn ngoài khoảng này vẫn được."}</div>;
 
   return (
-    <Modal width={880} onClose={onClose} title={<span className="row" style={{ gap: 8 }}><Link2 size={16} />Gán xe · <span className="mono accent">{sh.label}</span> · {dm(sh.start)}</span>}
+    <Modal nho width={880} onClose={onClose} title={<span className="row" style={{ gap: 8 }}><Link2 size={16} />Gán xe · <span className="mono accent">{sh.label}</span> · {dm(sh.start)}</span>}
       footer={<><span className="small bad" style={{ marginRight: "auto" }}>{err}</span><button className="btn" onClick={onClose}>Hủy</button>
         {mode === "noi_bo" ? <button className="btn pri" disabled={!sel.size} onClick={save}>Gán {sel.size} xe</button>
           : <button className="btn pri" disabled={!tongNt} onClick={saveNt}>Gán {tongNt} xe nhà thầu</button>}</>}>
@@ -652,7 +654,7 @@ function DemandDialog({ d, cas, win, asg, onClose }) {
     if (ok) onClose();
   };
   return (
-    <Modal title={tuFile ? "Bổ sung thông tin nhu cầu" : d ? "Sửa nhu cầu thủ công" : "Thêm nhu cầu thủ công"} onClose={onClose} width={720}
+    <Modal nho title={tuFile ? "Bổ sung thông tin nhu cầu" : d ? "Sửa nhu cầu thủ công" : "Thêm nhu cầu thủ công"} onClose={onClose} width={720}
       footer={<><button className="btn" onClick={onClose}>Hủy</button><button className="btn pri" onClick={save}>Lưu</button></>}>
       {tuFile && <div className="alert info mb"><Info size={15} /><span>Nhu cầu từ file <b>{d.ma_nhu_cau}</b> · {hm(new Date(d.tg_bat_dau).getTime())} → {hm(new Date(d.tg_ket_thuc).getTime())}. Ô viền vàng là thông tin còn thiếu. Nhập lại file nhu cầu sẽ thay bằng dữ liệu trong file.</span></div>}
       <div className="form-grid">

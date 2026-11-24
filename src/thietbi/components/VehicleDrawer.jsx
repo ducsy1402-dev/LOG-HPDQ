@@ -86,7 +86,7 @@ export default function VehicleDrawer() {
           {evs.map((e) => (
             <div className="tl-item" key={e.id}>
               <div className="row" style={{ gap: 8 }}>
-                <Badge tone={e.loai === "Hỏng" ? "bad" : e.loai === "BD chiến lược" ? "orange" : "info"}>{e.loai}</Badge>
+                <Badge tone={e.loai === "Hỏng" ? "bad" : e.loai === "BD chiến lược" || e.loai === "Bảo trì CBM" ? "orange" : "info"}>{e.loai}</Badge>
                 <b>{e.nhom || ""}</b>
                 <span className="spacer" />
                 {e.ngay_xong ? <span className="small ok row" style={{ gap: 4 }}><CheckCircle2 size={13} />Xong {vn(e.ngay_xong)}</span> : <Badge tone="warn" plain>Đang xử lý</Badge>}
@@ -111,6 +111,18 @@ export default function VehicleDrawer() {
   );
 }
 
+// Dựng bản ghi xe từ dữ liệu nhập (dùng cho hộp Thêm xe và sửa tại dòng ở Danh mục): trả { rec } hoặc { loi }
+export function banGhiXe(f, { D, ct, coXuong, moi }) {
+  const laXeNang = f.doi === "Xe nâng", laXucDao = f.doi === "Xúc đào";
+  const rec = { ma: f.ma.trim().toUpperCase(), doi: f.doi, model: f.model?.trim() || null, to_xe: f.to_xe?.replace(/s+/g, " ").trim() || null, che_do: f.che_do, tai_trong: laXeNang ? f.tai_trong || null : null, thiet_bi_gan: laXucDao ? f.thiet_bi_gan || null : null, ghi_chu: f.ghi_chu?.trim() || null };
+  Object.assign(rec, ct.gom(f.them));
+  if (coXuong) { rec.xuong = String(f.xuong ?? "").trim() || null; const hs = docSo(f.he_so) ?? NaN; rec.he_so = String(f.he_so ?? "").trim() !== "" && Number.isFinite(hs) ? hs : null; }
+  if (laXeNang && !rec.tai_trong) return { loi: "Xe nâng phải chọn tải trọng" };
+  if (!/^[A-ZĐ0-9][A-ZĐ0-9-_.]*$/.test(rec.ma)) return { loi: "Mã xe chỉ gồm chữ, số, dấu gạch" };
+  if (moi && D.vmap[rec.ma]) return { loi: `Mã ${rec.ma} đã có trong danh mục` };
+  return { rec };
+}
+
 export function VehicleForm({ v, onClose }) {
   const { D, api, run } = useApp();
   const isNew = !v;
@@ -122,16 +134,12 @@ export function VehicleForm({ v, onClose }) {
   const set = (k) => (x) => setF((o) => ({ ...o, [k]: x?.target ? x.target.value : x }));
   const models = [...new Set([...D.vehicles.map((x) => x.model), ...D.specs.map((s) => s.model)].filter(Boolean))].sort();
   const save = async () => {
-    const rec = { ma: f.ma.trim().toUpperCase(), doi: f.doi, model: f.model?.trim() || null, to_xe: f.to_xe?.replace(/\s+/g, " ").trim() || null, che_do: f.che_do, tai_trong: laXeNang ? f.tai_trong || null : null, thiet_bi_gan: laXucDao ? f.thiet_bi_gan || null : null, ghi_chu: f.ghi_chu?.trim() || null };
-    Object.assign(rec, ct.gom(f.them));
-    if (coXuong) { rec.xuong = String(f.xuong ?? "").trim() || null; const hs = docSo(f.he_so) ?? NaN; rec.he_so = String(f.he_so ?? "").trim() !== "" && Number.isFinite(hs) ? hs : null; }
-    if (laXeNang && !rec.tai_trong) return alert("Xe nâng phải chọn tải trọng");
-    if (!/^[A-ZĐ0-9][A-ZĐ0-9\-_.]*$/.test(rec.ma)) return alert("Mã xe chỉ gồm chữ, số, dấu gạch");
-    if (isNew && D.vmap[rec.ma]) return alert(`Mã ${rec.ma} đã có trong danh mục`);
+    const { rec, loi } = banGhiXe(f, { D, ct, coXuong, moi: isNew });
+    if (loi) return alert(loi);
     if (await run(() => api.upsertVehicles([rec]), (isNew ? "Đã thêm " : "Đã cập nhật ") + rec.ma)) onClose();
   };
   return (
-    <Modal title={isNew ? "Thêm xe mới" : `Sửa thông tin xe ${v.ma}`} onClose={onClose} width={640}
+    <Modal nho title={isNew ? "Thêm xe mới" : `Sửa thông tin xe ${v.ma}`} onClose={onClose} width={640}
       footer={<><button className="btn" onClick={onClose}>Hủy</button><button className="btn pri" onClick={save}>Lưu</button></>}>
       <div className="form-grid">
         <Field label="Mã xe *"><input className="inp mono" value={f.ma} onChange={set("ma")} readOnly={!isNew} placeholder="VD: XL-VT60" /></Field>

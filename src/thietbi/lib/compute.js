@@ -5,10 +5,31 @@ export const DEFAULT_T = { ss: 0.85, red: 0.7, qh: 3, lau: 7, cm: 0.9, tl: 3, lu
 export const ST = {
   ss: { key: "ss", label: "Sẵn sàng", short: "SS" },
   bddk: { key: "bddk", label: "BD định kỳ", short: "BDĐK" },
-  bdcl: { key: "bdcl", label: "BD chiến lược", short: "BDCL" },
+  bdcl: { key: "bdcl", label: "BD chiến lược / CBM", short: "BDCL" },
   hong: { key: "hong", label: "Hỏng", short: "Hỏng" },
 };
-const LOAI_KEY = { "Hỏng": "hong", "BD chiến lược": "bdcl", "BD định kỳ": "bddk" };
+// Loại sự kiện (anh Sỹ 24/11/2026): "BD định kỳ" tách thành hai loại theo số giờ máy, thêm "Bảo trì CBM".
+// Bảo dưỡng định kỳ: xe VẪN sẵn sàng (trạng thái bddk). Bảo trì CBM: xe KHÔNG sẵn sàng, tính chung nhóm bdcl cùng BD chiến lược.
+// "BD định kỳ" là giá trị cũ của các sự kiện đã ghi từ trước: vẫn đọc đúng như Bảo dưỡng định kỳ, nhưng không còn trong danh sách chọn.
+export const LOAI_BDDK = ["Bảo dưỡng định kỳ (2000H)", "Bảo dưỡng định kỳ (5000H)"];
+export const LOAI_CBM = "Bảo trì CBM";
+export const laBDDK = (loai) => loai === "BD định kỳ" || LOAI_BDDK.includes(loai);
+const LOAI_KEY = { "Hỏng": "hong", "BD chiến lược": "bdcl", [LOAI_CBM]: "bdcl", "BD định kỳ": "bddk", ...Object.fromEntries(LOAI_BDDK.map((l) => [l, "bddk"])) };
+// Danh mục dùng chung (meta) lưu trong CSDL còn danh sách loại sự kiện / PIC cũ: chuẩn hóa ở đây, không cần chạy SQL
+export const PIC_BAO_TRI = "Tổ bảo trì bảo dưỡng";
+export function chuanHoaMeta(meta) {
+  const loai = [];
+  for (const l of meta.loai || ["Hỏng", "BD định kỳ", "BD chiến lược"]) {
+    if (l === "BD định kỳ") { for (const x of LOAI_BDDK) if (!loai.includes(x)) loai.push(x); } else if (!loai.includes(l)) loai.push(l);
+  }
+  for (const x of [...LOAI_BDDK, LOAI_CBM]) if (!loai.includes(x)) loai.push(x);
+  const sapXep = ["Hỏng", ...LOAI_BDDK, LOAI_CBM, "BD chiến lược"];
+  loai.sort((a, b) => (sapXep.indexOf(a) + 1 || 99) - (sapXep.indexOf(b) + 1 || 99));
+  const loaiDung = [...new Set([...(meta.loaiDung || ["Hỏng", "BD chiến lược"]), LOAI_CBM])];
+  const pic = [...(meta.pic || [])];
+  if (!pic.includes(PIC_BAO_TRI)) pic.push(PIC_BAO_TRI);
+  return { ...meta, loai, loaiDung, pic };
+}
 const RANK = { hong: 3, bdcl: 2, bddk: 1, ss: 0 };
 export const ACTIVE = "Đang làm việc";
 export const TAI_TRONG = ["3T", "5T", "10T", "15T", "28T"];
@@ -23,10 +44,10 @@ const DEFAULT_KIP_LICH = { goc: "2022-07-07", ca1: ["B", "A", "C"], ca2: { B: "C
 
 const MAC_DINH_GAN_CAU = ["Mâm từ (cẩu cảng)", "Nhóp (cẩu cảng)", "Ngáng", "Móc C", "Gầu ngoạm"];
 export function derive(raw) {
-  const meta = raw.meta || {};
+  const meta = chuanHoaMeta(raw.meta || {});
   const T = { ...DEFAULT_T, ...(raw.nguong || {}) };
   const t = raw.today;
-  const loaiDung = meta.loaiDung || ["Hỏng", "BD chiến lược"];
+  const loaiDung = meta.loaiDung;
   const vmap = Object.fromEntries(raw.vehicles.map((v) => [v.ma, v]));
   const open = raw.events.filter((e) => !e.ngay_xong);
 
@@ -224,7 +245,7 @@ export function derive(raw) {
     ...raw, meta, T, today: t, vmap, open, state, stateOf, isReady, doiList, toList, dinhBienXe,
     staffActive, laiXeActive, laLaiXe, specOf, flags, summarize, groupSummary, readinessTrend, caDef, upcomingShifts, shiftKip, shiftLich, shiftLabel, kipTheoLich, gioLam, shiftRows, shiftByTo, headcountTo, coSql14, thongTinCa, coSql18, doiCuaTo,
     taiTrongList, taiTrongOf, thietBiGanList, thietBiGanOf, thietBiGanAll, thietBiGanCauList, thietBiGanDungOf,
-    loaiList: meta.loai || ["Hỏng", "BD định kỳ", "BD chiến lược"],
+    loaiList: meta.loai,
     kipList: meta.kip || ["A", "B", "C", "HC"],
   };
 }

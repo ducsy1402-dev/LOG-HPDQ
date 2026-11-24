@@ -61,7 +61,9 @@ export function supabaseApi() {
     // Dữ liệu Giai đoạn 2. Chưa chạy file SQL 6 thì trả về null (tab Kế hoạch sẽ báo cần chạy SQL).
     async loadPlan() {
       // Các bảng không phụ thuộc nhau lấy cùng lúc (trước đây nối đuôi 6 lượt); chỉ nhu cầu phải chờ biết lô hiện hành
-      const since = new Date(Date.now() - 3 * 864e5).toISOString();
+      // Xe đã gán phải tải rộng hơn thời gian giữ nhu cầu (3 ngày kể từ lúc ca kết thúc, tức ca bắt đầu có thể cách đây tới ~3,5 ngày): lấy 3 ngày đúng thì nhu cầu của ca cũ hiện "chưa gán xe"
+      // dù đã gán, và mẫu cố định lại TỰ GÁN thêm xe mỗi lần mở trang (lỗi 24/11/2026: toast "Đã gán theo mẫu cố định cho 17 nhu cầu" mỗi lần vào)
+      const since = new Date(Date.now() - 5 * 864e5).toISOString();
       const [params, jobsR, batchR, asg, coDinh] = await Promise.all([
         sb.from("plan_params").select("*"),
         sb.from("plan_jobs").select("*").order("id"),

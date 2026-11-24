@@ -5,7 +5,7 @@ import {
 import { usePalette } from "./ui";
 import { pct, fmt, vnShort } from "../lib/utils";
 
-const STATES = [["ss", "Sẵn sàng"], ["bddk", "BD định kỳ"], ["bdcl", "BD chiến lược"], ["hong", "Hỏng"]];
+const STATES = [["ss", "Sẵn sàng"], ["bddk", "BD định kỳ"], ["bdcl", "BD chiến lược / CBM"], ["hong", "Hỏng"]];
 
 function Tip({ active, payload, label, title, fmtV = (v) => fmt(v), extra }) {
   if (!active || !payload?.length) return null;

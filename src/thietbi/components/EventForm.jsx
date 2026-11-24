@@ -3,6 +3,7 @@ import { Save } from "lucide-react";
 import { useApp } from "../store";
 import { Field, Select, StateBadge, DateInput } from "./ui";
 import { addDays } from "../lib/utils";
+import { laBDDK, LOAI_CBM } from "../lib/compute";
 
 // Form ghi nhận xe hỏng / vào bảo dưỡng
 export default function EventForm({ initialMa = "", onDone, compact }) {
@@ -54,7 +55,8 @@ export default function EventForm({ initialMa = "", onDone, compact }) {
             {openOfV.length > 0 && <span className="warn">đang có {openOfV.length} sự kiện mở</span>}
           </span>
         ) : <span className="small bad">Không có mã xe này trong danh mục</span>)}
-        {f.loai === "BD định kỳ" && <span className="small info">BD định kỳ: xe vẫn được tính là sẵn sàng.</span>}
+        {laBDDK(f.loai) && <span className="small info">Bảo dưỡng định kỳ: xe vẫn được tính là sẵn sàng.</span>}
+        {f.loai === LOAI_CBM && <span className="small warn">Bảo trì CBM: xe không được tính là sẵn sàng.</span>}
       </div>
     </form>
   );

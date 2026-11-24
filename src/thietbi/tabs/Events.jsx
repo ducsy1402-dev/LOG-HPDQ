@@ -5,9 +5,9 @@ import { Card, Seg, Search, Select, Badge, Empty, StateBadge, DateInput, MultiSe
 import { StatusDonut } from "../components/charts";
 import EventForm from "../components/EventForm";
 import { vn, diffDays, matchQ, countBy, shortTo, pct } from "../lib/utils";
-import { rateTone } from "../lib/compute";
+import { rateTone, laBDDK } from "../lib/compute";
 
-const LOAI_TONE = { "Hỏng": "bad", "BD chiến lược": "orange", "BD định kỳ": "info" };
+const LOAI_TONE = { "Hỏng": "bad", "BD chiến lược": "orange", "Bảo trì CBM": "orange", "BD định kỳ": "info", "Bảo dưỡng định kỳ (2000H)": "info", "Bảo dưỡng định kỳ (5000H)": "info" };
 
 // Tình trạng & sự kiện chia 3 tab nhỏ: Thiết bị gắn (đếm theo loại), Thiết bị di động (xe), Cẩu cảng
 const NHOM_TT = [["gan", "Thiết bị gắn"], ["di_dong", "Thiết bị di động"], ["cau", "Cẩu cảng"]];
@@ -42,7 +42,7 @@ function SuKien({ nhom, tab }) {
     .sort((a, b) => a.ngay_vao.localeCompare(b.ngay_vao));
   const closed = D.events.filter((e) => e.ngay_xong && thuoc(D.vmap[e.ma_xe]) && matchQ(qXong, e.ma_xe, D.vmap[e.ma_xe]?.to_xe, e.loai, e.nhom, e.mo_ta))
     .sort((a, b) => b.ngay_xong.localeCompare(a.ngay_xong)).slice(0, 60);
-  const byNhom = Object.entries(countBy(openXN.filter((e) => e.loai !== "BD định kỳ"), (e) => e.nhom || "Khác")).sort((a, b) => b[1] - a[1]);
+  const byNhom = Object.entries(countBy(openXN.filter((e) => !laBDDK(e.loai)), (e) => e.nhom || "Khác")).sort((a, b) => b[1] - a[1]);
   const maxNhom = Math.max(1, ...byNhom.map((x) => x[1]));
 
   const upd = (id, patch, msg) => run(() => api.updateEvent(id, patch), msg);

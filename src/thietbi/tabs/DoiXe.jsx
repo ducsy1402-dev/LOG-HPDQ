@@ -41,7 +41,7 @@ export default function DoiXe() {
           <div className="balance mini">
             <TheBam k="ss" cls="bal ok" ten="Sẵn sàng" onMo={setMo}><div className="big ok">{s.ready}</div></TheBam>
             <TheBam k="hong" cls="bal" ten="Hỏng" onMo={setMo}><div className="big bad">{s.hong}</div></TheBam>
-            <TheBam k="bdcl" cls="bal" ten="BD chiến lược" onMo={setMo}><div className="big warn">{s.bdcl}</div></TheBam>
+            <TheBam k="bdcl" cls="bal" ten="BD chiến lược / CBM" onMo={setMo}><div className="big warn">{s.bdcl}</div></TheBam>
             <TheBam k="ns" cls="bal" ten={`Nhân sự / ĐB ${s.dinhBien}`} onMo={setMo}><div className={"big " + (ns < s.dinhBien ? "warn" : "")}>{ns}</div></TheBam>
           </div>
           <div className="tw" style={{ maxHeight: 300 }}>
@@ -75,7 +75,7 @@ function TheBam({ k, cls, ten, onMo, children }) {
   );
 }
 
-const TEN_LOAI = { ss: "Xe sẵn sàng", hong: "Xe hỏng", bdcl: "Xe bảo dưỡng chiến lược", ns: "Nhân sự" };
+const TEN_LOAI = { ss: "Xe sẵn sàng", hong: "Xe hỏng", bdcl: "Xe BD chiến lược / CBM", ns: "Nhân sự" };
 // Hộp danh sách của một đội theo thẻ đã bấm, chia theo tổ.
 //   Sẵn sàng: mã xe (đánh dấu xe đang BD định kỳ); Hỏng / BD chiến lược: mã xe kèm sự kiện đang mở; Nhân sự: người đang làm việc.
 function DanhSachXe({ D, doi, loai, onClose }) {
@@ -111,7 +111,7 @@ function DanhSachXe({ D, doi, loai, onClose }) {
             <tr key={e.id}>
               <td className="whitespace-nowrap font-mono font-medium">{i === 0 ? v.ma : ""}</td>
               <td className="whitespace-nowrap text-muted-foreground">{i === 0 ? v.model : ""}</td>
-              <td className="whitespace-nowrap"><Nhan tone={e.loai === "Hỏng" ? "bad" : e.loai === "BD chiến lược" ? "warn" : "info"}>{e.loai}</Nhan></td>
+              <td className="whitespace-nowrap"><Nhan tone={e.loai === "Hỏng" ? "bad" : e.loai === "BD chiến lược" || e.loai === "Bảo trì CBM" ? "warn" : "info"}>{e.loai}</Nhan></td>
               <td className="min-w-[160px]">{e.mo_ta}{e.phu_tung && e.phu_tung !== "Không cần" && <div className="text-[0.6875rem] text-muted-foreground">{e.phu_tung}</div>}</td>
               <td className="whitespace-nowrap tabular-nums">{vn(e.ngay_vao)}</td>
               <td className="num">{diffDays(e.ngay_vao, D.today)}</td>

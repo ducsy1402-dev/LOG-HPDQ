@@ -57,7 +57,7 @@ export async function demoApi() {
   db.events = []; let id = 0;
   const vs = [...db.vehicles].sort(() => rnd() - 0.5);
   const mk = (v, loai, vao, xong) => {
-    const nhom = pick(db.meta.nhom[loai]);
+    const nhom = pick(db.meta.nhom[loai] || ["Theo kế hoạch"]);
     db.events.push({
       id: ++id, ma_xe: v.ma, loai, nhom, mo_ta: loai === "Hỏng" ? pick(["Rò dầu thủy lực", "Không đề được máy", "Mòn xích", "Kẹt hộp số", "Báo lỗi ECU", "Nổ lốp"]) : nhom,
       ngay_vao: vao, ngay_du_kien: addDays(vao, 1 + Math.floor(rnd() * 8)), ngay_xong: xong,
@@ -66,10 +66,10 @@ export async function demoApi() {
   };
   vs.slice(0, 11).forEach((v) => mk(v, "Hỏng", addDays(t, -Math.floor(rnd() * 12)), null));
   vs.slice(11, 15).forEach((v) => mk(v, "BD chiến lược", addDays(t, -Math.floor(rnd() * 20)), null));
-  vs.slice(15, 20).forEach((v) => mk(v, "BD định kỳ", addDays(t, -Math.floor(rnd() * 2)), null));
+  vs.slice(15, 20).forEach((v) => mk(v, "Bảo dưỡng định kỳ (2000H)", addDays(t, -Math.floor(rnd() * 2)), null));
   for (let i = 0; i < 70; i++) {
     const vao = addDays(t, -2 - Math.floor(rnd() * 85));
-    mk(pick(db.vehicles), pick(["Hỏng", "Hỏng", "Hỏng", "BD định kỳ", "BD chiến lược"]), vao, addDays(vao, 1 + Math.floor(rnd() * 6)));
+    mk(pick(db.vehicles), pick(["Hỏng", "Hỏng", "Hỏng", "Bảo dưỡng định kỳ (5000H)", "BD chiến lược", "Bảo trì CBM"]), vao, addDays(vao, 1 + Math.floor(rnd() * 6)));
   }
   db.events.forEach((e) => { if (e.ngay_xong && e.ngay_xong > t) e.ngay_xong = t; });
   db.cakip = [];
@@ -102,7 +102,7 @@ export async function demoApi() {
     "TG Kết Thúc Yêu Cầu": doiNgay(String(r["TG Kết Thúc Yêu Cầu"]).replace(" ", "T")) })));
   plan.demands = (built.rows || []).map((d) => ({ ...d, id: ++did, batch_id: 1, thu_cong: false }));
   // Gán sẵn vài xe để có dữ liệu xem
-  const ready = (v) => !db.events.some((e) => e.ma_xe === v.ma && !e.ngay_xong && ["Hỏng", "BD chiến lược"].includes(e.loai));
+  const ready = (v) => !db.events.some((e) => e.ma_xe === v.ma && !e.ngay_xong && ["Hỏng", "BD chiến lược", "Bảo trì CBM"].includes(e.loai));
   plan.demands.slice(0, 10).forEach((d) => {
     const mp = mapLoaiPt(d.loai_pt, rulesOf({ rules: db.mapPt }), db.meta.tai_trong_xe_nang);
     const dur = (new Date(d.tg_ket_thuc) - new Date(d.tg_bat_dau)) / 60000;

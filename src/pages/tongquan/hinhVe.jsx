@@ -101,7 +101,7 @@ export function SoDoBai({ bai, tone, nhan, onBai }) {
 
 // ---------- Bảng đội xe: mỗi xe một ô vuông, màu theo tình trạng ----------
 export const MAU_XE = { ss: MAU.ok, bddk: MAU.info, bdcl: MAU.tim, hong: MAU.bad };
-export const TEN_XE = { ss: "Sẵn sàng", bddk: "Bảo dưỡng định kỳ", bdcl: "Bảo dưỡng chiến lược", hong: "Hỏng" };
+export const TEN_XE = { ss: "Sẵn sàng", bddk: "Bảo dưỡng định kỳ", bdcl: "BD chiến lược / CBM", hong: "Hỏng" };
 // nhom: [{ ten, xe: [{ ma, s }] }]
 export function BangDoiXe({ nhom, onXe }) {
   if (!nhom.length) return <div className="py-6 text-center text-xs text-muted-foreground">Chưa có thiết bị nào.</div>;

@@ -17,13 +17,13 @@ export function Khung({ ten, phu, bo, chiTiet, onChiTiet, className, cao, childr
   const coCT = chiTiet || onChiTiet;
   return (
     <section data-tmh={to ? "" : undefined} style={!to && cao ? { height: cao + 12 } : undefined} className={cn("flex min-w-0 flex-col rounded-xl border bg-card p-3", to && "fixed inset-0 z-40 overflow-auto rounded-none border-0 bg-card p-4", className)}>
-      {/* Đầu khung: tên + dòng phụ (trái, tự cắt bớt chữ) và các nút (phải); không đủ chỗ thì các nút xuống dòng, không đè lên tên */}
-      <div className="mb-2 flex flex-wrap items-start gap-x-2 gap-y-1">
-        <div className="min-w-0 flex-1 basis-[180px]">
+      {/* Đầu khung MỘT dòng (anh Sỹ 24/11/2026): tên + dòng phụ bên trái (tự cắt bớt chữ), bộ lọc / nút nhỏ bên phải cùng dòng; khung hẹp thì tên bị cắt ngắn chứ bộ lọc không xuống dòng */}
+      <div className="mb-2 flex items-start gap-x-2">
+        <div className="min-w-[72px] flex-1">
           <h3 title={ten} className={cn("truncate font-semibold leading-tight text-foreground", to ? "text-base" : "text-[0.8125rem]")}>{ten}</h3>
           {phu && <div title={phu} className="truncate text-[0.6875rem] leading-tight text-muted-foreground">{phu}</div>}
         </div>
-        <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+        <div className="ml-auto flex min-w-0 shrink items-center justify-end gap-1 [&_select]:max-w-[104px] [&_select]:text-[0.625rem] [&_button]:text-[0.625rem]">
           {bo}
           {coCT && <button type="button" onClick={() => (chiTiet ? setMo(true) : onChiTiet())} className="inline-flex shrink-0 items-center text-[0.6875rem] text-primary hover:underline">Chi tiết<ChevronRight className="h-3 w-3" /></button>}
           <NutToanManHinh on={to} onClick={doiTo} className="h-6 w-6" />

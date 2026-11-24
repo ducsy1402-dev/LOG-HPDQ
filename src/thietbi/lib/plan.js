@@ -456,6 +456,13 @@ export function toTruongCua(D, to, kip, cheDo) {
 }
 export const COT_KY = ["STT", "BP.SD", "Nội dung công việc", "Điểm đi", "Đểm đến", "Khối lượng", "ĐVT", "T.gian bắt đầu", "T.gian kết thúc", "Loại phương tiện", "Số lượng", "Đơn vị thực hiện", "Ghi chú"];
 export const COT_TO = ["STT", "Mã xe", "Loại xe", "Nội dung công việc", "Điểm đi", "Điểm đến", "Khối lượng", "ĐVT", "Từ giờ", "Đến giờ", "SĐT", "Ghi chú"];
+// Mẫu THEO TỔ có thêm cột BPSD (bộ phận sử dụng) đứng trước Nội dung công việc (anh Sỹ 24/11/2026); mẫu theo BPSD đã nhóm theo bộ phận nên không cần cột này
+export const COT_TO_BP = ["STT", "Mã xe", "Loại xe", "BPSD", "Nội dung công việc", "Điểm đi", "Điểm đến", "Khối lượng", "ĐVT", "Từ giờ", "Đến giờ", "SĐT", "Ghi chú"];
+// Kiểu ô và độ rộng tương đối của từng mẫu nhóm (PDF, Excel, bản in): trai = cột căn trái, nw = không xuống dòng, kl = cột khối lượng, sdt = cột SĐT
+export const KIEU_NHOM = new Map([
+  [COT_TO, { trai: [3, 4, 5, 11], nw: [1, 7, 8, 9], sdt: 10, kl: 6, rong: [5, 18, 12, 40, 22, 22, 10, 7, 8, 8, 15, 20] }],
+  [COT_TO_BP, { trai: [3, 4, 5, 6, 12], nw: [1, 8, 9, 10], sdt: 11, kl: 7, rong: [5, 16, 11, 14, 35, 20, 20, 10, 6, 8, 8, 15, 17] }],
+]);
 // Loại phương tiện của một dòng: xe nội bộ = đội của xe, xe nhà thầu = đội theo loại PT yêu cầu
 const loaiPT = (a, d, D) => (D.vmap[a.ma_xe]?.doi || mapLoaiPt(d.loai_pt, rulesOf(D.mapPt), D.taiTrongList)?.doi || d.loai_pt || "");
 // Thứ tự trong ca: Tổ -> Loại phương tiện -> Mã xe -> giờ (xe nhà thầu xếp cuối)
@@ -482,7 +489,7 @@ export function duLieuTrinhKy({ asgs, demOf, shOf, D }) {
 const soXeNhom = (arr) => new Set(arr.filter((x) => !x.a.nha_thau).map((x) => x.a.ma_xe)).size + demPT(arr.filter((x) => x.a.nha_thau).map((x) => x.a));
 // Mỗi ca một trang, trong ca chia nhóm theo khoaNhom (nhóm cuoi(key) = 1 in sau), trong nhóm sắp Tổ -> Loại xe -> Mã xe.
 // Mỗi dòng là mảng 12 ô theo COT_TO; cột SĐT lấy theo sdt(a, d, sh).
-function duLieuNhom({ asgs, demOf, shOf, D, khoaNhom, cuoi, sdt }) {
+function duLieuNhom({ asgs, demOf, shOf, D, khoaNhom, cuoi, sdt, coBP = false }) {
   const cas = nhomTheoCa(asgs, demOf, shOf);
   for (const ca of cas) {
     const groups = {};
@@ -491,12 +498,13 @@ function duLieuNhom({ asgs, demOf, shOf, D, khoaNhom, cuoi, sdt }) {
       const arr = groups[key].sort(sapDong(D));
       return {
         ten: `${key.toUpperCase()} — ${arr.length} việc, ${soXeNhom(arr)} xe`,
-        dong: arr.map(({ a, d, sh }, i) => [i + 1, tenPT(a), loaiPT(a, d, D), d.noi_dung || "", d.vi_tri_bd || "", d.vi_tri_kt || "", KL_SO(a, d), d.dvt || "",
+        dong: arr.map(({ a, d, sh }, i) => [i + 1, tenPT(a), loaiPT(a, d, D), ...(coBP ? [d.bp_yeu_cau || ""] : []), d.noi_dung || "", d.vi_tri_bd || "", d.vi_tri_kt || "", KL_SO(a, d), d.dvt || "",
           hm(sh.start + a.bat_dau_phut * MIN), hm(sh.start + a.ket_thuc_phut * MIN), sdt(a, d, sh), a.ghi_chu || ""]),
       };
     });
     ca.tieuDe = `${ca.label} · ngày ${dmy(ca.start)} · ${hm(ca.start)} → ${hm(ca.end)}${dm(ca.end) !== dm(ca.start) ? " (" + dm(ca.end) + ")" : ""}`;
   }
+  cas.cot = coBP ? COT_TO_BP : COT_TO; // tiêu đề cột của mẫu này
   return cas;
 }
 // Theo tổ: nhóm theo tổ (nhà thầu cuối), SĐT = SĐT đầu mối của nhu cầu
@@ -504,7 +512,7 @@ export function duLieuTheoTo({ asgs, demOf, shOf, D }) {
   return duLieuNhom({ asgs, demOf, shOf, D,
     khoaNhom: ({ a }) => (a.nha_thau ? "Nhà thầu: " + a.nha_thau : D.vmap[a.ma_xe]?.to_xe || "Tổ chưa xác định"),
     cuoi: (k) => (k.startsWith("Nhà thầu: ") ? 1 : 0),
-    sdt: (a, d) => d.sdt_dau_moi || "" });
+    sdt: (a, d) => d.sdt_dau_moi || "", coBP: true });
 }
 // Theo BPSD (bộ phận sử dụng): nhóm theo bộ phận yêu cầu, SĐT = tổ trưởng của tổ xe theo kíp của ca (xe nhà thầu để trống)
 const BP_TRONG = "Chưa ghi bộ phận";
@@ -516,7 +524,7 @@ export function duLieuTheoBP({ asgs, demOf, shOf, D }) {
 }
 // Căn trái / không xuống dòng / cột khối lượng theo từng mẫu
 // sdt: cột SĐT hẹp vừa một số điện thoại, ô nhiều số tự xuống hàng
-const KIEU_O = new Map([[COT_KY, { trai: [2, 3, 4], nw: [1, 6, 7, 8], kl: 5 }], [COT_TO, { trai: [3, 4, 5, 11], nw: [1, 7, 8, 9], sdt: 10, kl: 6 }]]);
+const KIEU_O = new Map([[COT_KY, { trai: [2, 3, 4], nw: [1, 6, 7, 8], kl: 5 }], [COT_TO, KIEU_NHOM.get(COT_TO)], [COT_TO_BP, KIEU_NHOM.get(COT_TO_BP)]]);
 const oHtml = (v, i, cot) => {
   const k = KIEU_O.get(cot);
   const cls = k.trai.includes(i) ? ' class="l"' : k.nw.includes(i) ? ' class="nw"' : i === k.sdt ? ' class="sdt"' : "";
@@ -544,16 +552,17 @@ export function buildSignHtml({ asgs, demOf, shOf, D, logo }) {
 
 // Mẫu theo nhóm (tổ / BPSD): mỗi ca một trang, mỗi nhóm một dải tiêu đề (theo bộ lọc đang chọn)
 function buildNhomHtml(cas, tieuDe, tenFile) {
+  const COT = cas.cot || COT_TO;
   let out = "";
   for (const ca of cas) {
     let body = "";
     for (const t of ca.to) {
-      body += `<tr class="band"><td colspan="${COT_TO.length}">${esc(t.ten)}</td></tr>`;
-      for (const r of t.dong) body += `<tr>${r.map((v, i) => oHtml(v, i, COT_TO)).join("")}</tr>`;
+      body += `<tr class="band"><td colspan="${COT.length}">${esc(t.ten)}</td></tr>`;
+      for (const r of t.dong) body += `<tr>${r.map((v, i) => oHtml(v, i, COT)).join("")}</tr>`;
     }
     out += wrapPage(`<div class="title">${tieuDe}</div>
       <div class="sub">${esc(ca.tieuDe)}</div>
-      <table><thead><tr>${thHtml(COT_TO)}</tr></thead><tbody>${body}</tbody></table>`);
+      <table><thead><tr>${thHtml(COT)}</tr></thead><tbody>${body}</tbody></table>`);
   }
   return `<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>${tenFile}_${ymd(cas[0].start)}</title><style>${PRINT_CSS}</style></head><body>${out}</body></html>`;
 }
@@ -581,15 +590,15 @@ export async function exportPlanExcel({ asgs, demOf, shOf, D, ky = true, to = tr
     XLSX.utils.book_append_sheet(wb, ws, "Trình ký");
   }
   const sheetNhom = (cas, tieuDe, ten) => {
-    const aoa = [], merges = [];
+    const COT = cas.cot || COT_TO, aoa = [], merges = [];
     for (const ca of cas) {
-      merges.push({ s: { r: aoa.length, c: 0 }, e: { r: aoa.length, c: COT_TO.length - 1 } });
-      aoa.push([tieuDe + " · " + ca.tieuDe], COT_TO);
-      for (const t of ca.to) { merges.push({ s: { r: aoa.length, c: 0 }, e: { r: aoa.length, c: COT_TO.length - 1 } }); aoa.push([t.ten]); aoa.push(...t.dong); }
+      merges.push({ s: { r: aoa.length, c: 0 }, e: { r: aoa.length, c: COT.length - 1 } });
+      aoa.push([tieuDe + " · " + ca.tieuDe], COT);
+      for (const t of ca.to) { merges.push({ s: { r: aoa.length, c: 0 }, e: { r: aoa.length, c: COT.length - 1 } }); aoa.push([t.ten]); aoa.push(...t.dong); }
       aoa.push([]);
     }
     const ws = XLSX.utils.aoa_to_sheet(aoa);
-    ws["!cols"] = [5, 18, 12, 42, 22, 22, 10, 7, 8, 8, 12, 22].map((w) => ({ wch: w }));
+    ws["!cols"] = KIEU_NHOM.get(COT).rong.map((w) => ({ wch: w }));
     ws["!merges"] = merges;
     XLSX.utils.book_append_sheet(wb, ws, ten);
   };

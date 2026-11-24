@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ReferenceArea } from "recharts";
+import { ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ReferenceArea, ResponsiveContainer } from "recharts";
 import { SlidersHorizontal, BarChart3, GanttChart, Ship, Plus, AlertTriangle, Anchor, Layers, RotateCcw, Trash2, GripVertical, Truck } from "lucide-react";
 import { useApp } from "../../store";
 import { Card, Kpi, Badge, Modal, Field, Select, Empty, DateInput, DateTimeInput, ConfirmButton, isoToLocal, localToIso, usePalette, MultiSelect } from "../../components/ui";
@@ -160,7 +160,7 @@ export default function LongTerm() {
         </div>
       </Card>
 
-      <Card title="Năng lực đáp ứng" icon={BarChart3} hint={`Đội ${doi}: xe có − xe cần trong từng ca. Điểm dưới trục (chấm đỏ) là thiếu xe; vùng tô xanh là ca đang diễn ra. Kéo ngang để xem hết.`}>
+      <Card title="Năng lực đáp ứng" icon={BarChart3} hint={`Đội ${doi}: xe có − xe cần trong từng ca. Điểm dưới trục (chấm đỏ) là thiếu xe; vùng tô xanh là ca đang diễn ra.`}>
         <BalanceChart R={R} />
       </Card>
       </div>
@@ -224,7 +224,7 @@ export function BalanceChart({ R, cao }) {
   const [dim, setDim] = useState({ h: null, w: 0 });
   const bo = () => {
     const el = hop.current; if (!el) return;
-    const goc = el.closest("[data-tmh]"), w = el.clientWidth; let h = null;
+    const goc = el.closest("[data-tmh]:not([data-hop])"), w = el.clientWidth; let h = null; // chỉ khi CHÍNH khung này phóng toàn màn hình; trong hộp thoại (data-hop) giữ chiều cao cố định để khối không đổi kích thước
     if (goc) { const top = el.getBoundingClientRect().top - goc.getBoundingClientRect().top + goc.scrollTop; h = Math.max(200, Math.floor(goc.clientHeight - top - (parseFloat(getComputedStyle(goc).paddingBottom) || 0) - 28)); }
     setDim((o) => (o.h === h && Math.abs(o.w - w) < 2 ? o : { h, w }));
   };
@@ -235,9 +235,12 @@ export function BalanceChart({ R, cao }) {
     return () => { window.removeEventListener("tmh-doi", lai); window.removeEventListener("resize", lai); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const fs = dim.h != null;
-  const colW = 46, w = Math.max(640, shifts.length * colW + 50, fs ? dim.w : 0);
+  // Vừa khít bề rộng khung, KHÔNG có thanh kéo ngang (anh Sỹ 24/11/2026): nhiều ca thì thưa nhãn trục ngang (chỉ ghi các ca ngày N cách đều), chiều cao cố định nên khối không đổi kích thước theo dữ liệu
+  const px = Math.max(1, ((dim.w || 640) - 44) / Math.max(1, data.length));
+  const kNhan = px >= 44 ? 1 : Math.max(2, Math.ceil(46 / px / 2) * 2), goc = Math.max(0, data.findIndex((s) => s.lab === "N"));
   const Tick = ({ x, y, payload }) => {
     const s = data[payload.value]; if (!s) return null;
+    if (kNhan > 1 && (payload.value - goc) % kNhan !== 0 && !s.now) return null;
     const c = s.now ? P.accent : s.lab === "N" ? P.ink2 : P.mute;
     return <g transform={`translate(${x},${y})`}><text dy={12} textAnchor="middle" fontSize={10.5} fontWeight={s.lab === "N" ? 700 : 500} fill={c}>{s.d}</text><text dy={25} textAnchor="middle" fontSize={10} fill={c}>{s.ca}</text></g>;
   };
@@ -252,8 +255,9 @@ export function BalanceChart({ R, cao }) {
   // Trục tung chia vạch cách nhau 5 xe (anh Sỹ 22/11/2026): làm tròn biên ra bội số của 5, luôn có vạch 0
   const giaTri = data.flatMap((s) => (chung ? [s.chung] : [s.cang, s.bai, s.chung])).filter((x) => Number.isFinite(x));
   // Vạch cách nhau 5 xe; khung thấp (Tổng quan) mà quá dày thì lấy bội số của 5 để mỗi vạch cách nhau ít nhất 14 px
-  const lo = Math.min(0, ...giaTri), hi = Math.max(5, ...giaTri), caoVe = fs ? dim.h : cao, plot = caoVe ? caoVe - 80 : null;
-  const buoc = plot ? 5 * Math.max(1, Math.ceil((((Math.ceil(hi / 5) - Math.floor(lo / 5)) * 14) / plot))) : 5;
+  const caoVe = fs ? Math.max(260, dim.h) : cao ?? 360, plot = caoVe - 80;
+  const lo = Math.min(0, ...giaTri), hi = Math.max(5, ...giaTri);
+  const buoc = 5 * Math.max(1, Math.ceil((((Math.ceil(hi / 5) - Math.floor(lo / 5)) * 14) / plot)));
   const yMin = Math.min(0, Math.floor(lo / buoc) * buoc), yMax = Math.max(buoc, Math.ceil(hi / buoc) * buoc);
   const yTicks = Array.from({ length: Math.round((yMax - yMin) / buoc) + 1 }, (_, k) => yMin + k * buoc);
   return (
@@ -262,8 +266,9 @@ export function BalanceChart({ R, cao }) {
         {!chung && <><span><i style={{ background: P.info }} />Cảng (có − cần)</span><span><i style={{ background: P.warn }} />Bãi (có − cần)</span></>}
         <span><i style={{ background: P.bad }} />Chấm đỏ: thiếu xe</span><span><i style={{ background: P.accent, height: 2 }} />{chung ? "Xe của đội (có − cần)" : "Chung (cảng + bãi)"}</span>
       </div>
-      <div ref={hop} style={{ overflowX: "auto" }}>
-        <ComposedChart width={w} height={fs ? Math.max(260, dim.h) : cao ?? Math.min(440, Math.max(260, yTicks.length * 15 + 70))} data={data} margin={{ top: 10, right: 10, bottom: 22, left: 0 }}>
+      <div ref={hop} style={{ width: "100%", height: caoVe }}>
+        <ResponsiveContainer width="100%" height="100%">
+        <ComposedChart data={data} margin={{ top: 10, right: 10, bottom: 22, left: 0 }}>
           <CartesianGrid stroke={P.line} vertical={false} />
           {nowI >= 0 && <ReferenceArea x1={nowI} x2={nowI} fill={P.accent} fillOpacity={0.12} stroke={P.accent} strokeOpacity={0.6} />}
           <XAxis dataKey="i" tick={<Tick />} interval={0} axisLine={false} tickLine={false} height={34} />
@@ -277,6 +282,7 @@ export function BalanceChart({ R, cao }) {
               activeDot={{ r: 4 }} />
           ))}
         </ComposedChart>
+        </ResponsiveContainer>
       </div>
     </>
   );

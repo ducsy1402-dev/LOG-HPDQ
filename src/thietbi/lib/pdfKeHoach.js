@@ -1,13 +1,13 @@
 // PDF Kế hoạch ngày (Thiết bị cơ giới › Kế hoạch ngày): Trình ký (mẫu BM.07D/HD.05.02), theo Tổ, theo Bộ phận sử dụng. Anh Sỹ 22/11/2026.
 // Trước đây in qua hộp thoại in của trình duyệt (@page A4 ngang): chọn máy in ảo như "Microsoft Print to PDF" thì file ra là trang DỌC có nội dung xoay ngang 90°.
 // Nay web tự dựng PDF bằng pdfmake, khổ A4 NGANG ghi thẳng trong file nên mở ở máy nào cũng đúng chiều; cùng dữ liệu (duLieuTrinhKy / duLieuTheoTo / duLieuTheoBP) với Excel.
-import { duLieuTrinhKy, duLieuTheoTo, duLieuTheoBP, COT_KY, COT_TO } from "./plan";
+import { duLieuTrinhKy, duLieuTheoTo, duLieuTheoBP, COT_KY, COT_TO, KIEU_NHOM } from "./plan";
 import { taiPdfMake } from "@/lib/bieuMauPA";
 import { logoDataUrl } from "@/lib/keHoachCang";
 
 const p2 = (n) => String(n).padStart(2, "0");
 const ymd = (t) => { const d = new Date(t); return `${d.getFullYear()}${p2(d.getMonth() + 1)}${p2(d.getDate())}`; };
-const A4_NGANG = { pageSize: "A4", pageOrientation: "landscape", pageMargins: [28, 26, 28, 30], defaultStyle: { font: "Roboto", fontSize: 8 } };
+const A4_NGANG = { pageSize: "A4", pageOrientation: "landscape", pageMargins: [34, 26, 34, 30], defaultStyle: { font: "Roboto", fontSize: 8 } };
 const VIEN = { hLineWidth: () => 0.5, vLineWidth: () => 0.5, hLineColor: () => "#000", vLineColor: () => "#000", paddingLeft: () => 2.5, paddingRight: () => 2.5, paddingTop: () => 1.5, paddingBottom: () => 1.5 };
 // Số và chữ như bản in cũ: khối lượng có dấu ngăn nghìn; cột SĐT tách các số bằng khoảng trắng để tự xuống hàng giữa các số
 const oChu = (v, i, kl, sdt) => {
@@ -16,7 +16,9 @@ const oChu = (v, i, kl, sdt) => {
   return i === sdt ? s.replace(/\s*[,;/]\s*|\s+/g, " ").trim() : s;
 };
 const tieuDeCot = (cot) => cot.map((c) => ({ text: c.replace(/^(T\.gian|Loại|Đơn vị|Số) /, "$1\n"), bold: true, alignment: "center", fontSize: 7.5 }));
-const rongTheo = (chars, tong = 770) => { const t = chars.reduce((a, b) => a + b, 0); return chars.map((c) => (c * tong) / t); };
+// pdfmake: bề rộng cột KHÔNG gồm lề trong ô (paddingLeft + paddingRight = 5 pt) và nét kẻ (0,5 pt) nên bảng rộng hơn tổng "widths" cả n × 5,5 pt: lỗi cũ làm bảng tràn khỏi trang, cột cuối (Ghi chú) bị cắt (anh Sỹ 24/11/2026).
+// Vùng chữ A4 ngang = 842 − 2 × 34 (lề) = 774 pt; chia phần còn lại cho các cột theo tỉ lệ.
+const rongTheo = (chars, tong = 772 - chars.length * 5.5) => { const t = chars.reduce((a, b) => a + b, 0); return chars.map((c) => (c * tong) / t); };
 
 // Mẫu trình ký: logo + mã biểu mẫu, tiêu đề, bảng 13 cột chia theo ca, tổng, ngày ký và ba chữ ký
 function docTrinhKy(x, logo) {
@@ -49,17 +51,17 @@ function docTrinhKy(x, logo) {
 
 // Mẫu theo nhóm (tổ / bộ phận sử dụng): mỗi ca một trang, mỗi nhóm một dải tiêu đề
 function docNhom(cas, tieuDe, tenFile) {
-  const TRAI = [3, 4, 5, 11], N = COT_TO.length, SDT = 10;
+  const COT = cas.cot || COT_TO, K = KIEU_NHOM.get(COT), TRAI = K.trai, N = COT.length, SDT = K.sdt, KL = K.kl;
   const content = [];
   cas.forEach((ca, i) => {
-    const body = [tieuDeCot(COT_TO)];
+    const body = [tieuDeCot(COT)];
     for (const t of ca.to) {
       body.push([{ text: t.ten, bold: true, colSpan: N, fillColor: "#dde7f3" }, ...Array(N - 1).fill({})]);
-      for (const r of t.dong) body.push(r.map((v, j) => ({ text: oChu(v, j, 6, SDT), alignment: TRAI.includes(j) ? "left" : "center" })));
+      for (const r of t.dong) body.push(r.map((v, j) => ({ text: oChu(v, j, KL, SDT), alignment: TRAI.includes(j) ? "left" : "center" })));
     }
     content.push({ text: tieuDe, bold: true, fontSize: 14, alignment: "center", margin: [0, 0, 0, 3], ...(i ? { pageBreak: "before" } : {}) });
     content.push({ text: ca.tieuDe, italics: true, alignment: "center", margin: [0, 0, 0, 6] });
-    content.push({ table: { headerRows: 1, widths: rongTheo([5, 18, 12, 42, 22, 22, 10, 7, 8, 8, 12, 22]), body, dontBreakRows: true }, layout: VIEN });
+    content.push({ table: { headerRows: 1, widths: rongTheo(K.rong), body, dontBreakRows: true }, layout: VIEN });
   });
   return { doc: { ...A4_NGANG, content, footer: (cur, tongTrang) => ({ text: `${cur}/${tongTrang}`, alignment: "center", fontSize: 7.5, margin: [0, 6, 0, 0] }) }, ten: `${tenFile}_${ymd(cas[0].start)}` };
 }
