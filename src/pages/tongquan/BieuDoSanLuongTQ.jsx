@@ -97,9 +97,7 @@ export function CoCauTheoCang({ kyInfo, cao }) {
   const r = useTheoCang(kyInfo, h, loai);
   return (
     <Khung cao={cao} ten="Cơ cấu sản lượng theo đơn vị Cảng" phu={`${kyInfo.nhan} · KL các chuyến tàu đã rời bến`}
-      bo={<Chon gt={h} dat={setH} ds={[["", "Tổng"], ["nhap", "Nhập"], ["xuat", "Xuất"]]} />}>
-      {/* Lọc loại hàng nằm trong khung (không ở đầu khung) để tên biểu đồ không bị cắt */}
-      <div className="mb-1 flex justify-end"><NativeSelect className="h-6 w-36 text-[0.6875rem]" value={r?.dsLoai.includes(loai) ? loai : ""} onChange={(e) => setLoai(e.target.value)} placeholder="Mọi loại hàng" options={r?.dsLoai || []} aria-label="Lọc theo loại hàng" /></div>
+      bo={<><NativeSelect className="h-6 w-36 text-[0.6875rem]" value={r?.dsLoai.includes(loai) ? loai : ""} onChange={(e) => setLoai(e.target.value)} placeholder="Mọi loại hàng" options={r?.dsLoai || []} aria-label="Lọc theo loại hàng" /><Chon gt={h} dat={setH} ds={[["", "Tổng"], ["nhap", "Nhập"], ["xuat", "Xuất"]]} /></>}>
       {r == null ? CHUA_CO_CANG : r.ds.length ? <BanhVong ds={r.ds.map((o) => ({ name: o.ten, value: r2(o.tong) }))} cao={Math.max(150, cao - 120)} /> : <ChuaCo>Chưa có chuyến tàu nào đã rời bến trong kỳ{loai ? ` với loại hàng ${loai}` : ""}.</ChuaCo>}
       <div className="mt-1 text-[0.6875rem] leading-snug text-muted-foreground">Khối lượng lấy từ <b>khối lượng hàng của các chuyến tàu đã có ATD</b> (chưa ghi ATD mà đã qua ETD thì tính theo ETD), tính vào kỳ theo ngày rời bến; cảng theo bến tàu cập (Danh mục › Cầu bến). Tạm thời, vì chưa nhập khối lượng thực tế theo từng chuyến.</div>
     </Khung>

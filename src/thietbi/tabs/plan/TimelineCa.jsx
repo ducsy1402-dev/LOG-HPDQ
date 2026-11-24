@@ -53,7 +53,8 @@ export default function TimelineCa({ R, doi, onJob }) {
   const [hangF, setHangF] = useState([]);
   // Xem gọn (như Linetime › Gọn): dòng thấp, chữ nhỏ, cột hẹp để xem được nhiều tàu một lúc; nhớ trên máy
   const [gon, setGon] = useState(() => doc("qltb-tl-gon", "0") === "1");
-  const LABEL = gon ? 118 : 132, LH = gon ? 36 : 50, TOP = gon ? 17 : 22;
+  // Cột đầu rộng hơn vì ghi tên tàu + thông tin (bến, hướng, hàng, còn %) và các nút +bãi / phiếu chuyến (anh Sỹ 24/11/2026)
+  const LABEL = gon ? 168 : 214, LH = gon ? 36 : 50, TOP = gon ? 17 : 22;
   const [soNgay, setSoNgay] = useState(() => (["7", "14", "21", "99"].includes(doc("qltb-tl-ngay", "99")) ? +doc("qltb-tl-ngay", "99") : 99));
   const [batRaw, setBat] = useState(0);
   const [thu, setThu] = useState(() => ({ cang: doc("qltb-tl-thu-cang", "0") === "1", bai: doc("qltb-tl-thu-bai", "0") === "1", tong: doc("qltb-tl-thu-tong", "0") === "1" }));
@@ -77,6 +78,16 @@ export default function TimelineCa({ R, doi, onJob }) {
   const dangLoc = hangF.length > 0;
   const hangTat = useMemo(() => (LD?.berths && nHien ? xepHangBen(LD, (LD.voyages || []).filter((v) => tauLT.has(String(v.id))), tuMs, denMs, "ben", { row: 30, lan: LH, top: gon ? 3 : 4 }, { ghep }) : []), [LD, tauLT, tuMs, denMs, nHien, LH, gon, ghep]);
   const hang = useMemo(() => (dangLoc ? hangTat.filter((r) => r.ds.length) : hangTat), [hangTat, dangLoc]);
+  // Mỗi tàu MỘT dòng (như việc bãi): cột đầu ghi tên tàu và thông tin, dải màu chạy theo giờ thật; tàu chuyển bến thì có nhiều đoạn trên cùng dòng (anh Sỹ 24/11/2026)
+  const tauRows = useMemo(() => {
+    const mp = new Map();
+    for (const r of hang) for (const x of r.ds) {
+      const id = String(x.v.id), rr = tauLT.get(id); if (!rr) continue;
+      const e = mp.get(id) || { id, rr, v: x.v, segs: [] };
+      e.segs.push({ ...x, ben: r.cap ? noiHaiBen(r.cap[0], r.cap[1]) : r.b ? tenBen(r.ma) : "Chưa xếp bến" }); mp.set(id, e);
+    }
+    return [...mp.values()].sort((p, q) => Math.min(...p.segs.map((z) => z.a)) - Math.min(...q.segs.map((z) => z.a)));
+  }, [hang, tauLT]);
   const baiHien = fixed.filter((f) => (!f.job.lt || f.cnt.some((c) => c > 0) || dongSoXeBai(D.plan.jobs, f.job.lt, doi)) && coHang(f.hang));
   const nTau = tauLT.size + cangTay.length;
 
@@ -233,40 +244,38 @@ export default function TimelineCa({ R, doi, onJob }) {
               </div>
             </div>
 
-            {phan(`CẢNG · tàu theo bến · số xe ${doi}`, "cang", `${nTau} tàu`)}
+            {phan(`CẢNG · tàu · số xe ${doi}`, "cang", `${nTau} tàu`)}
             {!thu.cang && <>
-              {hang.map((r) => (
-                <div key={r.ma || "_"} className={cn("flex border-b", r.cap && "bg-primary/[0.05]")}>
-                  <div className={cn("sticky left-0 z-10 flex shrink-0 flex-col justify-center border-r bg-card px-2", r.cap && "border-l-2 border-l-primary/60")} style={{ width: LABEL }}>
-                    <span className={cn("font-mono text-[0.8125rem] font-semibold leading-tight", r.cap && "text-primary")}>{r.cap ? `⇕ ${noiHaiBen(r.cap[0], r.cap[1])}` : r.b ? tenBen(r.ma) : "Chưa xếp bến"}</span>
-                    {r.ds.length > 0 && <span className="text-[0.6875rem] text-muted-foreground">{new Set(r.ds.map((x) => x.v.id)).size} tàu</span>}
-                  </div>
-                  <div className="relative shrink-0" style={{ width: W, height: r.h }}>
-                    {luoi}
-                    {r.ds.map((x) => {
-                      const rr = tauLT.get(String(x.v.id)); if (!rr) return null;
-                      const it = { ...rr, kind: "tauLT" }, ov = dongSoXeTau(D.plan.jobs, x.v.id, doi), tay = ov?.so_xe_tay != null;
-                      const pc = rr.kl > 0 ? Math.max(0, Math.min(100, Math.round(((rr.conlai ?? rr.kl) / rr.kl) * 100))) : null;
-                      return thanh({
-                        kk: `${x.v.id}:${x.a}`, a: x.a, b: x.b, mau: TRANG_THAI[x.st].mau, top: x.top, h: LH - 6, cnt: rr.cnt,
-                        title: `${x.v.ten_tau} · ${x.v.huong === "xuat" ? "Xuất" : "Nhập"} · ${TRANG_THAI[x.st].ten}\nBến ${x.v.ben_ma ? tenBen(x.v.ben_ma) : "chưa xếp"} · ${hhmm(x.a)} → ${hhmm(x.b)}\nKhối lượng còn lại ${pc == null ? "?" : pc + "%"} · số xe ${rr.dung ?? "chưa nhập"}`,
-                        // Thanh ngắn: ưu tiên +bãi và ô số xe (luôn hiện), rồi đến "còn %", rồi nhãn Nhập / Xuất; tên tàu co lại tới hết chỗ
-                        tren: (w) => <>
-                          <span className="min-w-0 flex-1 truncate">{x.v.uu_tien ? "★ " : ""}{x.v.ten_tau}</span>
-                          {w >= 270 && <span className="shrink-0 rounded bg-black/25 px-1 py-0.5 font-normal">{x.v.huong === "xuat" ? "Xuất" : "Nhập"}</span>}
-                          {pc != null && w >= 200 && <span className="shrink-0 rounded bg-black/25 px-1 py-0.5 font-normal tabular-nums" title="Phần trăm khối lượng còn lại">còn {pc}%</span>}
-                          <span className="flex shrink-0 items-center gap-1">
-                            {canWrite && <button type="button" onClick={(e) => { e.stopPropagation(); themBai(rr); }} className="rounded bg-black/30 px-1 py-0.5 text-[0.625rem] font-normal hover:bg-black/50" title="Thêm vào việc bãi: lấy tên tàu - loại hàng - khối lượng và mốc thời gian, không lấy số xe">+bãi</button>}
-                            {oNen(it, tay)}
-                          </span>
-                        </>,
+              {tauRows.map((e) => {
+                const rr = e.rr, it = { ...rr, kind: "tauLT" }, ov = dongSoXeTau(D.plan.jobs, e.v.id, doi), tay = ov?.so_xe_tay != null;
+                const pc = rr.kl > 0 ? Math.max(0, Math.min(100, Math.round(((rr.conlai ?? rr.kl) / rr.kl) * 100))) : null;
+                const ben = [...new Set(e.segs.map((s) => s.ben))].join(" → "), xuat = e.v.huong === "xuat";
+                const B = "rounded p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground";
+                return (
+                  <div key={e.id} className="flex border-b">
+                    <div className="sticky left-0 z-10 flex shrink-0 items-center gap-1 border-r bg-card px-2" style={{ width: LABEL }} title={`${e.v.ten_tau} · ${xuat ? "Xuất" : "Nhập"}\nBến ${ben}`}>
+                      <span className="flex min-w-0 flex-col">
+                        <span className="truncate font-semibold">{e.v.uu_tien ? "★ " : ""}{e.v.ten_tau}</span>
+                        <span className="truncate text-[0.6875rem] text-muted-foreground">{ben} · {xuat ? "Xuất" : "Nhập"}{rr.hang ? ` · ${rr.hang}` : ""}{pc != null ? ` · còn ${pc}%` : ""}</span>
+                      </span>
+                      <span className="ml-auto flex shrink-0 items-center">
+                        {canWrite && <button type="button" onClick={() => themBai(rr)} className={cn(B, "px-1 text-[0.625rem] font-semibold")} title="Thêm vào việc bãi: lấy tên tàu - loại hàng - khối lượng và mốc thời gian, không lấy số xe">+bãi</button>}
+                        {nutTD(it)}
+                      </span>
+                    </div>
+                    <div className="relative shrink-0" style={{ width: W, height: LH }}>
+                      {luoi}
+                      {e.segs.map((x) => thanh({
+                        kk: `${e.id}:${x.a}`, a: x.a, b: x.b, mau: TRANG_THAI[x.st].mau, top: 3, h: LH - 6, cnt: rr.cnt,
+                        title: `${e.v.ten_tau} · ${xuat ? "Xuất" : "Nhập"} · ${TRANG_THAI[x.st].ten}\nBến ${x.ben} · ${hhmm(x.a)} → ${hhmm(x.b)}\nKhối lượng còn lại ${pc == null ? "?" : pc + "%"} · số xe ${rr.dung ?? "chưa nhập"}`,
+                        tren: <><span className="min-w-0 flex-1 truncate">{e.v.ten_tau}</span><span className="shrink-0">{oNen(it, tay)}</span></>,
                         oCa: oCaFn(it),
-                      });
-                    })}
+                      }))}
+                    </div>
                   </div>
-                </div>
-              ))}
-              {!hang.some((r) => r.ds.length) && <div className="border-b px-2 py-3 text-muted-foreground">{hangF.length ? "Không có tàu nào ứng với loại hàng đã chọn" : `Đội ${doi} chưa có tàu nào trong lưới`} ({size} ngày đang xem).</div>}
+                );
+              })}
+              {!tauRows.length && <div className="border-b px-2 py-3 text-muted-foreground">{hangF.length ? "Không có tàu nào ứng với loại hàng đã chọn" : `Đội ${doi} chưa có tàu nào trong lưới`} ({size} ngày đang xem).</div>}
 
               {cangTay.map((r) => {
                 const it = { ...r, kind: "cangTay" };

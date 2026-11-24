@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { Boxes, TrendingUp, ArrowLeftRight, LineChart, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useApp } from "@/store";
@@ -37,19 +38,21 @@ export function useKyKho() {
   return { kyLoai, setKyLoai, khoa, kyInfo, homNay, dat: (v) => setChon((o) => ({ ...o, [kyLoai]: v })), dsChon: dsChon[kyLoai].map((x) => [x, tenKy(kyLoai, x) + (x === hienTai[kyLoai] ? " (này)" : "")]) };
 }
 // Hàng điều khiển: kho / bãi, Tháng / Quý / Năm, kỳ. Nằm trong thân khung (không trong tiêu đề) để khỏi chen chữ khi khung hẹp.
-export function HangLoc({ k, dsBai, bai, setBai, nhanBai = "Tất cả kho / bãi", anBai = false, them = null }) {
-  return (
-    <div className="mb-1 flex flex-wrap items-center gap-1.5">
+// cho = phần tử DOM ở đầu khung (khe trong CardHeader): hàng điều khiển được vẽ NGAY CẠNH tiêu đề thay vì nằm dưới (anh Sỹ 24/11/2026), chữ nhỏ hơn cho gọn
+export function HangLoc({ k, dsBai, bai, setBai, nhanBai = "Tất cả kho / bãi", anBai = false, them = null, cho = null }) {
+  const noi = (
+    <div className={cn("flex items-center gap-1.5", cho ? "min-w-0 shrink" : "mb-1 flex-wrap")}>
       {!anBai && <NativeSelect className="h-7 w-44 text-xs" value={bai} onChange={(e) => setBai(e.target.value)} placeholder={nhanBai} options={dsBai} aria-label="Lọc kho / bãi" />}
       <div className="inline-flex gap-0.5 rounded-md bg-muted p-0.5 text-xs" role="tablist" aria-label="Kỳ">
         {KY_KHO.map(([x, ten]) => (
           <button key={x} type="button" role="tab" aria-selected={k.kyLoai === x} onClick={() => k.setKyLoai(x)}
             className={`rounded px-2.5 py-1 font-medium transition-colors ${k.kyLoai === x ? "bg-card text-foreground shadow-sm dark:bg-accent" : "text-muted-foreground hover:text-foreground"}`}>{ten}</button>))}
       </div>
-      <NativeSelect className="h-7 w-44 text-xs" value={k.khoa} onChange={(e) => k.dat(e.target.value)} options={k.dsChon} aria-label="Kỳ" />
+      <NativeSelect className={cn("h-7 text-xs", cho ? "w-32" : "w-44")} value={k.khoa} onChange={(e) => k.dat(e.target.value)} options={k.dsChon} aria-label="Kỳ" />
       {them}
     </div>
   );
+  return cho ? createPortal(noi, cho) : noi;
 }
 
 // Bộ chọn kho / bãi kiểu BĂNG CHUYỀN QUAY VÒNG (anh Sỹ 21/11/2026), dùng cho Tồn theo bãi nhỏ và Nhập / xuất kho: mũi tên ‹ › cố định ở hai đầu bao ba tên (trước · đang xem · sau) trong ba ô cố định;

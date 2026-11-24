@@ -22,7 +22,7 @@ export default function CotThem({ ten, cotGoc, cot, onClose, onLuu }) {
     if (await onLuu(sach.map((c, i) => ({ ma: c.ma || `c${moc}${i}`, ten: c.ten, loai: c.loai, thu_tu: i })))) onClose();
   };
   return (
-    <Modal title={`Cột thêm · ${ten}`} onClose={onClose} width={620}
+    <Modal nho title={`Cột thêm · ${ten}`} onClose={onClose} width={620}
       footer={<><button className="btn" onClick={onClose}>Hủy</button><button className="btn pri" onClick={luu}><Save size={14} />Lưu</button></>}>
       <div className="small mute mb">Cột thêm dùng để ghi thêm thông tin cho từng dòng (hiện trên bảng, hộp sửa, Import / Xuất Excel). Các phép tính của web chỉ dùng cột có sẵn. Xóa cột chỉ ẩn cột; thêm lại cùng tên không lấy lại số cũ.</div>
       <div className="grid" style={{ display: "grid", gap: 8 }}>

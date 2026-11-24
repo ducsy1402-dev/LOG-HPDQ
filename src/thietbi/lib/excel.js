@@ -194,9 +194,9 @@ function sheet(XLSX, rows, widths) {
 export async function exportExcel(D) {
   const XLSX = await loadXLSX();
   const wb = XLSX.utils.book_new();
-  const ST = { ss: "Sẵn sàng", bddk: "Sẵn sàng (BD định kỳ)", bdcl: "BD chiến lược", hong: "Hỏng" };
+  const ST = { ss: "Sẵn sàng", bddk: "Sẵn sàng (BD định kỳ)", bdcl: "BD chiến lược / CBM", hong: "Hỏng" };
   const sumRow = (r, name, label) => ({
-    [label]: name, "Tổng xe": r.tong, "Sẵn sàng": r.ready, "Trong đó BD định kỳ": r.bddk, "Hỏng": r.hong, "BD chiến lược": r.bdcl,
+    [label]: name, "Tổng xe": r.tong, "Sẵn sàng": r.ready, "Trong đó BD định kỳ": r.bddk, "Hỏng": r.hong, "BD chiến lược / CBM": r.bdcl,
     "Tỷ lệ SS (%)": r.tong ? +(r.rate * 100).toFixed(1) : null, "Định biên NS": r.dinhBien, "Nhân sự hiện có": r.nhanSu,
   });
   const all = D.summarize(D.vehicles);

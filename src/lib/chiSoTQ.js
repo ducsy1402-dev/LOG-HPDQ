@@ -108,7 +108,7 @@ export function tauTheoNgay({ voyages, stopsOf = () => [], ngays, now }) {
 const ngayCong = (s, n) => { const [y, m, d] = s.split("-").map(Number), t = new Date(y, m - 1, d + n); return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`; };
 const soNgayGiua = (a, b) => { const p = (s) => { const [y, m, d] = s.split("-").map(Number); return Date.UTC(y, m - 1, d); }; return Math.round((p(b) - p(a)) / DAY); };
 // vehicles: danh sách xe (hoặc cẩu) cần xét; events: mọi sự kiện; ngays: các ngày YYYY-MM-DD của kỳ; homNay: hôm nay (ngày sau hôm nay chưa tính)
-export function chiSoThietBi({ vehicles, events, ngays, homNay, loaiDung = ["Hỏng", "BD chiến lược"] }) {
+export function chiSoThietBi({ vehicles, events, ngays, homNay, loaiDung = ["Hỏng", "BD chiến lược", "Bảo trì CBM"] }) {
   const set = new Set(vehicles.map((v) => v.ma)), n = set.size;
   const evs = events.filter((e) => set.has(e.ma_xe));
   const dung = evs.filter((e) => loaiDung.includes(e.loai));

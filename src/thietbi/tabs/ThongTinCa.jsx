@@ -125,7 +125,7 @@ function HopNhap({ sh, loai, to, doi, vs, khai, onClose }) {
   };
   const luoi = "minmax(90px,0.9fr) minmax(104px,0.9fr) minmax(130px,1.7fr)";
   return (
-    <Modal title={`${shortTo(to)} (${doi}) · ${loai === "dau" ? "Đầu ca" : "Cuối ca"} · ${D.shiftLabel(sh)}`} onClose={onClose} width={640}
+    <Modal nho title={`${shortTo(to)} (${doi}) · ${loai === "dau" ? "Đầu ca" : "Cuối ca"} · ${D.shiftLabel(sh)}`} onClose={onClose} width={640}
       footer={canWrite ? <><button type="button" className="btn" onClick={onClose}>Hủy</button><button type="button" className="btn pri" onClick={ghi} disabled={luu}><Save size={15} />{luu ? "Đang lưu…" : "Lưu"}</button></> : <button type="button" className="btn" onClick={onClose}>Đóng</button>}>
       <div className="small mute mb">Tổ {shortTo(to)} có {vs.length} xe của đội {doi}, đã liệt kê đủ. Chọn tình trạng (gợi ý theo tình trạng hiện tại của xe) và gõ vị trí / bộ phận sử dụng.</div>
       <div style={{ display: "grid", gap: 6, maxHeight: "55vh", overflowY: "auto" }}>

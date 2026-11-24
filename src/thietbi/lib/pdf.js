@@ -1,6 +1,6 @@
 // Báo cáo PDF (pdfmake, font Roboto có đủ dấu tiếng Việt). Thư viện được tải khi bấm nút.
 import { diffDays, vn, pct, pad } from "./utils";
-import { chenhLabel } from "./compute";
+import { chenhLabel, laBDDK } from "./compute";
 
 const C = { ink: "#0f172a", mute: "#64748b", line: "#e2e8f0", head: "#0e7490", headBg: "#ecfeff", ok: "#059669", warn: "#d97706", bad: "#e11d48", info: "#2563eb", zebra: "#f8fafc" };
 
@@ -57,7 +57,7 @@ export async function exportPdf(D, who, action = "download") {
       tile("Sẵn sàng", all.ready, C.ok, `gồm ${all.bddk} xe BD định kỳ`),
       tile("Tỷ lệ sẵn sàng", pct(all.rate, 1), rateColor(all.rate, T), `mục tiêu ${pct(T.ss)}`),
       tile("Hỏng", all.hong, C.bad),
-      tile("BD chiến lược", all.bdcl, C.warn),
+      tile("BD chiến lược / CBM", all.bdcl, C.warn),
       tile("Nhân sự", D.staffActive.length, C.ink, `định biên ${all.dinhBien}`),
     ]] },
     layout: { hLineColor: () => C.line, vLineColor: () => C.line, hLineWidth: () => 0.6, vLineWidth: () => 0.6 },
@@ -87,9 +87,9 @@ export async function exportPdf(D, who, action = "download") {
   }
 
   // 4. Xe đang hỏng / bảo dưỡng
-  const evBody = [...open].sort((a, b) => (a.loai === "BD định kỳ") - (b.loai === "BD định kỳ") || a.ngay_vao.localeCompare(b.ngay_vao)).map((e) => {
+  const evBody = [...open].sort((a, b) => laBDDK(a.loai) - laBDDK(b.loai) || a.ngay_vao.localeCompare(b.ngay_vao)).map((e) => {
     const v = D.vmap[e.ma_xe] || {};
-    const col = e.loai === "Hỏng" ? C.bad : e.loai === "BD chiến lược" ? C.warn : C.info;
+    const col = e.loai === "Hỏng" ? C.bad : e.loai === "BD chiến lược" || e.loai === "Bảo trì CBM" ? C.warn : C.info;
     return [
       { text: e.ma_xe, bold: true }, { text: (v.to_xe || "").replace(/^Tổ\s+/, ""), color: C.mute }, { text: e.loai, color: col, bold: true },
       { text: [e.nhom, e.mo_ta].filter(Boolean).join(" – "), fontSize: 7.5 }, vn(e.ngay_vao), n(diffDays(e.ngay_vao, D.today)), vn(e.ngay_du_kien),

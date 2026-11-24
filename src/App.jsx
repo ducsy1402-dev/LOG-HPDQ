@@ -29,6 +29,7 @@ import ChuThich from "./khung/ChuThich";
 import { TrangSkeleton } from "./khung/Skeleton";
 import AppBackground from "./khung/AppBackground";
 import "./khung/khung.css";
+import { batVuaManHinh } from "./khung/vuaManHinh";
 
 const DanhMuc = lazy(() => import("./pages/DanhMuc"));
 const PhanQuyen = lazy(() => import("./pages/PhanQuyen"));
@@ -135,6 +136,8 @@ function Main() {
   const cuon = useRef({}), hienTai = useRef(trang.id);
   useEffect(() => { const f = () => { cuon.current[hienTai.current] = window.scrollY; }; window.addEventListener("scroll", f, { passive: true }); return () => window.removeEventListener("scroll", f); }, []);
   useLayoutEffect(() => { hienTai.current = trang.id; window.scrollTo({ top: cuon.current[trang.id] || 0 }); tb?.closeVehicle?.(); }, [trang.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => { batVuaManHinh(); }, []); // bảng có dòng tổng cố định tự vừa khít màn hình
 
   // ---- Phím tắt: Ctrl+K mở ô tìm nhanh ----
   useEffect(() => {

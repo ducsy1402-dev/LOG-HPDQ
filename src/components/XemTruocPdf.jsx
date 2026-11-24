@@ -36,7 +36,8 @@ export default function XemTruocPdf({ tieuDe, moTa, tabs = [], tab = "", setTab,
                 className={`rounded-md border px-2.5 py-1 text-xs font-medium transition-colors ${tab === k ? "border-primary/50 bg-primary/15 text-primary" : "text-muted-foreground hover:bg-accent hover:text-foreground"}`}>{nhan}</button>))}
             {ghiChu && <span className="ml-auto text-xs text-warn">{ghiChu}</span>}
           </div>)}
-        <div className="relative min-h-[420px] flex-1 overflow-hidden rounded-md border bg-muted/40">
+        {/* Hộp toàn màn hình: khung xem PDF cao theo màn hình (trước đây chỉ cao ~220 px vì khung cha không có chiều cao) */}
+        <div className="relative overflow-hidden rounded-md border bg-muted/40" style={{ height: "calc(100dvh - 250px)", minHeight: 320 }}>
           {url ? <iframe ref={ifr} key={url} src={`${url}#navpanes=0&view=FitH`} title="Xem trước PDF" className="h-full w-full bg-white" />
             : loi ? <div className="flex h-full items-center justify-center p-4 text-center text-sm text-bad">Không dựng được PDF: {loi}</div>
               : <div className="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground"><RefreshCw className="h-4 w-4 animate-spin" />Đang dựng bản xem trước…</div>}

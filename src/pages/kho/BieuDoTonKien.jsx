@@ -90,16 +90,17 @@ export function TonHienTaiBD({ kho, loai, nhomOf = TEN_HANG, theo = "hang", cao 
 
 // 3. Diễn biến tồn theo loại hàng (đường)
 function DienBienTon({ kho, loai, nhomOf, theo }) {
+  const [cho, setCho] = useState(null); // khe ở đầu khung cho hàng lọc kỳ / hàng (cùng dòng với tiêu đề)
   return (
     <Card>
-      <CardHeader><CardTitle><LineChart />Diễn biến tồn theo {theo === "nhom" ? "nhóm hàng" : "hàng"}</CardTitle></CardHeader>
-      <CardContent><DienBienTonBD kho={kho} loai={loai} nhomOf={nhomOf} theo={theo} /></CardContent>
+      <CardHeader className="flex-nowrap"><CardTitle className="shrink-0"><LineChart />Diễn biến tồn theo {theo === "nhom" ? "nhóm hàng" : "hàng"}</CardTitle><div ref={setCho} className="ml-auto flex min-w-0 shrink justify-end" /></CardHeader>
+      <CardContent><DienBienTonBD kho={kho} loai={loai} nhomOf={nhomOf} theo={theo} cho={cho} /></CardContent>
     </Card>
   );
 }
 // Phần biểu đồ + bộ lọc (dùng lại ở Tổng quan › Kho bãi: khung "Diễn biến tồn"); cao = chiều cao biểu đồ
 // kyChung: kỳ của cả trang (Tổng quan: thanh chọn kỳ ở đầu trang) thì dùng luôn kỳ đó, không hiện bộ chọn Tháng / Quý / Năm riêng
-export function DienBienTonBD({ kho, loai, nhomOf = TEN_HANG, theo = "hang", cao = 300, kyChung = null }) {
+export function DienBienTonBD({ kho, loai, nhomOf = TEN_HANG, theo = "hang", cao = 300, kyChung = null, cho = null }) {
   const { D, api } = useApp();
   const k0 = useKyKho(), k = kyChung ? { ...k0, kyInfo: kyChung, homNay: kyChung.homNay } : k0, kyInfo = k.kyInfo, dau = kyInfo.ngays[0];
   const [gd, setGd] = useState(null);
@@ -146,7 +147,7 @@ export function DienBienTonBD({ kho, loai, nhomOf = TEN_HANG, theo = "hang", cao
     </Popover>) : null;
   return (
     <>
-        {kyChung ? (boLoc && <div className="mb-1 flex justify-end">{boLoc}</div>) : <HangLoc k={k} dsBai={[]} bai="" setBai={() => {}} anBai them={boLoc} />}
+        {kyChung ? (boLoc && <div className="mb-1 flex justify-end">{boLoc}</div>) : <HangLoc k={k} dsBai={[]} bai="" setBai={() => {}} anBai them={boLoc} cho={cho} />}
         {c ? (c.ds.length ? (
           <>
             <EChart height={cao} option={{

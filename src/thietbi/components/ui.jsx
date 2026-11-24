@@ -37,7 +37,7 @@ export function Kpi({ label, value, unit, foot, tone, icon: Icon, meter, alert, 
 }
 
 const ST_CLS = { ss: "b-ok", bddk: "b-info", bdcl: "b-orange", hong: "b-bad" };
-const ST_LBL = { ss: "Sẵn sàng", bddk: "SS · BD định kỳ", bdcl: "BD chiến lược", hong: "Hỏng" };
+const ST_LBL = { ss: "Sẵn sàng", bddk: "SS · BD định kỳ", bdcl: "BD chiến lược / CBM", hong: "Hỏng" };
 export const StateBadge = ({ s }) => <span className={"badge " + ST_CLS[s]}>{ST_LBL[s]}</span>;
 export const Badge = ({ tone = "", plain, children }) => <span className={`badge ${tone ? "b-" + tone : ""} ${plain ? "plain" : ""}`}>{children}</span>;
 
@@ -153,13 +153,15 @@ function useEsc(onClose) {
   }, [onClose]);
 }
 
-export function Modal({ title, onClose, children, footer, width }) {
+// nho: hộp nhỏ nằm giữa màn hình trên máy tính (từ 768 px), vẫn toàn màn hình trên điện thoại (anh Sỹ 24/11/2026); width = bề rộng hộp trên máy tính
+export function Modal({ title, onClose, children, footer, width, nho }) {
   useEsc(onClose);
   return (
     <>
-      <div className="modal" role="dialog" aria-modal="true" aria-label={typeof title === "string" ? title : "Hộp thoại"}>
+      {nho && <div className="overlay nho-ov" onClick={onClose} />}
+      <div className={"modal" + (nho ? " nho" : "")} style={nho ? { "--mw": (width || 640) + "px" } : undefined} role="dialog" aria-modal="true" aria-label={typeof title === "string" ? title : "Hộp thoại"}>
         <div className="modal-h"><button className="btn ghost icon nut-lai" onClick={onClose} aria-label="Quay lại" data-tip="Quay lại (Esc)"><ArrowLeft size={20} /></button><h3>{title}</h3></div>
-        <div className="modal-b"><div style={{ maxWidth: !width || width <= 800 ? (width || 720) : undefined, margin: "0 auto" }}>{children}</div></div>
+        <div className="modal-b"><div style={nho ? undefined : { maxWidth: !width || width <= 800 ? (width || 720) : undefined, margin: "0 auto" }}>{children}</div></div>
         {footer && <div className="modal-f">{footer}</div>}
       </div>
     </>

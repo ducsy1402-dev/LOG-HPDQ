@@ -1,7 +1,7 @@
 // Điều độ (Thiết bị cơ giới): gom số liệu thiết bị, nhân sự, nhu cầu xe của ca để người điều độ nhìn bao quát và quyết định điều tiết.
 // Hàm thuần (không React): kiểm thử ở dieu_do.test.js.
 import { buildShifts, caList, planWarnings, rulesOf, mapLoaiPt, demPT } from "./plan";
-import { rateTone } from "./compute";
+import { rateTone, laBDDK } from "./compute";
 
 const KHAN = ["bad", "warn", "info"];
 const laCau = (v) => v?.doi === "Cẩu";
@@ -133,7 +133,7 @@ export function tinhDieuDo(D, now = new Date()) {
 
   // ---- Thiết bị đang dừng, nặng nhất trước ----
   const diem = (e) => (D.flags(e).some((f) => f.tone === "bad") ? 0 : 1) * 1e6 + (e.loai === "Hỏng" ? 0 : 1) * 1e5 + Number(String(e.ngay_vao || "").replace(/-/g, ""));
-  const dung = D.open.filter((e) => e.loai !== "BD định kỳ").slice().sort((a, b) => diem(a) - diem(b));
+  const dung = D.open.filter((e) => !laBDDK(e.loai)).slice().sort((a, b) => diem(a) - diem(b));
 
   return { caNay, caTiep, caHC, quanSo, nhuCau, sXe, sCau, doiBang, canhBao: ds, dung, conLai: caNay ? Math.max(0, caNay.end - ms) : 0 };
 }

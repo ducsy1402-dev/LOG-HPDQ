@@ -121,7 +121,7 @@ function HopNhap({ sh, r, onClose, onLuu }) {
   const doi = (d) => setV(Math.max(0, (n ?? 0) + d));
   const ghi = async () => { setLuu(true); await onLuu(n, gc.trim()); setLuu(false); };
   return (
-    <Modal title={`${shortTo(r.to)} · ${D.shiftLabel(sh)}`} onClose={onClose} width={380}
+    <Modal nho title={`${shortTo(r.to)} · ${D.shiftLabel(sh)}`} onClose={onClose} width={380}
       footer={<><button type="button" className="btn" onClick={onClose}>Hủy</button><button type="button" className="btn pri" onClick={ghi} disabled={luu}><Save size={15} />{luu ? "Đang lưu…" : "Lưu"}</button></>}>
       <div className="qs-hop">
         <div className="small mute">Đội {r.doi || "–"} · Xe sẵn sàng <b>{r.xeCan}</b>/{r.xeTong}</div>

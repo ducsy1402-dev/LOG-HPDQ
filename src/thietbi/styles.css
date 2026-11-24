@@ -399,6 +399,18 @@ table.t { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 
 .modal {
   position: fixed; z-index: 61; inset: 0; width: 100vw; height: 100dvh; display: flex; flex-direction: column; background: var(--bg2); animation: slide 0.2s ease-out;
 }
+/* Hộp nhỏ (Modal nho): giữa màn hình trên máy tính, toàn màn hình trên điện thoại (anh Sỹ 24/11/2026) */
+.nho-ov { display: none; }
+@keyframes hop-nho { from { opacity: 0; transform: translate(-50%, -48%); } }
+@media (min-width: 768px) {
+  .nho-ov { display: block; }
+  .modal.nho {
+    inset: auto; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(var(--mw, 640px), 94vw); height: auto; max-height: 90dvh;
+    border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5); overflow: hidden; animation: hop-nho 0.15s ease-out;
+  }
+  .modal.nho .modal-h { padding: 6px 10px; }
+  .modal.nho .modal-b { padding: 14px 16px; }
+}
 .modal-h { padding: 8px 14px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 10px; }
 .modal-h h3 { margin: 0; font-size: 0.9375rem; }
 .modal-b { padding: 16px 18px; overflow-y: auto; flex: 1; min-height: 0; }

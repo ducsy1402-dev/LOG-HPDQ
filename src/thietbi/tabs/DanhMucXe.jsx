@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Database, Plus, Upload, Pencil, Download } from "lucide-react";
+import { Database, Plus, Upload, Pencil, Download, Check, X, Trash2 } from "lucide-react";
 import { useApp } from "../store";
-import { Card, Search, Badge, StateBadge, MultiSelect, ConfirmButton } from "../components/ui";
-import { VehicleForm, RenameToDialog } from "../components/VehicleDrawer";
+import { Card, Search, Badge, StateBadge, MultiSelect, ConfirmButton, Select } from "../components/ui";
+import { VehicleForm, RenameToDialog, banGhiXe } from "../components/VehicleDrawer";
 import ImportDialog from "../components/ImportDialog";
 import { matchQ, shortTo } from "../lib/utils";
 import { downloadTemplate } from "../lib/excel";
@@ -14,7 +14,8 @@ import { useCotThem } from "../components/cotThemTB";
 export default function DanhMucXe() {
   const { D, sua: coQuyen, openVehicle, api, run, fail } = useApp();
   const isAdmin = coQuyen("dm_thiet_bi");
-  const [sua, setSua] = useState(null);
+  const [dang, setDang] = useState(null); // mã xe đang SỬA TẠI DÒNG (bút chì, như các bảng danh mục khác)
+  const [fd, setFd] = useState(null);
   const [doi, setDoi] = useState([]);
   const [qDm, setQDm] = useState("");
   const [ttDm, setTtDm] = useState([]);
@@ -31,6 +32,16 @@ export default function DanhMucXe() {
   const ct = useCotThem("xe", [["ma", "Mã xe"], ["doi", "Đội xe"], ["model", "Model"], ["to_xe", "Tổ"], ["che_do", "Chế độ"], ["xuong", "Xưởng"], ["he_so", "Hệ số làm việc"], ["tai_trong", "Tải trọng"], ["thiet_bi_gan", "Thiết bị gắn"], ["ghi_chu", "Ghi chú"]]);
   const coXuong = D.vehicles.some((v) => "xuong" in v); // SQL 08: xưởng, hệ số làm việc
   const keys = dm.map((v) => v.ma);
+  const models = [...new Set([...D.vehicles.map((x) => x.model), ...D.specs.map((x) => x.model)].filter(Boolean))].sort();
+  const bat = (v) => { setDang(v.ma); setFd({ ...v, tai_trong: v.tai_trong || "", thiet_bi_gan: v.thiet_bi_gan || "", them: { ...(v.them || {}) } }); };
+  const huy = () => { setDang(null); setFd(null); };
+  const luu = async () => {
+    const { rec, loi } = banGhiXe(fd, { D, ct, coXuong, moi: false });
+    if (loi) return fail(new Error(loi));
+    if (await run(() => api.upsertVehicles([rec]), `Đã cập nhật ${rec.ma}`)) huy();
+  };
+  const dat = (k) => (x) => setFd((o) => ({ ...o, [k]: x?.target ? x.target.value : x }));
+  const phim = (e) => { if (e.key === "Enter") { e.preventDefault(); luu(); } else if (e.key === "Escape") huy(); };
   return (
     <>
         <Card title={`Danh mục xe (${dm.length})`} icon={Database}
@@ -49,22 +60,40 @@ export default function DanhMucXe() {
           <div className="tw short">
             <table className="t">
               <thead><tr>{isAdmin && <OTickTieuDe c={c} keys={keys} />}<th>Mã xe</th><th>Đội</th><th>Model</th><th>Tải trọng · TB gắn</th><th>Tổ</th><th>Chế độ</th>{coXuong && <><th>Xưởng</th><th className="n">Hệ số</th></>}{ct.th}<th>Tình trạng</th>{isAdmin && <th className="act"></th>}</tr></thead>
-              <tbody>{dm.map((v) => (
+              <tbody>{dm.map((v) => (v.ma === dang && fd ? (
+                <tr key={v.ma} style={{ background: "color-mix(in srgb, var(--accent, #6366f1) 10%, transparent)" }} onKeyDown={phim}>
+                  {isAdmin && <td />}
+                  <td><span className="ma" style={{ cursor: "default" }}>{v.ma}</span></td>
+                  <td><Select value={fd.doi} onChange={dat("doi")} options={D.doiList} style={{ minWidth: 110 }} /></td>
+                  <td><input className="inp sm" list="dl-model-dm" value={fd.model || ""} onChange={dat("model")} style={{ minWidth: 150 }} /><datalist id="dl-model-dm">{models.map((x) => <option key={x} value={x} />)}</datalist></td>
+                  <td>{fd.doi === "Xe nâng" ? <Select value={fd.tai_trong} onChange={dat("tai_trong")} options={D.taiTrongList} blank="— chọn —" style={{ minWidth: 90 }} /> : fd.doi === "Xúc đào" ? <Select value={fd.thiet_bi_gan} onChange={dat("thiet_bi_gan")} options={[...new Set([...D.thietBiGanList, fd.thiet_bi_gan].filter(Boolean))]} blank="— chưa khai báo —" style={{ minWidth: 130 }} /> : ""}</td>
+                  <td><input className="inp sm" list="dl-to-dm" value={fd.to_xe || ""} onChange={dat("to_xe")} style={{ minWidth: 130 }} /><datalist id="dl-to-dm">{D.toList.map((x) => <option key={x} value={x} />)}</datalist></td>
+                  <td><Select value={fd.che_do} onChange={dat("che_do")} options={D.meta.cheDo || ["Đi ca", "HC"]} style={{ minWidth: 80 }} /></td>
+                  {coXuong && <><td><input className="inp sm" value={fd.xuong || ""} onChange={dat("xuong")} style={{ minWidth: 90 }} /></td><td className="n"><input className="inp sm num" inputMode="decimal" value={fd.he_so ?? ""} onChange={dat("he_so")} style={{ width: 64 }} /></td></>}
+                  {ct.cot.map((c) => <td key={c.ma} className={c.loai === "so" ? "n" : undefined}>{c.loai === "bool"
+                    ? <input type="checkbox" checked={!!fd.them?.[c.ma]} onChange={(e) => setFd((o) => ({ ...o, them: { ...(o.them || {}), [c.ma]: e.target.checked } }))} />
+                    : <input className={"inp sm" + (c.loai === "so" ? " num" : "")} inputMode={c.loai === "so" ? "decimal" : undefined} value={fd.them?.[c.ma] ?? ""} onChange={(e) => setFd((o) => ({ ...o, them: { ...(o.them || {}), [c.ma]: e.target.value } }))} style={{ minWidth: 90 }} />}</td>)}
+                  <td><StateBadge s={D.stateOf(v.ma)} /></td>
+                  <td className="act"><div className="row" style={{ gap: 4, flexWrap: "nowrap" }}>
+                    <button className="btn sm pri" onClick={luu} title="Lưu dòng (Enter)" aria-label="Lưu dòng"><Check size={13} /></button>
+                    <button className="btn sm" onClick={huy} title="Hủy sửa (Esc)" aria-label="Hủy sửa"><X size={13} /></button>
+                  </div></td>
+                </tr>
+              ) : (
                 <tr key={v.ma}>
                   {isAdmin && <OTick c={c} k={v.ma} />}
                   <td><button className="ma" onClick={() => openVehicle(v.ma)}>{v.ma}</button></td>
                   <td>{v.doi}</td><td>{v.model}</td><td>{D.taiTrongOf(v) ? <Badge tone={v.tai_trong ? "info" : "warn"} plain>{D.taiTrongOf(v)}</Badge> : D.thietBiGanOf(v) ? <Badge tone={v.thiet_bi_gan ? "accent" : ""} plain>{D.thietBiGanOf(v)}</Badge> : ""}</td><td>{shortTo(v.to_xe)}</td><td>{v.che_do}</td>{coXuong && <><td>{v.xuong}</td><td className="n">{v.he_so ?? ""}</td></>}{ct.td(v)}<td><StateBadge s={D.stateOf(v.ma)} /></td>
                   {isAdmin && <td className="act"><div className="row" style={{ gap: 4, flexWrap: "nowrap" }}>
-                    <button className="btn sm" onClick={() => setSua(v)}><Pencil size={13} />Sửa</button>
-                    <ConfirmButton onConfirm={() => run(() => api.deleteVehicle(v.ma), `Đã xóa ${v.ma}`)} title={`Xóa ${v.ma} khỏi danh mục`} />
+                    <button className="btn sm" onClick={() => bat(v)} title="Sửa tại dòng" aria-label={`Sửa ${v.ma}`}><Pencil size={13} /></button>
+                    <ConfirmButton onConfirm={() => run(() => api.deleteVehicle(v.ma), `Đã xóa ${v.ma}`)} title={`Xóa ${v.ma} khỏi danh mục`} confirmText="Xóa?"><Trash2 size={13} /></ConfirmButton>
                   </div></td>}
                 </tr>
-              ))}</tbody>
+              )))}</tbody>
             </table>
           </div>
         </Card>
       {addXe && <VehicleForm onClose={() => setAddXe(false)} />}
-      {sua && <VehicleForm v={sua} onClose={() => setSua(null)} />}
       {doiTen && <RenameToDialog onClose={() => setDoiTen(false)} />}
       {imp && <ImportDialog kind="vehicles" onClose={() => setImp(false)} />}
       {ct.hop}

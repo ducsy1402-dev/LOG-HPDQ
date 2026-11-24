@@ -38,7 +38,7 @@ export function TheThietBi({ onMo }) {
       nhan={coCo > 0 && <Badge tone="bad">{coCo} quá hạn / hỏng lâu</Badge>}
       so={`${s.ready}/${s.tong}`} donVi={`xe sẵn sàng · ${pct(s.rate, 1)}`}
       phu={`Thiết bị di động · ngưỡng sẵn sàng ${pct(D.T.ss)}`}
-      hinh={<ThanhChong phan={[[s.ss, MAU.ok, "Sẵn sàng"], [s.bddk, MAU.info, "BD định kỳ"], [s.bdcl, MAU.warn, "BD chiến lược"], [s.hong, MAU.bad, "Hỏng"]]} />}
+      hinh={<ThanhChong phan={[[s.ss, MAU.ok, "Sẵn sàng"], [s.bddk, MAU.info, "BD định kỳ"], [s.bdcl, MAU.warn, "BD chiến lược / CBM"], [s.hong, MAU.bad, "Hỏng"]]} />}
       chiSo={[
         ["Cẩu cảng sẵn sàng", sc.tong ? `${sc.ready}/${sc.tong}` : "—", TONE_TB[rateTone(sc.rate, D.T)]],
         ["Xe hỏng · BDCL", `${s.hong} · ${s.bdcl}`, s.hong ? "bad" : undefined],
