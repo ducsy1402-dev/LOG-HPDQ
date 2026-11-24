@@ -3,6 +3,7 @@
 // Dựng một lưới ô chung rồi xuất PDF (pdfmake) và Excel (ExcelJS).
 import { hangCuaChuyen, diemCua, cauTauCua } from "./phuongAn";
 import { dsGanCau } from "./thietBi";
+import { taiFontTimes } from "./pdfBang";
 
 const p2 = (n) => String(n).padStart(2, "0");
 const ngay = (t) => { if (!t) return ""; const d = new Date(t); return `${p2(d.getDate())}/${p2(d.getMonth() + 1)}/${d.getFullYear()}`; };
@@ -134,8 +135,11 @@ const tenFile = (du, plan, duoi) => `Phuong_an_${String(du.ten_tau || "tau").nor
 
 // ---------- PDF ----------
 export async function taiPdfMake() {
-  const [{ default: pdfMake }, fonts] = await Promise.all([import("pdfmake/build/pdfmake"), import("pdfmake/build/vfs_fonts")]);
-  pdfMake.vfs = fonts.default?.pdfMake?.vfs || fonts.pdfMake?.vfs || fonts.default || fonts.vfs;
+  const [{ default: pdfMake }, fonts, times] = await Promise.all([import("pdfmake/build/pdfmake"), import("pdfmake/build/vfs_fonts"), taiFontTimes()]);
+  const vfs = fonts.default?.pdfMake?.vfs || fonts.pdfMake?.vfs || fonts.default || fonts.vfs;
+  // Font Times (Tinos, như Times New Roman) cho mọi PDF; Roboto vẫn còn để mẫu cũ chưa đổi
+  pdfMake.vfs = { ...vfs, ...times.vfs };
+  pdfMake.fonts = { ...(pdfMake.fonts || {}), ...times.fonts };
   return pdfMake;
 }
 export async function xuatPdfPA(du, plan) {

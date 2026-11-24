@@ -180,7 +180,7 @@ export function RenameToDialog({ onClose }) {
     if (await run(() => api.renameTo(cu, ten), `Đã đổi "${cu}" thành "${ten}" (${nXe} xe, ${nNs} nhân sự)`)) onClose();
   };
   return (
-    <Modal title="Đổi tên tổ" onClose={onClose} width={560}
+    <Modal title="Đổi tên tổ" onClose={onClose} nho width={560}
       footer={<><button className="btn" onClick={onClose}>Hủy</button><button className="btn pri" onClick={save}>Đổi tên</button></>}>
       <div className="form-grid">
         <Field label="Tổ hiện tại" className="wide"><Select value={cu} onChange={setCu} options={D.toList} /></Field>

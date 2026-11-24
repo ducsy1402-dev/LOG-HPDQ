@@ -11,7 +11,7 @@ export default function TuDoiKeHoach() {
   const { D, api, quyen, run } = useApp();
   const dangChay = useRef(false), cuoi = useRef("");
   useEffect(() => {
-    if (!quyen.keHoachNgay || dangChay.current || !D.voyages?.length) return;
+    if (!quyen.keHoachNgay || dangChay.current || !D?.voyages?.length) return;
     // Chỉ chạy khi khoảng làm hàng của chuyến chưa rời đổi so với lần trước
     const chuaRoi = D.voyages.filter((v) => !v.huy && !chuyenDaRoi(v, D.now));
     const dau = chuaRoi.map((v) => `${v.id}:${dauMocKH(v)}`).join(",");
@@ -27,6 +27,6 @@ export default function TuDoiKeHoach() {
         await run(() => api.saveKeHoachNgay(ops), doi.size ? `Kế hoạch ngày đã dời theo lịch tàu thay đổi (${doi.size} chuyến: ${[...doi].slice(0, 3).map((id) => D.vmap?.get(id)?.ten_tau || id).join(", ")}${doi.size > 3 ? "…" : ""})` : undefined);
       } catch (e) { console.error(e); } finally { dangChay.current = false; }
     })();
-  }, [D.voyages, D.now, quyen.keHoachNgay]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [D?.voyages, D?.now, quyen.keHoachNgay]); // eslint-disable-line react-hooks/exhaustive-deps
   return null;
 }

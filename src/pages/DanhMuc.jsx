@@ -417,7 +417,7 @@ function BangSua({ nguon, icon }) {
         ) : <TEmpty>{goc.length ? "Không có dòng khớp." : `Chưa có dữ liệu.${cfg.chiSua ? " Gian / lô hiện ở đây sau khi quy hoạch ở tab Khai báo & quy hoạch (biểu tượng Quy hoạch trên từng kho / bãi)." : coSua ? " Bấm Import để nạp từ Excel hoặc Thêm để nhập tay." : ""}`}</TEmpty>}
       </TCard>
       {xoaCot && (
-        <Modal title={`Xóa cột "${xoaCot.ten}"?`} onClose={() => setXoaCot(null)} width={480}
+        <Modal title={`Xóa cột "${xoaCot.ten}"?`} onClose={() => setXoaCot(null)} nho width={480}
           footer={<><button className="btn" onClick={() => setXoaCot(null)}>Hủy</button>
             <button className="btn danger" onClick={async () => { if (await run(() => api.saveCot(nguon.bang, cotThem.filter((x) => x.ma !== xoaCot.ma).map((x, i) => ({ ma: x.ma, ten: x.ten, loai: x.loai, thu_tu: i }))), `Đã xóa cột ${xoaCot.ten}`)) setXoaCot(null); }}><Trash2 size={14} />Xóa cột</button></>}>
           <div className="small">Cột "{xoaCot.ten}" biến mất khỏi bảng, hộp sửa, Import / Xuất Excel của {cfg.ten.toLowerCase()}. Số đã ghi ở cột này không dùng lại được (thêm lại cột cùng tên là cột mới, trống).</div>
@@ -453,7 +453,7 @@ function FormDong({ cfg, r, onClose, onLuu }) {
   const set = (k, v) => setF((o) => ({ ...o, [k]: v }));
   const tenDl = (k) => `dl-${plain(cfg.ten).replace(/[^a-z0-9]+/g, "-")}-${k}`;
   return (
-    <Modal title={moi ? `Thêm ${cfg.ten.toLowerCase()}` : `Sửa ${cfg.ten.toLowerCase()} · ${hienO(r[cfg.cot[0][0]], cfg.cot[0][2])}`} onClose={onClose} width={cfg.cot.length > 6 ? 760 : 600}
+    <Modal title={moi ? `Thêm ${cfg.ten.toLowerCase()}` : `Sửa ${cfg.ten.toLowerCase()} · ${hienO(r[cfg.cot[0][0]], cfg.cot[0][2])}`} onClose={onClose} nho width={cfg.cot.length > 6 ? 720 : 560}
       footer={<><button className="btn" onClick={onClose}>Hủy</button><button className="btn pri" onClick={() => onLuu(f, moi)}><Save size={14} />Lưu</button></>}>
       {cfg.mo && <div className="small mute mb">{cfg.mo}</div>}
       <div className="form-grid">

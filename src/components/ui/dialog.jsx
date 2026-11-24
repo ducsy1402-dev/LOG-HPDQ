@@ -14,14 +14,18 @@ function beRongNoiDung(className, side) {
   return NHO[m[1]] || null;
 }
 
-export function Dialog({ open = true, onOpenChange, title, description, children, footer, className, side }) {
-  const rong = beRongNoiDung(className, side);
+// nho (24/11/2026): trên máy tính (từ 640 px) là HỘP NHỎ giữa màn hình có lớp phủ mờ, rộng theo giá trị nho (VD "46rem"; true = 40rem); điện thoại vẫn toàn màn hình.
+export function Dialog({ open = true, onOpenChange, title, description, children, footer, className, side, nho }) {
+  const rong = nho ? null : beRongNoiDung(className, side);
+  const beRongHop = nho ? (nho === true ? "40rem" : nho) : null;
   return (
     <D.Root open={open} onOpenChange={onOpenChange}>
       <D.Portal>
+        {nho && <D.Overlay className="fixed inset-0 z-50 hidden bg-black/50 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 sm:block" />}
         <D.Content
           data-tmh="" data-hop=""
-          className="fixed inset-0 z-50 flex flex-col bg-background focus:outline-none data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-bottom-2 data-[state=open]:duration-200 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-bottom-2 data-[state=closed]:duration-150">
+          style={beRongHop ? { "--hop-w": beRongHop } : undefined}
+          className={(nho ? "sm:inset-0 sm:m-auto sm:h-fit sm:max-h-[90vh] sm:w-[min(94vw,var(--hop-w))] sm:rounded-xl sm:border sm:shadow-2xl sm:overflow-hidden " : "") + "fixed inset-0 z-50 flex flex-col bg-background focus:outline-none data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-bottom-2 data-[state=open]:duration-200 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-bottom-2 data-[state=closed]:duration-150"}>
           <div className="flex shrink-0 items-center gap-2 border-b bg-card px-2 py-1.5 sm:px-3">
             <D.Close className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-foreground transition-colors hover:bg-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring" aria-label="Quay lại" data-tip="Quay lại (Esc)">
               <ArrowLeft className="h-5 w-5" />

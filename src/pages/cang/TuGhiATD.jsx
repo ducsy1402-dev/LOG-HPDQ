@@ -12,7 +12,7 @@ export default function TuGhiATD() {
   const { D, quyen, api, run } = useApp();
   const daThu = useRef(new Set()), dangChay = useRef(false);
   useEffect(() => {
-    if (!quyen.nhap || dangChay.current || !D.voyages?.length) return;
+    if (!quyen.nhap || dangChay.current || !D?.voyages?.length) return;
     const ds = chuyenCanGhiATD(D.voyages, D.now);
     if (!ds.length) return;
     const dau = ds.map((v) => v.id).join(",");
@@ -21,6 +21,6 @@ export default function TuGhiATD() {
     dangChay.current = true;
     run(async () => { for (const v of ds) await api.updateVoyage(v.id, { atd: v.etd }); }, `Web đã ghi ATD = ETD cho ${ds.length} chuyến đã qua giờ rời dự kiến: ${ds.slice(0, 3).map((v) => v.ten_tau).join(", ")}${ds.length > 3 ? "…" : ""}`)
       .finally(() => { dangChay.current = false; });
-  }, [D.voyages, D.now, quyen.nhap]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [D?.voyages, D?.now, quyen.nhap]); // eslint-disable-line react-hooks/exhaustive-deps
   return null;
 }

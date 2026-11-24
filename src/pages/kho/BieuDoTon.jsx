@@ -1,28 +1,25 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { Boxes, TrendingUp, ArrowLeftRight, LineChart, ChevronLeft, ChevronRight } from "lucide-react";
+import { Boxes, ArrowLeftRight, LineChart, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useApp } from "@/store";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { NativeSelect } from "@/components/ui/input";
 import EChart, { tooltipGon } from "@/components/EChart";
-import { so, pct, r2, plain } from "@/lib/format";
-import { khuCuaKeHoach, ngayStr, khaiBaoBai, khoaTenBai } from "@/lib/kho";
+import { so, pct, r2 } from "@/lib/format";
+import { ngayStr, khaiBaoBai, khoaTenBai } from "@/lib/kho";
 import { chuoiKho } from "@/lib/bieuDoKho";
 import { khoaKy, dsKy, tenKy, khoangKy as khoangKhoa } from "@/lib/ky";
 import { khoangKy } from "@/lib/bieuDoSanLuong";
-import { ngayCuaKeHoach } from "@/lib/keHoachKy";
 import { mucDay } from "./khoUi";
 
 // Ba biểu đồ của mỗi tab kho ở Khai thác kho bãi (anh Sỹ chốt 13/11/2026):
 //   1. Tồn theo bãi nhỏ: thanh tồn (màu theo mức lấp đầy) đè lên thanh sức chứa; lọc theo bãi lớn.
 //   2. Nhập / xuất kho — kế hoạch / thực tế: lũy kế theo ngày của tháng chọn (kế hoạch nét đứt, thực tế nét liền).
-//   3. Dự báo tồn theo loại hàng N ngày tới: mỗi ngày tồn + nhập − xuất; nhập / xuất lấy kế hoạch tháng (Kế hoạch Xuất/Nhập tồn, chia đều theo ngày) nếu có,
-//      không có thì bình quân 30 ngày gần nhất theo sổ. Tồn không âm; ghi ngày dự kiến hết hàng.
+//   (Biểu đồ thứ 3 «Dự báo tồn kho» đã bỏ 24/11/2026 theo yêu cầu của anh Sỹ.)
 // kho: bản kho đã lọc theo tab (locKhoTheoTab); loai: thanh_pham | nguyen_lieu.
 const MAU = { ok: "#10b981", warn: "#f59e0b", bad: "#f43f5e", xam: "#64748b" };
 const MAU_NHAP = "#6366f1", MAU_XUAT = "#38bdf8";
-const DAY = 864e5;
 
 // Chọn kỳ Tháng / Quý / Năm cho biểu đồ (mỗi biểu đồ một bộ riêng, nhớ kỳ đã chọn của từng loại)
 const KY_KHO = [["thang", "Tháng"], ["quy", "Quý"], ["nam", "Năm"]];
@@ -182,78 +179,5 @@ export function TonBaiNho({ kho, loai, baiLon }) {
               ],
             }} /></div> : <p className="py-8 text-center text-sm text-muted-foreground">Chưa có bãi nhỏ.</p>}
     </>
-  );
-}
-
-// Thẻ "Dự báo tồn kho" (biểu đồ đường N ngày tới theo hàng); dùng ở tab Kho hàng rời
-export function DuBaoTonKho({ loai, kho }) {
-  const { D } = useApp();
-  const [soNgay, setSoNgay] = useState(30), [hangDB, setHangDB] = useState("");
-  const cap = useMemo(() => kho.cap.filter((c) => c.loai === loai && c.ton > 1e-6), [kho, loai]);
-
-  // 3. Dự báo tồn theo loại hàng
-  const duBao = useMemo(() => {
-    const dongOk = kho.dong.filter((d) => !d.saiBai), loaiKey = new Map(kho.dong.map((d) => [d.key, d.loai]));
-    const loaiOf = (b, h) => loaiKey.get(kho.gan(b, h));
-    const ten = new Map(), tonH = new Map();
-    for (const c of cap) { const k = plain(c.hang); if (!ten.has(k)) ten.set(k, c.hang); tonH.set(k, (tonH.get(k) || 0) + c.ton); }
-    const homNay = ngayStr(D.now), tu30 = ngayStr(D.now - 30 * DAY), bq = new Map();
-    for (const g of D.giaoDich || []) {
-      const n = String(g.ngay).slice(0, 10);
-      if (n <= tu30 || n > homNay || (g.loai !== "nhap" && g.loai !== "xuat") || loaiOf(g.ten_bai, g.hang) !== loai) continue;
-      const k = plain(g.hang), o = bq.get(k) || { n: 0, x: 0 };
-      o[g.loai === "nhap" ? "n" : "x"] += (+g.so_luong || 0) / 30; bq.set(k, o);
-      if (!ten.has(k)) ten.set(k, g.hang);
-    }
-    const kh = new Map();
-    for (const r of D.khoKeHoach || []) {
-      const d = khuCuaKeHoach(r, dongOk); if (!d || d.loai !== loai) continue;
-      const hang = r.hang || d.hang; if (!hang) continue;
-      const k = plain(hang), c = r.huong === "xuat" ? "x" : "n", nd = ngayCuaKeHoach(r), moi = (+r.khoi_luong || 0) / (nd.length || 1);
-      for (const n of nd) { const khoa = `${k}|${n}`, o = kh.get(khoa) || { n: null, x: null }; o[c] = (o[c] || 0) + moi; kh.set(khoa, o); } // kế hoạch chia đều theo ngày của kỳ (ngày / tuần / tháng / năm)
-      if (!ten.has(k)) ten.set(k, hang);
-    }
-    const ngays = Array.from({ length: soNgay + 1 }, (_, i) => ngayStr(D.now + i * DAY));
-    const ds = [...ten.keys()].map((k) => {
-      let t = tonH.get(k) || 0, het = null, coKH = false;
-      const diem = [r2(t)], a = bq.get(k) || { n: 0, x: 0 };
-      for (let i = 1; i < ngays.length; i++) {
-        const p = kh.get(`${k}|${ngays[i]}`);
-        if (p) coKH = true;
-        t = Math.max(0, t + (p?.n ?? a.n) - (p?.x ?? a.x));
-        if (t <= 1e-6 && het == null && (tonH.get(k) || 0) > 0) het = ngays[i];
-        diem.push(r2(t));
-      }
-      return { k, ten: ten.get(k), ton: tonH.get(k) || 0, diem, het, coKH };
-    }).filter((x) => x.ton > 0 || x.diem.some((v) => v > 0)).sort((a, b) => b.ton - a.ton);
-    return { ngays, ds };
-  }, [kho, cap, loai, soNgay, D.giaoDich, D.khoKeHoach, D.now]);
-  const hien = hangDB ? duBao.ds.filter((x) => x.k === hangDB) : duBao.ds.slice(0, 6);
-  const nhanNgay = (s) => `${s.slice(8, 10)}/${s.slice(5, 7)}`;
-
-  return (
-      <Card>
-        <CardHeader><CardTitle><TrendingUp />Dự báo tồn kho</CardTitle>
-          <NativeSelect className="ml-auto h-7 w-48 text-xs" value={hangDB} onChange={(e) => setHangDB(e.target.value)} placeholder="6 hàng tồn nhiều nhất" options={duBao.ds.map((x) => [x.k, x.ten])} />
-          <NativeSelect className="h-7 w-28 text-xs" value={String(soNgay)} onChange={(e) => setSoNgay(+e.target.value)} options={[["15", "15 ngày"], ["30", "30 ngày"], ["60", "60 ngày"], ["90", "90 ngày"]]} />
-        </CardHeader>
-        <CardContent className="grid gap-2">
-          {hien.length ? <EChart height={340} option={{
-            tooltip: tooltipGon(10),
-            legend: { type: "scroll" },
-            xAxis: { type: "category", boundaryGap: false, data: duBao.ngays.map(nhanNgay), axisLabel: { fontSize: 10 } },
-            yAxis: { type: "value", axisLabel: { fontSize: 10 } },
-            series: hien.map((x) => ({ name: x.ten, type: "line", symbol: "none", data: x.diem, ...(hien.length === 1 ? { areaStyle: {} } : {}) })),
-          }} /> : <p className="py-8 text-center text-sm text-muted-foreground">Chưa có số liệu để dự báo.</p>}
-          {hien.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 text-xs">
-              {hien.map((x) => (
-                <span key={x.k} className={`rounded-full border px-2 py-0.5 ${x.het ? "border-bad/50 bg-bad/10 text-bad" : "text-muted-foreground"}`}>
-                  {x.ten}: {so(x.ton, 0)} t → {so(x.diem[x.diem.length - 1], 0)} t{x.het ? ` · hết hàng ~${nhanNgay(x.het)}` : ""}{x.coKH ? " · theo kế hoạch" : " · theo bình quân 30 ngày"}
-                </span>))}
-            </div>)}
-          <p className="text-[0.6875rem] text-muted-foreground">Mỗi ngày: tồn + nhập − xuất. Nhập / xuất lấy kế hoạch tháng (nút Kế hoạch xuất/nhập kho, chia đều theo ngày) nếu có, không có thì lấy bình quân 30 ngày gần nhất theo sổ nhập – xuất. Tồn không xuống dưới 0.</p>
-        </CardContent>
-      </Card>
   );
 }
