@@ -8,7 +8,7 @@ import { useThietBi } from "@/thietbi/Host";
 import { so, plain } from "@/lib/format";
 import { docSo } from "@/lib/paste";
 import { ngayStr, khuChoPhepHang } from "@/lib/kho";
-import { tinhTonDau, luotTonDau } from "@/lib/tonDau";
+import { tinhTonDau, luotTonDau, ngayVN } from "@/lib/tonDau";
 import { cn } from "@/lib/utils";
 import { caHienTai, dsCa, tenCa } from "./GiaoDichForm";
 
@@ -21,7 +21,8 @@ const ss = (a, b) => String(a).localeCompare(String(b), "vi", { numeric: true, s
 const TRONG = { bai: "", khuKey: "", hang: "", tonDau: "", nhap: "", xuat: "", dc: "", denBai: "", denKhu: "", ghi_chu: "" };
 
 export default function NhapXuatBang({ loaiKho, kho, onDan, onXong }) {
-  const { D, api, run, toast } = useApp();
+  const { D, api, run, toast, fail } = useApp();
+  const [dangLuu, setDangLuu] = useState(false);
   const tbD = useThietBi()?.D;
   const hh = kho.hangHoa || [];
   const coBaiNho = !!D.coSql12;
@@ -62,9 +63,9 @@ export default function NhapXuatBang({ loaiKho, kho, onDan, onXong }) {
   const chonDenBai = (r, b) => { const ks = khuCuaBai(b).filter((d) => d.key !== r.khuKey); dat(r._k, { denBai: b, denKhu: ks.length === 1 ? ks[0].key : "" }); };
 
   const coSo = (r) => ["tonDau", "nhap", "xuat", "dc"].some((k) => String(r[k]).trim() !== "");
-  // Kiểm tra cả bảng, trả { recs, loi }
-  const lap = () => {
-    const recs = [], delta = new Map(), nhan = new Map(), coTonDau = new Set();
+  // Kiểm tra cả bảng, trả { recs, canh, loi }. gd = sổ dùng để tính tồn đầu: lúc gõ là sổ đã tải (xem trước), lúc LƯU là sổ đầy đủ vừa lấy mới từ CSDL
+  const lap = (gd = D.giaoDich || []) => {
+    const recs = [], canh = [], delta = new Map(), nhan = new Map(), coTonDau = new Set();
     const cong = (key, hang, x, ten) => { const k = `${key}|${plain(hang)}`; delta.set(k, (delta.get(k) || 0) + x); nhan.set(k, ten); };
     for (let i = 0; i < f.length; i++) {
       const r = f[i];
@@ -84,11 +85,13 @@ export default function NhapXuatBang({ loaiKho, kho, onDan, onXong }) {
       if (tdS) {
         const X = docSo(tdS), kk = `${kr.key}|${plain(tenHang)}`;
         if (X == null || !(X >= 0)) return loi("Tồn đầu phải là số không âm");
-        if (ngay < ngayStr(Date.now() - 30 * 864e5)) return loi("Tồn đầu chỉ khai cho ngày trong 30 ngày gần đây");
         if (coTonDau.has(kk)) return loi(`hai dòng cùng khai tồn đầu của ${tenGian} · ${tenHang}`);
         coTonDau.add(kk);
-        const td = tinhTonDau({ kho, giaoDich: D.giaoDich || [], key: kr.key, hang: tenHang, ngay, tonDau: X });
-        const luot = luotTonDau({ ngay, ca: tenCa(tbD, ngay, ca), kr, hang: tenHang, tonDau: X, ...td, ghi_chu: base.ghi_chu, ghiCa: true });
+        const td = tinhTonDau({ gan: kho.gan, giaoDich: gd, key: kr.key, hang: tenHang, ngay, tonDau: X });
+        // Chỉ tồn đầu của NGÀY MỚI NHẤT có hiệu lực: khai cho ngày cũ hơn ngày đã khai thì chặn (làm lệch tồn hiện tại); khai lại đúng ngày đã khai thì cảnh báo và cập nhật số mới
+        if (td.cu) return loi(`${tenGian} · ${tenHang} đã có tồn đầu ngày ${ngayVN(td.moiNhat.ngay)} (${so(td.moiNhat.so)} t) mới hơn ngày đang chọn. Chỉ lấy tồn đầu ngày mới nhất: chọn ngày ${ngayVN(td.moiNhat.ngay)} (khai lại) hoặc ngày sau đó`);
+        if (td.trung) canh.push(`${tenGian} · ${tenHang}: ngày ${ngayVN(ngay)} đã khai tồn đầu ${so(td.moiNhat.so)} t, lần này ${Math.abs(td.moiNhat.so - X) < 1e-9 ? "giữ nguyên" : `cập nhật thành ${so(X)} t (số mới thay số cũ, không cộng dồn)`}`);
+        const luot = luotTonDau({ ngay, ca: tenCa(tbD, ngay, ca), kr, hang: tenHang, tonDau: X, ...td, ghi_chu: base.ghi_chu, ghiCa: !td.trung }); // khai lại cùng ngày mà số không đổi thì khỏi ghi thêm lượt 0
         if (luot) recs.push(luot);
         cong(kr.key, tenHang, td.delta, `${tenGian} · ${tenHang}`);
       }
@@ -122,16 +125,24 @@ export default function NhapXuatBang({ loaiKho, kho, onDan, onXong }) {
       // d đã gồm cả nhập / điều chuyển đến của bảng: tồn sau khi ghi = t + d
       if (t + d < -1e-6) return { loi: `Vượt tồn: ${nhan.get(k)} đang có ${so(t)} t, sau khi ghi bảng này còn âm ${so(-(t + d))} t` };
     }
-    return { recs };
+    return { recs, canh };
   };
-  const { recs, loi } = useMemo(lap, [f, ngay, ca]); // eslint-disable-line react-hooks/exhaustive-deps
+  const { recs, canh, loi } = useMemo(() => lap(), [f, ngay, ca, D.giaoDich]); // eslint-disable-line react-hooks/exhaustive-deps
   const tong = (c) => f.reduce((s, r) => s + (docSo(r[c]) || 0), 0);
   const luu = async () => {
     if (loi) return toast(loi, "bad");
-    if (!recs.length) return toast("Chưa có lượt nào: nhập số ở ô Tồn đầu, Nhập, Xuất hoặc Điều chuyển", "bad");
-    const dm = (lg) => recs.filter((x) => x.loai === lg).length;
-    const ok = await run(() => api.addGiaoDich(recs), `Đã ghi ${recs.length} lượt: ${[["dau_ky", "tồn đầu"], ["nhap", "nhập"], ["xuat", "xuất"], ["dieu_chuyen", "điều chuyển"]].filter(([k]) => dm(k)).map(([k, t]) => `${dm(k)} ${t}`).join(", ")}`);
-    if (ok) onXong();
+    if (!recs.length && !canh?.length) return toast("Chưa có lượt nào: nhập số ở ô Tồn đầu, Nhập, Xuất hoặc Điều chuyển", "bad");
+    setDangLuu(true);
+    try {
+      // Tồn đầu: lấy sổ ĐẦY ĐỦ mới nhất từ CSDL rồi tính lại (không dùng số đã tải, có thể cũ hoặc thiếu) để chắc chắn không cộng dồn
+      const bais = [...new Set(f.filter((r) => String(r.tonDau).trim() && r.bai).map((r) => r.bai))];
+      const moi = bais.length ? lap(await api.loadGiaoDichBai(bais)) : { recs, canh };
+      if (moi.loi) return toast(moi.loi, "bad");
+      if (!moi.recs.length) return toast(moi.canh.length ? `Không có gì để ghi: ${moi.canh.join("; ")}` : "Chưa có lượt nào", "warn");
+      const dm = (lg) => moi.recs.filter((x) => x.loai === lg).length;
+      const ok = await run(() => api.addGiaoDich(moi.recs), `Đã ghi ${moi.recs.length} lượt: ${[["dau_ky", "tồn đầu"], ["nhap", "nhập"], ["xuat", "xuất"], ["dieu_chuyen", "điều chuyển"]].filter(([k]) => dm(k)).map(([k, t]) => `${dm(k)} ${t}`).join(", ")}${moi.canh.length ? `. Đã cập nhật lại tồn đầu: ${moi.canh.join("; ")}` : ""}`);
+      if (ok) onXong();
+    } catch (e) { fail(e); } finally { setDangLuu(false); }
   };
   const caOpts = dsCa(tbD, ngay).map(([v, t, gio]) => [v, gio ? `${t} ${gio}` : t]);
 
@@ -190,10 +201,11 @@ export default function NhapXuatBang({ loaiKho, kho, onDan, onXong }) {
         </table>
       </div>
       {loi && coSoBang(f) && <p className="rounded-md border border-bad/40 bg-bad/5 px-3 py-1.5 text-xs text-bad">{loi}</p>}
+      {!loi && canh?.length > 0 && <div className="rounded-md border border-warn/40 bg-warn/5 px-3 py-1.5 text-xs text-warn"><b>Cảnh báo, tồn đầu đã khai trong ngày:</b>{canh.map((c, i) => <div key={i}>{c}</div>)}</div>}
       <div className="flex flex-wrap items-center gap-2">
         <p className="flex-1 text-[0.6875rem] text-muted-foreground">Chọn bãi và gian / lô rồi nhập số ở ô Tồn đầu, Nhập, Xuất và / hoặc Điều chuyển (điều chuyển chọn thêm bãi › gian/lô đến). Số tính bằng tấn. <b>Tồn đầu</b> là số tồn đầu ngày đang chọn: lần khai báo gần nhất thay các lần trước, không cộng dồn. Một dòng ghi được nhiều lượt; Lưu ghi tất cả một lần. Hàng để trống thì tự điền theo hàng của gian / lô.</p>
         <Button size="sm" variant="outline" onClick={() => setF((o) => [dongMoi({ bai: o[0]?.bai || "" }), ...o])}><Plus />Thêm dòng</Button>
-        <Button size="sm" disabled={!recs?.length || !!loi} onClick={luu}><Save />Lưu{recs?.length ? ` ${recs.length} lượt` : ""}</Button>
+        <Button size="sm" disabled={(!recs?.length && !canh?.length) || !!loi || dangLuu} onClick={luu}><Save />Lưu{recs?.length ? ` ${recs.length} lượt` : ""}</Button>
       </div>
     </div>
   );

@@ -88,6 +88,7 @@ export function makeDemoApi() {
     async deleteGiaoDich(id) { can("quan_ly"); await wait(); db.giaoDich = db.giaoDich.filter((x) => x.id !== id); },
     async saveLo(rows) { can("nhap"); await wait(); for (const r of rows) { const i = db.khoLo.findIndex((x) => x.so_lo === r.so_lo); if (i >= 0) db.khoLo[i] = { ...db.khoLo[i], ...clone(r) }; else db.khoLo.push(clone(r)); } },
     async docMaChuyen(ten, nam) { await wait(); const p = `${ten} / ${nam} / `.toLowerCase(); return db.voyages.map((v) => v.ma_chuyen).filter((m) => String(m || "").toLowerCase().startsWith(p)); },
+    async loadGiaoDichBai(bais) { await wait(); const ds = new Set(bais || []); return clone(db.giaoDich.filter((g) => ds.has(g.ten_bai) || ds.has(g.den_bai))); },
     async loadGiaoDichKhoang(tu, den) { await wait(); return clone(db.giaoDich.filter((g) => g.ngay >= tu && g.ngay <= den)); },
     async loadEvents(vid) { await wait(60); return clone(db.events.filter((e) => e.voyage_id === vid).sort((a, b) => a.thoi_diem.localeCompare(b.thoi_diem))); },
     async loadEventsMany(ids) { await wait(60); const s = new Set(ids); return clone(db.events.filter((e) => s.has(e.voyage_id))); },
