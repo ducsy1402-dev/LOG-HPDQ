@@ -316,7 +316,7 @@ export default function TongQuanMoi({ onMo, go, tongCanhBao }) {
                   series: [{ type: "bar", barMaxWidth: 14, itemStyle: { color: MAU.bad, opacity: 0.85 }, label: { show: true, position: "right", fontSize: 10 }, data: Object.entries(tbm.hongTheoDoi).sort((a, b) => b[1] - a[1]).map(([, v]) => v) }] }} />
               ) : <ChuaCo>Không có lần hỏng nào trong kỳ.</ChuaCo>}
             </Khung>
-            <Khung cao={CAO} ten="Hỏng lâu nhất" phu="đang chờ sửa" onChiTiet={() => go("thiet-bi/su-kien")}>
+            <Khung cao={CAO} ten="Hỏng lâu nhất" phu="đang chờ sửa">
               {tbm.hongLau.length ? (
                 <ul className="grid gap-1 text-xs">
                   {tbm.hongLau.slice(0, 6).map((e, i) => (
@@ -329,7 +329,7 @@ export default function TongQuanMoi({ onMo, go, tongCanhBao }) {
             </Khung>
           </div>
           {chiTiet("doi", "Bảng đội xe (từng thiết bị, đỏ = hỏng)",
-            <Khung ten="Bảng đội xe" phu="mỗi ô một thiết bị · đỏ hỏng · tím bảo dưỡng chiến lược" onChiTiet={() => onMo("thiet-bi")}>
+            <Khung ten="Bảng đội xe" phu="mỗi ô một thiết bị · đỏ hỏng · tím bảo dưỡng chiến lược">
               <BangDoiXe nhom={tbm.nhom} onXe={() => go("thiet-bi/su-kien")} />
             </Khung>)}
         </MangTQ>)}
