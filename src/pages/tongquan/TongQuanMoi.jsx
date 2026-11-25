@@ -185,9 +185,12 @@ export default function TongQuanMoi({ onMo, go, tongCanhBao }) {
   const toneTB = tbm ? toneNang(tone(tbm.xe.rateHT, tbm.ss, tbm.red), tbm.cau ? tone(tbm.cau.rateHT, tbm.ss, tbm.red) : null) : null;
   const gTB = tbm ? tbm.xe : null;
   const sucKhoe = [];
-  if (coCang) sucKhoe.push(<TheSucKhoe key="sl" icon={IcSanLuong} ten="Sản lượng" giaTri={tdC?.dat != null ? pct(tdC.dat) : "—"} nhan={tdC?.mt ? "đạt mục tiêu kỳ" : "chưa đặt mục tiêu"} tone={toneSL} onClick={() => cuon("mang-sl")}
-    gauge={{ v: tdC?.dat, max: 1.2, mau: MAU_T[toneSL], vung: [[0, 0.9, MAU.bad], [0.9, 1, MAU.warn], [1, 1.2, MAU.ok]] }}
-    dong={tdC ? (tdC.duBaoDat != null && !tdC.xong ? `Dự báo cuối kỳ ${pct(tdC.duBaoDat)} · ${tdC.lech >= 0 ? "vượt" : "thiếu"} ${nghin(Math.abs(tdC.lech))} t so kế hoạch đến nay` : "") : "Đang tải…"} />);
+  // Hai thẻ sản lượng riêng (anh Sỹ 25/11/2026): sản lượng qua cảng (số xuất / nhập cảng) và sản lượng vận tải (số vận tải), mỗi thẻ có màu và dự báo riêng
+  if (coCang) for (const [k, ten, td] of [["sl-cang", "Sản lượng qua cảng", tdC], ["sl-vt", "Sản lượng vận tải", tdV]]) {
+    sucKhoe.push(<TheSucKhoe key={k} icon={IcSanLuong} ten={ten} giaTri={td?.dat != null ? pct(td.dat) : "—"} nhan={td?.mt ? "đạt mục tiêu kỳ" : "chưa đặt mục tiêu"} tone={td?.tone} onClick={() => cuon("mang-sl")}
+      gauge={{ v: td?.dat, max: 1.2, mau: MAU_T[td?.tone], vung: [[0, 0.9, MAU.bad], [0.9, 1, MAU.warn], [1, 1.2, MAU.ok]] }}
+      dong={td ? (td.duBaoDat != null && !td.xong ? `Dự báo cuối kỳ ${pct(td.duBaoDat)} · ${td.lech >= 0 ? "vượt" : "thiếu"} ${nghin(Math.abs(td.lech))} t so kế hoạch đến nay` : "") : "Đang tải…"} />);
+  }
   if (coCang) sucKhoe.push(<TheSucKhoe key="cb" icon={IcCau} ten="Cầu bến" giaTri={cb?.bor != null ? pct(cb.bor) : "—"} nhan="chiếm bến (BOR)" tone={toneCB} onClick={() => cuon("mang-cb")}
     gauge={{ v: cb?.bor, max: 1, mau: MAU_T[toneCB], vung: [[0, NGUONG.borThap, MAU.xam], [NGUONG.borThap, NGUONG.borVang, MAU.ok], [NGUONG.borVang, NGUONG.borDo, MAU.warn], [NGUONG.borDo, 1, MAU.bad]] }}
     dong={cb ? `${cb.dangCho} tàu chờ · ${cb.dangO} tàu ở bến${cb.choTB != null ? ` · chờ TB ${gio1(cb.choTB)}` : ""}` : ""} />);
