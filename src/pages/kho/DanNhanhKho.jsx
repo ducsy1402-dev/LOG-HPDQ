@@ -8,7 +8,7 @@ import { MucIcon } from "@/components/common";
 import { tachBang, docSo, docNgayGio, doanThuTuNgay } from "@/lib/paste";
 import { LOAI_GD, ngayStr, khuNhan, goiYBai, khuChoPhepHang } from "@/lib/kho";
 import { so, plain } from "@/lib/format";
-import { tinhTonDau, luotTonDau } from "@/lib/tonDau";
+import { tinhTonDau, luotTonDau, chonTonDauMoiNhat, ngayVN } from "@/lib/tonDau";
 
 const TRUONG = [
   { k: "ngay", ten: "Ngày", bi: ["ngay", "ngay thang", "date", "ngay nhap", "ngay xuat"] },
@@ -33,6 +33,7 @@ const docNgay = (x, thuTu) => { if (x == null || x === "") return ngayStr(Date.n
 // thiếu bãi: suy ra từ cột Gian/lô (gian / lô chỉ có ở một bãi), không có thì theo hàng (nhập: bãi gợi ý nhận hàng; xuất: bãi đang tồn nhiều hàng đó nhất).
 export default function DanNhanhKho({ loaiKho, kho, onClose }) {
   const { D, api, run, toast, fail } = useApp();
+  const [dangLuu, setDangLuu] = useState(false);
   const [text, setText] = useState("");
   const [bang, setBang] = useState(null);
   const [cot, setCot] = useState([]);
@@ -59,7 +60,14 @@ export default function DanNhanhKho({ loaiKho, kho, onClose }) {
   const baiDm = new Map(dongKhoNay.map((d) => [plain(d.ten_bai), d.ten_bai]));
   const dong = bang ? (coTieuDe ? bang.slice(1) : bang) : [];
   const thuTuNgay = useMemo(() => doanThuTuNgay(dong.map((o) => o[cot.indexOf("ngay")])), [dong, cot]); // dd/mm hay mm/dd: theo cả cột Ngày
-  const kq = useMemo(() => dong.map((o) => {
+  // Tồn đầu kỳ trong bảng: mỗi gian / lô + hàng chỉ lấy dòng NGÀY MỚI NHẤT (cùng ngày thì dòng cuối); các dòng còn lại bỏ và báo ngay ở cột Kết quả
+  const khoaTonDau = (r) => { const kr = kho.dong.find((d) => d.key === kho.gan(r.ten_bai, r.hang, r.ten_khu)); return kr && !kr.saiBai ? { kr, khoa: `${kr.key}|${plain(r.hang)}` } : null; };
+  const canhTonDau = (ds) => {
+    const dau = ds.filter((x) => x && !x.loi.length && x.rec.loai === "dau_ky").map((x) => { const k = khoaTonDau(x.rec); return k ? { x, khoa: k.khoa, ngay: x.rec.ngay } : null; }).filter(Boolean);
+    for (const { y, lyDo, thay } of chonTonDauMoiNhat(dau).bo) y.x.canh.push(lyDo === "trung" ? `Cùng ngày với dòng tồn đầu khác của gian/lô này: chỉ lấy dòng cuối (${so(thay.x.rec.so_luong)} t), dòng này bỏ` : `Bỏ qua: gian/lô này còn dòng tồn đầu ngày ${ngayVN(thay.ngay)} mới hơn, chỉ lấy tồn đầu ngày mới nhất`);
+    return ds;
+  };
+  const kq = useMemo(() => canhTonDau(dong.map((o) => {
     if (o.every((c) => c === "" || c == null)) return null;
     const r = {}; cot.forEach((k, i) => { if (k) r[k] = o[i]; });
     const loi = [], canh = [];
@@ -104,29 +112,42 @@ export default function DanNhanhKho({ loaiKho, kho, onClose }) {
       so_luong: sl, so_lo: String(r.so_lo ?? "").trim() || null, nguon: loai === "nhap" ? (loaiKho === "thanh_pham" ? "san_xuat" : "khac") : loai === "xuat" ? (loaiKho === "thanh_pham" ? "don_hang" : "cap_sx") : null,
       chung_tu: String(r.chung_tu ?? "").trim() || null, ghi_chu: String(r.ghi_chu ?? "").trim() || null };
     return { rec, loi, canh, chuaBai };
-  }), [dong, cot, loaiMD]); // eslint-disable-line react-hooks/exhaustive-deps
+  })), [dong, cot, loaiMD]); // eslint-disable-line react-hooks/exhaustive-deps
   const hopLe = kq.filter((x) => x && !x.loi.length);
   const nChuaBai = kq.filter((x) => x?.chuaBai).length;
   const moDanhMuc = () => { try { localStorage.setItem("lg-danh-muc-tab", "kho"); } catch { /* bỏ qua */ } onClose(); location.hash = "#/danh-muc"; };
   const luu = async () => {
     if (nChuaBai) return toast(`${nChuaBai} dòng chưa có bãi chứa: khai báo ở Danh mục › Kho bãi rồi dán lại`, "bad");
-    // Tồn đầu kỳ: ĐẶT LẠI (không cộng dồn): quy thành lượt bù chênh lệch với tồn sổ đầu ngày; cùng gian / lô, hàng, ngày thì dòng sau thay dòng trước
-    const rows = [], tdMoi = new Map();
+    // Tồn đầu kỳ: ĐẶT LẠI (không cộng dồn): quy thành lượt bù chênh lệch với tồn sổ đầu ngày. Mỗi gian / lô + hàng chỉ lấy dòng NGÀY MỚI NHẤT trong bảng (cùng ngày thì dòng cuối);
+    // so với sổ: ngày cũ hơn ngày đã khai thì chặn cả lần lưu, đúng ngày đã khai thì cảnh báo và thay số cũ bằng số mới. Sổ lấy mới đầy đủ từ CSDL lúc lưu.
+    const rows = [], dau = [];
     for (const x of hopLe) {
       const r = x.rec;
       if (r.loai !== "dau_ky") { rows.push(r); continue; }
-      const kr = kho.dong.find((d) => d.key === kho.gan(r.ten_bai, r.hang, r.ten_khu));
-      if (!kr || kr.saiBai) { rows.push(r); continue; }
-      tdMoi.set(`${kr.key}|${plain(r.hang)}|${r.ngay}`, { r, kr });
+      const k = khoaTonDau(r);
+      if (!k) { rows.push(r); continue; }
+      dau.push({ r, kr: k.kr, khoa: k.khoa, ngay: r.ngay });
     }
-    for (const { r, kr } of tdMoi.values()) {
-      const td = tinhTonDau({ kho, giaoDich: D.giaoDich || [], key: kr.key, hang: r.hang, ngay: r.ngay, tonDau: r.so_luong });
-      const luot = luotTonDau({ ngay: r.ngay, ca: r.ca, kr, hang: r.hang, tonDau: r.so_luong, ...td, ghi_chu: r.ghi_chu, ghiCa: true });
-      if (luot) rows.push({ ...luot, den_bai: null, den_khu: null });
-    }
-    const loMoi = [...new Map(rows.filter((r) => r.so_lo && (r.loai === "nhap" || r.loai === "dau_ky") && !(D.khoLo || []).some((l) => l.so_lo === r.so_lo)).map((r) => [r.so_lo, { so_lo: r.so_lo, hang: r.hang, ngay_nhap: r.ngay, trang_thai: "san_sang" }])).values()];
-    const ok = await run(async () => { await api.addGiaoDich(rows); if (loMoi.length) await api.saveLo(loMoi); }, `Đã ghi ${rows.length} lượt${loMoi.length ? `, thêm ${loMoi.length} lô` : ""}`);
-    if (ok) onClose();
+    setDangLuu(true);
+    try {
+      const { giu, bo } = chonTonDauMoiNhat(dau);
+      const canh = bo.map(({ y, lyDo, thay }) => `${y.kr.ten_bai} › ${y.kr.ten} · ${y.r.hang}: ${lyDo === "trung" ? `trùng ngày ${ngayVN(y.ngay)}, lấy dòng cuối` : `bỏ tồn đầu ngày ${ngayVN(y.ngay)} vì có ngày ${ngayVN(thay.ngay)} mới hơn`}`);
+      const gd = giu.length ? await api.loadGiaoDichBai(giu.map((y) => y.r.ten_bai)) : [];
+      const loi = [];
+      for (const y of giu) {
+        const ten = `${y.kr.ten_bai} › ${y.kr.ten} · ${y.r.hang}`;
+        const td = tinhTonDau({ gan: kho.gan, giaoDich: gd, key: y.kr.key, hang: y.r.hang, ngay: y.r.ngay, tonDau: y.r.so_luong });
+        if (td.cu) { loi.push(`${ten} đã có tồn đầu ngày ${ngayVN(td.moiNhat.ngay)} (${so(td.moiNhat.so)} t) mới hơn ngày ${ngayVN(y.r.ngay)}: chỉ lấy tồn đầu ngày mới nhất`); continue; }
+        if (td.trung) canh.push(`${ten}: ngày ${ngayVN(y.r.ngay)} đã khai ${so(td.moiNhat.so)} t, ${Math.abs(td.moiNhat.so - y.r.so_luong) < 1e-9 ? "giữ nguyên" : `cập nhật thành ${so(y.r.so_luong)} t`}`);
+        const luot = luotTonDau({ ngay: y.r.ngay, ca: y.r.ca, kr: y.kr, hang: y.r.hang, tonDau: y.r.so_luong, ...td, ghi_chu: y.r.ghi_chu, ghiCa: !td.trung });
+        if (luot) rows.push({ ...luot, den_bai: null, den_khu: null });
+      }
+      if (loi.length) return toast(`Không lưu: ${loi.join("; ")}`, "bad");
+      if (!rows.length) return toast(canh.length ? `Không có gì để ghi: ${canh.join("; ")}` : "Chưa có lượt nào", "warn");
+      const loMoi = [...new Map(rows.filter((r) => r.so_lo && (r.loai === "nhap" || r.loai === "dau_ky") && !(D.khoLo || []).some((l) => l.so_lo === r.so_lo)).map((r) => [r.so_lo, { so_lo: r.so_lo, hang: r.hang, ngay_nhap: r.ngay, trang_thai: "san_sang" }])).values()];
+      const ok = await run(async () => { await api.addGiaoDich(rows); if (loMoi.length) await api.saveLo(loMoi); }, `Đã ghi ${rows.length} lượt${loMoi.length ? `, thêm ${loMoi.length} lô` : ""}${canh.length ? `. Lưu ý tồn đầu: ${canh.join("; ")}` : ""}`);
+      if (ok) onClose();
+    } catch (e) { fail(e); } finally { setDangLuu(false); }
   };
   const tenLoai = Object.fromEntries(LOAI_GD);
   return (
@@ -136,7 +157,7 @@ export default function DanNhanhKho({ loaiKho, kho, onClose }) {
           ? <span className="mr-auto flex flex-wrap items-center gap-2 text-sm text-bad">{nChuaBai} dòng chưa có bãi chứa: không lưu được (kể cả các dòng đúng, để khỏi trùng khi dán lại). Khai báo bãi rồi dán lại.
               <Button size="xs" variant="outline" onClick={moDanhMuc}><Settings2 />Khai báo bãi</Button></span>
           : <span className="mr-auto text-sm text-muted-foreground">{hopLe.length} dòng hợp lệ · {kq.filter((x) => x?.loi.length).length} dòng lỗi (bỏ qua)</span>}
-        <Button variant="outline" onClick={() => setBang(null)}><RotateCcw />Dán lại</Button><Button onClick={luu} disabled={!hopLe.length || nChuaBai > 0}><Save />Lưu {hopLe.length} lượt</Button></>}>
+        <Button variant="outline" onClick={() => setBang(null)}><RotateCcw />Dán lại</Button><Button onClick={luu} disabled={!hopLe.length || nChuaBai > 0 || dangLuu}><Save />Lưu {hopLe.length} lượt</Button></>}>
       <div className="mb-2 flex flex-wrap items-end gap-3">
         <Field label="Loại khi file không có cột Loại" className="w-56"><NativeSelect value={loaiMD} onChange={(e) => setLoaiMD(e.target.value)} options={LOAI_GD} /></Field>
         <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" hidden onChange={(e) => { if (e.target.files[0]) docFile(e.target.files[0]); e.target.value = ""; }} />

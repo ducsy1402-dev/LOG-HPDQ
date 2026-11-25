@@ -240,6 +240,8 @@ export function makeSupabaseApi() {
     updateGiaoDich: async (id, patch) => ok(await sb.from("kho_giao_dich").update(patch).eq("id", id)),
     deleteGiaoDich: async (id) => ok(await sb.from("kho_giao_dich").delete().eq("id", id)),
     async saveLo(rows) { await song(chunk(rows, 300).map((c) => async () => ok(await sb.from("kho_lo").upsert(c.map((r) => ({ ...r, updated_at: now() })), { onConflict: "so_lo", ignoreDuplicates: false })))); },
+    // TOÀN BỘ sổ của các bãi (kể cả lượt điều chuyển đến từ bãi khác): để tính tồn đầu kỳ theo số mới nhất từ CSDL, không phụ thuộc dữ liệu đã tải (cửa sổ 35 ngày, tải nền chưa xong)
+    loadGiaoDichBai: async (bais) => { const ds = [...new Set((bais || []).filter(Boolean))]; if (!ds.length) return []; const [a, b] = await Promise.all([fetchAll(() => sb.from("kho_giao_dich").select("*").in("ten_bai", ds).order("id")), fetchAll(() => sb.from("kho_giao_dich").select("*").in("den_bai", ds).order("id"))]); return [...new Map([...a, ...b].map((g) => [g.id, g])).values()].sort((x, y) => x.id - y.id); },
     loadGiaoDichKhoang: async (tu, den) => fetchAll(() => sb.from("kho_giao_dich").select("*").gte("ngay", tu).lte("ngay", den).order("id")),
     deleteVoyage: async (id) => ok(await sb.from("voyages").delete().eq("id", id)),
     // Reset line tàu cập: xóa MỌI chuyến (khoảng dừng, nhật ký, trả hàng, kế hoạch ngày đi theo chuyến); không hoàn tác được
