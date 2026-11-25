@@ -20,7 +20,7 @@ import { caHienTai, dsCa, tenCa } from "./GiaoDichForm";
 const ss = (a, b) => String(a).localeCompare(String(b), "vi", { numeric: true, sensitivity: "base" });
 const TRONG = { bai: "", khuKey: "", hang: "", tonDau: "", nhap: "", xuat: "", dc: "", denBai: "", denKhu: "", ghi_chu: "" };
 
-export default function NhapXuatBang({ loaiKho, kho, onDan, onXong }) {
+export default function NhapXuatBang({ loaiKho, kho, onDan }) {
   const { D, api, run, toast, fail } = useApp();
   const [dangLuu, setDangLuu] = useState(false);
   const tbD = useThietBi()?.D;
@@ -141,7 +141,8 @@ export default function NhapXuatBang({ loaiKho, kho, onDan, onXong }) {
       if (!moi.recs.length) return toast(moi.canh.length ? `Không có gì để ghi: ${moi.canh.join("; ")}` : "Chưa có lượt nào", "warn");
       const dm = (lg) => moi.recs.filter((x) => x.loai === lg).length;
       const ok = await run(() => api.addGiaoDich(moi.recs), `Đã ghi ${moi.recs.length} lượt: ${[["dau_ky", "tồn đầu"], ["nhap", "nhập"], ["xuat", "xuất"], ["dieu_chuyen", "điều chuyển"]].filter(([k]) => dm(k)).map(([k, t]) => `${dm(k)} ${t}`).join(", ")}${moi.canh.length ? `. Đã cập nhật lại tồn đầu: ${moi.canh.join("; ")}` : ""}`);
-      if (ok) onXong();
+      // Lưu xong KHÔNG đóng hộp (anh Sỹ 25/11/2026): làm trống bảng nhập để khỏi ghi trùng, giữ ngày / ca; lịch sử bên dưới tự cập nhật
+      if (ok) { const b = baiDs.length === 1 ? baiDs[0] : "", ks = b ? khuCuaBai(b) : []; setF([{ _k: `n${++dem.current}`, ...TRONG, bai: b, khuKey: ks.length === 1 ? ks[0].key : "" }]); }
     } catch (e) { fail(e); } finally { setDangLuu(false); }
   };
   const caOpts = dsCa(tbD, ngay).map(([v, t, gio]) => [v, gio ? `${t} ${gio}` : t]);
