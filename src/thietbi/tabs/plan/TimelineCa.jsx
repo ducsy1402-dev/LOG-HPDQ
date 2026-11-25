@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight, Eraser, ExternalLink, Pencil, Plus, Rows4, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Eraser, ExternalLink, Layers, Pencil, Plus, Rows4, Trash2 } from "lucide-react";
 import { useApp } from "../../store";
 import { useApp as useLogistics } from "@/store";
 import { cn } from "@/lib/utils";
@@ -9,6 +9,7 @@ import { taoNhomHang } from "@/lib/sanLuong";
 import { xepHangBen } from "@/pages/cang/Gantt";
 import { tenBen, noiHaiBen } from "@/pages/cang/BangTauBen";
 import { cacTuyen } from "@/lib/capBen";
+import QuyNhomHang, { tenHangChuaNhom } from "@/pages/cang/QuyNhomHang";
 import { Button } from "@/components/ui/button";
 import { dongSoXeTau, dongSoXeBai, DAU_SO_XE_TAU, DAU_SO_XE_BAI, DAU_BAI_TAU, tenViecBai } from "@/lib/tauDaiHan";
 import { MultiSelect } from "../../components/ui";
@@ -72,6 +73,8 @@ export default function TimelineCa({ R, doi, onJob }) {
   const nhomH = useMemo(() => taoNhomHang(D.hanghoa || []), [D.hanghoa]);
   const nhomCua = (h) => [...new Set(String(h || "").split(/[;,]/).map((x) => x.trim()).filter(Boolean).map((x) => nhomH(x, "") || x))];
   const coHang = (h) => !hangF.length || nhomCua(h).some((n) => hangF.some((x) => plain(x) === plain(n)));
+  const [quyNhom, setQuyNhom] = useState(false);
+  const nChuaNhom = useMemo(() => tenHangChuaNhom(LD?.voyages, nhomH).length, [LD?.voyages, nhomH]);
   const dsHang = useMemo(() => [...new Set([...ves.map((r) => r.hang), ...fixed.map((f) => f.hang)].flatMap((x) => nhomCua(x)))].sort((a, b) => a.localeCompare(b, "vi")), [ves, fixed, nhomH]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Tàu của Linetime (có mã chuyến) và việc cảng nhập tay (không có mã chuyến); lọc theo loại hàng
@@ -219,8 +222,14 @@ export default function TimelineCa({ R, doi, onJob }) {
 
   return (
     <div className="grid gap-2">
+      {quyNhom && <QuyNhomHang voyages={LD?.voyages} hanghoa={D.hanghoa} nhomHang={nhomH} onClose={() => setQuyNhom(false)} onSave={(rows) => run(() => api.upsertHangHoa(rows), `Đã quy ${rows.length} tên hàng về nhóm`)} />}
       <div className="tl-bar flex flex-wrap items-center gap-2">
         <MultiSelect prefix="Nhóm hàng" value={hangF} onChange={setHangF} options={dsHang} className="sm" style={{ width: 170 }} />
+        {canWrite && (
+          <div className="khong-ttb">
+            <Button size="xs" variant="outline" onClick={() => setQuyNhom(true)} title="Quy các tên hàng của chuyến tàu về nhóm hàng (Phế, Quặng, Than…) để bộ lọc gọn lại"><Layers />Quy nhóm hàng{nChuaNhom ? ` (${nChuaNhom})` : ""}</Button>
+          </div>
+        )}
         <div className="khong-ttb flex flex-wrap items-center gap-2">
         <div className="inline-flex items-center gap-1 rounded-md border px-1" title="Lọc theo hướng">
           {[["", "Nhập + xuất"], ["xuat", "Xuất"], ["nhap", "Nhập"]].map(([k, ten]) => <button key={k} type="button" aria-pressed={huongF === k} onClick={() => { setHuongF(k); luu("qltb-tl-huong", k); }} className={cn("rounded px-1.5 py-0.5 text-xs", huongF === k ? "bg-primary/15 font-semibold text-primary" : "text-muted-foreground hover:text-foreground")}>{ten}</button>)}
