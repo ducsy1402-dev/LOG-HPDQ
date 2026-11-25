@@ -133,6 +133,11 @@ export function supabaseApi() {
       const m = ok(await sb.from("danh_muc").select("data").eq("id", "meta").maybeSingle());
       ok(await sb.from("danh_muc").update({ data: { ...(m?.data || {}), thietBiGan: list, ...(them ? { thietBiGanThem: them } : {}), ...(dung ? { thietBiGanDung: dung } : {}) }, updated_at: new Date().toISOString() }).eq("id", "meta"));
     },
+    // Thêm loại sự kiện / nhóm / PIC từ form ghi nhận sự kiện: gộp các khóa vào danh mục dùng chung (meta); đọc lại bản mới nhất rồi mới ghi
+    async saveMetaSuKien(patch) {
+      const m = ok(await sb.from("danh_muc").select("data").eq("id", "meta").maybeSingle());
+      ok(await sb.from("danh_muc").update({ data: { ...(m?.data || {}), ...patch }, updated_at: new Date().toISOString() }).eq("id", "meta"));
+    },
     saveNhaThau: async (list) => ok(await sb.from("danh_muc").upsert({ id: "nha_thau", data: { list }, updated_at: new Date().toISOString() })),
     // SĐT tổ trưởng theo kíp: [{to, A:{ten,sdt}, B, C, HC}]
     saveToTruong: async (list) => ok(await sb.from("danh_muc").upsert({ id: "to_truong", data: { list }, updated_at: new Date().toISOString() })),
