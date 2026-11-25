@@ -46,11 +46,14 @@ export function viecTauTuLinetime(LD, doi, { cranes = [], tenBen = (x) => x, now
       th = +v.cam_ket > 0 ? +v.cam_ket / 24 : null;
     }
     const kl = klCanLam(v);
+    // Tàu KHÔNG có cam kết xếp dỡ (cột này không bắt buộc khi Dán nhanh) thì không tính được giờ kết thúc theo năng suất, số xe từng ca không được chia (25/11/2026):
+    // lấy giờ kết thúc làm hàng, không có thì ATD / ETD, đúng khoảng thanh tàu ở bến trên Linetime
+    const ketMs = ms(v.kt_lam_hang) ?? ms(v.atd) ?? ms(v.etd);
     out.push({
       id: `lt-${v.id}`, lt: v.id, loai: "tau", doi, ten: v.ten_tau, hang: v.loai_hang || v.ten_hang || "", vi_tri: tenBen(v.ben_ma) || v.ben_ma || "",
       // Còn lại chỉ ghi khi tàu đã làm hàng; chưa làm thì tính từ giờ bắt đầu, không từ mốc hiện tại
       khoi_luong: kl || null, con_lai: kl && v.bd_lam_hang ? Math.max(0, kl - (+v.da_lam || 0)) : null, nang_suat: th, gio_dung: gioDung,
-      bat_dau: bd || v.atb || v.etb || null, so_xe_tay: null, nguon: nguonCua(p),
+      bat_dau: bd || v.atb || v.etb || null, ket_thuc: ketMs != null ? new Date(ketMs).toISOString() : null, so_xe_tay: null, nguon: nguonCua(p),
     });
   }
   out.sort((x, y) => (ms(x.bat_dau) ?? 9e15) - (ms(y.bat_dau) ?? 9e15)).forEach((j, i) => { j.thu_tu = (i + 1) * 10; });

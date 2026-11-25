@@ -330,6 +330,7 @@ export function calc12(params, jobs, doi = DOI_GOC) {
     const useCL = p.flag === 1 && v.conlai != null && v.th > 0;
     let kt = null;
     if (bd && v.th > 0 && v.kl > 0) kt = useCL ? new Date(moc.getTime() + (v.conlai / v.th + v.gioDung) * HOUR) : new Date(bd.getTime() + (v.kl / v.th + v.gioDung) * HOUR);
+    if (!kt && bd && j.ket_thuc && new Date(j.ket_thuc) > bd) kt = new Date(j.ket_thuc); // không có năng suất / cam kết: kết thúc theo mốc của tàu (tauDaiHan.viecTauTuLinetime)
     const tienDo = v.conlai != null && v.kl > 0 ? Math.max(0, 1 - v.conlai / v.kl) : null;
     return { ...v, job: j, bd, kt, goi, dung, tienDo, coNs: !!pr };
   });
