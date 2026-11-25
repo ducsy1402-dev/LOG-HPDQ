@@ -146,7 +146,7 @@ export default function DanNhanhKho({ loaiKho, kho, onClose }) {
       if (!rows.length) return toast(canh.length ? `Không có gì để ghi: ${canh.join("; ")}` : "Chưa có lượt nào", "warn");
       const loMoi = [...new Map(rows.filter((r) => r.so_lo && (r.loai === "nhap" || r.loai === "dau_ky") && !(D.khoLo || []).some((l) => l.so_lo === r.so_lo)).map((r) => [r.so_lo, { so_lo: r.so_lo, hang: r.hang, ngay_nhap: r.ngay, trang_thai: "san_sang" }])).values()];
       const ok = await run(async () => { await api.addGiaoDich(rows); if (loMoi.length) await api.saveLo(loMoi); }, `Đã ghi ${rows.length} lượt${loMoi.length ? `, thêm ${loMoi.length} lô` : ""}${canh.length ? `. Lưu ý tồn đầu: ${canh.join("; ")}` : ""}`);
-      if (ok) onClose();
+      if (ok) { setBang(null); setText(""); setCot([]); } // lưu xong KHÔNG đóng hộp (anh Sỹ 25/11/2026): làm trống bảng để dán tiếp, khỏi ghi trùng
     } catch (e) { fail(e); } finally { setDangLuu(false); }
   };
   const tenLoai = Object.fromEntries(LOAI_GD);

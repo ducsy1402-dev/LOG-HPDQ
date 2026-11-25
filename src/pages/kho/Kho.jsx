@@ -129,7 +129,7 @@ function KhoTab({ tab, kho }) {
       {hop("phan-loai", `Phân loại tồn · ${tab.ten}`, undefined, <PhanLoaiTon loai={loai} kho={kho} />)}
 
       {hop("nhap", `Nhập / xuất / điều chuyển kho · ${tab.ten}`, "Phần trên: nhập liệu (mỗi dòng một gian / lô, Lưu ghi tất cả một lần). Phần dưới: lịch sử các lượt đã ghi, có ô tìm kiếm.",
-        <div className="grid gap-4"><NhapXuatBang loaiKho={loai} kho={kho} onDan={() => setMo("dan")} onXong={dong} />
+        <div className="grid gap-4"><NhapXuatBang loaiKho={loai} kho={kho} onDan={() => setMo("dan")} />
           <section className="grid gap-2 border-t pt-3"><h3 className="text-sm font-semibold">Lịch sử xuất / nhập / điều chuyển</h3><LichSuKho kho={kho} loai={loai} onSua={(g) => { setMo(null); setSua(g); }} /></section></div>)}
       {mo === "dan" && <DanNhanhKho loaiKho={loai} kho={kho} onClose={dong} />}
       {sua && (sua.loai === "kiem_ke" ? <SuaKiemKe g={sua} onClose={() => setSua(null)} /> : <GiaoDichForm key={sua.id} loaiKho={loai} loaiGD={sua.loai} sua={sua} kho={kho} onClose={() => setSua(null)} />)}
