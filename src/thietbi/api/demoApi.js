@@ -235,6 +235,7 @@ export async function demoApi() {
       else db.tbGanSl.push({ ...rec, id: Math.max(0, ...db.tbGanSl.map((x) => x.id)) + 1 });
     },
     async deleteTbGanSl(tid) { guard(A); await wait(); db.tbGanSl = db.tbGanSl.filter((x) => x.id !== tid); },
+    async saveMetaSuKien(patch) { guard(W); await wait(); Object.assign(db.meta, clone(patch)); },
     async saveThietBiGan(list, them, dung) { guard(A); await wait(); db.meta.thietBiGan = clone(list); if (them) db.meta.thietBiGanThem = clone(them); if (dung) db.meta.thietBiGanDung = clone(dung); },
     async saveToTruong(list) { guard(A); await wait(); db.toTruong = { list: clone(list) }; },
     async saveMapPt(rules) { guard(A); await wait(); db.mapPt = clone(rules); },
