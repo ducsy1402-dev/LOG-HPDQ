@@ -197,3 +197,15 @@ describe("Lưới ca tự theo hôm nay", () => {
     expect([tay.bd, tay.moc]).toEqual(["2026-10-12T00:00", "2026-11-15T10:30"]); // bỏ tick: giữ ngày bắt đầu đã nhập, mốc còn lại vẫn là giờ hiện tại
   });
 });
+
+describe("Tàu không có cam kết xếp dỡ vẫn chia số xe theo ca (25/11/2026)", () => {
+  const p = { bd: "2026-11-01T00:00", gioN: 8, caLen: 12, nShifts: 8, moc: "2026-11-01T00:00", ramp1: 1, ramp2: 1, ramp3: 1, capCang: 10, capBai: 0, flag: 1, daoTao: 1 };
+  const tau = { id: "lt-9", lt: 9, loai: "tau", ten: "T", hang: "Phế", vi_tri: "B04", khoi_luong: 1800, nang_suat: null, bat_dau: iso(2026, 11, 2, 8), so_xe_tay: 2, doi: "Xe ben" };
+  it("không có năng suất và không có mốc kết thúc: không chia được (như cũ)", () => {
+    expect(calc12({ p, prod: [] }, [tau], "Xe ben").ves[0].cnt.every((x) => x === 0)).toBe(true);
+  });
+  it("có mốc kết thúc (ATD / ETD của tàu): chia các ca từ bắt đầu tới kết thúc", () => {
+    const R = calc12({ p, prod: [] }, [{ ...tau, ket_thuc: iso(2026, 11, 3, 20) }], "Xe ben");
+    expect(R.ves[0].cnt).toEqual([0, 0, 2, 2, 2, 0, 0, 0]); // 2/11 08h → 3/11 20h = 3 ca
+  });
+});

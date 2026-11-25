@@ -4,10 +4,11 @@ import { useApp } from "../../store";
 import { useApp as useLogistics } from "@/store";
 import { cn } from "@/lib/utils";
 import { plain, so as soVN } from "@/lib/format";
-import { trangThai, TRANG_THAI, TRANG_THAI_HIEN, doanBen } from "@/lib/linetime";
+import { TRANG_THAI, doanBen } from "@/lib/linetime";
 import { taoNhomHang } from "@/lib/sanLuong";
 import { xepHangBen } from "@/pages/cang/Gantt";
 import { tenBen, noiHaiBen } from "@/pages/cang/BangTauBen";
+import { cacTuyen } from "@/lib/capBen";
 import { Button } from "@/components/ui/button";
 import { dongSoXeTau, dongSoXeBai, DAU_SO_XE_TAU, DAU_SO_XE_BAI, DAU_BAI_TAU, tenViecBai } from "@/lib/tauDaiHan";
 import { MultiSelect } from "../../components/ui";
@@ -23,6 +24,7 @@ import { pad } from "../../lib/utils";
 //   • Khối dòng tổng (tổng cầu, xe có, cân bằng cảng / bãi, kết luận) cố định ở đáy khung, tô màu theo nhóm, có nút ẩn cả khối. Lọc loại hàng chỉ lọc tàu / việc đang hiện, các dòng cộng luôn tính đủ.
 const DAY = 864e5;
 const THU = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+const MAU_XUAT = "#2563eb", MAU_NHAP = "#16a34a"; // thanh tàu: xanh dương = hướng xuất, xanh lá = hướng nhập (anh Sỹ 25/11/2026)
 const MAU_CANG = "#0ea5e9", MAU_BAI = "#f59e0b", MAU_CHUNG = "#8b5cf6";
 const hhmm = (t) => (t ? fmtDT(new Date(t)) : "");
 const doc = (k, mac) => { try { return localStorage.getItem(k) ?? mac; } catch { return mac; } };
@@ -38,7 +40,7 @@ const trongCa = (f, s) => {
   return !((from && s.day < from) || (to && s.day > to));
 };
 const RE_COT = /\b(tu|den)\b|schema cache|column/i; // lỗi do CSDL chưa có cột tu / den (SQL 15)
-const IN_O = "h-full w-full min-w-0 bg-transparent px-1 text-right font-semibold tabular-nums text-white focus:bg-black/40 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none";
+const IN_O = "h-full w-full min-w-0 !bg-transparent px-1 text-right font-semibold tabular-nums text-white focus:!bg-black/40 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none";
 
 export default function TimelineCa({ R, doi, onJob }) {
   const { api, run, sua, D, toast } = useApp();
@@ -51,6 +53,7 @@ export default function TimelineCa({ R, doi, onJob }) {
 
   // Bộ lọc loại hàng (chọn nhiều), số ngày hiển thị, thu gọn Cảng / Bãi / khối tổng (nhớ trên máy)
   const [hangF, setHangF] = useState([]);
+  const [huongF, setHuongF] = useState(() => (["xuat", "nhap"].includes(doc("qltb-tl-huong", "")) ? doc("qltb-tl-huong", "") : "")); // "" = cả hai hướng
   // Xem gọn (như Linetime › Gọn): dòng thấp, chữ nhỏ, cột hẹp để xem được nhiều tàu một lúc; nhớ trên máy
   const [gon, setGon] = useState(() => doc("qltb-tl-gon", "0") === "1");
   // Cột đầu rộng hơn vì ghi tên tàu + thông tin (bến, hướng, hàng, còn %) và các nút +bãi / phiếu chuyến (anh Sỹ 24/11/2026)
@@ -72,11 +75,13 @@ export default function TimelineCa({ R, doi, onJob }) {
   const dsHang = useMemo(() => [...new Set([...ves.map((r) => r.hang), ...fixed.map((f) => f.hang)].flatMap((x) => nhomCua(x)))].sort((a, b) => a.localeCompare(b, "vi")), [ves, fixed, nhomH]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Tàu của Linetime (có mã chuyến) và việc cảng nhập tay (không có mã chuyến); lọc theo loại hàng
-  const tauLT = useMemo(() => new Map(ves.filter((r) => r.job.lt != null && coHang(r.hang)).map((r) => [String(r.job.lt), r])), [ves, hangF]); // eslint-disable-line react-hooks/exhaustive-deps
-  const cangTay = ves.filter((r) => r.job.lt == null && coHang(r.hang));
+  // Lọc hướng (anh Sỹ 25/11/2026): Tất cả / Xuất / Nhập, áp cho tàu của Linetime; việc cảng nhập tay không có hướng nên ẩn khi đang lọc một hướng
+  const huongTau = useMemo(() => new Map((LD?.voyages || []).map((v) => [String(v.id), v.huong])), [LD?.voyages]);
+  const tauLT = useMemo(() => new Map(ves.filter((r) => r.job.lt != null && coHang(r.hang) && (!huongF || huongTau.get(String(r.job.lt)) === huongF)).map((r) => [String(r.job.lt), r])), [ves, hangF, huongF, huongTau]); // eslint-disable-line react-hooks/exhaustive-deps
+  const cangTay = ves.filter((r) => r.job.lt == null && coHang(r.hang) && !huongF);
   // Giống Kế hoạch sản lượng theo ngày: bến ghép (B03/05…) theo nút "Bến ghép" của Linetime; không lọc thì hiện đủ các bến, đang lọc loại hàng thì ẩn bến không có tàu
   const ghep = !!LD?.coSql28 && (() => { try { return localStorage.getItem("lg-gantt-ghep") !== "0"; } catch { return true; } })();
-  const dangLoc = hangF.length > 0;
+  const dangLoc = hangF.length > 0 || !!huongF;
   const hangTat = useMemo(() => (LD?.berths && nHien ? xepHangBen(LD, (LD.voyages || []).filter((v) => tauLT.has(String(v.id))), tuMs, denMs, "ben", { row: 30, lan: LH, top: gon ? 3 : 4 }, { ghep }) : []), [LD, tauLT, tuMs, denMs, nHien, LH, gon, ghep]);
   const hang = useMemo(() => (dangLoc ? hangTat.filter((r) => r.ds.length) : hangTat), [hangTat, dangLoc]);
   // Mỗi tàu MỘT dòng (như việc bãi): cột đầu ghi tên tàu và thông tin, dải màu chạy theo giờ thật; tàu chuyển bến thì có nhiều đoạn trên cùng dòng (anh Sỹ 24/11/2026)
@@ -87,8 +92,12 @@ export default function TimelineCa({ R, doi, onJob }) {
       const e = mp.get(id) || { id, rr, v: x.v, segs: [] };
       e.segs.push({ ...x, ben: r.cap ? noiHaiBen(r.cap[0], r.cap[1]) : r.b ? tenBen(r.ma) : "Chưa xếp bến" }); mp.set(id, e);
     }
-    return [...mp.values()].sort((p, q) => Math.min(...p.segs.map((z) => z.a)) - Math.min(...q.segs.map((z) => z.a)));
-  }, [hang, tauLT]);
+    // Xếp theo bến, thứ tự theo CỤM bến (tuyến bến của Danh mục › Cầu bến, trong tuyến theo vị trí mét), cùng bến thì theo giờ cập (anh Sỹ 25/11/2026); tàu chưa xếp bến ở cuối
+    const viTri = new Map(); let ti = 0;
+    for (const t of cacTuyen(LD?.berths || []).values()) { t.bens.forEach((b, bi) => viTri.set(String(b.ma), ti * 1000 + bi)); ti++; }
+    const bac = (e) => { const s = [...e.segs].sort((p, q) => p.a - q.a)[0]; return viTri.get(String(s.rowMa || "").split("|")[0]) ?? 1e9; };
+    return [...mp.values()].sort((p, q) => bac(p) - bac(q) || Math.min(...p.segs.map((z) => z.a)) - Math.min(...q.segs.map((z) => z.a)));
+  }, [hang, tauLT, LD?.berths]);
   const baiHien = fixed.filter((f) => (!f.job.lt || f.cnt.some((c) => c > 0) || dongSoXeBai(D.plan.jobs, f.job.lt, doi)) && coHang(f.hang));
   const nTau = tauLT.size + cangTay.length;
 
@@ -213,6 +222,9 @@ export default function TimelineCa({ R, doi, onJob }) {
       <div className="tl-bar flex flex-wrap items-center gap-2">
         <MultiSelect prefix="Nhóm hàng" value={hangF} onChange={setHangF} options={dsHang} className="sm" style={{ width: 170 }} />
         <div className="khong-ttb flex flex-wrap items-center gap-2">
+        <div className="inline-flex items-center gap-1 rounded-md border px-1" title="Lọc theo hướng">
+          {[["", "Nhập + xuất"], ["xuat", "Xuất"], ["nhap", "Nhập"]].map(([k, ten]) => <button key={k} type="button" aria-pressed={huongF === k} onClick={() => { setHuongF(k); luu("qltb-tl-huong", k); }} className={cn("rounded px-1.5 py-0.5 text-xs", huongF === k ? "bg-primary/15 font-semibold text-primary" : "text-muted-foreground hover:text-foreground")}>{ten}</button>)}
+        </div>
         <Button size="xs" variant={gon ? "secondary" : "outline"} className={cn(gon && "text-primary")} aria-pressed={gon} title="Dòng thấp, chữ nhỏ: xem được nhiều tàu hơn" onClick={() => { setGon(!gon); luu("qltb-tl-gon", gon ? "0" : "1"); }}><Rows4 />Gọn</Button>
         <div className="inline-flex items-center gap-1 rounded-md border px-1" title="Số ngày hiển thị">
           {[[7, "7 ngày"], [14, "14 ngày"], [21, "21 ngày"], [99, "Cả lưới"]].map(([n, ten]) => <button key={n} type="button" onClick={() => { setSoNgay(n); luu("qltb-tl-ngay", String(n)); }} className={cn("rounded px-1.5 py-0.5 text-xs", soNgay === n ? "bg-primary/15 font-semibold text-primary" : "text-muted-foreground hover:text-foreground")}>{ten}</button>)}
@@ -226,7 +238,7 @@ export default function TimelineCa({ R, doi, onJob }) {
           </div>
         )}
         </div>
-        <span className="ml-auto text-xs text-muted-foreground">{nTau} tàu · {baiHien.length} việc bãi{hangF.length ? " (đang lọc loại hàng; các dòng cộng vẫn tính đủ)" : ""}</span>
+        <span className="ml-auto text-xs text-muted-foreground">{nTau} tàu · {baiHien.length} việc bãi{hangF.length || huongF ? " (đang lọc; các dòng cộng vẫn tính đủ)" : ""}</span>
       </div>
 
       <div className="khong-ttb grid gap-2">
@@ -269,7 +281,7 @@ export default function TimelineCa({ R, doi, onJob }) {
                     <div className="relative shrink-0" style={{ width: W, height: LH }}>
                       {luoi}
                       {e.segs.map((x) => thanh({
-                        kk: `${e.id}:${x.a}`, a: x.a, b: x.b, mau: TRANG_THAI[x.st].mau, top: 4, h: LH - 8, cnt: rr.cnt,
+                        kk: `${e.id}:${x.a}`, a: x.a, b: x.b, mau: xuat ? MAU_XUAT : MAU_NHAP, top: 4, h: LH - 8, cnt: rr.cnt,
                         title: `${e.v.ten_tau} · ${xuat ? "Xuất" : "Nhập"} · ${TRANG_THAI[x.st].ten}\nBến ${x.ben} · ${hhmm(x.a)} → ${hhmm(x.b)}\nKhối lượng còn lại ${pc == null ? "?" : pc + "%"} · số xe ${rr.dung ?? "chưa nhập"}`,
                         oCa: oCaFn(it),
                       }))}
@@ -277,7 +289,7 @@ export default function TimelineCa({ R, doi, onJob }) {
                   </div>
                 );
               })}
-              {!tauRows.length && <div className="border-b px-2 py-3 text-muted-foreground">{hangF.length ? "Không có tàu nào ứng với loại hàng đã chọn" : `Đội ${doi} chưa có tàu nào trong lưới`} ({size} ngày đang xem).</div>}
+              {!tauRows.length && <div className="border-b px-2 py-3 text-muted-foreground">{hangF.length || huongF ? "Không có tàu nào ứng với bộ lọc đã chọn" : `Đội ${doi} chưa có tàu nào trong lưới`} ({size} ngày đang xem).</div>}
 
               {cangTay.map((r) => {
                 const it = { ...r, kind: "cangTay" };
@@ -361,10 +373,6 @@ export default function TimelineCa({ R, doi, onJob }) {
               </>}
             </div>
           </div>
-        </div>
-        <div className="flex flex-wrap gap-x-4 gap-y-1 text-[0.6875rem] text-muted-foreground">
-          {TRANG_THAI_HIEN.map(([k, t]) => <span key={k} className="flex items-center gap-1"><i className="inline-block h-2.5 w-4 rounded-sm" style={{ background: t.mau }} />{t.ten}</span>)}
-          <span className="flex items-center gap-1"><i className="inline-block h-2.5 w-4 rounded-sm" style={{ background: BAI_COLOR }} />việc bãi</span>
         </div>
         <p className="text-[0.6875rem] text-muted-foreground">Thanh tàu đặt theo giờ thật như Linetime. Mỗi việc một dòng: ô SỐ XE ở cột đầu (cạnh tên tàu / việc bãi) do anh / chị nhập, các ca TỰ CHẠY theo số này (tàu: theo hệ số ca); muốn sửa ca nào thì gõ thẳng vào ô ca đó trên thanh, xóa số để ca đó chạy tự động lại. Dòng chữ nhỏ dưới tên: bến, hướng, hàng, khối lượng, số máng, % còn lại. Biểu tượng ở cột tên việc: Sửa, Xóa (việc nhập tay), mở phiếu chuyến và xóa số đã nhập (việc từ Linetime). +bãi thêm tàu vào việc bãi (tên tàu - loại hàng - khối lượng và mốc thời gian, không lấy số xe).</p>
       </div>
