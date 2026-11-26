@@ -96,13 +96,15 @@ export function loaiThe(v, hangHoa = []) {
   return laThanhPham(h, hangHoa) ? "tp" : null;
 }
 // Ba thẻ tàu: mỗi loại { lam: [chuyến đang làm hàng], cho: [chuyến chưa làm hàng, dự kiến bắt đầu trong 24 giờ tới (hoặc đã quá giờ)] }
+// "Đang làm" khớp màu VÀNG trên Linetime (anh Sỹ 17/11: đang làm hàng + xong hàng chưa ghi ATD đều vàng): tàu còn ở bến chưa rời (chưa có ATD đã qua giờ) thì còn tính.
+// Trước đây chỉ đếm đúng trạng thái lam_hang nên tàu quá giờ kết thúc dự kiến (xong_hang) mà chưa ghi ATD vẫn vàng trên lịch nhưng không vào thẻ.
 export function demTau(voyages, now, hangHoa = []) {
   const out = { hrc: { lam: [], cho: [] }, tp: { lam: [], cho: [] }, nhap: { lam: [], cho: [] } };
   for (const v of voyages || []) {
     if (v.huy) continue;
-    const st = trangThai(v, now); if (st === "xong_hang" || st === "da_roi" || st === "huy") continue;
+    const st = trangThai(v, now); if (st === "da_roi" || st === "huy") continue;
     const loai = loaiThe(v, hangHoa); if (!loai) continue;
-    if (st === "lam_hang") { out[loai].lam.push(v); continue; }
+    if (st === "lam_hang" || st === "xong_hang") { out[loai].lam.push(v); continue; }
     const bd = mocDuKien(v).bd ?? ms(v.etb) ?? ms(v.eta);
     if (bd != null && bd <= now + 24 * HOUR) out[loai].cho.push(v);
   }

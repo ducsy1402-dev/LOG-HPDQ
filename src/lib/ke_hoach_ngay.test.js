@@ -107,4 +107,10 @@ describe("ba thẻ tàu", () => {
     expect(r.nhap.lam.map((v) => v.id)).toEqual([5]);
     expect(r.nhap.cho.map((v) => v.id)).toEqual([6]);
   });
+  it("tàu xong hàng chưa ghi ATD vẫn còn ở bến (vàng) nên tính đang làm; đã có ATD thì không", () => {
+    const xong = tau({ id: 11, huong: "xuat", ten_hang: "Thép cuộn HRC", atb: h(-30), bd_lam_hang: h(-28), kt_lam_hang: h(-3) });
+    const roi = tau({ id: 12, huong: "xuat", ten_hang: "Thép cuộn HRC", atb: h(-30), bd_lam_hang: h(-28), kt_lam_hang: h(-3), atd: h(-1) });
+    const r = demTau([xong, roi], now, HH);
+    expect(r.hrc.lam.map((v) => v.id)).toEqual([11]);
+  });
 });
