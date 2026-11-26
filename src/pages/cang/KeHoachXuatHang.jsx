@@ -40,13 +40,12 @@ export default function KeHoachXuatHang({ kyInfo: kyDay, homNay, c: cDay, nhom, 
   const [gd, setGd] = useState(null); // sổ kho từ đầu kỳ tới hôm nay
   const [sx, setSx] = useState(undefined); // tổng kế hoạch sản xuất HRC của kỳ (t); undefined: đang tải · null: chưa chạy SQL 22
   const dau = kyInfo.ngays[0];
-  // Tải sổ từ đầu tháng tới MỌI NGÀY (kể cả lượt ghi ngày sau hôm nay): bảng tồn của hệ thống (kho_ton) cộng cả các lượt đó, nên muốn có tồn đúng theo sổ tới từng ngày phải biết chúng.
-  // Tải lại khi tồn của store đổi (vừa lưu nhập / xuất / tồn đầu) để hai nguồn không lệch nhau.
+  // Tải TOÀN BỘ sổ kho từ đầu tới hôm nay (tồn của một ngày = cộng sổ từ đầu tới ngày đó). Tải lại khi tồn của store đổi (vừa lưu nhập / xuất / tồn đầu).
   useEffect(() => {
     let huy = false; setGd(null);
-    api.loadGiaoDichKhoang(dau, "9999-12-31").then((r) => { if (!huy) setGd(r || []); }).catch(() => { if (!huy) setGd([]); });
+    api.loadGiaoDichKhoang("1900-01-01", homNay).then((r) => { if (!huy) setGd(r || []); }).catch(() => { if (!huy) setGd([]); });
     return () => { huy = true; };
-  }, [api, dau, D.khoTon]);
+  }, [api, homNay, D.khoTon]);
   // Kế hoạch sản xuất HRC của THÁNG đang xem; tháng chưa lập thì lấy kế hoạch quý ÷ 3, rồi kế hoạch năm ÷ 12
   const lamHRC = (hang) => plain(nhomHang(hang, "")) === plain(nhom);
   useEffect(() => {
@@ -70,25 +69,22 @@ export default function KeHoachXuatHang({ kyInfo: kyDay, homNay, c: cDay, nhom, 
     for (const d of kyInfo.ngays) { const k = khoaDiem(kyInfo.buoc, d); if (!idx.has(k)) { idx.set(k, ds.length); ds.push({ dau: d, cuoi: d, ngay: 0, tuongLai: 0 }); } const o = ds[idx.get(k)]; o.cuoi = d; o.ngay++; if (d > homNay) o.tuongLai++; }
     return ds;
   }, [kyInfo, homNay]);
-  // Tồn HRC theo bảng tồn của hệ thống: cộng MỌI lượt sổ, kể cả lượt ghi ngày SAU hôm nay
-  const tonView = useMemo(() => (kho ? r2(kho.cap.filter((x) => lamNhom(x.hang)).reduce((s, x) => s + x.ton, 0)) : null), [kho, nhom, D.hanghoa]); // eslint-disable-line react-hooks/exhaustive-deps
+  // TỒN THỰC TẾ CỦA TỪNG NGÀY = tồn HRC ghi trong sổ kho tại cuối ngày đó (tồn đầu kỳ đã khai + nhập − xuất của MỌI lượt có ngày ≤ ngày đó, tính từ đầu sổ).
+  // Không tính ngược từ tồn hôm nay (cách cũ làm lệch cả đường khi sổ có lượt ghi ngày tương lai): ngày 19/11 khai tồn đầu 260.000 t thì ngày đó hiện đúng số sổ ghi.
   const dl = (g) => (g.loai === "xuat" ? -(+g.so_luong || 0) : g.loai === "dieu_chuyen" ? 0 : +g.so_luong || 0); // điều chuyển nội bộ cùng hàng: tổng không đổi
-  // Tổng thay đổi của các lượt sổ HRC ghi ngày SAU hôm nay (nhập tương lai +, xuất tương lai −)
-  const tuongLai = useMemo(() => (gd ? r2(gd.filter((g) => lamNhom(g.hang) && String(g.ngay).slice(0, 10) > homNay).reduce((s, g) => s + dl(g), 0)) : null), [gd, homNay, nhom, D.hanghoa]); // eslint-disable-line react-hooks/exhaustive-deps
-  // Tồn thực tế HÔM NAY theo sổ = tồn hệ thống − các lượt ghi ngày tương lai (lỗi cũ: lấy nguyên tồn hệ thống nên mọi điểm trước đó lệch đúng bằng số này)
-  const tonNay = tonView == null || tuongLai == null ? null : r2(tonView - tuongLai);
-  // Tồn thực tế cuối mỗi điểm = tồn hôm nay − tổng thay đổi của các lượt sổ SAU ngày cuối điểm (tới hôm nay); chỉ cho các điểm đã qua hết
-  // (đi lùi một lượt từ hôm nay: tồn cuối ngày d = tồn hôm nay − tổng thay đổi các ngày SAU d tới hôm nay)
-  const ton = useMemo(() => {
-    if (tonNay == null || !gd) return null;
+  const tonNgay = useMemo(() => { // Map ngày -> tồn cuối ngày (chỉ các ngày của tháng đang xem, tới hôm nay) + tồn hôm nay
+    if (!kho || !gd) return null;
     const delta = new Map();
     for (const g of gd) if (lamNhom(g.hang)) { const n = String(g.ngay).slice(0, 10); if (n <= homNay) delta.set(n, (delta.get(n) || 0) + dl(g)); }
-    const ds = kyInfo.ngays.filter((d) => d <= homNay), cuoiNgay = new Map();
-    let cur = tonNay;
-    if (ds.length) { const last = ds[ds.length - 1]; for (const [n, v] of delta) if (n > last) cur -= v; } // kỳ đã qua: trừ các ngày sau kỳ tới hôm nay
-    for (let i = ds.length - 1; i >= 0; i--) { cuoiNgay.set(ds[i], r2(cur)); cur -= delta.get(ds[i]) || 0; }
-    return diem.map((o) => (o.cuoi > homNay ? null : cuoiNgay.get(o.cuoi) ?? null));
-  }, [tonNay, gd, diem, kyInfo, homNay, nhom, D.hanghoa]); // eslint-disable-line react-hooks/exhaustive-deps
+    const moc = [...delta.keys()].sort(); let cur = 0, i = 0;
+    for (; i < moc.length && moc[i] < kyInfo.ngays[0]; i++) cur += delta.get(moc[i]); // tồn cuối ngày trước đầu tháng
+    const m = new Map();
+    for (const d of kyInfo.ngays) { if (d > homNay) break; cur += delta.get(d) || 0; m.set(d, r2(cur)); }
+    let nay = cur; for (; i < moc.length; i++) if (moc[i] > kyInfo.ngays[kyInfo.ngays.length - 1]) nay += delta.get(moc[i]); // tháng đã qua: cộng tiếp tới hôm nay
+    return { m, nay: r2(nay) };
+  }, [kho, gd, kyInfo, homNay, nhom, D.hanghoa]); // eslint-disable-line react-hooks/exhaustive-deps
+  const tonNay = tonNgay ? tonNgay.nay : null;
+  const ton = useMemo(() => (tonNgay ? diem.map((o) => (o.cuoi > homNay ? null : tonNgay.m.get(o.cuoi) ?? null)) : null), [tonNgay, diem, homNay]);
 
   const lkKH = luyKe(c.khD).map(r2), lkTT = c.diem.map((o) => (o.lkTt == null ? null : r2(o.lkTt)));
   // Tồn dự báo từ hôm nay: tồn hôm nay + (sản xuất kế hoạch − xuất kế hoạch) của các ngày còn lại; điểm chứa hôm nay chỉ tính phần ngày còn lại
@@ -138,7 +134,6 @@ export default function KeHoachXuatHang({ kyInfo: kyDay, homNay, c: cDay, nhom, 
           <span>Tồn HRC hôm nay <b className="text-foreground">{so(tonNay, 0)} t</b> → dự báo cuối tháng <b className={dbao.cuoi >= tonNay ? "text-ok" : "text-bad"}>{so(dbao.cuoi, 0)} t</b> ({dbao.cuoi >= tonNay ? "tăng" : "giảm"} {so(Math.abs(dbao.cuoi - tonNay), 0)} t) = tồn hôm nay + sản xuất kế hoạch còn lại <b className="text-foreground">{so(dbao.sxCon, 0)} t</b> − xuất kế hoạch còn lại <b className="text-foreground">{so(dbao.xuCon, 0)} t</b>
             {dbao.het ? <b className="text-bad"> · dự kiến hết hàng từ {dbao.het}</b> : ""}. Đường dự báo <b className="text-ok">xanh</b> = cao hơn tồn hôm nay (sản xuất lớn hơn xuất kế hoạch), <b className="text-bad">đỏ</b> = thấp hơn.</span>
         ) : <span>Tồn kho HRC hôm nay: <b className="text-foreground">{so(tonNay, 0)} t</b>{kyInfo.ngays.every((d) => d <= homNay) ? " (tháng đã qua, không dự báo)" : ""}.</span>}
-        {kho && tuongLai != null && Math.abs(tuongLai) > 0.5 && <span className="text-warn">Sổ kho có lượt HRC ghi ngày SAU hôm nay (tổng {tuongLai > 0 ? "+" : "−"}{so(Math.abs(tuongLai), 0)} t): biểu đồ chỉ tính tới hôm nay, còn tồn ở các trang kho khác đã cộng cả số này (tồn hệ thống {so(tonView, 0)} t). Kiểm tra ngày của các lượt đó ở Lịch sử sổ kho (dễ nhầm ngày / tháng khi dán nhanh).</span>}
         {dbao && sx !== undefined && !(sx > 0) && <span className="text-warn">{sx === null ? "Chưa có bảng Kế hoạch sản xuất (SQL 22)" : "Chưa có Kế hoạch sản xuất HRC của tháng này"}: dự báo mới chỉ trừ kế hoạch xuất. Lập ở Đặt mục tiêu › Kế hoạch sản xuất.</span>}
         {dbao && sx > 0 && <span>Sản xuất HRC kế hoạch của tháng <b className="text-foreground">{so(sx, 0)} t</b>, chia đều theo ngày.</span>}
       </div>
