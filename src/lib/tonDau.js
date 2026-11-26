@@ -53,3 +53,33 @@ export const luotTonDau = ({ ngay, ca, kr, hang, tonDau, hienCo, delta, ghi_chu 
   : { ngay, ca: ca || null, loai: "dau_ky", ten_bai: kr.ten_bai, ten_khu: kr.ten, hang, so_luong: Math.round(delta * 1e6) / 1e6, do_thuc_te: tonDau, so_sach: Math.round(hienCo * 1e6) / 1e6, nguon: null, so_lo: null, chung_tu: null, ghi_chu });
 // Lượt Tồn đầu kỳ kiểu mới (đặt lại) có do_thuc_te
 export const laTonDauDatLai = (g) => g.loai === "dau_ky" && g.do_thuc_te != null;
+
+// ---- QUY TẮC TỒN KHO (anh Sỹ chốt 26/11/2026, áp dụng cho cả kho hàng kiện và kho hàng rời) ----
+// Với mỗi (bãi, gian / lô, hàng): tồn = số khai tồn đầu kỳ của NGÀY KHAI MỚI NHẤT (cùng ngày thì lượt ghi sau cùng), KHÔNG cộng dồn các lần khai trước;
+// từ ngày khai đó trở đi nhập / xuất / điều chuyển / kiểm kê cộng trừ như bình thường (cùng ngày coi như sau tồn đầu); mọi lượt ghi ngày TRƯỚC ngày khai bị bỏ qua
+// (kể cả lượt ghi bổ sung SAU khi khai mà mang ngày cũ). Chưa khai tồn đầu kiểu đặt lại thì cộng dồn toàn bộ sổ như trước.
+// Giống hệt view kho_ton trên Supabase (sql/29_ton_dau_ngay_khai_moi_nhat.sql); dùng cho bản demo. Trả các dòng { ten_bai, ten_khu, hang, so_lo, ton, ngay_dau, ngay_cuoi }.
+export function tonKhoTheoSo(gd) {
+  const khoaKhu = (bai, khu, hang) => `${bai}|${khu || ""}|${hang}`;
+  const moc = new Map();
+  for (const g of gd) {
+    if (!laTonDauDatLai(g)) continue;
+    const k = khoaKhu(g.ten_bai, g.ten_khu, g.hang), n = ngayDen(g.ngay), id = +g.id || 0, cu = moc.get(k);
+    if (!cu || n > cu.n || (n === cu.n && id >= cu.id)) moc.set(k, { n, id, so: +g.do_thuc_te || 0 });
+  }
+  const m = new Map();
+  const cong = (bai, khu, hang, lo, ngay, sl, g, laDich) => {
+    const k = `${khoaKhu(bai, khu, hang)}|${lo || ""}`, r = m.get(k) || { ten_bai: bai, ten_khu: khu || "", hang, so_lo: lo || "", ton: 0, ngay_dau: ngay, ngay_cuoi: ngay };
+    const mk = moc.get(khoaKhu(bai, khu, hang));
+    let d = sl;
+    if (!laDich && laTonDauDatLai(g)) d = mk && mk.id === (+g.id || 0) && mk.n === ngay ? mk.so : 0; // chỉ lần khai mới nhất có hiệu lực, đặt đúng số khai
+    else if (mk && ngay < mk.n) d = 0; // lượt ghi ngày trước ngày khai mới nhất
+    r.ton += d; if (ngay < r.ngay_dau) r.ngay_dau = ngay; if (ngay > r.ngay_cuoi) r.ngay_cuoi = ngay; m.set(k, r);
+  };
+  for (const g of gd) {
+    const n = ngayDen(g.ngay), sl = +g.so_luong || 0;
+    cong(g.ten_bai, g.ten_khu, g.hang, g.so_lo, n, g.loai === "xuat" || g.loai === "dieu_chuyen" ? -sl : sl, g, false);
+    if (g.loai === "dieu_chuyen" && g.den_bai) cong(g.den_bai, g.den_khu, g.hang, g.so_lo, n, sl, g, true);
+  }
+  return [...m.values()];
+}

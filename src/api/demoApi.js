@@ -2,6 +2,7 @@
 // Kiểm tra quyền giống RLS để thử vai trò: ?demo=xem | nhap | quan_ly (mặc định quản trị).
 import { chiaDeuTheoGio, dauMocKH } from "../lib/keHoachNgay";
 import { klCanLam } from "../lib/linetime";
+import { tonKhoTheoSo } from "../lib/tonDau";
 import { demoData } from "../data/demoData";
 import { DEMO_ROLE, DEMO_NHOM } from "../config";
 import { NHOM, khoaDong, tuDb } from "../lib/sanLuongTT";
@@ -11,16 +12,8 @@ const clone = (x) => JSON.parse(JSON.stringify(x));
 const wait = (ms = 120) => new Promise((r) => setTimeout(r, ms));
 const BAC = { xem: 0, nhap: 1, quan_ly: 2, quan_tri: 3 };
 
-// Tồn theo bãi – hàng – lô tính từ sổ (giống view kho_ton trên Supabase)
-function tonKho(gd) {
-  const m = new Map();
-  const cong = (bai, hang, lo, ngay, sl, khu) => { const k = `${bai}|${khu || ""}|${hang}|${lo || ""}`; const r = m.get(k) || { ten_bai: bai, ten_khu: khu || "", hang, so_lo: lo || "", ton: 0, ngay_dau: ngay, ngay_cuoi: ngay }; r.ton += sl; if (ngay < r.ngay_dau) r.ngay_dau = ngay; if (ngay > r.ngay_cuoi) r.ngay_cuoi = ngay; m.set(k, r); };
-  for (const g of gd) {
-    cong(g.ten_bai, g.hang, g.so_lo, g.ngay, g.loai === "xuat" || g.loai === "dieu_chuyen" ? -g.so_luong : +g.so_luong, g.ten_khu);
-    if (g.loai === "dieu_chuyen" && g.den_bai) cong(g.den_bai, g.hang, g.so_lo, g.ngay, +g.so_luong, g.den_khu);
-  }
-  return [...m.values()];
-}
+// Tồn theo bãi – hàng – lô tính từ sổ, theo quy tắc tồn đầu kỳ ngày khai mới nhất (giống view kho_ton trên Supabase, xem tonKhoTheoSo ở lib/tonDau.js)
+const tonKho = tonKhoTheoSo;
 
 export function makeDemoApi() {
   const db = demoData();

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { tinhTonDau, luotTonDau, deltaLuot, chonTonDauMoiNhat, ngayVN } from "./tonDau";
+import { tinhTonDau, luotTonDau, deltaLuot, chonTonDauMoiNhat, ngayVN, tonKhoTheoSo } from "./tonDau";
 
 // Một gian "G1" của bãi "B"; gan trả khóa gian
 const gan = (bai, hang, khu) => (bai === "B" && (khu === "G1" || !khu) ? "k1" : "x");
@@ -77,4 +77,34 @@ describe("nhiều dòng tồn đầu trong một lần dán", () => {
     expect(r.delta).toBe(200);
   });
   it("định dạng ngày", () => { expect(ngayVN("2026-11-05")).toBe("05/11/2026"); });
+});
+
+describe("quy tắc tồn: số khai của ngày khai mới nhất, không cộng dồn, từ đó nhập / xuất cộng trừ", () => {
+  const b = "Kho nóng HRC1", k = "KHO HRC1", h = "THÉP CUỘN HRC";
+  const L = (id, ngay, loai, so_luong, ex = {}) => ({ id, ngay, loai, ten_bai: b, ten_khu: k, hang: h, so_luong, so_lo: null, ...ex });
+  const ton = (gd, bai = b) => Math.round(tonKhoTheoSo(gd).filter((r) => r.ten_bai === bai).reduce((s, r) => s + r.ton, 0) * 100) / 100;
+  it("chưa khai tồn đầu kiểu đặt lại: cộng dồn sổ như thường", () => {
+    expect(ton([L(1, "2026-11-05", "nhap", 100), L(2, "2026-11-06", "xuat", 30)])).toBe(70);
+  });
+  it("khai tồn đầu: tồn = số khai, bỏ qua lượt nhập / xuất ghi ngày trước ngày khai (kể cả ghi bổ sung sau)", () => {
+    const gd = [L(1, "2026-11-05", "nhap", 44926), L(2, "2026-11-19", "dau_ky", -3269.52, { do_thuc_te: 41656.48 }), L(3, "2026-11-15", "xuat", 47236.49)]; // lượt 3 ghi sau, ngày cũ
+    expect(ton(gd)).toBe(41656.48);
+  });
+  it("từ ngày khai trở đi cộng trừ bình thường, cùng ngày khai tính sau tồn đầu", () => {
+    const gd = [L(1, "2026-11-19", "dau_ky", 0, { do_thuc_te: 1000 }), L(2, "2026-11-19", "xuat", 100), L(3, "2026-11-20", "nhap", 50), L(4, "2026-11-21", "xuat", 20)];
+    expect(ton(gd)).toBe(930);
+  });
+  it("khai nhiều lần: chỉ lần khai ngày mới nhất, không cộng dồn; cùng ngày lấy lượt ghi sau", () => {
+    const gd = [L(1, "2026-11-10", "dau_ky", 500, { do_thuc_te: 500 }), L(2, "2026-11-15", "dau_ky", 100, { do_thuc_te: 600 }), L(3, "2026-11-15", "dau_ky", 50, { do_thuc_te: 650 }), L(4, "2026-11-16", "nhap", 10)];
+    expect(ton(gd)).toBe(660);
+  });
+  it("điều chuyển: gian đi trừ, gian đến cộng; mỗi gian theo ngày khai riêng", () => {
+    const den = { ten_bai: "Kho nóng HRC2", ten_khu: "KHO HRC2" };
+    const gd = [L(1, "2026-11-19", "dau_ky", 0, { do_thuc_te: 1000 }), { ...L(2, "2026-11-20", "dieu_chuyen", 200), den_bai: den.ten_bai, den_khu: den.ten_khu },
+      { ...L(3, "2026-11-10", "nhap", 777), ten_bai: den.ten_bai, ten_khu: den.ten_khu }, { ...L(4, "2026-11-19", "dau_ky", 0, { do_thuc_te: 300 }), ten_bai: den.ten_bai, ten_khu: den.ten_khu }];
+    expect(ton(gd, b)).toBe(800); expect(ton(gd, den.ten_bai)).toBe(500);
+  });
+  it("kiểm kê (cũng có do_thuc_te) vẫn cộng chênh lệch, không phải số khai tồn đầu", () => {
+    expect(ton([L(1, "2026-11-19", "dau_ky", 0, { do_thuc_te: 1000 }), L(2, "2026-11-20", "kiem_ke", -15, { do_thuc_te: 985 })])).toBe(985);
+  });
 });
