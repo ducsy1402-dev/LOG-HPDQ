@@ -87,15 +87,16 @@ export default function KeHoachXuatHang({ kyInfo: kyDay, homNay, c: cDay, nhom, 
     const v = new Map(); let tong = 0, i = 0; // v: tồn từng gian / lô; tong: cộng các gian / lô dương
     const ap = (e) => { const cu = v.get(e[1]) || 0, mo = cu + e[2]; v.set(e[1], mo); tong += Math.max(0, mo) - Math.max(0, cu); };
     for (; i < ev.length && ev[i][0] < kyInfo.ngays[0]; i++) ap(ev[i]); // tồn cuối ngày trước đầu tháng
-    const m = new Map();
-    for (const d of kyInfo.ngays) { if (d > homNay) break; for (; i < ev.length && ev[i][0] <= d; i++) ap(ev[i]); m.set(d, r2(tong)); }
+    const m = new Map(), ct = new Map(); // ct: ngày -> [[tên gian / lô, tồn]] (để xem chi tiết khi rê chuột vào đường tồn)
+    for (const d of kyInfo.ngays) { if (d > homNay) break; for (; i < ev.length && ev[i][0] <= d; i++) ap(ev[i]); m.set(d, r2(tong)); ct.set(d, [...v].filter(([, x]) => Math.abs(x) > 0.5).map(([k, x]) => [ten.get(k) || "(không rõ gian / lô)", r2(x)]).sort((a, b) => b[1] - a[1])); }
     for (; i < ev.length; i++) ap(ev[i]); // tháng đã qua: cộng tiếp tới hôm nay
     const am = [...v].filter(([, x]) => x < -0.5).map(([k, x]) => ({ ten: ten.get(k) || "(không rõ gian / lô)", ton: r2(x) })).sort((a, b) => a.ton - b.ton);
-    return { m, nay: r2(tong), am };
+    return { m, ct, nay: r2(tong), am };
   }, [kho, gd, kyInfo, homNay, nhom, D.hanghoa]); // eslint-disable-line react-hooks/exhaustive-deps
   const tonNay = tonNgay ? tonNgay.nay : null;
   const ton = useMemo(() => (tonNgay ? diem.map((o) => (o.cuoi > homNay ? null : tonNgay.m.get(o.cuoi) ?? null)) : null), [tonNgay, diem, homNay]);
 
+  const chiTiet = useMemo(() => (tonNgay ? diem.map((o) => tonNgay.ct.get(o.cuoi) || null) : []), [tonNgay, diem]);
   const lkKH = luyKe(c.khD).map(r2), lkTT = c.diem.map((o) => (o.lkTt == null ? null : r2(o.lkTt)));
   // Tồn dự báo từ hôm nay: tồn hôm nay + (sản xuất kế hoạch − xuất kế hoạch) của các ngày còn lại; điểm chứa hôm nay chỉ tính phần ngày còn lại
   const dbao = useMemo(() => {
@@ -122,7 +123,15 @@ export default function KeHoachXuatHang({ kyInfo: kyDay, homNay, c: cDay, nhom, 
   ];
   const option = {
     grid: { left: 4, right: 14, top: 44, bottom: 0, containLabel: true }, legend: { itemWidth: 14, itemHeight: 6, textStyle: { fontSize: 10 } },
-    tooltip: { trigger: "axis", valueFormatter: (v) => (v == null ? "—" : `${so(v)} t`) },
+    tooltip: { trigger: "axis", valueFormatter: (v) => (v == null ? "—" : `${so(v)} t`),
+      // Rê chuột vào một ngày: ngoài các đường còn liệt kê tồn HRC từng gian / lô của ngày đó (để đối chiếu với Lịch sử sổ kho)
+      formatter: (ps) => {
+        const ds = Array.isArray(ps) ? ps : [ps], e = (x) => String(x).replace(/[&<>]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[ch]);
+        const dong = ds.map((p) => `${p.marker}${e(p.seriesName)}: <b>${p.value == null || p.value === "" ? "—" : `${so(Array.isArray(p.value) ? p.value[1] : p.value)} t`}</b>`);
+        const ct = chiTiet[ds[0]?.dataIndex];
+        const chiTietHtml = ct?.length ? `<div style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(148,163,184,.3);font-size:11px;opacity:.9">Tồn theo gian / lô (${ct.length}):<br/>${ct.slice(0, 14).map(([t, v]) => `${e(t)}: ${so(v)} t`).join("<br/>")}${ct.length > 14 ? `<br/>… và ${ct.length - 14} gian / lô khác` : ""}</div>` : "";
+        return `${e(ds[0]?.axisValueLabel ?? "")}<br/>${dong.join("<br/>")}${chiTietHtml}`;
+      } },
     xAxis: { type: "category", data: c.diem.map((o) => o.nhan), axisLabel: { fontSize: 10, hideOverlap: true } },
     yAxis: { type: "value", name: "Khối lượng (t)", nameTextStyle: { fontSize: 10, align: "left" }, axisLabel: { fontSize: 10, formatter: nghin } },
     ...(dbao ? { visualMap: { show: false, type: "piecewise", seriesIndex: series.length - 1, dimension: 1, pieces: [{ lt: tonNay, color: MAU.thap }, { gte: tonNay, color: MAU.cao }], outOfRange: { color: "#94a3b8" } } } : {}),
