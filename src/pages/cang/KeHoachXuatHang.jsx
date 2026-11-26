@@ -69,27 +69,37 @@ export default function KeHoachXuatHang({ kyInfo: kyDay, homNay, c: cDay, nhom, 
     for (const d of kyInfo.ngays) { const k = khoaDiem(kyInfo.buoc, d); if (!idx.has(k)) { idx.set(k, ds.length); ds.push({ dau: d, cuoi: d, ngay: 0, tuongLai: 0 }); } const o = ds[idx.get(k)]; o.cuoi = d; o.ngay++; if (d > homNay) o.tuongLai++; }
     return ds;
   }, [kyInfo, homNay]);
-  // TỒN THỰC TẾ CỦA TỪNG NGÀY = tồn HRC ghi trong sổ kho tại cuối ngày đó, tính THEO TỪNG GIAN / LÔ rồi cộng lại (tồn đầu kỳ đã khai + nhập − xuất − điều chuyển của mọi lượt có ngày ≤ ngày đó, từ đầu sổ).
-  // Không tính ngược từ tồn hôm nay (cách cũ lệch cả đường khi sổ có lượt ghi ngày tương lai). Gian / lô có tồn ÂM (xuất ghi ở gian / lô chưa khai tồn đầu, ghi nhầm bãi…) không phải tồn kho thật:
-  // tính là 0 khi cộng, để không kéo thấp tổng so với số tồn đầu đã khai (VD khai 260.628 t ngày 19/11 mà các gian / lô âm làm tổng chỉ còn 153.512 t); các gian / lô âm được liệt kê dưới biểu đồ để sửa sổ.
-  const tonNgay = useMemo(() => { // Map ngày -> tồn cuối ngày (chỉ các ngày của tháng đang xem, tới hôm nay) + tồn hôm nay + gian / lô âm hôm nay
+  // TỒN THỰC TẾ CỦA TỪNG NGÀY = tồn HRC theo sổ kho lúc ĐẦU NGÀY đó (anh Sỹ 26/11/2026: ngày khai tồn đầu kỳ 260.628 t thì điểm của ngày đó phải hiện đúng số đã khai, không phải tồn cuối ngày
+  // sau khi trừ xuất / cộng nhập trong ngày): = mọi lượt có ngày trước ngày đó + các lượt "Tồn đầu kỳ" ghi đúng ngày đó. Nhập / xuất của ngày đó hiện từ điểm ngày hôm sau. RIÊNG hôm nay lấy tồn hiện tại
+  // (đã gồm nhập / xuất tới giờ) để khớp số "Tồn HRC hôm nay" và nối liền với đường dự báo. Tính THEO TỪNG GIAN / LÔ rồi cộng lại; gian / lô tồn ÂM tính 0 (xuất ghi ở gian / lô chưa khai tồn đầu, ghi nhầm bãi…)
+  // và được liệt kê dưới biểu đồ. Không tính ngược từ tồn hôm nay (lệch cả đường khi sổ có lượt ghi ngày tương lai).
+  const tonNgay = useMemo(() => { // Map ngày -> tồn đầu ngày (các ngày của tháng đang xem, tới hôm nay) + tồn hôm nay + gian / lô âm hôm nay
     if (!kho || !gd) return null;
-    const ev = [], ten = new Map();
+    const ev = [], ten = new Map(), byDay = new Map();
     for (const g of gd) {
       if (!lamNhom(g.hang)) continue;
       const n = String(g.ngay).slice(0, 10); if (n > homNay) continue;
-      const sl = +g.so_luong || 0, k = kho.gan(g.ten_bai, g.hang, g.ten_khu);
+      const sl = +g.so_luong || 0, k = kho.gan(g.ten_bai, g.hang, g.ten_khu), dauKy = g.loai === "dau_ky";
       if (!ten.has(k)) ten.set(k, [g.ten_bai, g.ten_khu].filter(Boolean).join(" › "));
-      ev.push([n, k, g.loai === "xuat" || g.loai === "dieu_chuyen" ? -sl : sl]);
-      if (g.loai === "dieu_chuyen" && g.den_bai) { const k2 = kho.gan(g.den_bai, g.hang, g.den_khu); if (!ten.has(k2)) ten.set(k2, [g.den_bai, g.den_khu].filter(Boolean).join(" › ")); ev.push([n, k2, sl]); }
+      ev.push([n, k, g.loai === "xuat" || g.loai === "dieu_chuyen" ? -sl : sl, dauKy]);
+      if (g.loai === "dieu_chuyen" && g.den_bai) { const k2 = kho.gan(g.den_bai, g.hang, g.den_khu); if (!ten.has(k2)) ten.set(k2, [g.den_bai, g.den_khu].filter(Boolean).join(" › ")); ev.push([n, k2, sl, false]); }
     }
-    ev.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
-    const v = new Map(); let tong = 0, i = 0; // v: tồn từng gian / lô; tong: cộng các gian / lô dương
+    for (const e of ev) { if (!byDay.has(e[0])) byDay.set(e[0], []); byDay.get(e[0]).push(e); }
+    const v = new Map(); let tong = 0; // v: tồn từng gian / lô; tong: cộng các gian / lô dương
     const ap = (e) => { const cu = v.get(e[1]) || 0, mo = cu + e[2]; v.set(e[1], mo); tong += Math.max(0, mo) - Math.max(0, cu); };
-    for (; i < ev.length && ev[i][0] < kyInfo.ngays[0]; i++) ap(ev[i]); // tồn cuối ngày trước đầu tháng
+    const dau = kyInfo.ngays[0], cuoi = kyInfo.ngays[kyInfo.ngays.length - 1];
+    for (const n of [...byDay.keys()].sort()) if (n < dau) byDay.get(n).forEach(ap); // mọi lượt trước đầu tháng
+    const snap = () => [...v].filter(([, x]) => Math.abs(x) > 0.5).map(([k, x]) => [ten.get(k) || "(không rõ gian / lô)", r2(x)]).sort((a, b) => b[1] - a[1]);
     const m = new Map(), ct = new Map(); // ct: ngày -> [[tên gian / lô, tồn]] (để xem chi tiết khi rê chuột vào đường tồn)
-    for (const d of kyInfo.ngays) { if (d > homNay) break; for (; i < ev.length && ev[i][0] <= d; i++) ap(ev[i]); m.set(d, r2(tong)); ct.set(d, [...v].filter(([, x]) => Math.abs(x) > 0.5).map(([k, x]) => [ten.get(k) || "(không rõ gian / lô)", r2(x)]).sort((a, b) => b[1] - a[1])); }
-    for (; i < ev.length; i++) ap(ev[i]); // tháng đã qua: cộng tiếp tới hôm nay
+    for (const d of kyInfo.ngays) {
+      if (d > homNay) break;
+      const evd = byDay.get(d) || [];
+      evd.filter((e) => e[3]).forEach(ap); // khai báo tồn đầu kỳ của chính ngày d
+      if (d !== homNay) { m.set(d, r2(tong)); ct.set(d, snap()); }
+      evd.filter((e) => !e[3]).forEach(ap); // nhập / xuất / điều chuyển trong ngày
+      if (d === homNay) { m.set(d, r2(tong)); ct.set(d, snap()); }
+    }
+    for (const n of [...byDay.keys()].sort()) if (n > cuoi) byDay.get(n).forEach(ap); // tháng đã qua: cộng tiếp tới hôm nay
     const am = [...v].filter(([, x]) => x < -0.5).map(([k, x]) => ({ ten: ten.get(k) || "(không rõ gian / lô)", ton: r2(x) })).sort((a, b) => a.ton - b.ton);
     return { m, ct, nay: r2(tong), am };
   }, [kho, gd, kyInfo, homNay, nhom, D.hanghoa]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -117,7 +127,7 @@ export default function KeHoachXuatHang({ kyInfo: kyDay, homNay, c: cDay, nhom, 
   const series = [
     duong("Lũy kế xuất · kế hoạch", lkKH, MAU.kh, { net: true }),
     duong("Lũy kế xuất · thực tế", lkTT, MAU.tt),
-    ...(ton ? [duong("Tồn kho HRC · thực tế", ton, MAU.ton, { them: { areaStyle: { color: MAU.ton, opacity: 0.07 } } })] : []),
+    ...(ton ? [duong("Tồn kho HRC · thực tế (đầu ngày)", ton, MAU.ton, { them: { areaStyle: { color: MAU.ton, opacity: 0.07 } } })] : []),
     ...(dbao ? [duong("Tồn kho HRC · dự báo", dbao.out, MAU.cao, { net: true, them: { markLine: { symbol: "none", silent: true, animation: false,
       data: [{ yAxis: tonNay, name: "Tồn hôm nay", lineStyle: { color: "#94a3b8", type: "dotted", width: 1 }, label: { formatter: "tồn hôm nay", position: "insideEndTop", fontSize: 10, color: "#94a3b8" } }] } } })] : []),
   ];
@@ -153,6 +163,7 @@ export default function KeHoachXuatHang({ kyInfo: kyDay, homNay, c: cDay, nhom, 
           <span>Tồn HRC hôm nay <b className="text-foreground">{so(tonNay, 0)} t</b> → dự báo cuối tháng <b className={dbao.cuoi >= tonNay ? "text-ok" : "text-bad"}>{so(dbao.cuoi, 0)} t</b> ({dbao.cuoi >= tonNay ? "tăng" : "giảm"} {so(Math.abs(dbao.cuoi - tonNay), 0)} t) = tồn hôm nay + sản xuất kế hoạch còn lại <b className="text-foreground">{so(dbao.sxCon, 0)} t</b> − xuất kế hoạch còn lại <b className="text-foreground">{so(dbao.xuCon, 0)} t</b>
             {dbao.het ? <b className="text-bad"> · dự kiến hết hàng từ {dbao.het}</b> : ""}. Đường dự báo <b className="text-ok">xanh</b> = cao hơn tồn hôm nay (sản xuất lớn hơn xuất kế hoạch), <b className="text-bad">đỏ</b> = thấp hơn.</span>
         ) : <span>Tồn kho HRC hôm nay: <b className="text-foreground">{so(tonNay, 0)} t</b>{kyInfo.ngays.every((d) => d <= homNay) ? " (tháng đã qua, không dự báo)" : ""}.</span>}
+        {kho && tonNgay && <span>Đường vàng = tồn HRC <b className="text-foreground">đầu ngày</b> theo sổ kho (ngày khai tồn đầu kỳ hiện đúng số đã khai; nhập / xuất của ngày đó hiện từ ngày sau). Riêng hôm nay là tồn hiện tại.</span>}
         {kho && tonNgay?.am.length > 0 && <span className="text-warn">Có {tonNgay.am.length} gian / lô HRC tồn ÂM trong sổ (tổng {so(tonNgay.am.reduce((s, x) => s + x.ton, 0), 0)} t) — không tính vào đường tồn: {tonNgay.am.slice(0, 4).map((x) => `${x.ten} (${so(x.ton, 0)} t)`).join("; ")}{tonNgay.am.length > 4 ? "…" : ""}. Thường do xuất ghi ở gian / lô chưa khai tồn đầu hoặc ghi nhầm bãi: kiểm tra ở Lịch sử sổ kho.</span>}
         {dbao && sx !== undefined && !(sx > 0) && <span className="text-warn">{sx === null ? "Chưa có bảng Kế hoạch sản xuất (SQL 22)" : "Chưa có Kế hoạch sản xuất HRC của tháng này"}: dự báo mới chỉ trừ kế hoạch xuất. Lập ở Đặt mục tiêu › Kế hoạch sản xuất.</span>}
         {dbao && sx > 0 && <span>Sản xuất HRC kế hoạch của tháng <b className="text-foreground">{so(sx, 0)} t</b>, chia đều theo ngày.</span>}
