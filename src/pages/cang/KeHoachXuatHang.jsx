@@ -79,27 +79,30 @@ export default function KeHoachXuatHang({ kyInfo: kyDay, homNay, c: cDay, nhom, 
     for (const g of gd) {
       if (!lamNhom(g.hang)) continue;
       const n = String(g.ngay).slice(0, 10); if (n > homNay) continue;
-      const sl = +g.so_luong || 0, k = kho.gan(g.ten_bai, g.hang, g.ten_khu), dauKy = g.loai === "dau_ky";
+      const sl = +g.so_luong || 0, k = kho.gan(g.ten_bai, g.hang, g.ten_khu), dauKy = g.loai === "dau_ky", thuc = dauKy && g.do_thuc_te != null && g.do_thuc_te !== "" ? +g.do_thuc_te : null;
       if (!ten.has(k)) ten.set(k, [g.ten_bai, g.ten_khu].filter(Boolean).join(" › "));
-      ev.push([n, k, g.loai === "xuat" || g.loai === "dieu_chuyen" ? -sl : sl, dauKy]);
-      if (g.loai === "dieu_chuyen" && g.den_bai) { const k2 = kho.gan(g.den_bai, g.hang, g.den_khu); if (!ten.has(k2)) ten.set(k2, [g.den_bai, g.den_khu].filter(Boolean).join(" › ")); ev.push([n, k2, sl, false]); }
+      ev.push([n, k, g.loai === "xuat" || g.loai === "dieu_chuyen" ? -sl : sl, dauKy, thuc, +g.id || 0]);
+      if (g.loai === "dieu_chuyen" && g.den_bai) { const k2 = kho.gan(g.den_bai, g.hang, g.den_khu); if (!ten.has(k2)) ten.set(k2, [g.den_bai, g.den_khu].filter(Boolean).join(" › ")); ev.push([n, k2, sl, false, null, +g.id || 0]); }
     }
     for (const e of ev) { if (!byDay.has(e[0])) byDay.set(e[0], []); byDay.get(e[0]).push(e); }
     const v = new Map(); let tong = 0; // v: tồn từng gian / lô; tong: cộng các gian / lô dương
-    const ap = (e) => { const cu = v.get(e[1]) || 0, mo = cu + e[2]; v.set(e[1], mo); tong += Math.max(0, mo) - Math.max(0, cu); };
+    // Lượt Tồn đầu kỳ kiểu ĐẶT LẠI (có số khai do_thuc_te): tồn của gian / lô từ ngày đó = đúng số khai, BỎ QUA mọi lượt ghi ngày trước đó (kể cả lượt nhập / xuất ghi bổ sung SAU khi khai mà mang ngày cũ).
+    // Lượt tồn đầu kiểu cũ (không có số khai) vẫn cộng dồn.
+    const ap = (e) => { const cu = v.get(e[1]) || 0, mo = e[4] != null ? e[4] : cu + e[2]; v.set(e[1], mo); tong += Math.max(0, mo) - Math.max(0, cu); };
+    const dauKyCua = (n) => (byDay.get(n) || []).filter((e) => e[3]).sort((a, b) => a[5] - b[5]); // khai báo tồn đầu kỳ của ngày n, theo thứ tự ghi
+    const khacCua = (n) => (byDay.get(n) || []).filter((e) => !e[3]);
     const dau = kyInfo.ngays[0], cuoi = kyInfo.ngays[kyInfo.ngays.length - 1];
-    for (const n of [...byDay.keys()].sort()) if (n < dau) byDay.get(n).forEach(ap); // mọi lượt trước đầu tháng
+    for (const n of [...byDay.keys()].sort()) if (n < dau) { dauKyCua(n).forEach(ap); khacCua(n).forEach(ap); } // mọi lượt trước đầu tháng
     const snap = () => [...v].filter(([, x]) => Math.abs(x) > 0.5).map(([k, x]) => [ten.get(k) || "(không rõ gian / lô)", r2(x)]).sort((a, b) => b[1] - a[1]);
     const m = new Map(), ct = new Map(); // ct: ngày -> [[tên gian / lô, tồn]] (để xem chi tiết khi rê chuột vào đường tồn)
     for (const d of kyInfo.ngays) {
       if (d > homNay) break;
-      const evd = byDay.get(d) || [];
-      evd.filter((e) => e[3]).forEach(ap); // khai báo tồn đầu kỳ của chính ngày d
+      dauKyCua(d).forEach(ap); // khai báo tồn đầu kỳ của chính ngày d
       if (d !== homNay) { m.set(d, r2(tong)); ct.set(d, snap()); }
-      evd.filter((e) => !e[3]).forEach(ap); // nhập / xuất / điều chuyển trong ngày
+      khacCua(d).forEach(ap); // nhập / xuất / điều chuyển trong ngày
       if (d === homNay) { m.set(d, r2(tong)); ct.set(d, snap()); }
     }
-    for (const n of [...byDay.keys()].sort()) if (n > cuoi) byDay.get(n).forEach(ap); // tháng đã qua: cộng tiếp tới hôm nay
+    for (const n of [...byDay.keys()].sort()) if (n > cuoi) { dauKyCua(n).forEach(ap); khacCua(n).forEach(ap); } // tháng đã qua: tiếp tới hôm nay
     const am = [...v].filter(([, x]) => x < -0.5).map(([k, x]) => ({ ten: ten.get(k) || "(không rõ gian / lô)", ton: r2(x) })).sort((a, b) => a.ton - b.ton);
     return { m, ct, nay: r2(tong), am };
   }, [kho, gd, kyInfo, homNay, nhom, D.hanghoa]); // eslint-disable-line react-hooks/exhaustive-deps
